@@ -3144,13 +3144,14 @@ function renderPanel() {
       </td>
     </tr>` : '';
 
-    const deleteUnitBtn = isUserMode
-      ? `<button onclick="deleteUserUnit('${u.id}')" title="Remove unit" style="background:none;border:none;color:#5a3030;font-size:14px;cursor:pointer;padding:0 4px;margin-left:4px" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='#5a3030'">×</button>`
-      : '';
+    const userBtns = isUserMode ? `
+      <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
+      <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
+      <button onclick="deleteUserUnit('${u.id}')" title="Remove unit" style="background:none;border:1px solid #3a1a1a;color:#5a3030;font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='#e05252';this.style.color='#e05252'" onmouseout="this.style.borderColor='#3a1a1a';this.style.color='#5a3030'">× Remove</button>` : '';
     html += `<tr class="unit-row">
       <td><input class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${deleteUnitBtn}</td>
+      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${userBtns}</td>
     </tr>${ovRow}`;
   });
 
@@ -6896,6 +6897,11 @@ function confirmAddRoom() {
   const id = 'ur_' + Date.now();
   const icon = getSelectedRoomIcon();
   userRooms.push({ id, name, icon });
+  // Register in MAT_GROUPS so material selector works
+  if (!MAT_GROUPS.find(g => g.id === id)) {
+    MAT_GROUPS.push({ id, label: name, section: id });
+    materialConfig[id] = { wood: 'Dunblane', edging: 'Dunblane' };
+  }
   // Seed bedroomAddons for this room
   if (!bedroomAddons[id]) bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
   document.getElementById('add-room-modal').remove();
@@ -7136,6 +7142,198 @@ function applyRoleRestrictions() {
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// USER UNIT EDIT MODAL (dimensions / name)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openUnitEditModal(unitId) {
+  const unit = userUnits.find(u => u.id === unitId);
+  if (!unit) return;
+
+  const baseWidth  = parseBaseWidth(unit);
+  const baseHeight = (() => {
+    // Detect height from part named 'Sides' or tallest l/w not matching width
+    const sides = (unit.parts||[]).find(p => /\bsides?\b/i.test(p.name));
+    if (sides) return Math.max(sides.l, sides.w);
+    const dims = (unit.parts||[]).flatMap(p => [p.l, p.w]).filter(d => d > 200 && Math.abs(d-baseWidth) > 20);
+    return dims.length ? Math.max(...dims) : 780;
+  })();
+
+  document.getElementById('uem-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'uem-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">✏ EDIT UNIT</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">Changes are applied immediately. Use Scale to proportionally resize all parts.</div>
+
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Unit Name</label>
+      <input id="uem-name" value="${unit.name.replace(/"/g,'&quot;')}"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Scale Width (mm)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="uem-width" type="number" min="100" max="2400" value="${baseWidth}"
+              style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none"
+              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            <span style="font-size:11px;color:var(--text-muted)">was ${baseWidth}</span>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Scale Height (mm)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="uem-height" type="number" min="100" max="3000" value="${baseHeight}"
+              style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none"
+              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            <span style="font-size:11px;color:var(--text-muted)">was ${baseHeight}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);padding:10px 14px;font-size:11px;color:var(--text-muted);margin-bottom:20px;line-height:1.7">
+        💡 Scaling adjusts parts proportionally using the same smart logic as the Width/Height Builder — structural depths and heights are preserved.
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="confirmUnitEdit('${unitId}', ${baseWidth}, ${baseHeight})"
+          style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">APPLY CHANGES</button>
+        <button onclick="document.getElementById('uem-modal').remove()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('uem-name').focus();
+}
+
+function confirmUnitEdit(unitId, origWidth, origHeight) {
+  const unit = userUnits.find(u => u.id === unitId);
+  if (!unit) return;
+  const newName   = document.getElementById('uem-name')?.value.trim() || unit.name;
+  const newWidth  = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
+  const newHeight = parseInt(document.getElementById('uem-height')?.value) || origHeight;
+
+  unit.name = newName;
+
+  // Scale width if changed
+  if (newWidth !== origWidth && unit.parts?.length) {
+    unit.parts = unit.parts.map(p => {
+      const s = scalePart(p, origWidth, newWidth);
+      return { ...s, _lMode: undefined, _wMode: undefined };
+    });
+  }
+  // Scale height if changed
+  if (newHeight !== origHeight && unit.parts?.length) {
+    unit.parts = unit.parts.map(p => {
+      const s = scalePartHeight(p, origHeight, newHeight);
+      return { ...s, _lMode: undefined, _wMode: undefined };
+    });
+  }
+
+  document.getElementById('uem-modal').remove();
+  renderPanel();
+  scheduleAutoSave();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// USER UNIT PARTS MODAL (inline parts editor)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openUnitPartsModal(unitId) {
+  const unit = userUnits.find(u => u.id === unitId);
+  if (!unit) return;
+
+  document.getElementById('upm-modal')?.remove();
+  const partsRows = (unit.parts || []).map((p, i) => buildPartRow(p, i)).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'upm-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:1100px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text)">🔧 PARTS — ${unit.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Edit dimensions, materials and edging for each part.</div>
+        </div>
+        <button onclick="document.getElementById('upm-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:16px 20px">
+        <div style="overflow-x:auto">
+          <table class="parts-edit-table" id="upm-parts-tbody-wrap">
+            <thead><tr>
+              <th style="width:24px">#</th>
+              <th style="min-width:130px">Part Name</th>
+              <th style="width:50px">Qty</th>
+              <th style="width:70px">Length</th>
+              <th style="width:70px">Width</th>
+              <th style="min-width:140px">Material</th>
+              <th style="min-width:120px">Edge L1</th>
+              <th style="min-width:120px">Edge L2</th>
+              <th style="min-width:120px">Edge W1</th>
+              <th style="min-width:120px">Edge W2</th>
+              <th style="min-width:110px">Holes/Notes</th>
+              <th style="width:28px"></th>
+            </tr></thead>
+            <tbody id="upm-parts-tbody">${partsRows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <button onclick="upmAddPartRow()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;font-size:12px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">+ ADD PART</button>
+        <div style="flex:1"></div>
+        <button onclick="document.getElementById('upm-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+        <button onclick="saveUnitParts('${unitId}')" style="background:var(--amber);color:#111;border:none;padding:8px 22px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">💾 SAVE PARTS</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function upmAddPartRow() {
+  const tbody = document.getElementById('upm-parts-tbody');
+  if (!tbody) return;
+  const idx = tbody.querySelectorAll('tr').length;
+  const tr = document.createElement('tr');
+  tr.dataset.idx = idx;
+  tr.innerHTML = buildPartRow({name:'',qty:1,l:0,w:0,mat:'White Melamine',el1:'',el2:'',ew1:'',ew2:'',holes:''}, idx)
+    .match(/<tr[^>]*>([\s\S]*)<\/tr>/)[1];
+  tbody.appendChild(tr);
+  tr.querySelector('.part-cell-input')?.focus();
+}
+
+function saveUnitParts(unitId) {
+  const unit = userUnits.find(u => u.id === unitId);
+  if (!unit) return;
+  // Read parts from upm table (re-use same field logic as readPartsFromTable but from upm-parts-tbody)
+  const rows = document.querySelectorAll('#upm-parts-tbody tr');
+  const parts = [];
+  rows.forEach(row => {
+    const get = f => { const el = row.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
+    const name = get('name').trim();
+    if (!name) return;
+    parts.push({
+      name,
+      qty:   parseInt(get('qty'))  || 1,
+      l:     parseInt(get('l'))    || 0,
+      w:     parseInt(get('w'))    || 0,
+      mat:   get('mat')  || 'White Melamine',
+      el1:   get('el1')  || '',
+      el2:   get('el2')  || '',
+      ew1:   get('ew1')  || '',
+      ew2:   get('ew2')  || '',
+      holes: get('holes') || '',
+    });
+  });
+  unit.parts = parts;
+  document.getElementById('upm-modal').remove();
+  renderPanel();
+  scheduleAutoSave();
+}
 
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
@@ -8773,7 +8971,16 @@ function applyState(state) {
   }
   if (state.unitOverrides)   Object.assign(unitOverrides, state.unitOverrides);
   if (state.deletedUnits)  { deletedUnits.clear(); state.deletedUnits.forEach(id => deletedUnits.add(id)); }
-  if (state.userRooms)     { userRooms = [...state.userRooms]; }
+  if (state.userRooms) {
+    userRooms = [...state.userRooms];
+    // Re-register in MAT_GROUPS so material selectors work after reload
+    userRooms.forEach(room => {
+      if (!MAT_GROUPS.find(g => g.id === room.id)) {
+        MAT_GROUPS.push({ id: room.id, label: room.name, section: room.id });
+        if (!materialConfig[room.id]) materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+      }
+    });
+  }
   if (state.userUnits)     { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
   if (userRooms.length > 0) { renderUserRoomsNav(); }
   if (state.job) {
@@ -10776,30 +10983,7 @@ loadJobDetails();
 setTimeout(() => {
   updateSaveHtmlBadge();
 
-  // If there's local-only custom data but no baked state, nudge the user once
-  const hasLocalCustom = costingPrices.customBoards.length > 0 || costingPrices.customHardware.length > 0;
-  if (!BAKED_STATE && hasLocalCustom) {
-    const banner = document.createElement('div');
-    banner.id = 'save-nudge-banner';
-    banner.innerHTML = `
-      <div style="position:fixed;bottom:16px;right:16px;z-index:8000;background:#1a1a1a;border:1px solid var(--amber);
-          padding:14px 18px;font-family:'Barlow',sans-serif;font-size:13px;max-width:340px;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,0.6)">
-        <div style="color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:6px">⚠ CUSTOM DATA NOT BAKED</div>
-        <div style="color:var(--text-muted);font-size:12px;margin-bottom:12px">
-          You have custom boards or hardware items stored only in this browser.
-          Click <strong style="color:var(--text)">💾 Save HTML</strong> to bake everything into the file so it works on any device.
-        </div>
-        <div style="display:flex;gap:8px">
-          <button onclick="quickSaveHTML();document.getElementById('save-nudge-banner').remove()"
-            style="background:var(--amber);color:#111;border:none;padding:6px 16px;font-family:'Oswald',sans-serif;
-                   font-size:11px;letter-spacing:1px;cursor:pointer">💾 SAVE NOW</button>
-          <button onclick="document.getElementById('save-nudge-banner').remove()"
-            style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;
-                   font-size:11px;cursor:pointer">Later</button>
-        </div>
-      </div>`;
-    document.body.appendChild(banner);
-  }
+  // (bake nudge removed — data is now saved to Supabase automatically)
 }, 500);
 </script>
 </body>
