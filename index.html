@@ -1836,9 +1836,11 @@
   <div style="width:380px;max-width:95vw">
     <div style="text-align:center;margin-bottom:32px">
       <div style="font-family:'Oswald',sans-serif;font-size:32px;letter-spacing:4px;color:var(--amber)">CUTLIST <span style="color:var(--text)">PRO</span></div>
-      <div style="font-size:12px;color:var(--text-muted);letter-spacing:2px;margin-top:6px">SIGN IN TO CONTINUE</div>
+      <div id="login-subtitle" style="font-size:12px;color:var(--text-muted);letter-spacing:2px;margin-top:6px">SIGN IN TO CONTINUE</div>
     </div>
-    <div style="background:var(--bg2);border:1px solid var(--border);padding:28px">
+
+    <!-- ── Normal login form ── -->
+    <div id="login-form" style="background:var(--bg2);border:1px solid var(--border);padding:28px">
       <div style="margin-bottom:16px">
         <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Email</label>
         <input id="login-email" type="email" autocomplete="email"
@@ -1861,6 +1863,32 @@
       <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--text-muted)">
         Contact your administrator to create an account.
       </div>
+    </div>
+
+    <!-- ── Set password form (shown after invite / password reset) ── -->
+    <div id="setpw-form" style="display:none;background:var(--bg2);border:1px solid var(--border);padding:28px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.7">
+        Welcome! Choose a password to activate your account.
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">New Password</label>
+        <input id="setpw-password" type="password" autocomplete="new-password"
+          style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+          onkeydown="if(event.key==='Enter')document.getElementById('setpw-confirm').focus()">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Confirm Password</label>
+        <input id="setpw-confirm" type="password" autocomplete="new-password"
+          style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+          onkeydown="if(event.key==='Enter')doSetPassword()">
+      </div>
+      <div id="setpw-error" style="display:none;background:rgba(224,82,82,0.15);border:1px solid #5a2a2a;color:#e07070;padding:8px 12px;font-size:12px;margin-bottom:16px"></div>
+      <button id="setpw-btn" onclick="doSetPassword()"
+        style="width:100%;background:var(--amber);color:#111;border:none;padding:12px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">
+        SET PASSWORD &amp; SIGN IN
+      </button>
     </div>
   </div>
 </div>
@@ -6363,15 +6391,75 @@ function applyRoleRestrictions() {
   // My Costs: visible to all users — each person has their own costs
 }
 
+async function doSetPassword() {
+  const pw1 = document.getElementById('setpw-password').value;
+  const pw2 = document.getElementById('setpw-confirm').value;
+  const btn = document.getElementById('setpw-btn');
+  const err = document.getElementById('setpw-error');
+  err.style.display = 'none';
+
+  if (!pw1 || pw1.length < 6) { showSetPwError('Password must be at least 6 characters.'); return; }
+  if (pw1 !== pw2)             { showSetPwError('Passwords do not match.'); return; }
+
+  btn.textContent = 'SAVING…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw1 })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || data.error_description || 'Failed to set password');
+    // Password set — session is already active from the invite token, proceed
+    await onLoginSuccess();
+  } catch(e) {
+    showSetPwError(e.message);
+    btn.textContent = 'SET PASSWORD & SIGN IN';
+    btn.disabled = false;
+  }
+}
+
+function showSetPwError(msg) {
+  const err = document.getElementById('setpw-error');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+// Parse hash params from URL (used for invite/recovery tokens)
+function getHashParams() {
+  const hash = window.location.hash.substring(1);
+  return Object.fromEntries(hash.split('&').filter(Boolean).map(p => p.split('=')));
+}
+
 async function onLoginSuccess() {
   await fetchUserRole();
+  // Ensure profile row exists for new invited users
+  await ensureProfile();
   document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('setpw-form').style.display = 'none';
   document.getElementById('job-bar').style.display = 'flex';
   document.getElementById('user-email-badge').textContent =
     sbUser.email + (isAdmin() ? ' ★' : '');
   applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
+}
+
+async function ensureProfile() {
+  // Creates the profile row for invited users who weren't in profiles yet
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=id`, { headers: authHeaders() });
+    const rows = await check.json();
+    if (rows.length === 0) {
+      await fetch(`${SB_URL}/rest/v1/profiles`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ id: sbUser.id, email: sbUser.email, role: 'user' })
+      });
+    }
+  } catch(e) { console.warn('[Supabase] ensureProfile failed:', e.message); }
 }
 
 // ── Restore session on page load ──────────────────────────────────────────────
@@ -7261,7 +7349,7 @@ function renderPricesView() {
         <button onclick="${delFn}" title="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>
       ${edgeRows}
-      ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">` : '<!--'}
+      ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
         <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
           style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
@@ -7274,7 +7362,7 @@ function renderPricesView() {
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
         <button onclick="addBoardEdging('${mat.replace(/'/g,"\\\\'")}') "
           style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 6px;cursor:pointer;width:28px;flex-shrink:0;letter-spacing:0">+</button>
-      </div>
+      </div>` : ''}
     </div>`;
   }).join('');
 
@@ -10239,8 +10327,33 @@ renderPanel();
 updateCounts();
 loadJobDetails();
 
-// ── Auth init: try to restore session, otherwise show login ──────────────────
+// ── Auth init: check for invite/recovery token, then restore session ──────────
 (async () => {
+  const hash = getHashParams();
+
+  // Supabase puts access_token in URL hash for invite and password recovery
+  if (hash.access_token && (hash.type === 'invite' || hash.type === 'recovery')) {
+    // Store token so authHeaders() works for the password update call
+    sbToken = hash.access_token;
+    // Fetch user info from this token
+    try {
+      const res = await fetch(`${SB_URL}/auth/v1/user`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + sbToken }
+      });
+      const user = await res.json();
+      sbUser = { id: user.id, email: user.email };
+    } catch(e) {}
+    // Clean token from URL so it's not bookmarked
+    history.replaceState(null, '', window.location.pathname);
+    // Show set-password screen
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('setpw-form').style.display = 'block';
+    document.getElementById('login-subtitle').textContent = 'SET YOUR PASSWORD';
+    document.getElementById('setpw-password').focus();
+    return;
+  }
+
   const ok = await restoreSession();
   if (ok) {
     await onLoginSuccess();
