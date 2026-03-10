@@ -2602,6 +2602,13 @@ let customUnits = [];
 const unitOverrides = {};
 const deletedUnits = new Set();
 
+// ── Declared early so getEffectiveUnits() can safely read it at startup ───────
+let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
+
+// ── User-defined rooms & units (non-admin users) ──────────────────────────────
+let userRooms = [];   // [{id, name, icon}]
+let userUnits = [];   // [{id, roomId, name, parts, ...}]
+
 try {
   const cu = JSON.parse(localStorage.getItem('cutlist_custom_units') || '[]');
   customUnits = cu;
@@ -2625,6 +2632,10 @@ function saveCustomUnits() {
 const saveDeletedUnits = saveCustomUnits;
 
 function getEffectiveUnits() {
+  // Non-admin users have their own user-defined units
+  if (sbRole !== 'admin' && userRooms.length > 0) {
+    return userUnits;
+  }
   const base = UNITS
     .filter(u => !deletedUnits.has(u.id))
     .map(u => unitOverrides[u.id] ? {...u, ...unitOverrides[u.id]} : u);
@@ -2785,6 +2796,9 @@ function getUnitMaterialGroup(unit) {
   if (unit.section === 'kitchen') {
     return /^W\d/.test(unit.name) ? 'kitchen_wall' : 'kitchen_floor';
   }
+  // For user-defined rooms, fall back to 'custom' material group
+  const knownSections = ['kitchen','mainbedroom','sparebedroom','linnekast','bathroom','custom'];
+  if (!knownSections.includes(unit.section)) return 'custom';
   return unit.section;
 }
 
@@ -3022,17 +3036,22 @@ function switchTab(btn, section) {
 
 function renderPanel() {
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
-  const sec = sections.find(s => s.id === currentSection) || {label: currentSection};
+  const isUserMode = sbRole !== 'admin' && userRooms.length > 0;
+  const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
+  const sec = userRoom
+    ? {id: userRoom.id, label: userRoom.name}
+    : (sections.find(s => s.id === currentSection) || {label: currentSection});
 
   // Determine which material groups apply to this section
   const matGroupIds = currentSection === 'kitchen'
     ? ['kitchen_wall', 'kitchen_floor']
     : [currentSection];
 
-  let html = buildMatSelector(matGroupIds);
+  // For user mode: material selector only if there are units
+  let html = (isUserMode && units.length === 0) ? '' : buildMatSelector(matGroupIds);
 
-  // Width Builder button for Custom section
-  if (currentSection === 'custom') {
+  // Width Builder button for Custom section (admin only)
+  if (!isUserMode && currentSection === 'custom') {
     html += `<div style="padding:14px 0 0">
       <button class="btn btn-primary" style="font-size:13px;padding:10px 20px" onclick="openWidthBuilder()">
         ⚡ Build Custom Width Unit
@@ -3044,7 +3063,31 @@ function renderPanel() {
     </div>`;
   }
 
-  html += `<div class="section-header">${sec.label}</div>
+  // User mode: add unit controls
+  if (isUserMode) {
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:16px 0 8px;flex-wrap:wrap">
+      <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text);flex:1">${userRoom?.icon||''} ${sec.label}</div>
+      <button onclick="openTemplateBrowser()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">📋 COPY FROM TEMPLATE</button>
+      <button onclick="openNewUnitModal()" style="background:var(--amber);color:#111;border:none;padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ NEW UNIT</button>
+      <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room">✏</button>
+      <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room">🗑</button>
+    </div>`;
+    if (units.length === 0) {
+      html += `<div style="padding:40px 0;text-align:center;color:var(--text-muted);border:2px dashed var(--border);border-radius:3px;margin:12px 0">
+        <div style="font-size:28px;margin-bottom:12px">📦</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px">NO UNITS YET</div>
+        <div style="font-size:12px;margin-bottom:16px">Add units from the template library or create your own.</div>
+        <button onclick="openTemplateBrowser()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;margin-right:8px">📋 COPY FROM TEMPLATE</button>
+        <button onclick="openNewUnitModal()" style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ NEW UNIT</button>
+      </div>`;
+      html += `</div>`;
+      document.getElementById('unit-panel').innerHTML = html;
+      updateSummary(); updateCounts();
+      return;
+    }
+  }
+
+  html += `<div class="section-header">${isUserMode ? '' : sec.label}</div>
   <table class="units-table">
     <thead><tr>
       <th>Qty</th><th>Unit</th>
@@ -3098,10 +3141,13 @@ function renderPanel() {
       </td>
     </tr>` : '';
 
+    const deleteUnitBtn = isUserMode
+      ? `<button onclick="deleteUserUnit('${u.id}')" title="Remove unit" style="background:none;border:none;color:#5a3030;font-size:14px;cursor:pointer;padding:0 4px;margin-left:4px" onmouseover="this.style.color='#e05252'" onmouseout="this.style.color='#5a3030'">×</button>`
+      : '';
     html += `<tr class="unit-row">
       <td><input class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}</td>
+      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${deleteUnitBtn}</td>
     </tr>${ovRow}`;
   });
 
@@ -3135,7 +3181,10 @@ function setQty(id, input) {
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
-  sections.forEach(sec => {
+  const roomList = (sbRole !== 'admin' && userRooms.length > 0)
+    ? userRooms.map(r => ({id: r.id, label: r.name}))
+    : sections;
+  roomList.forEach(sec => {
     const selected = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
     if (!selected.length) return;
     const count = selected.reduce((s,u) => s + (quantities[u.id]||0), 0);
@@ -3148,7 +3197,8 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  sections.forEach(sec => {
+  const roomList = (sbRole !== 'admin' && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
+  roomList.forEach(sec => {
     const count = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
     if (el) el.textContent = count;
@@ -6304,7 +6354,6 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let sbSyncStatus = 'idle'; // 'idle' | 'loading' | 'ok' | 'error'
 let sbUser   = null;   // { id, email }
 let sbToken  = null;   // JWT access token
-let sbRole   = 'user'; // 'admin' | 'user'
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let autoSaveTimer = null;
@@ -6533,6 +6582,8 @@ function getJobState() {
     customUnits:    [...customUnits],
     unitOverrides:  {...unitOverrides},
     deletedUnits:   [...deletedUnits],
+    userRooms:      [...userRooms],
+    userUnits:      [...userUnits],
   };
 }
 
@@ -6727,6 +6778,358 @@ async function updateUserRole(userId, newRole, selectEl) {
     selectEl.value = selectEl.value === 'admin' ? 'user' : 'admin'; // revert
   }
   selectEl.disabled = false;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// USER ROOMS SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+const ROOM_ICONS = ['🍳','🛏','🚿','🚪','🪞','🏠','📦','🗄️','🪑','🖥️','👚','📚'];
+
+// ── Render dynamic nav row for regular users ──────────────────────────────────
+function renderUserRoomsNav() {
+  const navTabs = document.getElementById('navTabs');
+  if (!navTabs) return;
+
+  // Remove existing user rooms row if present
+  const existingRow = document.getElementById('user-rooms-row');
+  if (existingRow) existingRow.remove();
+  const existingDivider = document.getElementById('user-rooms-divider');
+  if (existingDivider) existingDivider.remove();
+
+  // Hide the static admin rooms row and its divider
+  const rows = navTabs.querySelectorAll('.nav-row');
+  if (rows[0]) rows[0].style.display = 'none';
+  const dividers = navTabs.querySelectorAll('.nav-divider');
+  if (dividers[0]) dividers[0].style.display = 'none';
+
+  // Build dynamic rooms row
+  const row = document.createElement('div');
+  row.className = 'nav-row';
+  row.id = 'user-rooms-row';
+
+  const label = document.createElement('span');
+  label.className = 'nav-row-label';
+  label.textContent = 'Rooms';
+  row.appendChild(label);
+
+  userRooms.forEach(room => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (currentSection === room.id ? ' active' : '');
+    btn.dataset.section = room.id;
+    btn.innerHTML = `${room.icon} ${room.name} <span class="count" id="cnt-${room.id}">0</span>`;
+    btn.onclick = () => switchTab(btn, room.id);
+    row.appendChild(btn);
+  });
+
+  // + Add Room button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'tab';
+  addBtn.style.cssText = 'color:var(--amber-dim);font-size:11px;padding:12px 14px';
+  addBtn.innerHTML = '＋ Add Room';
+  addBtn.onclick = openAddRoomModal;
+  row.appendChild(addBtn);
+
+  // Insert before the first existing nav-row
+  const firstRow = navTabs.querySelector('.nav-row');
+  navTabs.insertBefore(row, firstRow);
+
+  // Insert a divider after the new row
+  const div = document.createElement('hr');
+  div.className = 'nav-divider';
+  div.id = 'user-rooms-divider';
+  row.after(div);
+
+  updateCounts();
+}
+
+// ── Add Room Modal ────────────────────────────────────────────────────────────
+function openAddRoomModal() {
+  const icons = ROOM_ICONS.map((ic,i) =>
+    `<button onclick="selectRoomIcon('${ic}',this)"
+      style="font-size:22px;background:var(--bg3);border:1px solid var(--border);padding:6px 10px;cursor:pointer;border-radius:3px"
+      onmouseover="this.style.borderColor='var(--amber)'" onmouseout="if(!this.classList.contains('sel'))this.style.borderColor='var(--border)'"
+      >${ic}</button>`
+  ).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'add-room-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:420px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:20px">＋ ADD ROOM</div>
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Room Name</label>
+      <input id="new-room-name" type="text" placeholder="e.g. Lounge, Study, Kids Room…"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+        onkeydown="if(event.key==='Enter')confirmAddRoom()">
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px">Icon</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px" id="room-icon-picker">${icons}</div>
+      <div id="add-room-err" style="display:none;color:#e07070;font-size:12px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="confirmAddRoom()" style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">CREATE ROOM</button>
+        <button onclick="document.getElementById('add-room-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Select first icon by default
+  const firstIconBtn = modal.querySelector('#room-icon-picker button');
+  if (firstIconBtn) { firstIconBtn.classList.add('sel'); firstIconBtn.style.borderColor='var(--amber)'; firstIconBtn.style.background='rgba(212,145,58,0.15)'; }
+  document.getElementById('new-room-name').focus();
+}
+
+function selectRoomIcon(icon, btn) {
+  document.querySelectorAll('#room-icon-picker button').forEach(b => {
+    b.classList.remove('sel'); b.style.borderColor='var(--border)'; b.style.background='var(--bg3)';
+  });
+  btn.classList.add('sel'); btn.style.borderColor='var(--amber)'; btn.style.background='rgba(212,145,58,0.15)';
+}
+
+function getSelectedRoomIcon() {
+  const sel = document.querySelector('#room-icon-picker button.sel');
+  return sel ? sel.textContent.trim() : '🏠';
+}
+
+function confirmAddRoom() {
+  const name = document.getElementById('new-room-name')?.value.trim();
+  if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return; }
+  const id = 'ur_' + Date.now();
+  const icon = getSelectedRoomIcon();
+  userRooms.push({ id, name, icon });
+  // Seed bedroomAddons for this room
+  if (!bedroomAddons[id]) bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+  document.getElementById('add-room-modal').remove();
+  renderUserRoomsNav();
+  // Switch to new room
+  const btn = document.querySelector(`button[data-section="${id}"]`);
+  if (btn) switchTab(btn, id);
+  scheduleAutoSave();
+}
+
+function renameRoomPrompt(roomId) {
+  const room = userRooms.find(r => r.id === roomId);
+  if (!room) return;
+  const name = prompt('Rename room:', room.name);
+  if (name && name.trim()) {
+    room.name = name.trim();
+    renderUserRoomsNav();
+    renderPanel();
+    scheduleAutoSave();
+  }
+}
+
+function deleteRoomPrompt(roomId) {
+  const room = userRooms.find(r => r.id === roomId);
+  if (!room) return;
+  const unitCount = userUnits.filter(u => u.section === roomId).length;
+  const msg = unitCount > 0
+    ? `Delete room "${room.name}"? This will also remove ${unitCount} unit${unitCount!==1?'s':''}.`
+    : `Delete room "${room.name}"?`;
+  if (!confirm(msg)) return;
+  userRooms = userRooms.filter(r => r.id !== roomId);
+  userUnits = userUnits.filter(u => u.section !== roomId);
+  renderUserRoomsNav();
+  if (userRooms.length > 0) {
+    const btn = document.querySelector(`button[data-section="${userRooms[0].id}"]`);
+    if (btn) switchTab(btn, userRooms[0].id);
+  }
+  scheduleAutoSave();
+}
+
+// ── Delete user unit ──────────────────────────────────────────────────────────
+function deleteUserUnit(unitId) {
+  const unit = userUnits.find(u => u.id === unitId);
+  if (!unit) return;
+  if (!confirm(`Remove unit "${unit.name}"?`)) return;
+  userUnits = userUnits.filter(u => u.id !== unitId);
+  delete quantities[unitId];
+  renderPanel();
+  scheduleAutoSave();
+}
+
+// ── New Unit Modal ────────────────────────────────────────────────────────────
+function openNewUnitModal() {
+  const modal = document.createElement('div');
+  modal.id = 'new-unit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:460px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:6px">＋ NEW UNIT</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px">Define a unit for this room. You can add parts and edit it later in the Unit Editor.</div>
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Unit Name</label>
+      <input id="new-unit-name" type="text" placeholder="e.g. F450 Floor Unit, Wall Unit 600mm…"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+        onkeydown="if(event.key==='Enter')confirmNewUnit()">
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Base Price (optional)</label>
+      <input id="new-unit-price" type="number" min="0" placeholder="0"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:20px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <div id="new-unit-err" style="display:none;color:#e07070;font-size:12px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="confirmNewUnit()" style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">CREATE UNIT</button>
+        <button onclick="document.getElementById('new-unit-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('new-unit-name').focus();
+}
+
+function confirmNewUnit() {
+  const name = document.getElementById('new-unit-name')?.value.trim();
+  if (!name) { const e=document.getElementById('new-unit-err'); e.textContent='Please enter a unit name.'; e.style.display='block'; return; }
+  const price = parseFloat(document.getElementById('new-unit-price')?.value) || 0;
+  const id = 'uu_' + Date.now();
+  userUnits.push({ id, section: currentSection, name, price, parts: [] });
+  quantities[id] = 0;
+  document.getElementById('new-unit-modal').remove();
+  renderPanel();
+  scheduleAutoSave();
+}
+
+// ── Template Browser Modal ────────────────────────────────────────────────────
+function openTemplateBrowser() {
+  // Group admin units by section
+  const adminSections = [
+    {id:'kitchen', label:'🍳 Kitchen'},
+    {id:'mainbedroom', label:'🛏 Main Bedroom'},
+    {id:'sparebedroom', label:'🛏 Spare Bedroom'},
+    {id:'linnekast', label:'🚪 Linne Kas'},
+    {id:'bathroom', label:'🚿 Badkamer'},
+    {id:'custom', label:'✦ Custom'},
+  ];
+
+  const allAdminUnits = UNITS;
+  let tabsHtml = adminSections.map((s,i) => {
+    const count = allAdminUnits.filter(u => u.section === s.id).length;
+    return `<button class="tab ${i===0?'active':''}" onclick="switchTplTab(this,'${s.id}')"
+      style="font-size:11px;padding:8px 14px;letter-spacing:1px"
+      data-tpltab="${s.id}">${s.label} <span style="font-size:10px;color:var(--text-muted)">(${count})</span></button>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'template-browser-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:97vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text)">📋 COPY FROM TEMPLATE</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Copying to: <strong style="color:var(--amber)">${userRooms.find(r=>r.id===currentSection)?.name || currentSection}</strong></div>
+        </div>
+        <button onclick="document.getElementById('template-browser-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 12px;background:var(--bg2)">${tabsHtml}</div>
+      <div id="tpl-unit-list" style="flex:1;overflow-y:auto;padding:12px 20px"></div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;font-size:11px;color:var(--text-muted)">
+        Click any unit to copy it. You can copy as many as you need and edit them afterwards in the Unit Editor.
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  renderTplTab('kitchen');
+}
+
+function switchTplTab(btn, sectionId) {
+  document.querySelectorAll('[data-tpltab]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTplTab(sectionId);
+}
+
+function renderTplTab(sectionId) {
+  const units = UNITS.filter(u => u.section === sectionId);
+  const list = document.getElementById('tpl-unit-list');
+  if (!list) return;
+
+  if (!units.length) { list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center">No units in this section.</div>'; return; }
+
+  list.innerHTML = units.map(u => {
+    const alreadyCopied = userUnits.some(uu => uu.templateId === u.id && uu.section === currentSection);
+    const partCount = u.parts ? u.parts.length : 0;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border);margin-bottom:6px;background:var(--bg3);border-radius:2px">
+      <div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:2px">${u.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${partCount} part${partCount!==1?'s':''}</div>
+      </div>
+      <button onclick="copyTemplateUnit('${u.id}')" ${alreadyCopied ? 'disabled' : ''}
+        style="background:${alreadyCopied?'var(--bg4)':'var(--amber)'};color:${alreadyCopied?'var(--text-muted)':'#111'};border:none;padding:7px 16px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:${alreadyCopied?'default':'pointer'};white-space:nowrap">
+        ${alreadyCopied ? '✓ COPIED' : '+ COPY'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function copyTemplateUnit(templateUnitId) {
+  const template = UNITS.find(u => u.id === templateUnitId);
+  if (!template) return;
+  const id = 'uu_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  const copy = {
+    ...JSON.parse(JSON.stringify(template)), // deep copy
+    id,
+    section:    currentSection,
+    templateId: template.id, // track origin
+  };
+  userUnits.push(copy);
+  quantities[id] = 0;
+  // Re-render the template list to show ✓ COPIED state
+  const activeTab = document.querySelector('[data-tpltab].active');
+  if (activeTab) renderTplTab(activeTab.dataset.tpltab);
+  renderPanel();
+  scheduleAutoSave();
+}
+
+// ── applyRoleRestrictions: render user nav after login ────────────────────────
+// (extend the existing function)
+const _origApplyRoleRestrictions = applyRoleRestrictions;
+function applyRoleRestrictions() {
+  _origApplyRoleRestrictions();
+  if (!isAdmin() && userRooms.length > 0) {
+    renderUserRoomsNav();
+  } else if (!isAdmin() && userRooms.length === 0) {
+    // New user: hide static rooms row, show just "+ Add Room"
+    setTimeout(() => {
+      const navTabs = document.getElementById('navTabs');
+      if (!navTabs) return;
+      const rows = navTabs.querySelectorAll('.nav-row');
+      if (rows[0]) rows[0].style.display = 'none';
+      const dividers = navTabs.querySelectorAll('.nav-divider');
+      if (dividers[0]) dividers[0].style.display = 'none';
+      // Add a welcome row
+      if (!document.getElementById('user-rooms-row')) {
+        const row = document.createElement('div');
+        row.className = 'nav-row';
+        row.id = 'user-rooms-row';
+        const label = document.createElement('span');
+        label.className = 'nav-row-label';
+        label.textContent = 'Rooms';
+        row.appendChild(label);
+        const addBtn = document.createElement('button');
+        addBtn.className = 'tab';
+        addBtn.style.cssText = 'color:var(--amber);font-size:11px;padding:12px 16px';
+        addBtn.innerHTML = '＋ Add Your First Room';
+        addBtn.onclick = openAddRoomModal;
+        row.appendChild(addBtn);
+        const firstRow = navTabs.querySelector('.nav-row');
+        navTabs.insertBefore(row, firstRow);
+        const div = document.createElement('hr');
+        div.className = 'nav-divider';
+        div.id = 'user-rooms-divider';
+        row.after(div);
+        // Show a welcome panel
+        document.getElementById('quote-view').style.display = 'block';
+        document.getElementById('unit-panel').innerHTML = `
+          <div style="padding:60px 20px;text-align:center">
+            <div style="font-size:40px;margin-bottom:16px">🏠</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
+            <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
+              Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
+            </div>
+            <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+          </div>`;
+      }
+    }, 0);
+  }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -8366,6 +8769,9 @@ function applyState(state) {
   }
   if (state.unitOverrides)   Object.assign(unitOverrides, state.unitOverrides);
   if (state.deletedUnits)  { deletedUnits.clear(); state.deletedUnits.forEach(id => deletedUnits.add(id)); }
+  if (state.userRooms)     { userRooms = [...state.userRooms]; }
+  if (state.userUnits)     { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
+  if (userRooms.length > 0) { renderUserRoomsNav(); }
   if (state.job) {
     ['client','house','address','notes'].forEach(f => {
       const el = document.getElementById('job-' + f);
