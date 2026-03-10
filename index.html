@@ -6217,6 +6217,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let sbSyncStatus = 'idle'; // 'idle' | 'loading' | 'ok' | 'error'
 let sbUser   = null;   // { id, email }
 let sbToken  = null;   // JWT access token
+let sbRole   = 'user'; // 'admin' | 'user'
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let autoSaveTimer = null;
@@ -6279,10 +6280,37 @@ async function doLogout() {
   document.getElementById('login-error').style.display = 'none';
 }
 
+async function fetchUserRole() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    sbRole = rows[0]?.role || 'user';
+  } catch(e) {
+    sbRole = 'user'; // safe default
+    console.warn('[Supabase] Could not fetch role:', e.message);
+  }
+}
+
+function isAdmin() { return sbRole === 'admin'; }
+
+function applyRoleRestrictions() {
+  // Supplier Prices tab: visible to all, but label changes for non-admins
+  const pricesTab = document.getElementById('prices-tab');
+  if (pricesTab) {
+    pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
+  }
+  // My Costs tab: admin only — hide entirely for regular users
+  // My Costs tab: visible to all users — each person has their own costs
+}
+
 async function onLoginSuccess() {
+  await fetchUserRole();
   document.getElementById('login-overlay').style.display = 'none';
   document.getElementById('job-bar').style.display = 'flex';
-  document.getElementById('user-email-badge').textContent = sbUser.email;
+  document.getElementById('user-email-badge').textContent =
+    sbUser.email + (isAdmin() ? ' ★' : '');
+  applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
 }
@@ -6671,7 +6699,21 @@ function addCustomHardware() {
   const price   = parseFloat(priceEl?.value) || 0;
   if (!name) { nameEl?.focus(); return; }
   const id = 'chw_' + Date.now();
-  costingPrices.customHardware.push({ id, name, pricePerUnit: price });
+  costingPrices.customHardware.push({ id, name, pricePerUnit: price, category: 'other' });
+  saveCostingPrices();
+  updateSaveHtmlBadge();
+  if (nameEl)  nameEl.value  = '';
+  if (priceEl) priceEl.value = '';
+  refreshPriceViews();
+}
+
+function addCategoryHardware(cat) {
+  const nameEl  = document.getElementById(`cv-new-${cat}-name`);
+  const priceEl = document.getElementById(`cv-new-${cat}-price`);
+  const name    = nameEl?.value.trim();
+  const price   = parseFloat(priceEl?.value) || 0;
+  if (!name) { nameEl?.focus(); return; }
+  costingPrices.customHardware.push({ id: 'chw_' + Date.now(), name, pricePerUnit: price, category: cat });
   saveCostingPrices();
   updateSaveHtmlBadge();
   if (nameEl)  nameEl.value  = '';
@@ -6684,6 +6726,7 @@ function removeCustomHardware(id) {
   saveCostingPrices();
   updateSaveHtmlBadge();
   refreshCostingResults();
+  refreshPriceViews();
 }
 
 function updateCustomHardware(id, field, value) {
@@ -6995,6 +7038,10 @@ function refreshPriceViews() {
 }
 
 function renderPricesView() {
+  const admin = isAdmin();
+  const ro    = admin ? '' : 'readonly disabled style="opacity:0.65;cursor:not-allowed;pointer-events:none"';
+  const roBtn = admin ? '' : 'disabled style="display:none"';
+
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
 
@@ -7019,25 +7066,25 @@ function renderPricesView() {
       const safeKey   = edgeKey.replace(/'/g, "\\\\'");
       return `<div class="cv-extra-row" style="padding:4px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.06)">
         <span class="cv-extra-label" style="font-size:12px;color:var(--text-dim)">↳ <em style="font-style:normal;color:var(--text-muted)">${edgeKey.replace(/ Edging.*$/, '')} edging</em> <span style="color:var(--amber-dim);font-size:11px">${sizeLabel}</span></span>
-        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}"
+        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
           onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
           onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
-        <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging"
+        <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging" ${roBtn}
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>`;
     }).join('');
     return `<div style="background:var(--bg3);border:1px solid var(--border);margin-bottom:6px;padding:2px 10px 2px 10px">
       <div class="cv-extra-row" style="border-bottom:none;padding:7px 0 3px 0">
         <span class="cv-extra-label">${mat}${badge}</span>
-        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}"
+        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
           onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/sh</span>
-        <button onclick="${delFn}" title="Remove board" style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
+        <button onclick="${delFn}" title="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>
       ${edgeRows}
-      <div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
+      ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">` : '<!--'}
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
         <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
           style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
@@ -7065,7 +7112,7 @@ function renderPricesView() {
         <span class="cv-unit">/m</span>
       </div>`).join('')}</div>` : '';
 
-  const addBoardForm = `
+  const addBoardForm = admin ? `
     <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg4);border:1px solid rgba(212,145,58,0.25);padding:10px;margin-top:10px">
       <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1.5px;text-transform:uppercase">Add Custom Board</div>
       <div style="display:flex;gap:6px">
@@ -7088,7 +7135,7 @@ function renderPricesView() {
         style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:6px;cursor:pointer;width:100%">
         + Add Board
       </button>
-    </div>`;
+    </div>` : '';
 
   document.getElementById('prices-view').innerHTML = `
     <div style="max-width:960px;margin:0 auto;padding:28px 24px">
@@ -7096,12 +7143,12 @@ function renderPricesView() {
         <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
         <div style="display:flex;align-items:center;gap:12px">
           <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">● Supplier Prices</span>
-          <button onclick="loadSupplierPrices()" title="Re-sync from database"
+          <button onclick="loadSupplierPrices()" title="Re-sync from database" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-        Changes save to the shared database — all users get updated prices automatically.
+        ${admin ? 'Changes save to the shared database — all users get updated prices automatically.' : '<span style="color:#e07070">⚠ View only — you do not have permission to edit supplier prices.</span>'}
       </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
       <div>
@@ -7114,28 +7161,28 @@ function renderPricesView() {
         ${section('Cutting &amp; Services')}
         <div class="cv-extra-row">
           <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}"
+          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
             onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
             onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
         </div>
         <div class="cv-extra-row">
           <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}"
+          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
             onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
             onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
         </div>
         <div class="cv-extra-row">
           <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}"
+          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
             onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
             onblur="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
         </div>
         <div class="cv-extra-row">
           <span class="cv-extra-label">Supplier Handling (HPrice) <span style="font-size:10px;color:var(--text-muted)">(per line)</span></span>
-          <input class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}"
+          <input class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}" ${ro}
             onchange="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Supplier HPrice',this.value)"
             onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -7155,54 +7202,97 @@ function renderMaterialsView() {
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
 
+  // Check if this is a "fresh" setup (all hardware prices still at 0)
+  const hw = costingPrices.hardware;
+  const allZero = !hw.hingeSoft && !hw.hingeNormal && !hw.runnerSoft && !hw.runnerNormal && !hw.handle160 && !hw.handle240;
+
+  const newUserBanner = allZero ? `
+    <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:14px 16px;margin-bottom:4px;border-radius:2px">
+      <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber);margin-bottom:6px">👋 SET UP YOUR HARDWARE PRICES</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+        These are <strong style="color:var(--text)">your personal costs</strong> — fill in what you pay for hardware.
+        The ★ items feed directly into the costing calculations. Extra types you add are handy price references for quoting.
+        Your costs stay private to your account and won't affect anyone else.
+      </div>
+    </div>` : '';
+
+  // Suggestion chips for a category
+  const suggestions = (cat, items) => `
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px">
+      <span style="font-size:10px;color:var(--text-muted);align-self:center;margin-right:2px">Add:</span>
+      ${items.map(name => `<button onclick="quickAddHardware('${cat}','${name}')"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;font-size:11px;cursor:pointer;font-family:'Barlow',sans-serif;border-radius:2px"
+        onmouseover="this.style.borderColor='var(--amber-dim)';this.style.color='var(--text)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'"
+        >${name}</button>`).join('')}
+    </div>`;
+
+  const fixedRow = (label, unit, key, obj) => `
+    <div class="cv-extra-row">
+      <span class="cv-extra-label">${label} <span style="font-size:10px;color:var(--amber-dim)">★</span> <span style="font-size:10px;color:var(--text-muted)">(${unit})</span></span>
+      <input class="cv-extra-input" type="number" min="0" value="${obj[key]||0}"
+        onchange="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
+        onblur="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices()">
+      <span style="font-size:10px;color:var(--text-muted)">R</span>
+    </div>`;
+
+  const catItems = (cat) => costingPrices.customHardware
+    .filter(h => (h.category||'other') === cat)
+    .map(h => `
+    <div class="cv-extra-row">
+      <span class="cv-extra-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.name}">${h.name} <span style="font-size:10px;color:var(--text-muted)">(per unit)</span></span>
+      <input class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
+        onchange="updateCustomHardware('${h.id}','pricePerUnit',this.value)"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <span style="font-size:10px;color:var(--text-muted)">R</span>
+      <button onclick="removeCustomHardware('${h.id}')" title="Remove"
+        style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;flex-shrink:0">×</button>
+    </div>`).join('');
+
+  const addRow = (cat, placeholder) => `
+    <div class="cv-extra-row" style="gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px">
+      <input id="cv-new-${cat}-name" type="text" placeholder="${placeholder}"
+        class="cv-extra-label"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;min-width:0"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+        onkeydown="if(event.key==='Enter')addCategoryHardware('${cat}')">
+      <input id="cv-new-${cat}-price" class="cv-extra-input" type="number" min="0" placeholder="0"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+        onkeydown="if(event.key==='Enter')addCategoryHardware('${cat}')">
+      <span style="font-size:10px;color:var(--text-muted)">R</span>
+      <button onclick="addCategoryHardware('${cat}')"
+        style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;padding:3px 8px;cursor:pointer;flex-shrink:0;text-transform:uppercase;white-space:nowrap">+ Add</button>
+    </div>`;
+
+  const otherItems = costingPrices.customHardware.filter(h => !h.category || h.category === 'other');
+
   document.getElementById('materials-view').innerHTML = `
-    <div style="max-width:960px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
+    <div style="max-width:960px;margin:0 auto;padding:28px 24px">
+      ${newUserBanner}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;margin-top:${allZero?'20px':'0'}">
       <div>
         ${section('Hinges')}
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">Soft Close <span style="font-size:10px;color:var(--text-muted)">(per hinge)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.hingeSoft}"
-            onchange="costingPrices.hardware.hingeSoft=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.hingeSoft=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">Normal <span style="font-size:10px;color:var(--text-muted)">(per hinge)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.hingeNormal}"
-            onchange="costingPrices.hardware.hingeNormal=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.hingeNormal=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">★ = used in auto-costing</div>
+        ${fixedRow('Soft Close', 'per hinge', 'hingeSoft', hw)}
+        ${fixedRow('Normal', 'per hinge', 'hingeNormal', hw)}
+        ${catItems('hinge')}
+        ${suggestions('hinge', ['Hydraulic', 'Overlay 170°', 'Inset', 'Corner Unit', 'Lazy Susan'])}
+        ${addRow('hinge', 'e.g. Hydraulic, Overlay 170°…')}
+
         ${section('Drawer Runners')}
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">Soft Close <span style="font-size:10px;color:var(--text-muted)">(per set)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.runnerSoft}"
-            onchange="costingPrices.hardware.runnerSoft=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.runnerSoft=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">Normal <span style="font-size:10px;color:var(--text-muted)">(per set)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.runnerNormal}"
-            onchange="costingPrices.hardware.runnerNormal=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.runnerNormal=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
+        ${fixedRow('Soft Close', 'per set', 'runnerSoft', hw)}
+        ${fixedRow('Normal', 'per set', 'runnerNormal', hw)}
+        ${catItems('runner')}
+        ${suggestions('runner', ['Undermount', 'Heavy Duty', 'Push-to-Open', 'Fridge Pull-out', 'Tandem Box'])}
+        ${addRow('runner', 'e.g. Undermount, Heavy Duty…')}
+
         ${section('Handles')}
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">160mm <span style="font-size:10px;color:var(--text-muted)">(per handle)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.handle160}"
-            onchange="costingPrices.hardware.handle160=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.handle160=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
-        <div class="cv-extra-row">
-          <span class="cv-extra-label">240mm <span style="font-size:10px;color:var(--text-muted)">(per handle)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.hardware.handle240}"
-            onchange="costingPrices.hardware.handle240=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-            onblur="costingPrices.hardware.handle240=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted)">R</span>
-        </div>
+        ${fixedRow('160mm', 'per handle', 'handle160', hw)}
+        ${fixedRow('240mm', 'per handle', 'handle240', hw)}
+        ${catItems('handle')}
+        ${suggestions('handle', ['96mm', '128mm', '320mm', '512mm', 'Knob', 'Edge Pull', 'Flush Pull'])}
+        ${addRow('handle', 'e.g. 96mm, 320mm, Knob…')}
+
         ${section('Other Services')}
         <div class="cv-extra-row">
           <span class="cv-extra-label">Skirting <span style="font-size:10px;color:var(--text-muted)">(per m)</span></span>
@@ -7212,9 +7302,14 @@ function renderMaterialsView() {
           <span style="font-size:10px;color:var(--text-muted)">R</span>
         </div>
       </div>
+
       <div>
-        ${section('Custom Hardware')}
-        ${costingPrices.customHardware.length > 0 ? costingPrices.customHardware.map(h => `
+        ${section('Other / Miscellaneous')}
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.6">
+          Price reference items — add manually to a quote line when needed.
+        </div>
+        ${suggestions('other', ['Plinth Clip', 'SS Leg', 'Cabinet Lock', 'Magnetic Catch', 'Door Damper', 'Lazy Susan Fitting', 'Waste Bin', 'Drawer Divider', 'Shelf Pin', 'Back Panel Clip'])}
+        ${otherItems.length > 0 ? otherItems.map(h => `
         <div class="cv-extra-row">
           <span class="cv-extra-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h.name}">${h.name}</span>
           <input class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
@@ -7223,9 +7318,9 @@ function renderMaterialsView() {
           <span style="font-size:10px;color:var(--text-muted)">R</span>
           <button onclick="removeCustomHardware('${h.id}')"
             style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;flex-shrink:0">×</button>
-        </div>`).join('') : `<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No custom hardware items yet.</div>`}
+        </div>`).join('') : `<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No items yet.</div>`}
         <div class="cv-extra-row" style="gap:6px;padding-top:10px">
-          <input id="cv-new-hw-name" type="text" placeholder="Name e.g. Plinth 100mm, SS Leg"
+          <input id="cv-new-hw-name" type="text" placeholder="e.g. Plinth 100mm, SS Leg, Lock…"
             class="cv-extra-label"
             style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;min-width:0"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
@@ -7238,7 +7333,15 @@ function renderMaterialsView() {
             style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:4px 10px;cursor:pointer;flex-shrink:0;text-transform:uppercase">+ Add</button>
         </div>
       </div>
-    </div>`;
+    </div></div>`;
+}
+
+function quickAddHardware(cat, name) {
+  // Pre-fill the add row for that category and focus the price field
+  const nameEl  = document.getElementById(`cv-new-${cat}-name`);
+  const priceEl = document.getElementById(`cv-new-${cat}-price`);
+  if (nameEl)  { nameEl.value  = name; nameEl.style.borderColor  = 'var(--amber)'; }
+  if (priceEl) { priceEl.value = ''; priceEl.style.borderColor = 'var(--amber)'; priceEl.focus(); }
 }
 
 function renderCostingView() {
