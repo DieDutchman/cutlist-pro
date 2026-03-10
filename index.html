@@ -7249,7 +7249,9 @@ function openUnitPartsModal(unitId) {
   if (!unit) return;
 
   document.getElementById('upm-modal')?.remove();
-  const partsRows = (unit.parts || []).map((p, i) => buildPartRow(p, i)).join('');
+  // Apply current wood/edging selection so parts show the actual colours, not template defaults
+  const resolvedParts = (unit.parts || []).map(p => applyMaterials(p, unit));
+  const partsRows = resolvedParts.map((p, i) => buildPartRow(p, i)).join('');
 
   const modal = document.createElement('div');
   modal.id = 'upm-modal';
@@ -7259,7 +7261,7 @@ function openUnitPartsModal(unitId) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div>
           <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text)">🔧 PARTS — ${unit.name}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Edit dimensions, materials and edging for each part.</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Showing your current wood &amp; edging selection. Edit dimensions, materials and edging, then save.</div>
         </div>
         <button onclick="document.getElementById('upm-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
       </div>
