@@ -109,14 +109,30 @@
   .nav-tabs {
     background: var(--bg2);
     border-bottom: var(--line);
-    display: flex;
-    overflow-x: auto;
     padding: 0 24px;
-    gap: 0;
-    min-height: 56px;
   }
-  .nav-tabs::-webkit-scrollbar { height: 4px; }
-  .nav-tabs::-webkit-scrollbar-thumb { background: var(--amber-dim); }
+  .nav-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+  }
+  .nav-row-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 12px 0 0;
+    white-space: nowrap;
+    opacity: 0.5;
+  }
+  .nav-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+  .nav-row + .nav-divider { display: block; }
 
   .tab {
     font-family: 'Oswald', sans-serif;
@@ -124,10 +140,10 @@
     font-weight: 600;
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 16px 22px;
+    padding: 12px 18px;
     cursor: pointer;
     color: var(--text-dim);
-    border-bottom: 4px solid transparent;
+    border-bottom: 3px solid transparent;
     white-space: nowrap;
     transition: all 0.15s;
     background: none;
@@ -1881,10 +1897,46 @@
   <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
     <span id="job-sync-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
     <span id="user-email-badge" style="font-size:11px;color:var(--text-muted)"></span>
+    <button id="users-btn" onclick="openUsersModal()" style="display:none;background:none;border:1px solid var(--border);color:var(--amber-dim);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">
+      👥 USERS
+    </button>
     <button onclick="doLogout()"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">
       SIGN OUT
     </button>
+  </div>
+</div>
+
+<!-- ═══ USERS MODAL ══════════════════════════════════════════════════════════ -->
+<div id="users-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">👥 User Management</div>
+      <button onclick="closeUsersModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+    </div>
+
+    <!-- How to add users hint -->
+    <div style="padding:12px 20px;background:rgba(212,145,58,0.07);border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+        To <strong style="color:var(--text)">add a new user</strong>: go to
+        <a href="https://supabase.com/dashboard/project/ojuzylnzwdblkaglaeug/auth/users" target="_blank"
+          style="color:var(--amber);text-decoration:none">Supabase → Auth → Users → Add User ↗</a>,
+        then come back here to assign their role.
+      </div>
+    </div>
+
+    <!-- User list -->
+    <div style="flex:1;overflow-y:auto;padding:8px 0" id="users-list">
+      <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+      <span id="users-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
+      <button onclick="loadUsersModal()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">↻ REFRESH</button>
+    </div>
   </div>
 </div>
 
@@ -1937,21 +1989,28 @@
 </header>
 
 <div class="nav-tabs" id="navTabs">
-  <button class="tab active" data-section="kitchen" onclick="switchTab(this,'kitchen')">Kitchen <span class="count" id="cnt-kitchen">0</span></button>
-  <button class="tab" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">Main Bedroom <span class="count" id="cnt-mainbedroom">0</span></button>
-  <button class="tab" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">Spare Bedroom <span class="count" id="cnt-sparebedroom">0</span></button>
-  <button class="tab" data-section="linnekast" onclick="switchTab(this,'linnekast')">Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
-  <button class="tab" data-section="bathroom" onclick="switchTab(this,'bathroom')">Badkamer <span class="count" id="cnt-bathroom">0</span></button>
-  <button class="tab" data-section="custom" onclick="switchTab(this,'custom')">Custom Units <span class="count" id="cnt-custom">0</span></button>
-  <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" style="color:var(--amber-dim)">🪵 Panels</button>
-  <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" style="color:var(--amber-dim)">✦ Cutlist</button>
-  <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" style="color:var(--amber-dim)">☰ Summary</button>
-  <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" style="color:var(--amber-dim)">✏ Edit Units</button>
-  <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" style="color:var(--amber-dim)">💰 Quote</button>
-  <button class="tab" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab" style="color:var(--amber-dim)">📐 Costing</button>
-  <button class="tab" data-section="__prices__" onclick="switchTab(this,'__prices__')" id="prices-tab" style="color:var(--amber-dim)">🧾 Supplier Prices</button>
-  <button class="tab" data-section="__materials__" onclick="switchTab(this,'__materials__')" id="materials-tab" style="color:var(--amber-dim)">🔧 My Costs</button>
-  <button class="tab" data-section="__builder__" onclick="switchTab(this,'__builder__')" id="builder-tab" style="color:var(--amber-dim)">🔨 Builder</button>
+  <div class="nav-row">
+    <span class="nav-row-label">Rooms</span>
+    <button class="tab active" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
+    <button class="tab" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
+    <button class="tab" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">🛏 Spare Bed <span class="count" id="cnt-sparebedroom">0</span></button>
+    <button class="tab" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
+    <button class="tab" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
+    <button class="tab" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
+  </div>
+  <hr class="nav-divider">
+  <div class="nav-row">
+    <span class="nav-row-label">Tools</span>
+    <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab">🪵 Panels</button>
+    <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab">✦ Cutlist</button>
+    <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab">☰ Summary</button>
+    <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab">✏ Edit Units</button>
+    <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab">💰 Quote</button>
+    <button class="tab" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab">📐 Costing</button>
+    <button class="tab" data-section="__prices__" onclick="switchTab(this,'__prices__')" id="prices-tab">🧾 Supplier Prices</button>
+    <button class="tab" data-section="__materials__" onclick="switchTab(this,'__materials__')" id="materials-tab">🔧 My Costs</button>
+    <button class="tab" data-section="__builder__" onclick="switchTab(this,'__builder__')" id="builder-tab">🔨 Builder</button>
+  </div>
 </div>
 
 <div id="qm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center">
@@ -6295,13 +6354,13 @@ async function fetchUserRole() {
 function isAdmin() { return sbRole === 'admin'; }
 
 function applyRoleRestrictions() {
-  // Supplier Prices tab: visible to all, but label changes for non-admins
+  // Supplier Prices tab: visible to all, label changes for non-admins
   const pricesTab = document.getElementById('prices-tab');
-  if (pricesTab) {
-    pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
-  }
-  // My Costs tab: admin only — hide entirely for regular users
-  // My Costs tab: visible to all users — each person has their own costs
+  if (pricesTab) pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
+  // Users button: admin only
+  const usersBtn = document.getElementById('users-btn');
+  if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
+  // My Costs: visible to all users — each person has their own costs
 }
 
 async function onLoginSuccess() {
@@ -6507,6 +6566,82 @@ async function deleteCurrentJob() {
 }
 
 // Auto-save: debounced 4s after any change (only when logged in and job already exists)
+// ── User Management Modal ─────────────────────────────────────────────────────
+function openUsersModal() {
+  document.getElementById('users-modal').style.display = 'flex';
+  loadUsersModal();
+}
+function closeUsersModal() {
+  document.getElementById('users-modal').style.display = 'none';
+}
+
+async function loadUsersModal() {
+  const list = document.getElementById('users-list');
+  const status = document.getElementById('users-status');
+  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  status.textContent = '';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role&order=email.asc`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const users = await res.json();
+    if (!users.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No users found.</div>';
+      return;
+    }
+    list.innerHTML = users.map(u => renderUserRow(u)).join('');
+    status.textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+  } catch(e) {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:#e07070;font-size:13px">Failed to load users: ${e.message}</div>`;
+  }
+}
+
+function renderUserRow(u) {
+  const isMe = u.id === sbUser?.id;
+  const roleColor = u.role === 'admin' ? 'var(--amber)' : 'var(--text-muted)';
+  return `
+  <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        ${u.email}${isMe ? ' <span style="font-size:10px;color:var(--amber);font-family:Oswald,sans-serif;letter-spacing:1px">YOU</span>' : ''}
+      </div>
+      <div style="font-size:11px;color:${roleColor};font-family:'Oswald',sans-serif;letter-spacing:1px;margin-top:2px;text-transform:uppercase">${u.role}</div>
+    </div>
+    <select onchange="updateUserRole('${u.id}', this.value, this)" ${isMe ? 'disabled title="Cannot change your own role"' : ''}
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;outline:none;${isMe ? 'opacity:0.4;cursor:not-allowed' : ''}">
+      <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>User</option>
+      <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+    </select>
+    <span id="user-status-${u.id}" style="font-size:11px;width:60px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"></span>
+  </div>`;
+}
+
+async function updateUserRole(userId, newRole, selectEl) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  selectEl.disabled = true;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify({ role: newRole })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✓ Saved'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
+    // Update the role label in the row
+    const row = document.getElementById(`user-row-${userId}`);
+    if (row) {
+      const label = row.querySelector('div > div:last-child');
+      if (label) { label.textContent = newRole; label.style.color = newRole === 'admin' ? 'var(--amber)' : 'var(--text-muted)'; }
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕ Failed'; statusEl.style.color = '#e07070'; }
+    selectEl.value = selectEl.value === 'admin' ? 'user' : 'admin'; // revert
+  }
+  selectEl.disabled = false;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
   clearTimeout(autoSaveTimer);
