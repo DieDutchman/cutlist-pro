@@ -6521,9 +6521,51 @@ async function loadSupplierPrices() {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
+
+    // ── Rebuild board & edge lists from Supabase so all users see the same boards ──
+    const sbBoards = rows.filter(r => r.category === 'board');
+    const sbEdges  = rows.filter(r => r.category === 'edge');
+
+    // Reset MATS to only the boards that exist in Supabase
+    // Keep 3MM White Masonite (hardcoded special case) + whatever Supabase has
+    const baseMats = ['3MM White Masonite'];
+    sbBoards.forEach(r => {
+      if (!baseMats.includes(r.name)) baseMats.push(r.name);
+    });
+    // Rebuild MATS — preserve any that Supabase knows about, remove orphans
+    MATS.length = 0;
+    baseMats.forEach(m => MATS.push(m));
+
+    // Rebuild customBoards to match Supabase (so the board cards render correctly)
+    costingPrices.customBoards = [];
+    sbBoards.forEach(r => {
+      if (r.name === '3MM White Masonite') return; // keep as standard
+      // Find matching edge from Supabase
+      const edgeName  = r.name === 'White Melamine' ? 'White Edging 1mm' : r.name + ' Edging 1mm';
+      const edgeRow   = rows.find(e => e.category === 'edge' && e.name === edgeName);
+      const edgePrice = edgeRow ? Number(edgeRow.price) : 0;
+      costingPrices.customBoards.push({
+        id:         'cb_sb_' + r.name.replace(/\s+/g,'_'),
+        boardName:  r.name,
+        boardPrice: Number(r.price),
+        edgeName,
+        edgePrice,
+      });
+      // Ensure EDGES has this edge
+      if (edgeName && !EDGES.includes(edgeName)) EDGES.push(edgeName);
+      // Ensure COLORS/EDGE_COLORS has this board
+      if (!COLORS.includes(r.name)) COLORS.push(r.name);
+      const edgeColor = edgeName.replace(' Edging 1mm','');
+      if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+    });
+    // Also add any extra edges that don't match the pattern
+    sbEdges.forEach(r => {
+      costingPrices.edge[r.name] = Number(r.price);
+      if (!EDGES.includes(r.name)) EDGES.push(r.name);
+    });
+
     rows.forEach(row => {
       if (row.category === 'board')   costingPrices.mat[row.name]  = Number(row.price);
-      if (row.category === 'edge')    costingPrices.edge[row.name] = Number(row.price);
       if (row.category === 'service') {
         const map = {
           'Cut & Label - Boards':   'cutLabel',
@@ -6535,6 +6577,7 @@ async function loadSupplierPrices() {
         if (key) costingPrices.extras[key] = Number(row.price);
       }
     });
+
     // Cache locally so offline still works
     try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
     sbSyncStatus = 'ok';
@@ -6544,7 +6587,6 @@ async function loadSupplierPrices() {
     console.warn('[Supabase] Could not load supplier prices — using cached/default values:', e.message);
   }
   renderSyncBadge();
-  // Refresh whichever price view is open
   refreshPriceViews();
   refreshCostingResults();
 }
