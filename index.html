@@ -2632,8 +2632,8 @@ function saveCustomUnits() {
 const saveDeletedUnits = saveCustomUnits;
 
 function getEffectiveUnits() {
-  // Non-admin users have their own user-defined units
-  if (sbRole !== 'admin' && userRooms.length > 0) {
+  // Non-admin users always use their own units (empty array if none created yet)
+  if (sbRole !== 'admin') {
     return userUnits;
   }
   const base = UNITS
@@ -3035,6 +3035,9 @@ function switchTab(btn, section) {
 }
 
 function renderPanel() {
+  // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
+  if (sbRole !== 'admin' && userRooms.length === 0) return;
+
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
   const isUserMode = sbRole !== 'admin' && userRooms.length > 0;
   const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
@@ -6430,15 +6433,8 @@ async function fetchUserRole() {
 
 function isAdmin() { return sbRole === 'admin'; }
 
-function applyRoleRestrictions() {
-  // Supplier Prices tab: visible to all, label changes for non-admins
-  const pricesTab = document.getElementById('prices-tab');
-  if (pricesTab) pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
-  // Users button: admin only
-  const usersBtn = document.getElementById('users-btn');
-  if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
-  // My Costs: visible to all users — each person has their own costs
-}
+
+
 
 async function doSetPassword() {
   const pw1 = document.getElementById('setpw-password').value;
@@ -6494,6 +6490,8 @@ async function onLoginSuccess() {
   applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
+  // Re-render panel now that real role is known (clears admin units for regular users)
+  renderPanel();
 }
 
 async function ensureProfile() {
@@ -7079,56 +7077,62 @@ function copyTemplateUnit(templateUnitId) {
   scheduleAutoSave();
 }
 
-// ── applyRoleRestrictions: render user nav after login ────────────────────────
-// (extend the existing function)
-const _origApplyRoleRestrictions = applyRoleRestrictions;
+// ── applyRoleRestrictions: merged ─────────────────────────────────────────────
 function applyRoleRestrictions() {
-  _origApplyRoleRestrictions();
-  if (!isAdmin() && userRooms.length > 0) {
-    renderUserRoomsNav();
-  } else if (!isAdmin() && userRooms.length === 0) {
-    // New user: hide static rooms row, show just "+ Add Room"
-    setTimeout(() => {
-      const navTabs = document.getElementById('navTabs');
-      if (!navTabs) return;
-      const rows = navTabs.querySelectorAll('.nav-row');
-      if (rows[0]) rows[0].style.display = 'none';
-      const dividers = navTabs.querySelectorAll('.nav-divider');
-      if (dividers[0]) dividers[0].style.display = 'none';
-      // Add a welcome row
-      if (!document.getElementById('user-rooms-row')) {
-        const row = document.createElement('div');
-        row.className = 'nav-row';
-        row.id = 'user-rooms-row';
-        const label = document.createElement('span');
-        label.className = 'nav-row-label';
-        label.textContent = 'Rooms';
-        row.appendChild(label);
-        const addBtn = document.createElement('button');
-        addBtn.className = 'tab';
-        addBtn.style.cssText = 'color:var(--amber);font-size:11px;padding:12px 16px';
-        addBtn.innerHTML = '＋ Add Your First Room';
-        addBtn.onclick = openAddRoomModal;
-        row.appendChild(addBtn);
-        const firstRow = navTabs.querySelector('.nav-row');
-        navTabs.insertBefore(row, firstRow);
-        const div = document.createElement('hr');
-        div.className = 'nav-divider';
-        div.id = 'user-rooms-divider';
-        row.after(div);
-        // Show a welcome panel
-        document.getElementById('quote-view').style.display = 'block';
-        document.getElementById('unit-panel').innerHTML = `
-          <div style="padding:60px 20px;text-align:center">
-            <div style="font-size:40px;margin-bottom:16px">🏠</div>
-            <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
-            <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
-              Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
-            </div>
-            <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
-          </div>`;
-      }
-    }, 0);
+  // Supplier Prices tab label
+  const pricesTab = document.getElementById('prices-tab');
+  if (pricesTab) pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
+  // Users button: admin only
+  const usersBtn = document.getElementById('users-btn');
+  if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
+  // My Costs: visible to all
+
+  // User rooms nav
+  if (!isAdmin()) {
+    if (userRooms.length > 0) {
+      renderUserRoomsNav();
+    } else {
+      // New user — hide static rooms row, show welcome
+      setTimeout(() => {
+        const navTabs = document.getElementById('navTabs');
+        if (!navTabs) return;
+        const rows = navTabs.querySelectorAll('.nav-row');
+        if (rows[0]) rows[0].style.display = 'none';
+        const dividers = navTabs.querySelectorAll('.nav-divider');
+        if (dividers[0]) dividers[0].style.display = 'none';
+        if (!document.getElementById('user-rooms-row')) {
+          const row = document.createElement('div');
+          row.className = 'nav-row';
+          row.id = 'user-rooms-row';
+          const label = document.createElement('span');
+          label.className = 'nav-row-label';
+          label.textContent = 'Rooms';
+          row.appendChild(label);
+          const addBtn = document.createElement('button');
+          addBtn.className = 'tab';
+          addBtn.style.cssText = 'color:var(--amber);font-size:11px;padding:12px 16px';
+          addBtn.innerHTML = '＋ Add Your First Room';
+          addBtn.onclick = openAddRoomModal;
+          row.appendChild(addBtn);
+          const firstRow = navTabs.querySelector('.nav-row');
+          navTabs.insertBefore(row, firstRow);
+          const div = document.createElement('hr');
+          div.className = 'nav-divider';
+          div.id = 'user-rooms-divider';
+          row.after(div);
+          document.getElementById('quote-view').style.display = 'block';
+          document.getElementById('unit-panel').innerHTML = `
+            <div style="padding:60px 20px;text-align:center">
+              <div style="font-size:40px;margin-bottom:16px">🏠</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
+              <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
+                Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
+              </div>
+              <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+            </div>`;
+        }
+      }, 0);
+    }
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
