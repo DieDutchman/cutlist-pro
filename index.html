@@ -6396,6 +6396,25 @@ function billSheets(m2withWaste, sheetArea) {
   return Math.ceil((m2withWaste / sheetArea) / 0.05) * 0.05;
 }
 
+// Like billSheets but applies a per-material minimum if configured
+function billedSheetsForMat(mat, m2withWaste, sheetArea) {
+  const raw = billSheets(m2withWaste, sheetArea);
+  const min = costingPrices.matMinSheets?.[mat] || 0;
+  return min > 0 ? Math.max(raw, min) : raw;
+}
+
+// Toggle or update the minimum sheet charge for a material
+function setMatMinSheets(mat, value) {
+  if (!value || parseFloat(value) <= 0) {
+    delete costingPrices.matMinSheets[mat];
+  } else {
+    costingPrices.matMinSheets[mat] = parseFloat(value);
+  }
+  saveCostingPrices();
+  refreshCostingResults();
+  renderPricesView();
+}
+
 // Default prices per m² for boards, per m for edging, and flat extras
 const costingPrices = {
   mat: {
@@ -6440,6 +6459,7 @@ const costingPrices = {
   // Custom boards added per-job: [{id, boardName, boardPrice, edgeName, edgePrice}]
   customBoards: [],
   hiddenMats: [], // standard boards removed from pricing list
+  matMinSheets: {}, // { [matName]: 0.25 } — per-board minimum sheet charge
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -6457,6 +6477,7 @@ try {
   if (saved.hardware)     Object.assign(costingPrices.hardware, saved.hardware);
   if (saved.customBoards)    costingPrices.customBoards    = saved.customBoards;
   if (saved.customHardware)  costingPrices.customHardware  = saved.customHardware;
+  if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets, saved.matMinSheets);
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
   // Re-inject custom boards into runtime MATS/EDGES/COLORS/EDGE_COLORS arrays
@@ -7608,8 +7629,8 @@ function saveCostingPrices() {
 function calcPanelCost(p) {
   const lM = p.l/1000, wM = p.w/1000;
   const withWaste  = lM * wM * p.qty * WASTE_FACTOR;
-  const billedSh   = billSheets(withWaste, SHEET_AREA);
-  const wholeSh    = Math.ceil(withWaste / SHEET_AREA);
+  const billedSh   = billedSheetsForMat(p.mat, withWaste, SHEET_AREA);
+  const wholeSh    = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
   const isMas      = p.mat === '3MM White Masonite';
   const matCost    = billedSh * (costingPrices.mat[p.mat] || 0);
   const cutCost    = wholeSh  * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
@@ -7767,6 +7788,152 @@ function deleteStandardBoard(name) {
   refreshMatDropdowns();
   refreshPriceViews();
 }
+
+function renameMat(oldName) {
+  const newName = prompt(`Rename board "${oldName}" to:`, oldName);
+  if (!newName || newName.trim() === oldName) return;
+  const n = newName.trim();
+  if (MATS.includes(n)) { alert(`"${n}" already exists.`); return; }
+
+  // ── Update MATS & COLORS ──
+  const mi = MATS.indexOf(oldName);
+  if (mi >= 0) MATS[mi] = n;
+  const ci = COLORS.indexOf(oldName);
+  if (ci >= 0) COLORS[ci] = n;
+  if (!COLORS.includes(n) && mi >= 0) COLORS.push(n);
+
+  // ── Update costingPrices.mat ──
+  costingPrices.mat[n] = costingPrices.mat[oldName] || 0;
+  delete costingPrices.mat[oldName];
+
+  // ── Cascade rename matching edges (e.g. "Iceberg White Edging 1mm" → "Iceberg White Peen Edging 1mm") ──
+  const oldEdgePrefix = (oldName === 'White Melamine' ? 'White Edging' : oldName + ' Edging');
+  const newEdgePrefix = (n       === 'White Melamine' ? 'White Edging' : n       + ' Edging');
+  EDGES.forEach((e, i) => {
+    if (e && e.startsWith(oldEdgePrefix)) {
+      const newEdge = newEdgePrefix + e.slice(oldEdgePrefix.length);
+      EDGES[i] = newEdge;
+      costingPrices.edge[newEdge] = costingPrices.edge[e] || 0;
+      delete costingPrices.edge[e];
+      // Push renamed edge to Supabase
+      pushSupplierPrice('edge', newEdge, costingPrices.edge[newEdge]);
+    }
+  });
+  // Update EDGE_COLORS
+  const oldEdgeColor = oldName;
+  const newEdgeColor = n;
+  const eci = EDGE_COLORS.indexOf(oldEdgeColor);
+  if (eci >= 0) EDGE_COLORS[eci] = newEdgeColor;
+
+  // ── Update customBoards record if it's a custom board ──
+  const cb = costingPrices.customBoards.find(b => b.boardName === oldName);
+  if (cb) cb.boardName = n;
+
+  // ── Update materialConfig selections across all groups ──
+  Object.values(materialConfig).forEach(cfg => {
+    if (cfg.wood   === oldName) cfg.wood   = n;
+    if (cfg.edging === oldName) cfg.edging = n;
+  });
+  saveMaterials();
+
+  // ── Update unitMatOverrides ──
+  Object.values(unitMatOverrides).forEach(ov => {
+    if (ov.wood   === oldName) ov.wood   = n;
+    if (ov.edging === oldName) ov.edging = n;
+  });
+  saveUnitMatOverrides();
+
+  // ── Push rename to Supabase: PATCH old name row ──
+  (async () => {
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldName)}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ name: n }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        let msg = `HTTP ${res.status}`;
+        try { const j = JSON.parse(txt); msg = j.message || j.hint || msg; } catch(e2) {}
+        throw new Error(msg);
+      }
+      sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+    } catch(e) {
+      sbSyncStatus = 'error'; sbLastSyncError = e.message;
+      console.warn('[Supabase] Rename failed:', e.message);
+    }
+    renderSyncBadge();
+  })();
+
+  saveCostingPrices();
+  refreshMatDropdowns();
+  refreshPriceViews();
+}
+
+function renameEdge(oldKey) {
+  const newKey = prompt(`Rename edging "${oldKey}" to:`, oldKey);
+  if (!newKey || newKey.trim() === oldKey) return;
+  const n = newKey.trim();
+  if (EDGES.includes(n)) { alert(`"${n}" already exists.`); return; }
+
+  // Update EDGES array
+  const ei = EDGES.indexOf(oldKey);
+  if (ei >= 0) EDGES[ei] = n;
+
+  // Update EDGE_COLORS
+  const oldColor = oldKey.replace(/ Edging.*$/, '');
+  const newColor = n.replace(/ Edging.*$/, '');
+  const eci = EDGE_COLORS.indexOf(oldColor);
+  if (eci >= 0) EDGE_COLORS[eci] = newColor;
+  else if (!EDGE_COLORS.includes(newColor)) EDGE_COLORS.push(newColor);
+
+  // Update costingPrices.edge
+  costingPrices.edge[n] = costingPrices.edge[oldKey] || 0;
+  delete costingPrices.edge[oldKey];
+
+  // Update customBoards edgeName
+  const cb = costingPrices.customBoards.find(b => b.edgeName === oldKey);
+  if (cb) cb.edgeName = n;
+
+  // Update materialConfig edging selections
+  Object.values(materialConfig).forEach(cfg => {
+    if (cfg.edging === oldColor) cfg.edging = newColor;
+  });
+  saveMaterials();
+
+  // Update unitMatOverrides edging
+  Object.values(unitMatOverrides).forEach(ov => {
+    if (ov.edging === oldColor) ov.edging = newColor;
+  });
+  saveUnitMatOverrides();
+
+  // Push rename to Supabase
+  (async () => {
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldKey)}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ name: n }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        let msg = `HTTP ${res.status}`;
+        try { const j = JSON.parse(txt); msg = j.message || j.hint || msg; } catch(e2) {}
+        throw new Error(msg);
+      }
+      sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+    } catch(e) {
+      sbSyncStatus = 'error'; sbLastSyncError = e.message;
+      console.warn('[Supabase] Edge rename failed:', e.message);
+    }
+    renderSyncBadge();
+  })();
+
+  saveCostingPrices();
+  refreshMatDropdowns();
+  refreshPriceViews();
+}
+
 
 function addBoardEdging(mat) {
   const sizeEl  = document.getElementById('new-edge-size-' + CSS.escape(mat));
@@ -7974,12 +8141,12 @@ function calcUnitCost(u, unitQty) {
     const pricePerSheet = costingPrices.mat[mat] || 0;
     const pricePerM2    = pricePerSheet / SHEET_AREA;
     const withWaste     = m2 * WASTE_FACTOR;
-    const billed        = billSheets(withWaste, SHEET_AREA);
+    const billed        = billedSheetsForMat(mat, withWaste, SHEET_AREA);
     matCost    += billed * pricePerSheet;
     hPriceCost += billed * hPrice;
 
-    // Cut & Label per sheet (whole sheets)
-    const sheets = Math.ceil(withWaste / SHEET_AREA);
+    // Cut & Label per sheet (whole sheets — use max of ceil and minimum)
+    const sheets = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billed));
     totalSheets += sheets;
     const isMasonite = mat === '3MM White Masonite';
     const rate = isMasonite ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
@@ -8091,6 +8258,7 @@ function renderPricesView() {
           onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
           onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
+        ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\'")}')" title="Rename edging" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">✏</button>` : ''}
         <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging" ${roBtn}
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>`;
@@ -8102,9 +8270,27 @@ function renderPricesView() {
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
           onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/sh</span>
+        ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\'")}')" title="Rename board" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">✏</button>` : ''}
         <button onclick="${delFn}" title="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>
       ${edgeRows}
+      ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center">
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;width:80px">Min. sheets</span>
+        ${costingPrices.matMinSheets?.[mat] > 0
+          ? `<input type="number" min="0" step="0.05" value="${costingPrices.matMinSheets[mat]}"
+               style="width:70px;background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber);padding:3px 6px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace"
+               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--amber-dim)'"
+               oninput="setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)">
+             <span style="font-size:10px;color:var(--amber-dim)">sheets min active</span>
+             <button onclick="setMatMinSheets('${mat.replace(/'/g,"\'")}', 0)" title="Remove minimum"
+               style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:10px;padding:1px 6px;cursor:pointer;margin-left:auto">✕ remove</button>`
+          : `<button onclick="setMatMinSheets('${mat.replace(/'/g,"\'")}', 0.25)"
+               style="background:var(--bg4);border:1px dashed var(--border);color:var(--text-muted);font-size:10px;padding:2px 8px;cursor:pointer;letter-spacing:0.5px"
+               title="Enable a minimum sheet charge for this board — useful if supplier always bills at least e.g. 0.25 sheets">
+               + set minimum charge
+             </button>`
+        }
+      </div>` : ''}
       ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
         <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
@@ -8391,7 +8577,7 @@ function renderCostingView() {
 
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
-      const sheets    = billSheets(withWaste, SHEET_AREA);
+      const sheets    = billedSheetsForMat(mat, withWaste, SHEET_AREA);
       const pricePerSheet = costingPrices.mat[mat] || 0;
       const cost = sheets * pricePerSheet;
       return `<tr>
@@ -8737,8 +8923,8 @@ function buildCombinedSummary(selectedUnits) {
   const matRows = Object.entries(allMatM2).map(([mat, m2]) => {
     const sheetArea = mat === 'Shutterply' ? SHUTTERPLY_AREA : SHEET_AREA;
     const ww    = m2 * WASTE_FACTOR;
-    const cost  = billSheets(ww, sheetArea) * (costingPrices.mat[mat] || 0);
-    const sheets= billSheets(ww, sheetArea);
+    const cost  = billedSheetsForMat(mat, ww, sheetArea) * (costingPrices.mat[mat] || 0);
+    const sheets= billedSheetsForMat(mat, ww, sheetArea);
     return `<tr>
       <td>${mat}</td>
       <td class="num">${m2.toFixed(3)} m²</td>
