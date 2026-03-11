@@ -6480,6 +6480,8 @@ try {
 const SB_URL = 'https://ojuzylnzwdblkaglaeug.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXp5bG56d2RibGthZ2xhZXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTU1NDIsImV4cCI6MjA4ODY5MTU0Mn0.sgMw6UEYrXwZLQB-9AJa1pFcfoCHm0Jm0JyX_TLqYaU';
 let sbSyncStatus = 'idle'; // 'idle' | 'loading' | 'ok' | 'error'
+let sbLastSyncError = null;
+let sbLastSyncTime = null;
 let sbUser   = null;   // { id, email }
 let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
@@ -7536,9 +7538,12 @@ async function loadSupplierPrices() {
     // Cache locally so offline still works
     try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
     sbSyncStatus = 'ok';
+    sbLastSyncTime = new Date();
+    sbLastSyncError = null;
     console.log(`[Supabase] Loaded ${rows.length} supplier prices`);
   } catch(e) {
     sbSyncStatus = 'error';
+    sbLastSyncError = e.message;
     console.warn('[Supabase] Could not load supplier prices — using cached/default values:', e.message);
   }
   renderSyncBadge();
@@ -7547,16 +7552,30 @@ async function loadSupplierPrices() {
 }
 
 async function pushSupplierPrice(category, name, price) {
+  if (!sbUser) {
+    sbSyncStatus = 'error';
+    sbLastSyncError = 'Not logged in';
+    renderSyncBadge();
+    return;
+  }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify({ category, name, price: Number(price), updated_at: new Date().toISOString() })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.message || j.hint || j.details || msg; } catch(e2) {}
+      throw new Error(msg);
+    }
     sbSyncStatus = 'ok';
+    sbLastSyncTime = new Date();
+    sbLastSyncError = null;
   } catch(e) {
     sbSyncStatus = 'error';
+    sbLastSyncError = e.message;
     console.warn('[Supabase] Push failed:', e.message);
   }
   renderSyncBadge();
@@ -7565,11 +7584,15 @@ async function pushSupplierPrice(category, name, price) {
 function renderSyncBadge() {
   const el = document.getElementById('sb-sync-badge');
   if (!el) return;
+  const timeStr = sbLastSyncTime
+    ? sbLastSyncTime.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null;
+  const errDetail = sbLastSyncError ? ` — ${sbLastSyncError}` : '';
   const states = {
-    idle:    { text: '● Supplier Prices',        color: 'var(--text-muted)' },
-    loading: { text: '↻ Syncing…',               color: 'var(--amber-dim)' },
-    ok:      { text: '✓ Synced with database',   color: '#5dba6e' },
-    error:   { text: '✕ Offline — using cache',  color: '#e07070' },
+    idle:    { text: '● Not yet synced',                                          color: 'var(--text-muted)' },
+    loading: { text: '↻ Syncing with database…',                                  color: 'var(--amber)' },
+    ok:      { text: `✓ Saved to database${timeStr ? ' at ' + timeStr : ''}`,     color: '#5dba6e' },
+    error:   { text: `✕ Save failed${errDetail}`,                                 color: '#e07070' },
   };
   const s = states[sbSyncStatus] || states.idle;
   el.textContent = s.text;
@@ -8140,7 +8163,7 @@ function renderPricesView() {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
         <div style="display:flex;align-items:center;gap:12px">
-          <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">● Supplier Prices</span>
+          <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:2px">● Not yet synced</span>
           <button onclick="loadSupplierPrices()" title="Re-sync from database" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
