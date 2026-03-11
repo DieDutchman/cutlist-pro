@@ -495,7 +495,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 180px;
+    min-width: 280px;
   }
   .mat-group-label {
     font-family: 'Oswald', sans-serif;
@@ -2884,31 +2884,37 @@ function buildMatSelector(groupIds) {
     const hwOn = sectionHasHardware(g.id);
     html += `<div class="mat-group">
       <div class="mat-group-label">${g.label}</div>
-      <div class="mat-row">
-        <span class="mat-row-label">Wood</span>
-        <div class="mat-swatch" id="swatch_${g.id}_wood" style="background:${COLOR_SWATCHES[cfg.wood]||'#888'}"></div>
-        <select class="mat-select" onchange="setMaterial('${g.id}','wood',this.value)">
-          ${colOpts(cfg.wood, COLORS)}
-        </select>
-      </div>
-      <div class="mat-row">
-        <span class="mat-row-label">Edging</span>
-        <div class="mat-swatch" id="swatch_${g.id}_edging" style="background:${COLOR_SWATCHES[cfg.edging]||'#888'}"></div>
-        <select class="mat-select" id="select_${g.id}_edging" onchange="setMaterial('${g.id}','edging',this.value)">
-          ${colOpts(cfg.edging, EDGE_COLORS)}
-        </select>
-      </div>
-      <div class="mat-row" style="margin-top:2px">
-        <span class="mat-row-label">HW</span>
-        <button onclick="toggleSectionHardware('${g.id}')" title="${hwOn ? 'Auto-hardware included — click to exclude (client supplies own)' : 'Hardware excluded — click to include auto-hardware'}"
-          style="display:flex;align-items:center;gap:5px;padding:3px 10px;font-size:11px;cursor:pointer;border-radius:2px;font-family:inherit;letter-spacing:0.5px;
-                 ${hwOn
-                   ? 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870'
-                   : 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060'
-                 }">
-          <span style="font-size:10px">${hwOn ? '✔' : '✘'}</span>
-          ${hwOn ? 'Included' : 'Excluded'}
-        </button>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="mat-row">
+            <span class="mat-row-label">Wood</span>
+            <div class="mat-swatch" id="swatch_${g.id}_wood" style="background:${COLOR_SWATCHES[cfg.wood]||'#888'}"></div>
+            <select class="mat-select" onchange="setMaterial('${g.id}','wood',this.value)">
+              ${colOpts(cfg.wood, COLORS)}
+            </select>
+          </div>
+          <div class="mat-row">
+            <span class="mat-row-label">Edging</span>
+            <div class="mat-swatch" id="swatch_${g.id}_edging" style="background:${COLOR_SWATCHES[cfg.edging]||'#888'}"></div>
+            <select class="mat-select" id="select_${g.id}_edging" onchange="setMaterial('${g.id}','edging',this.value)">
+              ${colOpts(cfg.edging, EDGE_COLORS)}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;border-left:1px solid var(--border);padding-left:14px">
+          <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">Hardware</span>
+          <button onclick="toggleSectionHardware('${g.id}')"
+            title="${hwOn ? 'Auto-hardware included — click to exclude (client supplies own)' : 'Hardware excluded — click to include auto-hardware'}"
+            style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 12px;cursor:pointer;border-radius:2px;font-family:inherit;white-space:nowrap;
+                   ${hwOn
+                     ? 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870'
+                     : 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060'
+                   }">
+            <span style="font-size:13px">${hwOn ? '✔' : '✘'}</span>
+            <span style="font-size:10px;letter-spacing:0.5px">${hwOn ? 'Included' : 'Excluded'}</span>
+            <span style="font-size:9px;color:${hwOn ? '#1a7a4a' : '#8a3030'};text-align:center;line-height:1.3">Hinges, Runners<br>&amp; Handles</span>
+          </button>
+        </div>
       </div>
     </div>`;
   });
@@ -8757,12 +8763,14 @@ function buildCombinedSummary(selectedUnits) {
     totalRunners   > 0 ? `<tr><td>Runners – ${runnerLabel} (${totalRunners} sets)</td><td class="num">—</td><td class="num">R${runnerPrice} × ${totalRunners}</td><td class="num cost">${R(totalRunnerCost)}</td></tr>` : '',
   ].join('');
 
-  // Section header helper
+  // Section header helper — no percentage, just clean label + total
   const secHead = (label, total) => `
     <tr style="background:rgba(212,145,58,0.1)">
       <td colspan="3" style="font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--amber);font-size:12px;padding:10px 8px">${label}</td>
-      <td class="num cost" style="font-size:14px;padding:10px 8px">${R(total)}${pct(total)}</td>
+      <td class="num cost" style="font-size:14px;padding:10px 8px">${R(total)}</td>
     </tr>`;
+
+  const anyHardware = totalHardware + extraHwTotal > 0;
 
   return `<div class="cv-unit-card" style="border-left-color:var(--amber)">
     <div class="cv-unit-head" style="background:rgba(255,200,0,0.04)">
@@ -8784,11 +8792,12 @@ function buildCombinedSummary(selectedUnits) {
         <tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Cut &amp; Label</td><td class="num cost">${R(totalCutLabel)}</td></tr>
         ${totalDrilling > 0 ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Hinge Drilling</td><td class="num cost">${R(totalDrilling)}</td></tr>` : ''}
 
+        ${anyHardware ? `
         ${secHead('HARDWARE', totalHardware + totalHwHandling + extraHwTotal + extraHwHandling)}
         ${hwRows}
         ${totalHwHandling > 0 ? `<tr><td style="color:var(--text-muted);font-size:11px">Handling (${Math.round(HW_HANDLING*100)}%)</td><td class="num">—</td><td class="num">${Math.round(HW_HANDLING*100)}% on hardware</td><td class="num cost">${R(totalHwHandling)}</td></tr>` : ''}
         ${hasExtraHw ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">From Quote Extras</td><td class="num cost">${R(extraHwTotal)}</td></tr>${extraHwRows}<tr><td style="color:var(--text-muted);font-size:11px;padding-left:16px">Handling (${Math.round(HW_HANDLING*100)}%)</td><td class="num">—</td><td class="num">${Math.round(HW_HANDLING*100)}% on extras hw</td><td class="num cost">${R(extraHwHandling)}</td></tr>` : ''}
-        ${totalHardware + extraHwTotal === 0 ? `<tr><td colspan="4" style="color:var(--text-muted);font-size:11px;padding-left:16px">No hardware items (all excluded or none detected)</td></tr>` : ''}
+        ` : ''}
 
         ${tops.enabled && topsTotal > 0 ? `
         ${secHead('TOPS', topsTotal)}
