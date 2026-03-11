@@ -7559,7 +7559,7 @@ async function pushSupplierPrice(category, name, price) {
     return;
   }
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices`, {
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify({ category, name, price: Number(price), updated_at: new Date().toISOString() })
