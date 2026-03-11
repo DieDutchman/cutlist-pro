@@ -6387,7 +6387,7 @@ function downloadQuoteXLSX() {
 // COSTING VIEW
 // ═══════════════════════════════════════════════════════════
 const SHEET_AREA = 2.750 * 1.830;  // m² per board (2750 x 1830mm)
-const WASTE_FACTOR = 1.15;          // 15% cutting waste
+const WASTE_FACTOR = 1.20;          // 20% cutting waste
 const HW_HANDLING = 0.15;           // 15% handling fee on hardware
 
 // Supplier bills in 0.05-sheet increments, always rounding up
@@ -8629,12 +8629,12 @@ function renderCostingView() {
           </tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${c.doorCount > 0 ? `<tr>
+          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr>
             <td>Hinge Drilling (${c.doorCount} holes)</td>
             <td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td>
             <td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td>
           </tr>` : ''}
-          ${hardwareRows(c)}
+          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
           <tr class="cv-subtotal">
             <td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td>
             <td colspan="3"></td>
@@ -9125,8 +9125,8 @@ function refreshCostingResults() {
           <tr class="cv-subtotal"><td>Boards + Edging</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.matCost + c.edgeCost).toLocaleString('en-ZA')}</td></tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
-          ${hardwareRows(c)}
+          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
+          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
           <tr class="cv-subtotal"><td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.total).toLocaleString('en-ZA')}</td></tr>
         </tbody>
       </table>
