@@ -2738,6 +2738,40 @@ function saveMaterials() {
   try { localStorage.setItem('cutlist_materials', JSON.stringify(materialConfig)); } catch(e) {}
 }
 
+// Per-unit hardware flag — { [unitId]: false } means hardware excluded for that unit
+// Default (key absent) = hardware IS included
+const sectionHardware = {}; // { [sectionId]: false } = hardware excluded
+try {
+  const saved = JSON.parse(localStorage.getItem('cutlist_section_hardware') || '{}');
+  Object.assign(sectionHardware, saved);
+} catch(e) {}
+
+function saveSectionHardware() {
+  try { localStorage.setItem('cutlist_section_hardware', JSON.stringify(sectionHardware)); } catch(e) {}
+}
+
+function toggleSectionHardware(sectionId) {
+  if (sectionHardware[sectionId] === false) {
+    delete sectionHardware[sectionId];
+  } else {
+    sectionHardware[sectionId] = false;
+  }
+  saveSectionHardware();
+  renderPanel();
+  const cv = document.getElementById('costing-view');
+  if (cv && cv.style.display !== 'none') refreshCostingResults();
+  refreshQuoteTotals();
+}
+
+function sectionHasHardware(sectionId) {
+  return sectionHardware[sectionId] !== false;
+}
+
+function unitHasHardware(unitId) {
+  const unit = getEffectiveUnits().find(u => u.id === unitId);
+  return unit ? sectionHasHardware(unit.section) : true;
+}
+
 // Per-unit material overrides — { [unitId]: { wood, edging } }
 const unitMatOverrides = {};
 try {
@@ -2847,6 +2881,7 @@ function buildMatSelector(groupIds) {
   let html = `<div class="mat-selector-bar">`;
   groups.forEach(g => {
     const cfg = materialConfig[g.id];
+    const hwOn = sectionHasHardware(g.id);
     html += `<div class="mat-group">
       <div class="mat-group-label">${g.label}</div>
       <div class="mat-row">
@@ -2862,6 +2897,18 @@ function buildMatSelector(groupIds) {
         <select class="mat-select" id="select_${g.id}_edging" onchange="setMaterial('${g.id}','edging',this.value)">
           ${colOpts(cfg.edging, EDGE_COLORS)}
         </select>
+      </div>
+      <div class="mat-row" style="margin-top:2px">
+        <span class="mat-row-label">HW</span>
+        <button onclick="toggleSectionHardware('${g.id}')" title="${hwOn ? 'Auto-hardware included — click to exclude (client supplies own)' : 'Hardware excluded — click to include auto-hardware'}"
+          style="display:flex;align-items:center;gap:5px;padding:3px 10px;font-size:11px;cursor:pointer;border-radius:2px;font-family:inherit;letter-spacing:0.5px;
+                 ${hwOn
+                   ? 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870'
+                   : 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060'
+                 }">
+          <span style="font-size:10px">${hwOn ? '✔' : '✘'}</span>
+          ${hwOn ? 'Included' : 'Excluded'}
+        </button>
       </div>
     </div>`;
   });
@@ -3117,6 +3164,8 @@ function renderPanel() {
            style="${ovBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:6px">🎨</button>`
       : '';
 
+
+
     const colOpts = (sel, list) => list.map(c => `<option value="${c}" ${c===sel?'selected':''}>${c}</option>`).join('');
     const curWood = ov?.wood || materialConfig[getUnitMaterialGroup(u)].wood;
     const curEdge = ov?.edging || materialConfig[getUnitMaterialGroup(u)].edging;
@@ -3241,6 +3290,8 @@ function clearAll() {
     saveQuoteState();
 
     Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+    saveSectionHardware();
     saveUnitMatOverrides();
     save();
     saveHoles();
@@ -5507,10 +5558,10 @@ function renderQuoteView() {
   const topsExcl    = (quoteState.tops.m2 || 0) * (quoteState.tops.pricePerM2 || 0);
   const topsDelivery= topsExcl > 0 ? 500 : 0;
   const topsVAT     = (topsExcl + topsDelivery) * 0.15;
-  const topsHandling= (topsExcl + topsDelivery + topsVAT) * 0.10;
-  const topsTotal   = topsExcl + topsDelivery + topsVAT + topsHandling;
-  const consultTotal  = quoteState.consultFee ? 500 * 1.15 : 0;   // +15% VAT
-  const dieselTotal   = quoteState.dieselFee  ? 1800 : 0;          // no VAT
+  const topsHandling= (topsExcl + topsDelivery) * 0.10;   // handling excl. VAT
+  const topsTotal   = topsExcl + topsDelivery + topsHandling; // excl. VAT
+  const consultTotal  = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
+  const dieselTotal   = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
   const extrasTotal   = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const unitsWithMarkup = unitsTotal * (1 + quoteState.markup);
   const subtotal      = unitsTotal + topsTotal + consultTotal + dieselTotal + extrasTotal;
@@ -5780,7 +5831,7 @@ function renderQuoteView() {
         <span class="val" id="qv-val-tops">${fmt(topsTotal)}</span>
       </div>` : ''}
       ${consultTotal > 0 ? `<div class="qv-total-row">
-        <span class="label">Consultation Fee <span style="font-size:10px;color:var(--text-muted)">(incl. VAT)</span></span>
+        <span class="label">Consultation Fee <span style="font-size:10px;color:var(--text-muted)">(excl. VAT)</span></span>
         <span class="val" id="qv-val-consult">${fmt(consultTotal)}</span>
       </div>` : ''}
       ${dieselTotal > 0 ? `<div class="qv-total-row">
@@ -5795,9 +5846,17 @@ function renderQuoteView() {
         <span class="label">Subtotal (excl. markup)</span>
         <span class="val" id="qv-val-sub">${fmt(subtotal)}</span>
       </div>
-      <div class="qv-total-row grand">
-        <span class="label">Grand Total</span>
+      <div class="qv-total-row" style="border-top:1px solid var(--border);padding-top:8px">
+        <span class="label">Grand Total <span style="font-size:10px;color:var(--text-muted)">(excl. VAT)</span></span>
         <span class="val" id="qv-val-grand">${fmt(withMarkup)}</span>
+      </div>
+      <div class="qv-total-row" style="color:var(--text-muted)">
+        <span class="label" style="font-size:12px">VAT (15%)</span>
+        <span class="val" style="font-size:12px" id="qv-val-vat">${fmt(withMarkup * 0.15)}</span>
+      </div>
+      <div class="qv-total-row grand">
+        <span class="label">Grand Total <span style="font-size:10px;color:var(--amber-dim)">(incl. VAT)</span></span>
+        <span class="val" id="qv-val-grand-vat">${fmt(withMarkup * 1.15)}</span>
       </div>
     </div>
 
@@ -6113,9 +6172,9 @@ function refreshQuoteTotals() {
 
   const topsExcl     = (quoteState.tops.m2||0) * (quoteState.tops.pricePerM2||0);
   const topsDelivery2= topsExcl > 0 ? 500 : 0;
-  const topsVAT2 = (topsExcl + topsDelivery2) * 0.15;
-  const topsTotal    = (topsExcl + topsDelivery2 + topsVAT2) * 1.10;   // +delivery +15% VAT +10% handling
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) * 1.15 : 0;
+  const topsVAT2     = (topsExcl + topsDelivery2) * 0.15;
+  const topsTotal    = (topsExcl + topsDelivery2) * 1.10;   // +delivery +10% handling, excl. VAT
+  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
   const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
   // Recalculate base and skirting extra amounts in case prices changed
   quoteState.extras.forEach((e, i) => {
@@ -6138,6 +6197,8 @@ function refreshQuoteTotals() {
   set('qv-val-extras',  fmt(extrasTotal));
   set('qv-val-sub',     fmt(subtotal));
   set('qv-val-grand',   fmt(grand));
+  set('qv-val-vat',     fmt(grand * 0.15));
+  set('qv-val-grand-vat', fmt(grand * 1.15));
   const td = document.getElementById('qv-tops-total');
   if (td) td.textContent = topsTotal > 0 ? fmt(topsTotal) : '—';
 }
@@ -6219,25 +6280,22 @@ function downloadQuoteXLSX() {
   const topsExcl    = (quoteState.tops.m2||0) * (quoteState.tops.pricePerM2||0);
   const topsDelivery= topsExcl > 0 ? 500 : 0;
   const topsVAT     = (topsExcl + topsDelivery) * 0.15;
-  const topsHandling= (topsExcl + topsDelivery + topsVAT) * 0.10;
-  const topsTotal   = topsExcl + topsDelivery + topsVAT + topsHandling;
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) * 1.15 : 0;
+  const topsHandling= (topsExcl + topsDelivery) * 0.10; // excl. VAT
+  const topsTotal   = topsExcl + topsDelivery + topsHandling; // excl. VAT
+  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
   const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
   if (topsTotal > 0) {
     rows.push(['TOPS', '', '', '', '']);
     rows.push([quoteState.tops.m2 + ' m²', (quoteState.tops.type||'Tops') + ' @ R' + quoteState.tops.pricePerM2 + '/m²', '', quoteState.tops.pricePerM2, topsExcl]);
     rows.push(['', 'Delivery', '', '', topsDelivery]);
-    rows.push(['', 'VAT (15%)', '', '', topsVAT]);
     rows.push(['', 'Handling (10%)', '', '', topsHandling]);
-    rows.push(['', 'Tops Total', '', '', topsTotal]);
+    rows.push(['', 'Tops Total (excl. VAT)', '', '', topsTotal]);
     grandSub += topsTotal;
     rows.push([]);
   }
   if (consultTotal) {
     rows.push(['FEES', '', '', '', '']);
-    rows.push(['', 'Consultation Fee (excl. VAT)', '', '', 500]);
-    rows.push(['', 'VAT (15%)', '', '', 75]);
-    rows.push(['', 'Consultation Fee Total', '', '', consultTotal]);
+    rows.push(['', 'Consultation Fee (excl. VAT)', '', '', consultTotal]);
     grandSub += consultTotal;
     rows.push([]);
   }
@@ -6630,6 +6688,7 @@ function getJobState() {
     holesOverrides,
     materialConfig,
     unitMatOverrides,
+    sectionHardware: {...sectionHardware},
     quoteState,
     bedroomAddons,
     costingPrices: {
@@ -7820,6 +7879,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
 }
 
 function calcUnitCost(u, unitQty) {
+  const includeHardware = unitHasHardware(u.id);
   // Aggregate material m² and edging m per type, and part/door counts
   const matM2   = {};   // mat -> total m²
   const edgeM   = {};   // edgeKey -> total m
@@ -7905,14 +7965,14 @@ function calcUnitCost(u, unitQty) {
     edgeCost   += rounded * pricePerM;
     hPriceCost += rounded * hPrice;
   });
-  const drillingCost  = doorCount * costingPrices.extras.drilling;
+  const drillingCost  = includeHardware ? doorCount * costingPrices.extras.drilling : 0;
   const hw            = costingPrices.hardware;
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hingeCost     = hingeCount    * hingePrice;
-  const runnerCost    = runnerCount   * runnerPrice;
-  const handle160Cost = handle160Count * hw.handle160;
-  const handle240Cost = handle240Count * hw.handle240;
+  const hingeCost     = includeHardware ? hingeCount    * hingePrice : 0;
+  const runnerCost    = includeHardware ? runnerCount   * runnerPrice : 0;
+  const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
+  const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
   const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost;
@@ -8618,8 +8678,9 @@ function buildCombinedSummary(selectedUnits) {
   const topsExcl     = tops.enabled && qt.m2 > 0 ? qt.m2 * (qt.pricePerM2 || 0) : 0;
   const topsDelivery = topsExcl > 0 ? 500 : 0;
   const topsVAT      = (topsExcl + topsDelivery) * 0.15;
-  const topsHandling = (topsExcl + topsDelivery + topsVAT) * 0.10;
-  const topsTotal    = topsExcl + topsDelivery + topsVAT + topsHandling;
+  const topsHandling = (topsExcl + topsDelivery) * 0.10;   // 10% handling excl. VAT
+  const topsExclVAT  = topsExcl + topsDelivery + topsHandling; // excl. VAT (for display)
+  const topsTotal    = topsExclVAT; // costing shows excl. VAT — VAT shown separately in grand total
 
   const totalMaterials = totalMat + totalEdgeCostCalc + totalCutLabel + totalDrilling;
   // Custom hardware totals — computed here so grandTotalAll can include them
@@ -8727,7 +8788,7 @@ function buildCombinedSummary(selectedUnits) {
         ${hwRows}
         ${totalHwHandling > 0 ? `<tr><td style="color:var(--text-muted);font-size:11px">Handling (${Math.round(HW_HANDLING*100)}%)</td><td class="num">—</td><td class="num">${Math.round(HW_HANDLING*100)}% on hardware</td><td class="num cost">${R(totalHwHandling)}</td></tr>` : ''}
         ${hasExtraHw ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">From Quote Extras</td><td class="num cost">${R(extraHwTotal)}</td></tr>${extraHwRows}<tr><td style="color:var(--text-muted);font-size:11px;padding-left:16px">Handling (${Math.round(HW_HANDLING*100)}%)</td><td class="num">—</td><td class="num">${Math.round(HW_HANDLING*100)}% on extras hw</td><td class="num cost">${R(extraHwHandling)}</td></tr>` : ''}
-        ${!hwRows && !hasExtraHw ? `<tr><td colspan="4" style="color:var(--text-muted);font-size:11px;padding-left:16px">No hardware items</td></tr>` : ''}
+        ${totalHardware + extraHwTotal === 0 ? `<tr><td colspan="4" style="color:var(--text-muted);font-size:11px;padding-left:16px">No hardware items (all excluded or none detected)</td></tr>` : ''}
 
         ${tops.enabled && topsTotal > 0 ? `
         ${secHead('TOPS', topsTotal)}
@@ -8768,8 +8829,16 @@ function buildCombinedSummary(selectedUnits) {
         }).join('')}
         ` : ''}
 
-          <td colspan="3" style="font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--amber);font-size:13px">GRAND TOTAL</td>
+          <td colspan="3" style="font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--amber);font-size:13px">GRAND TOTAL <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(excl. VAT)</span></td>
           <td class="num cost" style="font-size:16px">${R(grandTotalAll)}</td>
+        </tr>
+        <tr style="background:rgba(255,255,255,0.02)">
+          <td colspan="3" style="font-size:11px;color:var(--text-muted);padding:6px 8px">VAT (15%)</td>
+          <td class="num cost" style="font-size:12px;color:var(--text-muted)">${R(grandTotalAll * 0.15)}</td>
+        </tr>
+        <tr style="border-top:1px solid var(--amber)">
+          <td colspan="3" style="font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--amber);font-size:13px">GRAND TOTAL <span style="font-size:10px;color:var(--amber-dim);text-transform:none;letter-spacing:0">(incl. VAT)</span></td>
+          <td class="num cost" style="font-size:16px;color:var(--amber)">${R(grandTotalAll * 1.15)}</td>
         </tr>
       </tbody>
     </table>
@@ -8980,6 +9049,7 @@ function applyState(state) {
   if (state.holesOverrides) Object.assign(holesOverrides, state.holesOverrides);
   if (state.materialConfig) Object.assign(materialConfig, state.materialConfig);
   if (state.unitMatOverrides) { Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]); Object.assign(unitMatOverrides, state.unitMatOverrides); saveUnitMatOverrides(); }
+  if (state.unitHardware)    { Object.keys(unitHardware).forEach(k => delete unitHardware[k]); Object.assign(sectionHardware, state.unitHardware); saveUnitHardware(); }
   if (state.quoteState)     Object.assign(quoteState,     state.quoteState);
   if (state.bedroomAddons) {
     ADDON_SECTIONS.forEach(sec => {
