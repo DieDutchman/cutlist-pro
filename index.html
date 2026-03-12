@@ -3295,7 +3295,15 @@ function clearAll() {
     document.getElementById('materials-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('builder-view').style.display = 'none';
+    document.getElementById('panels-view').style.display = 'none';
+    document.getElementById('import-view').style.display = 'none';
     document.getElementById('quote-view').style.display = 'block';
+    // Reset import state
+    importState.raw = null;
+    importState.parsed = null;
+    importState.label = '';
+    importState.status = 'idle';
+    importState.error = null;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     // For user mode, activate first user room; for admin, activate kitchen
     if (sbRole !== 'admin' && userRooms.length > 0) {
@@ -6385,7 +6393,12 @@ function billSheets(m2withWaste, sheetArea) {
 // Like billSheets but applies a per-material minimum if configured
 function billedSheetsForMat(mat, m2withWaste, sheetArea) {
   const raw = billSheets(m2withWaste, sheetArea);
-  const min = costingPrices.matMinSheets?.[mat] || 0;
+  // Special order = must buy full sheet
+  if (costingPrices.matSpecialOrder?.[mat]) return Math.max(raw, 1.0);
+  // Default minimum is 0.25 for all stock boards; override with matMinSheets if set
+  const min = costingPrices.matMinSheets?.[mat] != null
+    ? costingPrices.matMinSheets[mat]
+    : 0.25;
   return min > 0 ? Math.max(raw, min) : raw;
 }
 
@@ -6395,6 +6408,38 @@ function setMatMinSheets(mat, value) {
     delete costingPrices.matMinSheets[mat];
   } else {
     costingPrices.matMinSheets[mat] = parseFloat(value);
+  }
+  saveCostingPrices();
+  refreshCostingResults();
+  renderPricesView();
+}
+
+// One-time conversion: divide all board & edging prices by 1.15 (incl. VAT → excl. VAT)
+function convertPricesExclVAT() {
+  if (!confirm('This will divide ALL board and edging prices by 1.15 to convert from incl. VAT to excl. VAT.\n\nThis is a one-time action — only do this once.\n\nContinue?')) return;
+  const VAT = 1.15;
+  Object.keys(costingPrices.mat).forEach(k => {
+    costingPrices.mat[k] = Math.round((costingPrices.mat[k] / VAT) * 100) / 100;
+  });
+  Object.keys(costingPrices.edge).forEach(k => {
+    costingPrices.edge[k] = Math.round((costingPrices.edge[k] / VAT) * 100) / 100;
+  });
+  saveCostingPrices();
+  // Push all updated prices to Supabase
+  Object.keys(costingPrices.mat).forEach(k  => pushSupplierPrice('board', k,  costingPrices.mat[k]));
+  Object.keys(costingPrices.edge).forEach(k => pushSupplierPrice('edge',  k,  costingPrices.edge[k]));
+  refreshCostingResults();
+  renderPricesView();
+}
+
+// Toggle special order (full sheet) flag for a material
+function setMatSpecialOrder(mat, isSpecial) {
+  if (isSpecial) {
+    costingPrices.matSpecialOrder[mat] = true;
+    // Clear any custom min override — special order always means full sheet
+    delete costingPrices.matMinSheets[mat];
+  } else {
+    delete costingPrices.matSpecialOrder[mat];
   }
   saveCostingPrices();
   refreshCostingResults();
@@ -6445,7 +6490,8 @@ const costingPrices = {
   // Custom boards added per-job: [{id, boardName, boardPrice, edgeName, edgePrice}]
   customBoards: [],
   hiddenMats: [], // standard boards removed from pricing list
-  matMinSheets: {}, // { [matName]: 0.25 } — per-board minimum sheet charge
+  matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
+  matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -6463,7 +6509,8 @@ try {
   if (saved.hardware)     Object.assign(costingPrices.hardware, saved.hardware);
   if (saved.customBoards)    costingPrices.customBoards    = saved.customBoards;
   if (saved.customHardware)  costingPrices.customHardware  = saved.customHardware;
-  if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets, saved.matMinSheets);
+  if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
+  if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
   // Re-inject custom boards into runtime MATS/EDGES/COLORS/EDGE_COLORS arrays
@@ -8247,7 +8294,10 @@ function renderPricesView() {
     }).join('');
     return `<div style="background:var(--bg3);border:1px solid var(--border);margin-bottom:6px;padding:2px 10px 2px 10px">
       <div class="cv-extra-row" style="border-bottom:none;padding:7px 0 3px 0">
-        <span class="cv-extra-label">${mat}${badge}</span>
+        <span class="cv-extra-label">
+          ${mat}${badge}
+          ${costingPrices.matSpecialOrder?.[mat] ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 5px;margin-left:6px;letter-spacing:0.5px;vertical-align:middle">SPECIAL ORDER</span>` : ''}
+        </span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
           onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
@@ -8256,22 +8306,26 @@ function renderPricesView() {
         <button onclick="${delFn}" title="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>
       ${edgeRows}
-      ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center">
-        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;width:80px">Min. sheets</span>
-        ${costingPrices.matMinSheets?.[mat] > 0
-          ? `<input type="number" min="0" step="0.05" value="${costingPrices.matMinSheets[mat]}"
-               style="width:70px;background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber);padding:3px 6px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace"
-               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--amber-dim)'"
-               oninput="setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)">
-             <span style="font-size:10px;color:var(--amber-dim)">sheets min active</span>
-             <button onclick="setMatMinSheets('${mat.replace(/'/g,"\'")}', 0)" title="Remove minimum"
-               style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:10px;padding:1px 6px;cursor:pointer;margin-left:auto">✕ remove</button>`
-          : `<button onclick="setMatMinSheets('${mat.replace(/'/g,"\'")}', 0.25)"
-               style="background:var(--bg4);border:1px dashed var(--border);color:var(--text-muted);font-size:10px;padding:2px 8px;cursor:pointer;letter-spacing:0.5px"
-               title="Enable a minimum sheet charge for this board — useful if supplier always bills at least e.g. 0.25 sheets">
-               + set minimum charge
-             </button>`
-        }
+      ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;width:80px">Stock type</span>
+        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false)"
+          style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
+                 ${!costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          ✓ In Stock <span style="font-size:9px;opacity:0.8">(0.25 min)</span>
+        </button>
+        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', true)"
+          style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
+                 ${costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🛒 Special Order <span style="font-size:9px;opacity:0.8">(full sheet)</span>
+        </button>
+        ${!costingPrices.matSpecialOrder?.[mat] ? `
+        <span style="font-size:10px;color:var(--text-muted);margin-left:4px">min:
+          <input type="number" min="0.05" max="1" step="0.05"
+            value="${costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25}"
+            style="width:52px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            oninput="setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)"> sheets
+        </span>` : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">Supplier offcuts included — billed as 1 full sheet</span>`}
       </div>` : ''}
       ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
@@ -8341,7 +8395,14 @@ function renderPricesView() {
       </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
       <div>
-        ${section('Boards &amp; Edging')}
+        ${admin ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Boards &amp; Edging</div>
+          <button onclick="convertPricesExclVAT()"
+            style="font-size:10px;background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:3px 10px;cursor:pointer;letter-spacing:0.5px;font-family:'Oswald',sans-serif"
+            title="Divide all board and edging prices by 1.15 to convert from incl. VAT to excl. VAT">
+            ÷ 1.15 Convert to excl. VAT
+          </button>
+        </div>` : section('Boards &amp; Edging')}
         ${allBoardRows}
         ${orphanEdgeRows}
         ${addBoardForm}
@@ -9588,6 +9649,44 @@ let importState = {
   error: null,
 };
 
+// ── Fuzzy material / edging correctors ───────────────────────────────────────
+// If Claude returns a name that's slightly off, snap it to the closest real name.
+function fuzzyMatchMat(val) {
+  if (!val) return MATS[0] || 'White Melamine';
+  const v = val.trim();
+  // Exact match first
+  if (MATS.includes(v)) return v;
+  // Case-insensitive exact
+  const lower = v.toLowerCase();
+  const exact = MATS.find(m => m.toLowerCase() === lower);
+  if (exact) return exact;
+  // Starts-with / contains
+  const starts = MATS.find(m => m.toLowerCase().startsWith(lower) || lower.startsWith(m.toLowerCase()));
+  if (starts) return starts;
+  const contains = MATS.find(m => m.toLowerCase().includes(lower) || lower.includes(m.toLowerCase()));
+  if (contains) return contains;
+  // Initials match (e.g. "IW" → "Iceberg White")
+  const initMatch = MATS.find(m => m.split(' ').map(w=>w[0].toLowerCase()).join('') === lower);
+  if (initMatch) return initMatch;
+  // Fallback
+  return 'White Melamine';
+}
+
+function fuzzyMatchEdge(val) {
+  if (!val || val.trim() === '') return '';
+  const v = val.trim();
+  if (EDGES.includes(v)) return v;
+  const lower = v.toLowerCase();
+  const exact = EDGES.find(e => e && e.toLowerCase() === lower);
+  if (exact) return exact;
+  const starts = EDGES.find(e => e && (e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())));
+  if (starts) return starts;
+  const contains = EDGES.find(e => e && (e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase())));
+  if (contains) return contains;
+  // Return empty if nothing matches — safer than a wrong edge
+  return '';
+}
+
 function renderImportView() {
   const iv = document.getElementById('import-view');
   if (!iv) return;
@@ -9817,10 +9916,51 @@ async function runImportParse() {
   const edgeList = EDGES.filter(Boolean).join(', ');
   const labelHint = importState.label ? `The import is labelled: "${importState.label}".` : '';
 
-  const systemPrompt = `You are a woodworking cutlist parser. Convert raw spreadsheet data into structured cut parts.
+  // Build a material alias table from MATS so Claude knows common abbreviations
+  const matAliasLines = MATS.map(m => {
+    const aliases = [m];
+    // Short codes
+    const initials = m.split(' ').map(w=>w[0]).join('');
+    if (initials.length >= 2) aliases.push(initials);
+    // Common shorthand
+    if (m.includes('White Melamine'))         aliases.push('WM','Melamine','White Mel','White Board');
+    if (m.includes('Masonite'))               aliases.push('Masonite','3MM','HB','Hardboard','Backing');
+    if (m.includes('Iceberg White'))          aliases.push('IW','Iceberg','Ice White','Peen','IWP');
+    if (m.includes('Congo'))                  aliases.push('CG','Con');
+    if (m.includes('Folkstone Grey Linear'))  aliases.push('FGL','Folkstone Lin');
+    if (m.includes('Folkstone Grey'))         aliases.push('FG','Folkstone');
+    if (m.includes('Woodland Fusion'))        aliases.push('WF','Woodland');
+    if (m.includes('Storm Grey Linear'))      aliases.push('SGL','Storm Lin');
+    if (m.includes('Storm Grey'))             aliases.push('SG','Storm');
+    if (m.includes('Dunblane'))               aliases.push('DB','Dun');
+    if (m.includes('Pico White'))             aliases.push('PW','Pico');
+    if (m.includes('Shutterply'))             aliases.push('Ply','Shutter','Shutterply');
+    const unique = [...new Set(aliases)];
+    return `  "${m}" → aliases: ${unique.slice(1).join(', ') || 'none'}`;
+  }).join('\n');
 
-Available board materials: ${matList}
-Available edging options (use exact names): ${edgeList}
+  // Build material → default edging map
+  const matEdgeMap = MATS.map(m => {
+    const prefix = m === 'White Melamine' ? 'White Edging' : m + ' Edging';
+    const match = EDGES.find(e => e && e.startsWith(prefix)) || '';
+    return match ? `  "${m}" → default edging: "${match}"` : null;
+  }).filter(Boolean).join('\n');
+
+  const systemPrompt = `You are a woodworking cutlist parser for a South African cabinet maker. Convert raw spreadsheet data into structured cut parts.
+
+AVAILABLE BOARD MATERIALS (use EXACT names in output):
+${matList}
+
+MATERIAL ALIASES (what the spreadsheet might say → what to output):
+${matAliasLines}
+
+AVAILABLE EDGING OPTIONS (use EXACT names in output):
+${edgeList}
+
+MATERIAL → DEFAULT EDGING PAIRS:
+${matEdgeMap}
+  Note: "3MM White Masonite" and "Shutterply" typically have NO edging.
+
 ${labelHint}
 
 EDGE ABBREVIATION GUIDE — interpret these in ANY column that describes edging:
@@ -9829,17 +9969,27 @@ EDGE ABBREVIATION GUIDE — interpret these in ANY column that describes edging:
 - 2L / L2 / EL2 / LONG2 = el2 (second length edge)
 - 1S / W1 / EW1 / SHORT1 / 1W = ew1 (first width/short edge)
 - 2S / W2 / EW2 / SHORT2 / 2W = ew2 (second width/short edge)
-- 3S / 3E / 3 SIDES = el1 + ew1 + ew2 (three sides — typical for shelf: front + 2 ends)
+- 3S / 3E / 3 SIDES = el1 + ew1 + ew2 (three sides — typical for a shelf: front + 2 ends)
 - TE / TOP EDGE = el1 only
-- BE / BOT = el2 only
+- BE / BOTTOM EDGE = el2 only
 - A tick ✓, YES, Y, or X in an edge column = that edge is edged
 - A dash —, NO, N, or blank = no edge
-- Numbers like 1, 2, 3, 4 in edge columns = how many edges (use el1, then el2, then ew1, then ew2)
+- Numbers like 1, 2, 3, 4 = how many edges (fill el1 first, then el2, then ew1, then ew2)
 
-MATERIAL MATCHING: Match the material in the row to the closest available material. If unsure, use "White Melamine".
-EDGING MATCHING: When edging is required, match to the closest available edging for that material. If the material is "Iceberg White", the edging is likely "Iceberg White Edging 1mm". If it's a door or face, EAR is most common.
+MATERIAL MATCHING RULES:
+1. Look up the spreadsheet value in the alias table above — use the exact material name shown
+2. If the spreadsheet has no material column, infer from context:
+   - Doors, drawer faces, visible panels → use the colour board (e.g. Iceberg White, Dunblane)
+   - Carcass sides, shelves, tops, bottoms → White Melamine
+   - Backing boards, thin backs → 3MM White Masonite
+3. If still unsure → use "White Melamine"
 
-OUTPUT: Return ONLY valid JSON — no markdown, no explanation — in this exact format:
+EDGING MATCHING RULES:
+1. When edging is needed, use the default edging for the matched material (see pairs above)
+2. If the spreadsheet specifies a different edging colour, match it to the closest available edging
+3. Never invent edging names — only use names from the available edging list
+
+OUTPUT: Return ONLY valid JSON — no markdown, no explanation, no preamble:
 {
   "parts": [
     {
@@ -9853,17 +10003,17 @@ OUTPUT: Return ONLY valid JSON — no markdown, no explanation — in this exact
       "el2": "",
       "ew1": "",
       "ew2": "",
-      "holes": "any notes about holes or hardware"
+      "holes": "any notes about holes, handles, or hardware"
     }
   ]
 }
 
 Rules:
 - l and w are integers in millimetres
-- qty is an integer
-- All edge fields must be either an exact edging name from the list or an empty string ""
-- Skip header rows, totals rows, or empty rows
-- If a row has no dimensions, skip it`;
+- qty is an integer ≥ 1
+- All edge fields must be either an exact edging name from the available list, or ""
+- Skip header rows, totals rows, summary rows, and empty rows
+- Skip any row with no valid dimensions (l=0 or w=0)`;
 
   try {
     // Call via Supabase Edge Function proxy (avoids CORS, keeps API key server-side)
@@ -9891,6 +10041,16 @@ Rules:
     const parsed = JSON.parse(clean);
 
     if (!parsed.parts || !Array.isArray(parsed.parts)) throw new Error('Unexpected response format');
+
+    // JS-side fuzzy material + edging correction
+    parsed.parts = parsed.parts.map(p => {
+      p.mat  = fuzzyMatchMat(p.mat);
+      p.el1  = fuzzyMatchEdge(p.el1);
+      p.el2  = fuzzyMatchEdge(p.el2);
+      p.ew1  = fuzzyMatchEdge(p.ew1);
+      p.ew2  = fuzzyMatchEdge(p.ew2);
+      return p;
+    });
 
     importState.parsed = parsed.parts;
     importState.status = 'done';
