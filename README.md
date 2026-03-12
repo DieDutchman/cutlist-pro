@@ -169,7 +169,7 @@ This app is a single `.html` file with no dependencies to install.
 1. Fork or clone this repo
 2. Update `SB_URL` and `SB_KEY` as above
 3. Enable GitHub Pages from **Settings → Pages → Deploy from branch → main**
-4. The app will be live at `https://yourusername.github.io/cutlist-pro/`
+4. The app will be live at `https://diedutchman.github.io/cutlist-pro/`
 
 ---
 
