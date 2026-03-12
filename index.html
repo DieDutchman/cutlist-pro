@@ -3003,6 +3003,7 @@ function switchTab(btn, section) {
     document.getElementById('materials-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('builder-view').style.display = 'none';
+    document.getElementById('import-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'block';
     renderPanelsView();
     return;
@@ -9908,20 +9909,49 @@ function importIntoPanels() {
   if (!importState.parsed || !importState.parsed.length) return;
   const label = importState.label || 'Imported';
 
+  function normaliseEdge(raw) {
+    if (!raw || raw.trim() === '' || raw === '—') return '';
+    const t = raw.trim();
+    if (EDGES.includes(t)) return t;
+    const lower = t.toLowerCase();
+    const ci = EDGES.find(e => e && e.toLowerCase() === lower);
+    if (ci) return ci;
+    const partial = EDGES.find(e => e && (e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase())));
+    return partial || '';
+  }
+
+  // Helper: find closest exact match in MATS (case-insensitive, trimmed)
+  function normaliseMat(raw) {
+    if (!raw) return MATS[0] || '';
+    const t = raw.trim();
+    // Exact match first
+    if (MATS.includes(t)) return t;
+    // Case-insensitive match
+    const lower = t.toLowerCase();
+    const ci = MATS.find(m => m.toLowerCase() === lower);
+    if (ci) return ci;
+    // Partial match (AI may truncate or abbreviate)
+    const partial = MATS.find(m => m.toLowerCase().includes(lower) || lower.includes(m.toLowerCase()));
+    if (partial) return partial;
+    // Fallback to first mat
+    return MATS[0] || '';
+  }
+
   // Map to panelsState.items format
+  let _impCounter = Date.now();
   importState.parsed.forEach(p => {
-    const id = 'imp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const id = 'imp_' + (_impCounter++) + '_' + Math.random().toString(36).slice(2,7);
     panelsState.items.push({
       id,
       name: [p.group && p.group !== label ? p.group + ' — ' : '', p.name||'Part'].filter(Boolean).join(''),
       l: parseInt(p.l)||0,
       w: parseInt(p.w)||0,
       qty: parseInt(p.qty)||1,
-      mat: p.mat || (MATS[0]||''),
-      edgeL1: p.el1||'',
-      edgeL2: p.el2||'',
-      edgeW1: p.ew1||'',
-      edgeW2: p.ew2||'',
+      mat: normaliseMat(p.mat),
+      edgeL1: normaliseEdge(p.el1),
+      edgeL2: normaliseEdge(p.el2),
+      edgeW1: normaliseEdge(p.ew1),
+      edgeW2: normaliseEdge(p.ew2),
       notes: p.holes||'',
     });
   });
