@@ -6421,23 +6421,6 @@ function setMatMinSheets(mat, value) {
   renderPricesView();
 }
 
-// One-time conversion: divide all board & edging prices by 1.15 (incl. VAT → excl. VAT)
-function convertPricesExclVAT() {
-  if (!confirm('This will divide ALL board and edging prices by 1.15 to convert from incl. VAT to excl. VAT.\n\nThis is a one-time action — only do this once.\n\nContinue?')) return;
-  const VAT = 1.15;
-  Object.keys(costingPrices.mat).forEach(k => {
-    costingPrices.mat[k] = Math.round((costingPrices.mat[k] / VAT) * 100) / 100;
-  });
-  Object.keys(costingPrices.edge).forEach(k => {
-    costingPrices.edge[k] = Math.round((costingPrices.edge[k] / VAT) * 100) / 100;
-  });
-  saveCostingPrices();
-  // Push all updated prices to Supabase
-  Object.keys(costingPrices.mat).forEach(k  => pushSupplierPrice('board', k,  costingPrices.mat[k]));
-  Object.keys(costingPrices.edge).forEach(k => pushSupplierPrice('edge',  k,  costingPrices.edge[k]));
-  refreshCostingResults();
-  renderPricesView();
-}
 
 // Toggle special order (full sheet) flag for a material
 function setMatSpecialOrder(mat, isSpecial) {
@@ -8594,7 +8577,13 @@ function renderCostingView() {
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
 
   // ── Main: unit cost breakdown ──
-  let mainHtml = `<div class="cv-title">📐 Costing Breakdown</div>
+  const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
+    <span>&#x1F4D0; Board: <strong style="color:var(--text)">2750 × 1830mm</strong></span>
+    <span>♻ Waste: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
+    <span>&#x1F4CF; Billing: <strong style="color:var(--text)">0.05-sheet steps</strong></span>
+    <span>✂ Edging buffer: <strong style="color:var(--text)">+1m</strong></span>
+  </div>`;
+  let mainHtml = boardInfoBar + `<div class="cv-title">📐 Costing Breakdown</div>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px">
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="costingExpandAll(true)">⊞ Expand All</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="costingExpandAll(false)">⊟ Collapse All</button>
