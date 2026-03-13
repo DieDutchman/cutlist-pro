@@ -5543,7 +5543,7 @@ function renderQuoteView() {
   const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
     <span>📐 Board: <strong style="color:var(--text)">2750 × 1830mm</strong></span>
     <span>♻ Waste: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
-    <span>📏 Billing: <strong style="color:var(--text)">0.05-sheet steps</strong></span>
+    <span>📏 Billing: <strong style="color:var(--text)">0.05-sheet increments, 0.25 min</strong></span>
     <span>✂ Edging buffer: <strong style="color:var(--text)">+1m</strong></span>
   </div>`;
   const STATIC_PRICE_IDS = new Set([
@@ -8825,7 +8825,7 @@ function renderCostingView() {
   const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
     <span>&#x1F4D0; Board: <strong style="color:var(--text)">2750 × 1830mm</strong></span>
     <span>♻ Waste: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
-    <span>&#x1F4CF; Billing: <strong style="color:var(--text)">0.05-sheet steps</strong></span>
+    <span>&#x1F4CF; Billing: <strong style="color:var(--text)">0.05-sheet increments, 0.25 min</strong></span>
     <span>✂ Edging buffer: <strong style="color:var(--text)">+1m</strong></span>
   </div>`;
   let mainHtml = boardInfoBar + `<div class="cv-title">📐 Costing Breakdown</div>
@@ -9027,68 +9027,10 @@ function renderCostingView() {
   });
 
   if (selectedUnits.length > 0 || panelCostItems.length > 0 || hasQuoteHwExtras || hasAddonOnlySecs) {
-    mainHtml += buildCombinedSummary(selectedUnits);
+    mainHtml += buildCombinedSummary(selectedUnits, panelCostItems);
   }
 
-  if (panelCostItems.length > 0) {
-    const pMatM2 = {}, pEdgeM = {};
-    let pMatCost = 0, pEdgeCost = 0, pCutCost = 0, pBoardSheets = 0, pMasoniteSheets = 0;
-    panelCostItems.forEach(p => {
-      const lM = p.l / 1000, wM = p.w / 1000;
-      const withWaste = lM * wM * p.qty * WASTE_FACTOR;
-      pMatM2[p.mat] = (pMatM2[p.mat] || 0) + lM * wM * p.qty;
-      const wholeSheets  = Math.ceil(withWaste / SHEET_AREA);
-      const isMas = p.mat === '3MM White Masonite';
-      if (isMas) pMasoniteSheets += wholeSheets; else pBoardSheets += wholeSheets;
-      [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
-        if (k) { const ck=`${k}|${p.mat}`; pEdgeM[ck]=(pEdgeM[ck]||0)+l*p.qty; }
-      });
-    });
-    // Use calcPanelCost for consistent totals
-    const pTotal = panelCostItems.reduce((s, p) => s + calcPanelCost(p).lineTotal, 0);
-    grandTotal += pTotal;
-    // Approximate breakdown for display
-    Object.entries(pEdgeM).forEach(([ck,m]) => {
-      pEdgeCost += (Math.ceil(m)+1)*(costingPrices.edge[ck.split('|')[0]]||0);
-    });
-    Object.entries(pMatM2).forEach(([mat,m2]) => {
-      pMatCost += billSheets(m2*WASTE_FACTOR, SHEET_AREA) * (costingPrices.mat[mat]||0);
-      pCutCost += Math.ceil(m2*WASTE_FACTOR/SHEET_AREA) * (mat==='3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
-    });
 
-    const pMatRows = Object.entries(pMatM2).map(([mat,m2]) => {
-      const ww=m2*WASTE_FACTOR, sh=billSheets(ww,SHEET_AREA), rate=costingPrices.mat[mat]||0;
-      return `<tr><td>${mat}</td><td class="num">${m2.toFixed(3)}</td><td class="num">${sh.toFixed(2)}</td><td class="num">R ${rate.toFixed(0)}/sheet</td><td class="num cost">R ${(sh*rate).toFixed(0)}</td></tr>`;
-    }).join('');
-    const pEdgeRows = Object.entries(pEdgeM).map(([ck,m]) => {
-      const [ek,bm]=ck.split('|'), price=costingPrices.edge[ek]||0, r=Math.ceil(m)+1;
-      return `<tr><td style="font-size:11px">${ek.replace(' Edging 1mm','')} edging on ${bm}</td><td class="num">${m.toFixed(2)} m <span style="color:var(--text-muted);font-size:10px">→ ${r}m</span></td><td class="num">—</td><td class="num">R ${price.toFixed(0)}/m</td><td class="num cost">R ${(r*price).toFixed(0)}</td></tr>`;
-    }).join('');
-    const pCutDesc=[], pCutDetail=[];
-    if (pBoardSheets>0){pCutDesc.push(`${pBoardSheets} board sheet${pBoardSheets>1?'s':''}`);pCutDetail.push(`R${costingPrices.extras.cutLabel}×${pBoardSheets}`);}
-    if (pMasoniteSheets>0){pCutDesc.push(`${pMasoniteSheets} Masonite sheet${pMasoniteSheets>1?'s':''}`);pCutDetail.push(`R${costingPrices.extras.cutLabelMasonite}×${pMasoniteSheets}`);}
-
-    const panelCostLabel = panelsState.label ? `Panels — ${panelsState.label}` : 'Custom Panels';
-    const pvId = `cv-block-panels`;
-    mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${pvId}')">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="${pvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
-          <span style="color:var(--amber);font-size:11px;letter-spacing:1px">🪵 ${panelCostLabel}</span>
-        </div>
-        <span style="color:var(--amber);font-size:13px;font-family:'JetBrains Mono',monospace">R ${Math.round(pTotal).toLocaleString('en-ZA')} <span style="color:var(--text-muted);font-size:10px;font-weight:400">total</span></span>
-      </div>
-      <div id="${pvId}" style="display:none">
-      <table class="cv-results-table">
-        <thead><tr><th>Material / Edging</th><th class="num">Actual m²</th><th class="num">Sheets</th><th class="num">Rate</th><th class="num">Cost</th></tr></thead>
-        <tbody>
-          ${pMatRows}${pEdgeRows}
-          <tr class="cv-subtotal"><td>Boards + Edging</td><td colspan="3"></td><td class="num cost">R ${Math.round(pMatCost+pEdgeCost).toLocaleString('en-ZA')}</td></tr>
-          <tr><td>Cut &amp; Label (${pCutDesc.join(', ')})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">${pCutDetail.join(' + ')}</td><td class="num cost">R ${Math.round(pCutCost).toLocaleString('en-ZA')}</td></tr>
-          <tr class="cv-subtotal"><td>Total (${panelCostItems.reduce((s,p)=>s+p.qty,0)} panels)</td><td colspan="3"></td><td class="num cost">R ${Math.round(pTotal).toLocaleString('en-ZA')}</td></tr>
-        </tbody>
-      </table></div></div>`;
-  }
 
   document.getElementById('costing-view').innerHTML =
     `<div style="padding:24px">${mainHtml}</div>`;
@@ -9101,7 +9043,7 @@ function renderCostingView() {
 }
 
 
-function buildCombinedSummary(selectedUnits) {
+function buildCombinedSummary(selectedUnits, panelItems = []) {
   // Pool everything across all selected units
   const allMatM2  = {};
   const allEdgeM  = {};
@@ -9122,6 +9064,21 @@ function buildCombinedSummary(selectedUnits) {
     totalHandle240 += c.handle240Count;
     Object.entries(c.matM2).forEach(([mat, m2]) => { allMatM2[mat] = (allMatM2[mat]||0) + m2; });
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
+  });
+
+  // Fold panel items into the combined totals
+  panelItems.forEach(p => {
+    const lM = p.l / 1000, wM = p.w / 1000;
+    const m2 = lM * wM * p.qty;
+    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + m2;
+    const cutRate = p.mat === '3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
+    totalCutLabel += Math.ceil(m2 * WASTE_FACTOR / SHEET_AREA) * cutRate;
+    const pCost = calcPanelCost(p).lineTotal;
+    grandTotal += pCost;
+    totalMat   += billSheets(m2 * WASTE_FACTOR, SHEET_AREA) * (costingPrices.mat[p.mat] || 0);
+    [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
+      if (k) { const ck = `${k}|${p.mat}`; allEdgeM[ck] = (allEdgeM[ck] || 0) + l * p.qty; }
+    });
   });
 
 
@@ -9254,7 +9211,7 @@ function buildCombinedSummary(selectedUnits) {
 
   return `<div class="cv-unit-card" style="border-left-color:var(--amber)">
     <div class="cv-unit-head" style="background:rgba(255,200,0,0.04)">
-      <span style="color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">ALL UNITS COMBINED</span>
+      <span style="color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">${selectedUnits.length > 0 && panelItems.length > 0 ? 'ALL UNITS + PANELS COMBINED' : panelItems.length > 0 ? 'CUSTOM PANELS' : 'ALL UNITS COMBINED'}</span>
       <span class="cv-unit-total" style="font-size:18px">${R(grandTotalAll)}</span>
     </div>
     <table class="cv-results-table">
@@ -9452,7 +9409,7 @@ function refreshCostingResults() {
       false;
   });
   if (selectedUnits.length > 0 || _hasPanels || _hasHwExtras || _hasAddonOnly) {
-    mainHtml += buildCombinedSummary(selectedUnits);
+    mainHtml += buildCombinedSummary(selectedUnits, panelCostItems);
   }
 
   main.innerHTML = mainHtml;
