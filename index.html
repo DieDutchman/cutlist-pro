@@ -2848,8 +2848,11 @@ function buildMatSelector(groupIds) {
   const groups = MAT_GROUPS.filter(g => groupIds.includes(g.id));
   if (!groups.length) return '';
 
-  const colOpts = (selected, list) => list.map(c =>
-    `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+  const colOpts = (selected, list) => {
+    const orphan = selected && !list.includes(selected)
+      ? `<option value="${selected}" selected style="color:#e07070">${selected} ⚠ (deleted)</option>` : '';
+    return orphan + list.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+  };
 
   let html = `<div class="mat-selector-bar">`;
   groups.forEach(g => {
@@ -3172,7 +3175,11 @@ function renderPanel() {
 
 
 
-    const colOpts = (sel, list) => list.map(c => `<option value="${c}" ${c===sel?'selected':''}>${c}</option>`).join('');
+    const colOpts = (sel, list) => {
+      const orphan = sel && !list.includes(sel)
+        ? `<option value="${sel}" selected style="color:#e07070">${sel} ⚠ (deleted)</option>` : '';
+      return orphan + list.map(c => `<option value="${c}" ${c===sel?'selected':''}>${c}</option>`).join('');
+    };
     const curWood = ov?.wood || materialConfig[getUnitMaterialGroup(u)].wood;
     const curEdge = ov?.edging || materialConfig[getUnitMaterialGroup(u)].edging;
     const ovRow = ovActive ? `<tr style="background:rgba(212,145,58,0.05)">
@@ -7662,6 +7669,92 @@ async function loadSupplierPrices() {
   renderSyncBadge();
   refreshPriceViews();
   refreshCostingResults();
+  checkStaleMaterials();
+}
+
+// After a sync, check if any stored material selections reference boards that no longer exist
+function checkStaleMaterials() {
+  const stale = new Set();
+
+  Object.values(materialConfig).forEach(cfg => {
+    if (cfg.wood   && !COLORS.includes(cfg.wood))   stale.add(cfg.wood);
+    if (cfg.edging && !EDGE_COLORS.includes(cfg.edging)) stale.add(cfg.edging);
+  });
+  Object.values(unitMatOverrides).forEach(ov => {
+    if (ov.wood   && !COLORS.includes(ov.wood))   stale.add(ov.wood);
+    if (ov.edging && !EDGE_COLORS.includes(ov.edging)) stale.add(ov.edging);
+  });
+
+  if (!stale.size) return;
+
+  // Build remap modal
+  const names = [...stale].sort();
+  const rows = names.map(old => `
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+      <td style="padding:8px 10px;font-size:13px;color:#e07070">${old}</td>
+      <td style="padding:8px 10px">
+        <select id="stale-remap-${old.replace(/[^a-zA-Z0-9]/g,'_')}"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;outline:none;width:100%"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <option value="">— keep as-is (will show broken) —</option>
+          ${COLORS.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </td>
+    </tr>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'stale-mat-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9200;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;color:var(--amber)">⚠ DELETED BOARDS DETECTED</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6">
+          Some of your units were set to boards that no longer exist. Choose what to remap each one to, then click Apply.
+        </div>
+      </div>
+      <div style="overflow-y:auto;padding:12px 20px;flex:1">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;font-size:10px;letter-spacing:2px;color:var(--amber-dim);font-family:'Oswald',sans-serif;padding:4px 10px;border-bottom:1px solid var(--border)">MISSING BOARD</th>
+              <th style="text-align:left;font-size:10px;letter-spacing:2px;color:var(--amber-dim);font-family:'Oswald',sans-serif;padding:4px 10px;border-bottom:1px solid var(--border)">REMAP TO</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;justify-content:flex-end;gap:10px">
+        <button onclick="applyStaleRemap(${JSON.stringify(names).replace(/"/g,"'")})"
+          style="background:rgba(212,145,58,0.15);border:1px solid var(--amber);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:pointer">
+          APPLY REMAPPING
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function applyStaleRemap(names) {
+  names.forEach(old => {
+    const sel = document.getElementById('stale-remap-' + old.replace(/[^a-zA-Z0-9]/g,'_'));
+    const n = sel?.value;
+    if (!n) return;
+    Object.values(materialConfig).forEach(cfg => {
+      if (cfg.wood   === old) cfg.wood   = n;
+      if (cfg.edging === old) cfg.edging = n;
+    });
+    Object.values(unitMatOverrides).forEach(ov => {
+      if (ov.wood   === old) ov.wood   = n;
+      if (ov.edging === old) ov.edging = n;
+    });
+  });
+  saveMaterials();
+  saveUnitMatOverrides();
+  const modal = document.getElementById('stale-mat-modal');
+  if (modal) modal.remove();
+  refreshMatDropdowns();
+  refreshPriceViews();
+  renderEditor();
 }
 
 async function pushSupplierPrice(category, name, price) {
