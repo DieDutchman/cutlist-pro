@@ -1104,7 +1104,7 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     padding: 5px 8px;
-    width: 80px;
+    width: 100px;
     text-align: right;
     outline: none;
   }
@@ -2955,6 +2955,7 @@ function switchTab(btn, section) {
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'none';
+    document.getElementById('prices-view').style.display = 'none';
     document.getElementById('costing-view').style.display = 'block';
     renderCostingView();
     return;
@@ -5517,6 +5518,12 @@ function renderQuoteView() {
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
   // Units with no parts — use their static price, not costing calculation
+  const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
+    <span>📐 Board: <strong style="color:var(--text)">2750 × 1830mm</strong></span>
+    <span>♻ Waste: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
+    <span>📏 Billing: <strong style="color:var(--text)">0.05-sheet steps</strong></span>
+    <span>✂ Edging buffer: <strong style="color:var(--text)">+1m</strong></span>
+  </div>`;
   const STATIC_PRICE_IDS = new Set([
     'bth_top','fl_solid_back',
   ]);
@@ -5865,7 +5872,7 @@ function renderQuoteView() {
       <button class="btn btn-ghost" style="width:100%;font-size:12px" onclick="switchToUnits()">← Back to Units</button>
     </div>`;
 
-  document.getElementById('quote-price-view').innerHTML =
+  document.getElementById('quote-price-view').innerHTML = boardInfoBar +
     `<div class="qv-layout">
       <div class="qv-main">${mainHtml}</div>
       <div class="qv-sidebar">${sideHtml}</div>
@@ -8256,7 +8263,7 @@ function refreshPriceViews() {
 
 function renderPricesView() {
   const admin = isAdmin();
-  const ro    = admin ? '' : 'readonly disabled style="opacity:0.65;cursor:not-allowed;pointer-events:none"';
+  const ro    = admin ? '' : 'readonly style="opacity:1;cursor:default;pointer-events:none;background:var(--bg2);border-color:var(--border)"';
   const roBtn = admin ? '' : 'disabled style="display:none"';
 
   const section = (title) =>
@@ -8311,7 +8318,7 @@ function renderPricesView() {
         <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
                  ${!costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
-          ✓ In Stock <span style="font-size:9px;opacity:0.8">(0.25 min)</span>
+          ✓ In Stock
         </button>
         <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', true)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
@@ -8395,14 +8402,7 @@ function renderPricesView() {
       </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
       <div>
-        ${admin ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Boards &amp; Edging</div>
-          <button onclick="convertPricesExclVAT()"
-            style="font-size:10px;background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:3px 10px;cursor:pointer;letter-spacing:0.5px;font-family:'Oswald',sans-serif"
-            title="Divide all board and edging prices by 1.15 to convert from incl. VAT to excl. VAT">
-            ÷ 1.15 Convert to excl. VAT
-          </button>
-        </div>` : section('Boards &amp; Edging')}
+        ${section('Boards &amp; Edging')}
         ${allBoardRows}
         ${orphanEdgeRows}
         ${addBoardForm}
@@ -8437,13 +8437,7 @@ function renderPricesView() {
             onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
         </div>
-        ${section('Board Info')}
-        <div style="font-size:11px;color:var(--text-muted);line-height:1.9">
-          Board size: <strong style="color:var(--text)">2750 × 1830mm</strong> (${SHEET_AREA.toFixed(2)} m²)<br>
-          Waste factor: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong> added<br>
-          Billing: <strong style="color:var(--text)">0.05-sheet increments</strong><br>
-          Edging buffer: <strong style="color:var(--text)">+1m</strong> per edging type
-        </div>
+
       </div>
     </div></div>`;
 }
