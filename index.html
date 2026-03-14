@@ -8203,6 +8203,20 @@ function renameEdge(oldKey) {
 }
 
 
+function promptAddEdge(mat) {
+  const size  = prompt(`Add edging size for "${mat}" (e.g. 1mm, 2mm):`);
+  if (!size || !size.trim()) return;
+  const price = parseFloat(prompt(`Price per metre for ${mat} ${size.trim()} edging (R):`));
+  if (isNaN(price)) return;
+  const edgeKey = (mat === 'White Melamine' ? 'White Edging' : mat + ' Edging') + ' ' + size.trim();
+  if (EDGES.includes(edgeKey)) { alert(`"${edgeKey}" already exists.`); return; }
+  EDGES.push(edgeKey);
+  costingPrices.edge[edgeKey] = price;
+  pushSupplierPrice('edge', edgeKey, price);
+  saveCostingPrices();
+  renderPricesView();
+}
+
 function addBoardEdging(mat) {
   const sizeEl  = document.getElementById('new-edge-size-' + CSS.escape(mat));
   const priceEl = document.getElementById('new-edge-price-' + CSS.escape(mat));
@@ -8621,103 +8635,130 @@ function renderPricesView() {
 
   const NO_EDGE_MATS = new Set(['3MM White Masonite', 'Shutterply']);
 
-  // ── Left column: compact board rows ──────────────────────────────────────────
-  const boardRowsHtml = MATS.map(mat => {
-    const custom = costingPrices.customBoards.find(cb => cb.boardName === mat);
-    const delFn  = custom
+  // Row height is dynamic — boards with multiple edging sizes are taller
+  // Build one row per board, with all its edging stacked on the right cell
+  const ROW_PAD = 'padding:8px 10px';
+
+  const priceRows = MATS.map(mat => {
+    const custom    = costingPrices.customBoards.find(cb => cb.boardName === mat);
+    const delFn     = custom
       ? `removeCustomBoard('${custom.id}')`
       : `deleteStandardBoard('${mat.replace(/'/g,"\\\\'")}')`;
-    const isSpecial  = costingPrices.matSpecialOrder?.[mat];
-    const stockBadge = isSpecial
-      ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px;letter-spacing:0.5px;cursor:pointer;flex-shrink:0" onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',false)" title="Click to mark as In Stock">🛒 SPECIAL</span>`
-      : `<span style="font-size:9px;background:rgba(76,175,130,0.12);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;letter-spacing:0.5px;cursor:pointer;flex-shrink:0" onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',true)" title="Click to mark as Special Order">✓ STOCK</span>`;
-    const minVal = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
+    const isSpecial = costingPrices.matSpecialOrder?.[mat];
+    const matEdges  = matchingEdges(mat);
+    const noEdge    = NO_EDGE_MATS.has(mat);
+    const safeId    = mat.replace(/[^a-zA-Z0-9]/g, '_');
+
+    // ── Board cell (left) ────────────────────────────────────────────────────
+    const stockPill = isSpecial
+      ? `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',false)" title="Click → In Stock"
+           style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px;cursor:pointer;flex-shrink:0">🛒 SPECIAL</span>`
+      : `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',true)" title="Click → Special Order"
+           style="font-size:9px;background:rgba(76,175,130,0.12);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;cursor:pointer;flex-shrink:0">✓ STOCK</span>`;
+    const minVal  = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
     const minHtml = admin && !isSpecial
-      ? `<span style="font-size:10px;color:var(--text-muted);margin-left:4px">min <input type="number" min="0.05" max="1" step="0.05" value="${minVal}"
-           style="width:42px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:1px 4px;font-size:10px;outline:none;font-family:'JetBrains Mono',monospace"
-           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-           oninput="setMatMinSheets('${mat.replace(/'/g,"\\'")}',this.value)">sh</span>`
-      : '';
-    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);background:var(--bg3)">
-      <span style="flex:1;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${mat}">${mat}</span>
-      ${admin ? stockBadge : (isSpecial ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px;flex-shrink:0">SPECIAL</span>` : '')}
-      ${minHtml}
-      <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
-        style="width:100px"
-        onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
-        onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
-      <span style="font-size:10px;color:var(--text-muted);width:20px;flex-shrink:0">/sh</span>
-      ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\\'")}')\" title="Rename" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;flex-shrink:0">✏</button>` : ''}
-      <button onclick="${delFn}" title="Remove" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;flex-shrink:0">×</button>
+      ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap">min
+           <input type="number" min="0.05" max="1" step="0.05" value="${minVal}"
+             style="width:40px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:1px 4px;font-size:10px;outline:none;font-family:'JetBrains Mono',monospace"
+             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+             oninput="setMatMinSheets('${mat.replace(/'/g,"\\'")}',this.value)"> sh
+         </span>` : '';
+
+    const boardCell = `
+      <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${mat}</span>
+          ${admin ? stockPill : (isSpecial ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px">SPECIAL</span>` : '')}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
+            onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
+            onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
+          <span style="font-size:11px;color:var(--text-muted)">/sheet</span>
+          ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
+          <button onclick="${delFn}" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
+          ${minHtml}
+        </div>
+        ${!admin && isSpecial ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
+      </div>`;
+
+    // ── Edging cell (right) ──────────────────────────────────────────────────
+    let edgeCell;
+    if (noEdge) {
+      edgeCell = `<div style="${ROW_PAD};display:flex;align-items:center;justify-content:center;height:100%">
+        <span style="font-size:11px;color:rgba(255,255,255,0.15);letter-spacing:1px">— N/A —</span>
+      </div>`;
+    } else if (matEdges.length === 0) {
+      edgeCell = `<div style="${ROW_PAD};display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--text-muted);flex:1;font-style:italic">No edging added</span>
+        ${admin ? `<button onclick="promptAddEdge('${mat.replace(/'/g,"\\'")}')\"
+          style="background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:2px 8px;cursor:pointer">+ Add</button>` : ''}
+      </div>`;
+    } else {
+      const edgeInputs = matEdges.map(edgeKey => {
+        const sizeLabel = edgeKey.replace(/^.*? Edging /, '');
+        const safeKey   = edgeKey.replace(/'/g, "\\\\'");
+        return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)' : ''}">
+          <span style="font-size:12px;color:var(--text-muted);width:32px;flex-shrink:0">${sizeLabel}</span>
+          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
+            onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
+            onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
+          <span style="font-size:11px;color:var(--text-muted)">/m</span>
+          ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer">✏</button>` : ''}
+          <button onclick="removeBoardEdging('${safeKey}')" ${roBtn}
+            style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer">×</button>
+        </div>`;
+      }).join('');
+      const addEdgeRow = admin ? `
+        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.05);margin-top:3px">
+          <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+          <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
+            style="width:80px;font-size:11px;padding:3px 6px"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+          <span style="font-size:11px;color:var(--text-muted)">/m</span>
+          <button onclick="addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')\"
+            style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 8px;cursor:pointer">+</button>
+        </div>` : '';
+      edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
+    }
+
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div style="border-right:1px solid rgba(255,255,255,0.07)">${boardCell}</div>
+      <div>${edgeCell}</div>
     </div>`;
   }).join('');
 
-  // ── Right column: edging grouped by board ────────────────────────────────────
-  const edgingGroupsHtml = MATS
-    .filter(mat => !NO_EDGE_MATS.has(mat))
-    .map(mat => {
-      const matEdges = matchingEdges(mat);
-      if (!matEdges.length) return '';
-      const edgeRowsHtml = matEdges.map(edgeKey => {
-        const sizeLabel = edgeKey.replace(/^(White|.+) Edging /, '');
-        const safeKey   = edgeKey.replace(/'/g, "\\\\'");
-        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="flex:1;font-size:12px;color:var(--text-muted)">${sizeLabel} edging</span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
-            style="width:100px"
-            onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
-            onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
-          <span style="font-size:10px;color:var(--text-muted);width:20px;flex-shrink:0">/m</span>
-          ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\\'")}')\" title="Rename" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;flex-shrink:0">✏</button>` : ''}
-          <button onclick="removeBoardEdging('${safeKey}')" title="Remove" ${roBtn}
-            style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer;flex-shrink:0">×</button>
-        </div>`;
-      }).join('');
-      const addEdgeHtml = admin ? `<div style="display:flex;align-items:center;gap:5px;padding:4px 8px">
-        <input id="new-edge-size-${mat.replace(/[^a-zA-Z0-9]/g,'_')}" type="text" placeholder="size e.g. 2mm"
-          style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
-        <input id="new-edge-price-${mat.replace(/[^a-zA-Z0-9]/g,'_')}" class="cv-extra-input" type="number" min="0" placeholder="0"
-          style="width:60px;font-size:11px;padding:3px 6px"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
-        <span style="font-size:10px;color:var(--text-muted);width:20px">/m</span>
-        <button onclick="addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')\"
-          style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 6px;cursor:pointer;flex-shrink:0">+</button>
-      </div>` : '';
-      return `<div style="margin-bottom:8px;border:1px solid var(--border)">
-        <div style="padding:5px 8px;background:rgba(255,255,255,0.03);font-size:11px;color:var(--text);font-weight:600;letter-spacing:0.3px">${mat}</div>
-        ${edgeRowsHtml}
-        ${addEdgeHtml}
-      </div>`;
-    }).join('');
-
-  // ── Orphan edges — admin warning, hidden from users ──────────────────────────
+  // ── Orphan edges (admin only) ────────────────────────────────────────────────
   const orphanHtml = admin && orphanEdges.length > 0 ? `
-    <div style="margin-top:12px;border:1px solid rgba(212,145,58,0.3);background:rgba(212,145,58,0.04)">
-      <div style="padding:6px 10px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;display:flex;align-items:center;justify-content:space-between">
-        <span>⚠ ORPHAN EDGES (no matching board — likely deleted)</span>
+    <div style="border:1px solid rgba(212,145,58,0.3);background:rgba(212,145,58,0.04);margin-top:16px">
+      <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid rgba(255,255,255,0.05)">
+        ⚠ ORPHAN EDGES — no matching board (safe to remove)
       </div>
-      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-top:1px solid rgba(255,255,255,0.04)">
-        <span style="flex:1;font-size:11px;color:var(--amber-dim)">${e}</span>
+      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span style="flex:1;font-size:12px;color:var(--amber-dim)">${e}</span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()"
           onblur="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()">
-        <span style="font-size:10px;color:var(--text-muted);width:20px">/m</span>
+        <span style="font-size:11px;color:var(--text-muted)">/m</span>
         <button onclick="removeBoardEdging('${e.replace(/'/g,"\\'")}')\"
-          style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 6px;cursor:pointer">× Remove</button>
+          style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 8px;cursor:pointer">× Remove</button>
       </div>`).join('')}
     </div>` : '';
 
   document.getElementById('prices-view').innerHTML = `
     <div style="max-width:1100px;margin:0 auto;padding:24px">
+
+      <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
         <div style="display:flex;align-items:center;gap:10px">
           <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:2px">● Not yet synced</span>
           ${admin ? `<button onclick="openBoardCleanupModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">🗃 MANAGE BOARDS</button>` : ''}
-          <button onclick="loadSupplierPrices()" title="Re-sync" ${roBtn}
+          <button onclick="loadSupplierPrices()" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
       </div>
@@ -8725,79 +8766,83 @@ function renderPricesView() {
         ${admin ? 'Changes save to the shared database — all users get updated prices automatically.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
-
-        <!-- LEFT: Boards -->
-        <div>
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Boards <span style="color:var(--text-muted);font-size:9px">(per sheet)</span></div>
-          <div style="border:1px solid var(--border);overflow:hidden">
-            ${boardRowsHtml}
-          </div>
-          ${admin ? `<div style="display:flex;flex-direction:column;gap:6px;background:var(--bg4);border:1px solid rgba(212,145,58,0.2);padding:10px;margin-top:10px">
-            <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1.5px">ADD CUSTOM BOARD</div>
-            <div style="display:flex;gap:6px">
-              <input id="cv-new-board-name" type="text" placeholder="Board name"
-                style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-              <input id="cv-new-board-price" type="number" min="0" placeholder="R/sh"
-                style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-            </div>
-            <div style="display:flex;gap:6px">
-              <input id="cv-new-edge-name" type="text" placeholder="Edging name (optional)"
-                style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-              <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
-                style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-            </div>
-            <button onclick="addCustomBoard()"
-              style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:6px;cursor:pointer;width:100%">
-              + ADD BOARD
-            </button>
-          </div>` : ''}
+      <!-- Column headers -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-bottom:none">
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.07)">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Board</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:8px">per sheet</span>
         </div>
-
-        <!-- RIGHT: Edging + Services -->
-        <div>
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Edging <span style="color:var(--text-muted);font-size:9px">(per m)</span></div>
-          ${edgingGroupsHtml}
-          ${orphanHtml}
-
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
-          <div style="border:1px solid var(--border);overflow:hidden">
-            <div class="cv-extra-row" style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-              <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
-                onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
-                onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
-              <span style="font-size:10px;color:var(--text-muted)">R</span>
-            </div>
-            <div class="cv-extra-row" style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-              <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
-                onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
-                onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
-              <span style="font-size:10px;color:var(--text-muted)">R</span>
-            </div>
-            <div class="cv-extra-row" style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">
-              <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
-              <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
-                onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
-                onblur="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices()">
-              <span style="font-size:10px;color:var(--text-muted)">R</span>
-            </div>
-            <div class="cv-extra-row" style="padding:6px 10px">
-              <span class="cv-extra-label">Supplier Handling (HPrice) <span style="font-size:10px;color:var(--text-muted)">(per line)</span></span>
-              <input class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}" ${ro}
-                onchange="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Supplier HPrice',this.value)"
-                onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
-              <span style="font-size:10px;color:var(--text-muted)">R</span>
-            </div>
-          </div>
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.03)">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Edging</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:8px">per metre</span>
         </div>
-
       </div>
+
+      <!-- Board + Edging rows -->
+      <div style="border:1px solid var(--border)">
+        ${priceRows}
+      </div>
+
+      ${orphanHtml}
+
+      <!-- Add custom board -->
+      ${admin ? `<div style="display:flex;flex-direction:column;gap:6px;background:var(--bg4);border:1px solid rgba(212,145,58,0.2);padding:10px;margin-top:12px">
+        <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1.5px">ADD CUSTOM BOARD</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="cv-new-board-name" type="text" placeholder="Board name"
+            style="flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <input id="cv-new-board-price" type="number" min="0" placeholder="R/sheet"
+            style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <input id="cv-new-edge-name" type="text" placeholder="Edging name (optional)"
+            style="flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
+            style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <button onclick="addCustomBoard()"
+            style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:6px 16px;cursor:pointer">
+            + ADD
+          </button>
+        </div>
+      </div>` : ''}
+
+      <!-- Cutting & Services -->
+      <div style="margin-top:24px">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);border-right:1px solid rgba(255,255,255,0.07)">
+            <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
+            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
+              onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
+              onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
+            <span style="font-size:10px;color:var(--text-muted)">R</span>
+          </div>
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
+            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
+              onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
+              onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
+            <span style="font-size:10px;color:var(--text-muted)">R</span>
+          </div>
+          <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.07)">
+            <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
+            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
+              onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
+              onblur="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices()">
+            <span style="font-size:10px;color:var(--text-muted)">R</span>
+          </div>
+          <div class="cv-extra-row" style="padding:8px 12px">
+            <span class="cv-extra-label">Supplier Handling <span style="font-size:10px;color:var(--text-muted)">(per line)</span></span>
+            <input class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}" ${ro}
+              onchange="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Supplier HPrice',this.value)"
+              onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
+            <span style="font-size:10px;color:var(--text-muted)">R</span>
+          </div>
+        </div>
+      </div>
+
     </div>`;
 }
 
