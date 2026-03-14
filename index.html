@@ -6943,8 +6943,12 @@ async function cleanupDeleteRow(name, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}`,
-      { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
+      { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=representation' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const deleted = await res.json();
+    if (!deleted || deleted.length === 0) {
+      throw new Error('Row not deleted — RLS policy may be blocking this. Add a DELETE policy for supplier_prices in Supabase.');
+    }
     btn.closest('div').style.opacity = '0.3';
     btn.textContent = '✓';
     sbSyncStatus = 'ok'; sbLastSyncTime = new Date();
@@ -7919,8 +7923,10 @@ function removeCustomBoard(id) {
   if (cb) {
     (async () => {
       try {
-        await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(cb.boardName)}`,
-          { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
+        const r1 = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(cb.boardName)}`,
+          { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=representation' } });
+        const j1 = await r1.json();
+        if (!j1 || j1.length === 0) throw new Error('RLS blocked DELETE — add DELETE policy in Supabase for supplier_prices');
         if (cb.edgeName) await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(cb.edgeName)}`,
           { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
         sbSyncStatus = 'ok'; sbLastSyncTime = new Date();
@@ -7994,8 +8000,10 @@ function deleteStandardBoard(name) {
   // Delete board + matching edges from Supabase
   (async () => {
     try {
-      await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}`,
-        { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
+      const r2 = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}`,
+        { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=representation' } });
+      const j2 = await r2.json();
+      if (!j2 || j2.length === 0) throw new Error('RLS blocked DELETE — add DELETE policy in Supabase for supplier_prices');
       for (const e of toRemove) {
         await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(e)}`,
           { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
