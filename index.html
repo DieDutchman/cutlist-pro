@@ -8698,7 +8698,7 @@ function renderPricesView() {
       const edgeInputs = matEdges.map(edgeKey => {
         const sizeLabel = edgeKey.replace(/^.*? Edging /, '');
         const safeKey   = edgeKey.replace(/'/g, "\\\\'");
-        return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)' : ''}">
+        return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.18)' : ''}">
           <span style="font-size:12px;color:var(--text-muted);width:32px;flex-shrink:0">${sizeLabel}</span>
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
             onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
@@ -8710,9 +8710,9 @@ function renderPricesView() {
         </div>`;
       }).join('');
       const addEdgeRow = admin ? `
-        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.05);margin-top:3px">
+        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.18);margin-top:3px">
           <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
-            style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.18);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
           <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
@@ -8726,8 +8726,8 @@ function renderPricesView() {
       edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
     }
 
-    return `<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.07)">
-      <div style="border-right:1px solid rgba(255,255,255,0.07)">${boardCell}</div>
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.18)">
+      <div style="border-right:1px solid rgba(255,255,255,0.22)">${boardCell}</div>
       <div>${edgeCell}</div>
     </div>`;
   }).join('');
@@ -8735,10 +8735,10 @@ function renderPricesView() {
   // ── Orphan edges (admin only) ────────────────────────────────────────────────
   const orphanHtml = admin && orphanEdges.length > 0 ? `
     <div style="border:1px solid rgba(212,145,58,0.3);background:rgba(212,145,58,0.04);margin-top:16px">
-      <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid rgba(255,255,255,0.18)">
         ⚠ ORPHAN EDGES — no matching board (safe to remove)
       </div>
-      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.04)">
+      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.18)">
         <span style="flex:1;font-size:12px;color:var(--amber-dim)">${e}</span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()"
@@ -8768,7 +8768,7 @@ function renderPricesView() {
 
       <!-- Column headers -->
       <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-bottom:none">
-        <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.07)">
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.22)">
           <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Board</span>
           <span style="font-size:10px;color:var(--text-muted);margin-left:8px">per sheet</span>
         </div>
@@ -8812,21 +8812,21 @@ function renderPricesView() {
       <div style="margin-top:24px">
         <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
-          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);border-right:1px solid rgba(255,255,255,0.07)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18);border-right:1px solid rgba(255,255,255,0.22)">
             <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
               onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
               onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
-          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18)">
             <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
               onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
               onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
-          <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.07)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.22)">
             <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
               onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
