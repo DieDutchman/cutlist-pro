@@ -9221,13 +9221,14 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
       <tbody>
 
         ${secHead('MATERIALS', totalMaterials)}
-        <tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Boards</td><td class="num cost">${R(totalMat)}</td></tr>
         ${matRows}
-        <tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Edging</td><td class="num cost">${R(totalEdgeCostCalc)}</td></tr>
-        ${hasColourEdge ? `<tr><td colspan="3" style="padding-left:24px;font-size:11px;color:var(--text-muted)">Colour Edging</td><td class="num cost">${R(colourEdgeCost)}</td></tr>${edgeRowsFor(edgeColour)}` : ''}
-        ${hasWhiteEdge  ? `<tr><td colspan="3" style="padding-left:24px;font-size:11px;color:var(--text-muted)">White Melamine Edging</td><td class="num cost">${R(whiteEdgeCost)}</td></tr>${edgeRowsFor(edgeWhite)}` : ''}
-        <tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Cut &amp; Label</td><td class="num cost">${R(totalCutLabel)}</td></tr>
-        ${totalDrilling > 0 ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Hinge Drilling</td><td class="num cost">${R(totalDrilling)}</td></tr>` : ''}
+        <tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Boards subtotal</td><td class="num cost">${R(totalMat)}</td></tr>
+        ${hasColourEdge ? `<tr><td style="padding-left:16px">Colour edging <span style="font-size:10px;color:var(--text-muted)">(${Object.keys(edgeColour).length} type${Object.keys(edgeColour).length!==1?'s':''})</span></td><td class="num">${Object.values(edgeColour).reduce((s,m)=>s+(Math.ceil(m)+1),0)} m billed</td><td class="num">—</td><td class="num cost">${R(colourEdgeCost)}</td></tr>` : ''}
+        ${hasWhiteEdge  ? `<tr><td style="padding-left:16px">White edging</td><td class="num">${Object.values(edgeWhite).reduce((s,m)=>s+(Math.ceil(m)+1),0)} m billed</td><td class="num">—</td><td class="num cost">${R(whiteEdgeCost)}</td></tr>` : ''}
+        ${(hasColourEdge || hasWhiteEdge) ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Edging subtotal</td><td class="num cost">${R(totalEdgeCostCalc)}</td></tr>` : ''}
+        <tr><td style="padding-left:16px">Cut &amp; Label</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(totalCutLabel)}</td></tr>
+        ${totalDrilling > 0 ? `<tr><td style="padding-left:16px">Hinge Drilling</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(totalDrilling)}</td></tr>` : ''}
+        <tr class="cv-subtotal"><td colspan="3">Materials total</td><td class="num cost">${R(totalMaterials)}</td></tr>
 
         ${anyHardware ? `
         ${secHead('HARDWARE', totalHardware + totalHwHandling + extraHwTotal + extraHwHandling)}
