@@ -26,6 +26,27 @@
     --line: 1px solid var(--border);
   }
 
+  /* Supplier light theme */
+  body.supplier-theme {
+    --bg: #f0ede8;
+    --bg2: #faf8f5;
+    --bg3: #edeae4;
+    --bg4: #e4e0d8;
+    --text: #1a1612;
+    --text-dim: #4a3f30;
+    --text-muted: #8a7e6e;
+    --border: #c8c0b0;
+    --border-light: #b8b0a0;
+    --amber: #b87030;
+    --amber-dim: #c88040;
+    --amber-light: #d09050;
+  }
+  body.supplier-theme .nav-tabs { background: #e8e4dc; border-bottom-color: #c8c0b0; }
+  body.supplier-theme .tab { color: #4a3f30; }
+  body.supplier-theme .tab:hover, body.supplier-theme .tab.active { background: rgba(0,0,0,0.06); color: #1a1612; }
+  body.supplier-theme .cv-extra-input { background: #edeae4; border-color: #c8c0b0; color: #1a1612; }
+  body.supplier-theme .cv-extra-input:focus { border-color: var(--amber); }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -6765,6 +6786,8 @@ async function restoreSession() {
     const user = await res.json();
     sbToken = saved.token;
     sbUser  = { id: user.id, email: user.email };
+    // Fetch role so isAdmin() / isSupplier() work correctly on restore
+    await fetchUserRole();
     return true;
   } catch(e) { return false; }
 }
@@ -7394,9 +7417,11 @@ function applyRoleRestrictions() {
   const usersBtn = document.getElementById('users-btn');
   if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
 
-  // ── Supplier role: land on Prices tab, hide rooms/quote nav row ──────────────
+  // ── Supplier role ─────────────────────────────────────────────────────────────
   if (isSupplier()) {
-    // Hide the rooms nav row and first-row divider — supplier doesn't need the quote builder
+    // Light theme
+    document.body.classList.add('supplier-theme');
+    // Hide rooms nav row + divider
     setTimeout(() => {
       const navTabs = document.getElementById('navTabs');
       if (!navTabs) return;
@@ -7405,7 +7430,23 @@ function applyRoleRestrictions() {
       const dividers = navTabs.querySelectorAll('.nav-divider');
       if (dividers[0]) dividers[0].style.display = 'none';
     }, 50);
-    // Switch straight to Supplier Prices
+    // Hide tools tabs supplier doesn't need
+    ['cutlist-tab','summary-tab','editor-tab','quote-price-tab',
+     'costing-tab','materials-tab','builder-tab'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    // Hide job bar quote fields — only keep email badge, users btn, sign out
+    ['job-select','job-save-btn','job-delete-btn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const jobLabel = document.querySelector('#job-bar span[style*="letter-spacing:2px"]');
+    if (jobLabel) jobLabel.style.display = 'none';
+    // Ensure imported-tab is always visible for supplier
+    const impTab = document.getElementById('imported-tab');
+    if (impTab) impTab.style.display = '';
+    // Land on Supplier Prices
     const btn = document.getElementById('prices-tab');
     if (btn) switchTab(btn, '__prices__');
     return;
@@ -10636,10 +10677,13 @@ function renderImportedCutlistView() {
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           🖨 PRINT
         </button>
-        <button onclick="importIntoPanels()"
+        ${isSupplier() ? `<button onclick="importedToCutlist()"
+          style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          ✦ ADD TO CUTLIST
+        </button>` : `<button onclick="importIntoPanels()"
           style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           ✦ ADD TO PANELS
-        </button>
+        </button>`}
       </div>
     </div>
 
@@ -10842,6 +10886,99 @@ function printImportedCutlist() {
   win.document.close();
   win.focus();
   setTimeout(() => win.print(), 400);
+}
+
+// Supplier: render imported parts as a formatted cutlist view
+function importedToCutlist() {
+  if (!importedCutlistData?.parts?.length) return;
+  const { label, parts } = importedCutlistData;
+
+  // Group by partCategory (same as XLSX sort logic)
+  function partCat(p) {
+    const n = (p.name||'').toLowerCase(), mat = p.mat||'';
+    if (mat.includes('Masonite')) return 'Backing';
+    if (n.includes('face')) return `Drawer Faces — ${mat}`;
+    if (n.includes('door')) return `Door — ${mat}`;
+    if (mat === 'White Melamine' || mat.toLowerCase().includes('white melamine')) {
+      const edges = [p.el1,p.el2,p.ew1,p.ew2].filter(Boolean);
+      const ec = edges.length ? edges[0].replace(/ Edging.*$/,'') : 'No Edging';
+      return `White Melamine Peen (${ec} edging)`;
+    }
+    return mat;
+  }
+
+  const allCats  = [...new Set(parts.map(partCat))];
+  const doorCats = allCats.filter(c => c.startsWith('Door — ')).sort();
+  const faceCats = allCats.filter(c => c.startsWith('Drawer Faces — ')).sort();
+  const wmCats   = allCats.filter(c => c.startsWith('White Melamine Peen')).sort();
+  const matCats  = allCats.filter(c => !c.startsWith('Door — ') && !c.startsWith('Drawer Faces — ') && !c.startsWith('White Melamine') && c !== 'Backing').sort();
+  const catOrder = ['Backing',...doorCats,...faceCats,...wmCats,...matCats].filter(c => allCats.includes(c));
+
+  const byCat = {};
+  catOrder.forEach(c => byCat[c] = []);
+  parts.forEach(p => { const c = partCat(p); if (!byCat[c]) byCat[c]=[]; byCat[c].push(p); });
+  catOrder.forEach(c => byCat[c].sort((a,b) => {
+    const ep = edgePatternKey(a).localeCompare(edgePatternKey(b));
+    return ep || (b.l - a.l) || (b.w - a.w);
+  }));
+
+  const ec = e => e ? `<span class="edge-tick">✓</span><span style="font-size:10px">${e.replace(/ Edging.*$/,'')}</span>` : '';
+  const totalParts = parts.reduce((s,p) => s+(p.qty||1), 0);
+
+  let sectionsHtml = '';
+  catOrder.forEach(cat => {
+    const ps = byCat[cat];
+    if (!ps?.length) return;
+    const rows = ps.map(p => `
+      <tr>
+        <td>${p.name||''}</td>
+        <td class="qty">${p.qty||1}</td>
+        <td class="dim">${p.l||0}</td>
+        <td class="dim">${p.w||0}</td>
+        <td class="material">${p.mat||''}</td>
+        <td class="edge">${ec(p.el1)}</td>
+        <td class="edge">${ec(p.el2)}</td>
+        <td class="edge">${ec(p.ew1)}</td>
+        <td class="edge">${ec(p.ew2)}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${p.holes||''}</td>
+      </tr>`).join('');
+    sectionsHtml += `
+      <div class="cutlist-section">
+        <div class="cutlist-section-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+          <span>${cat}</span>
+          <span style="font-size:11px;color:var(--text-muted)">${ps.length} sizes · ${ps.reduce((s,p)=>s+(p.qty||1),0)} pcs</span>
+        </div>
+        <div>
+          <table class="cutlist-table">
+            <thead><tr>
+              <th>Part</th><th class="qty">Qty</th><th class="dim">L mm</th><th class="dim">W mm</th>
+              <th class="material">Material</th>
+              <th class="edge">El1</th><th class="edge">El2</th><th class="edge">Ew1</th><th class="edge">Ew2</th>
+              <th>Notes</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  });
+
+  const cv = document.getElementById('cutlist-view');
+  cv.innerHTML = `
+    <div class="cutlist-header">
+      <div>
+        <div class="cutlist-title">${label}</div>
+        <div class="cutlist-meta">${parts.length} unique sizes · ${totalParts} total pieces</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-excel" onclick="downloadImportedXLSX()">⬇ Download .xlsx</button>
+        <button class="btn btn-ghost" onclick="printImportedCutlist()">⊕ Print</button>
+      </div>
+    </div>
+    ${sectionsHtml}`;
+
+  // Show the cutlist-tab and switch to it
+  const tab = document.getElementById('cutlist-tab');
+  if (tab) { tab.style.display = ''; switchTab(tab, '__cutlist__'); }
 }
 
 function importIntoPanels() {
