@@ -10582,6 +10582,11 @@ function renderImportedCutlistView() {
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
           ↩ UNDO
         </button>` : ''}
+        <button onclick="sortImportedCutlist()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer"
+          title="Sort like supplier cutlist: Backing → Doors → Drawer Faces → White Melamine → other materials, largest first within each group">
+          ⇅ SORT
+        </button>
         <button onclick="saveImportedCutlist()"
           style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           💾 SAVE JSON
@@ -10653,6 +10658,53 @@ function addImportedRow(group) {
       row.querySelector('input')?.select();
     }
   }, 60);
+}
+
+function sortImportedCutlist() {
+  if (!importedCutlistData?.parts?.length) return;
+  _pushImportedHistory();
+
+  const parts = importedCutlistData.parts;
+
+  // Assign a sort category using the same logic as getCategory()
+  function partCategory(p) {
+    const n = (p.name || '').toLowerCase();
+    const mat = p.mat || '';
+    if (mat.includes('Masonite')) return 'Backing';
+    if (n.includes('face')) return `Drawer Faces — ${mat}`;
+    if (n.includes('door')) return `Door — ${mat}`;
+    if (mat === 'White Melamine' || mat.toLowerCase().includes('white melamine')) {
+      const edges = [p.el1, p.el2, p.ew1, p.ew2].filter(Boolean);
+      const edgeColour = edges.length
+        ? edges[0].replace(/ Edging.*$/,'').replace(/ edging$/,'')
+        : 'No Edging';
+      return `White Melamine Peen (${edgeColour} edging)`;
+    }
+    return mat;
+  }
+
+  // Build ordered category list — same priority as the cutlist XLSX
+  const allCats   = [...new Set(parts.map(partCategory))];
+  const doorCats  = allCats.filter(c => c.startsWith('Door — ')).sort();
+  const faceCats  = allCats.filter(c => c.startsWith('Drawer Faces — ')).sort();
+  const wmCats    = allCats.filter(c => c.startsWith('White Melamine Peen')).sort();
+  const matCats   = allCats.filter(c =>
+    !c.startsWith('Door — ') && !c.startsWith('Drawer Faces — ') &&
+    !c.startsWith('White Melamine') && c !== 'Backing'
+  ).sort();
+  const catOrder  = ['Backing', ...doorCats, ...faceCats, ...wmCats, ...matCats];
+  const catRank   = Object.fromEntries(catOrder.map((c, i) => [c, i]));
+
+  parts.sort((a, b) => {
+    const ca = partCategory(a), cb = partCategory(b);
+    const ri = (catRank[ca] ?? 999) - (catRank[cb] ?? 999);
+    if (ri !== 0) return ri;
+    // Within category: longest first, then widest
+    return (b.l - a.l) || (b.w - a.w);
+  });
+
+  importedCutlistData._changed = true;
+  renderImportedCutlistView();
 }
 
 function _pushImportedHistory() {
