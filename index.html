@@ -2005,6 +2005,7 @@
     <button class="tab" data-section="__materials__" onclick="switchTab(this,'__materials__')" id="materials-tab">🔧 My Costs</button>
     <button class="tab" data-section="__builder__" onclick="switchTab(this,'__builder__')" id="builder-tab">🔨 Builder</button>
     <button class="tab" data-section="__import__" onclick="switchTab(this,'__import__')" id="import-tab">📥 Import</button>
+    <button class="tab" data-section="__imported__" onclick="switchTab(this,'__imported__')" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
   </div>
 </div>
 
@@ -2078,6 +2079,7 @@
   <div id="builder-view" style="display:none"></div>
   <div id="panels-view" style="display:none"></div>
   <div id="import-view" style="display:none"></div>
+  <div id="imported-cutlist-view" style="display:none"></div>
   <div id="board-cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -2927,6 +2929,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('cutlist-view').style.display = 'block';
     return;
   }
@@ -2942,6 +2945,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('summary-view').style.display = 'block';
     generateSummary();
     return;
@@ -2958,6 +2962,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('editor-view').style.display = 'block';
     renderEditor();
     return;
@@ -2972,6 +2977,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('costing-view').style.display = 'block';
@@ -2988,6 +2994,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('costing-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'block';
@@ -3005,6 +3012,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('costing-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'block';
@@ -3023,6 +3031,7 @@ function switchTab(btn, section) {
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'block';
     renderPanelsView();
     return;
@@ -3038,6 +3047,7 @@ function switchTab(btn, section) {
     document.getElementById('materials-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('builder-view').style.display = 'block';
     renderBuilderView();
     return;
@@ -3054,8 +3064,25 @@ function switchTab(btn, section) {
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'block';
     renderImportView();
+    return;
+  }
+
+  if (section === '__imported__') {
+    document.getElementById('quote-view').style.display = 'none';
+    document.getElementById('cutlist-view').style.display = 'none';
+    document.getElementById('summary-view').style.display = 'none';
+    document.getElementById('editor-view').style.display = 'none';
+    document.getElementById('quote-price-view').style.display = 'none';
+    document.getElementById('costing-view').style.display = 'none';
+    document.getElementById('materials-view').style.display = 'none';
+    document.getElementById('prices-view').style.display = 'none';
+    document.getElementById('builder-view').style.display = 'none';
+    document.getElementById('panels-view').style.display = 'none';
+    document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'block';
     return;
   }
 
@@ -3070,6 +3097,7 @@ function switchTab(btn, section) {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('quote-price-view').style.display = 'block';
     renderQuoteView();
     return;
@@ -3086,6 +3114,7 @@ function switchTab(btn, section) {
   document.getElementById('builder-view').style.display = 'none';
   document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
   currentSection = section;
   renderPanel();
 }
@@ -3320,6 +3349,7 @@ function clearAll() {
     document.getElementById('builder-view').style.display = 'none';
     document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('quote-view').style.display = 'block';
     // Reset import state
     importState.raw = null;
@@ -3617,6 +3647,7 @@ function generateCutlist() {
   document.getElementById('builder-view').style.display = 'none';
   document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
   document.getElementById('cutlist-view').style.display = 'block';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('cutlist-tab').classList.add('active');
@@ -4098,6 +4129,7 @@ function generateSummary() {
   document.getElementById('builder-view').style.display = 'none';
   document.getElementById('panels-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'none';
+    document.getElementById('imported-cutlist-view').style.display = 'none';
   document.getElementById('summary-view').style.display = 'block';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const sumTab = document.getElementById('summary-tab');
@@ -10193,6 +10225,10 @@ function renderImportPreview() {
         <span style="font-size:12px;color:var(--text-muted);margin-left:10px">${parts.length} parts total</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="openImportedCutlist()"
+          style="background:rgba(212,145,58,0.15);border:1px solid var(--amber);color:var(--amber);padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          📋 OPEN AS CUTLIST
+        </button>
         <button onclick="importIntoPanels()"
           style="background:var(--amber);color:#111;border:none;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           ✦ ADD TO PANELS
@@ -10425,6 +10461,202 @@ Rules:
   }
 
   renderImportView();
+}
+
+// ── Imported Cutlist View ────────────────────────────────────────────────────
+let importedCutlistData = null; // { label, parts, savedAt }
+
+function openImportedCutlist() {
+  if (!importState.parsed || !importState.parsed.length) return;
+  importedCutlistData = {
+    label: importState.label || 'Imported Cutlist',
+    parts: JSON.parse(JSON.stringify(importState.parsed)),
+    savedAt: null,
+  };
+  // Show the tab
+  const tab = document.getElementById('imported-tab');
+  if (tab) tab.style.display = '';
+  renderImportedCutlistView();
+  // Switch to it
+  const tabBtn = document.getElementById('imported-tab');
+  if (tabBtn) switchTab(tabBtn, '__imported__');
+}
+
+function renderImportedCutlistView() {
+  const el = document.getElementById('imported-cutlist-view');
+  if (!el || !importedCutlistData) return;
+
+  const { label, parts, savedAt } = importedCutlistData;
+
+  // Group by part group
+  const groups = {};
+  parts.forEach(p => {
+    const g = p.group || label;
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(p);
+  });
+
+  const edgeCell = (e) => e
+    ? `<span style="font-size:11px;color:var(--amber-dim)">${escHtml(e.replace(/ Edging.*$/,''))}</span>`
+    : `<span style="color:var(--border)">—</span>`;
+
+  let tablesHtml = '';
+  for (const [grp, gparts] of Object.entries(groups)) {
+    tablesHtml += `
+    <div style="margin-bottom:28px">
+      <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--amber);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+        ${escHtml(grp)} <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0">(${gparts.length} parts)</span>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="cutlist-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>Part</th><th class="qty">Qty</th><th class="dim">L (mm)</th><th class="dim">W (mm)</th>
+            <th class="material">Material</th>
+            <th class="edge">El1</th><th class="edge">El2</th><th class="edge">Ew1</th><th class="edge">Ew2</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${gparts.map(p => `
+          <tr>
+            <td>${escHtml(p.name||'Part')}</td>
+            <td class="qty">${p.qty||1}</td>
+            <td class="dim">${p.l||0}</td>
+            <td class="dim">${p.w||0}</td>
+            <td class="material" style="font-size:12px">${escHtml(p.mat||'')}</td>
+            <td class="edge">${edgeCell(p.el1)}</td>
+            <td class="edge">${edgeCell(p.el2)}</td>
+            <td class="edge">${edgeCell(p.ew1)}</td>
+            <td class="edge">${edgeCell(p.ew2)}</td>
+            <td style="font-size:11px;color:var(--text-muted)">${escHtml(p.holes||'')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+  <div style="max-width:1100px;margin:0 auto;padding:24px 20px;font-family:'Barlow',sans-serif">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:2px;color:var(--amber)">📋 ${escHtml(label)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
+          ${parts.length} parts total
+          ${savedAt ? ` · Saved ${savedAt}` : ' · <span style="color:var(--amber-dim)">Not saved</span>'}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="saveImportedCutlist()"
+          style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          💾 SAVE JSON
+        </button>
+        <button onclick="exportImportedCSV()"
+          style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          ⬇ EXPORT CSV
+        </button>
+        <button onclick="printImportedCutlist()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          🖨 PRINT
+        </button>
+        <button onclick="importIntoPanels()"
+          style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          ✦ ADD TO PANELS
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="background:var(--bg2);border:1px solid var(--border);padding:16px">
+      ${tablesHtml}
+    </div>
+
+  </div>`;
+}
+
+function saveImportedCutlist() {
+  if (!importedCutlistData) return;
+  importedCutlistData.savedAt = new Date().toLocaleString('en-ZA');
+  const json = JSON.stringify(importedCutlistData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = (importedCutlistData.label || 'cutlist').replace(/[^a-zA-Z0-9 _-]/g, '') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  renderImportedCutlistView();
+}
+
+function exportImportedCSV() {
+  if (!importedCutlistData) return;
+  const { label, parts } = importedCutlistData;
+  const header = ['Part','Qty','L (mm)','W (mm)','Material','El1','El2','Ew1','Ew2','Notes','Group'];
+  const rows   = parts.map(p => [
+    p.name||'', p.qty||1, p.l||0, p.w||0, p.mat||'',
+    p.el1||'', p.el2||'', p.ew1||'', p.ew2||'',
+    p.holes||'', p.group||''
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv  = [header.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = (label || 'cutlist').replace(/[^a-zA-Z0-9 _-]/g, '') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printImportedCutlist() {
+  if (!importedCutlistData) return;
+  const { label, parts } = importedCutlistData;
+  const groups = {};
+  parts.forEach(p => { const g = p.group||label; if (!groups[g]) groups[g]=[]; groups[g].push(p); });
+
+  const tableHtml = Object.entries(groups).map(([grp, gparts]) => `
+    <h3 style="font-family:sans-serif;font-size:13px;margin:20px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px">${grp} (${gparts.length} parts)</h3>
+    <table style="width:100%;border-collapse:collapse;font-family:sans-serif;font-size:12px">
+      <thead><tr style="background:#f0f0f0">
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:left">Part</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">Qty</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:right">L</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:right">W</th>
+        <th style="border:1px solid #ccc;padding:4px 6px">Material</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">El1</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">El2</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">Ew1</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">Ew2</th>
+        <th style="border:1px solid #ccc;padding:4px 6px">Notes</th>
+      </tr></thead>
+      <tbody>${gparts.map((p,i) => `<tr style="background:${i%2?'#fafafa':'#fff'}">
+        <td style="border:1px solid #ccc;padding:4px 6px">${p.name||''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:center">${p.qty||1}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:right">${p.l||0}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:right">${p.w||0}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px">${p.mat||''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:center">${p.el1?p.el1.replace(/ Edging.*/,''):''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:center">${p.el2?p.el2.replace(/ Edging.*/,''):''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:center">${p.ew1?p.ew1.replace(/ Edging.*/,''):''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;text-align:center">${p.ew2?p.ew2.replace(/ Edging.*/,''):''}</td>
+        <td style="border:1px solid #ccc;padding:4px 6px;font-size:11px">${p.holes||''}</td>
+      </tr>`).join('')}</tbody>
+    </table>`).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>${label} — Cutlist</title>
+    <style>body{margin:20px;font-family:sans-serif} @media print{@page{margin:15mm}}</style>
+  </head><body>
+    <h2 style="font-family:sans-serif;margin-bottom:2px">${label}</h2>
+    <p style="font-size:12px;color:#666;margin-top:0">${parts.length} parts · Printed ${new Date().toLocaleString('en-ZA')}</p>
+    ${tableHtml}
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
 }
 
 function importIntoPanels() {
