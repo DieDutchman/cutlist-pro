@@ -6672,7 +6672,9 @@ async function fetchUserRole() {
   }
 }
 
-function isAdmin() { return sbRole === 'admin'; }
+function isAdmin()    { return sbRole === 'admin'; }
+function isSupplier() { return sbRole === 'supplier'; }
+function canEditPrices() { return sbRole === 'admin' || sbRole === 'supplier'; }
 
 
 
@@ -6727,7 +6729,7 @@ async function onLoginSuccess() {
   document.getElementById('setpw-form').style.display = 'none';
   document.getElementById('job-bar').style.display = 'flex';
   document.getElementById('user-email-badge').textContent =
-    sbUser.email + (isAdmin() ? ' ★' : '');
+    sbUser.email + (isAdmin() ? ' ★' : isSupplier() ? ' ◆' : '');
   applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
@@ -7034,7 +7036,7 @@ async function loadUsersModal() {
 
 function renderUserRow(u) {
   const isMe = u.id === sbUser?.id;
-  const roleColor = u.role === 'admin' ? 'var(--amber)' : 'var(--text-muted)';
+  const roleColor = u.role === 'admin' ? 'var(--amber)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
   return `
   <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border)">
     <div style="flex:1;min-width:0">
@@ -7045,8 +7047,9 @@ function renderUserRow(u) {
     </div>
     <select onchange="updateUserRole('${u.id}', this.value, this)" ${isMe ? 'disabled title="Cannot change your own role"' : ''}
       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;outline:none;${isMe ? 'opacity:0.4;cursor:not-allowed' : ''}">
-      <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>User</option>
-      <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+      <option value="user"     ${u.role === 'user'     ? 'selected' : ''}>User</option>
+      <option value="supplier" ${u.role === 'supplier' ? 'selected' : ''}>Supplier</option>
+      <option value="admin"    ${u.role === 'admin'    ? 'selected' : ''}>Admin</option>
     </select>
     <span id="user-status-${u.id}" style="font-size:11px;width:60px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"></span>
   </div>`;
@@ -7386,10 +7389,28 @@ function copyTemplateUnit(templateUnitId) {
 function applyRoleRestrictions() {
   // Supplier Prices tab label
   const pricesTab = document.getElementById('prices-tab');
-  if (pricesTab) pricesTab.textContent = isAdmin() ? '🧾 Supplier Prices' : '🧾 View Prices';
+  if (pricesTab) pricesTab.textContent = canEditPrices() ? '🧾 Supplier Prices' : '🧾 View Prices';
   // Users button: admin only
   const usersBtn = document.getElementById('users-btn');
   if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
+
+  // ── Supplier role: land on Prices tab, hide rooms/quote nav row ──────────────
+  if (isSupplier()) {
+    // Hide the rooms nav row and first-row divider — supplier doesn't need the quote builder
+    setTimeout(() => {
+      const navTabs = document.getElementById('navTabs');
+      if (!navTabs) return;
+      const rows = navTabs.querySelectorAll('.nav-row');
+      if (rows[0]) rows[0].style.display = 'none';
+      const dividers = navTabs.querySelectorAll('.nav-divider');
+      if (dividers[0]) dividers[0].style.display = 'none';
+    }, 50);
+    // Switch straight to Supplier Prices
+    const btn = document.getElementById('prices-tab');
+    if (btn) switchTab(btn, '__prices__');
+    return;
+  }
+
   // My Costs: visible to all
 
   // User rooms nav
@@ -8556,7 +8577,7 @@ function refreshPriceViews() {
 }
 
 function renderPricesView() {
-  const admin = isAdmin();
+  const admin = canEditPrices();
   const ro    = admin ? '' : 'readonly style="opacity:1;cursor:default;pointer-events:none;background:var(--bg2);border-color:var(--border)"';
   const roBtn = admin ? '' : 'disabled style="display:none"';
 
@@ -8805,13 +8826,13 @@ function renderPricesView() {
         <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
         <div style="display:flex;align-items:center;gap:10px">
           <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:2px">● Not yet synced</span>
-          ${admin ? `<button onclick="openBoardCleanupModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">🗃 MANAGE BOARDS</button>` : ''}
+          ${canEditPrices() ? `<button onclick="openBoardCleanupModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">🗃 MANAGE BOARDS</button>` : ''}
           <button onclick="loadSupplierPrices()" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-        ${admin ? 'Changes save to the shared database — all users get updated prices automatically.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
+        ${isAdmin() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
       </div>
 
       <!-- Column headers -->
