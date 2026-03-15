@@ -10487,69 +10487,101 @@ function renderImportedCutlistView() {
   if (!el || !importedCutlistData) return;
 
   const { label, parts, savedAt } = importedCutlistData;
+  const edgeOpts = ['', ...EDGES.filter(Boolean)];
+  const matOpts  = MATS;
 
-  // Group by part group
+  const sel = (val, opts, onchange, w) =>
+    `<select onchange="${onchange}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'100%'};max-width:${w||'160px'}"
+       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+       ${opts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
+     </select>`;
+
+  const inp = (val, type, onchange, w, align) =>
+    `<input type="${type}" value="${escHtml(String(val??''))}"
+       onchange="${onchange}"
+       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:12px;outline:none;width:${w||'100%'};text-align:${align||'left'};font-family:'Barlow',sans-serif"
+       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
+
+  // Group by part group — preserve original index into parts[]
   const groups = {};
-  parts.forEach(p => {
+  parts.forEach((p, i) => {
     const g = p.group || label;
     if (!groups[g]) groups[g] = [];
-    groups[g].push(p);
+    groups[g].push({ p, i });
   });
-
-  const edgeCell = (e) => e
-    ? `<span style="font-size:11px;color:var(--amber-dim)">${escHtml(e.replace(/ Edging.*$/,''))}</span>`
-    : `<span style="color:var(--border)">—</span>`;
 
   let tablesHtml = '';
   for (const [grp, gparts] of Object.entries(groups)) {
+    const rows = gparts.map(({ p, i }) => `
+      <tr id="icrow-${i}" style="border-bottom:1px solid rgba(255,255,255,0.07)">
+        <td style="padding:3px 4px">${inp(p.name||'', 'text', `updateImportedPart(${i},'name',this.value)`, '120px')}</td>
+        <td style="padding:3px 4px;text-align:center">${inp(p.qty||1, 'number', `updateImportedPart(${i},'qty',this.value)`, '44px', 'center')}</td>
+        <td style="padding:3px 4px;text-align:right">${inp(p.l||0, 'number', `updateImportedPart(${i},'l',this.value)`, '64px', 'right')}</td>
+        <td style="padding:3px 4px;text-align:right">${inp(p.w||0, 'number', `updateImportedPart(${i},'w',this.value)`, '64px', 'right')}</td>
+        <td style="padding:3px 4px">${sel(p.mat||'', matOpts, `updateImportedPart(${i},'mat',this.value)`, '140px')}</td>
+        <td style="padding:3px 4px">${sel(p.el1||'', edgeOpts, `updateImportedPart(${i},'el1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${sel(p.el2||'', edgeOpts, `updateImportedPart(${i},'el2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${sel(p.ew1||'', edgeOpts, `updateImportedPart(${i},'ew1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${sel(p.ew2||'', edgeOpts, `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${inp(p.holes||'', 'text', `updateImportedPart(${i},'holes',this.value)`, '90px')}</td>
+        <td style="padding:3px 6px;text-align:center">
+          <button onclick="deleteImportedPart(${i})" title="Delete row"
+            style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 6px;cursor:pointer">×</button>
+        </td>
+      </tr>`).join('');
+
     tablesHtml += `
     <div style="margin-bottom:28px">
-      <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--amber);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
-        ${escHtml(grp)} <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0">(${gparts.length} parts)</span>
+      <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--amber);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span>${escHtml(grp)} <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0">(${gparts.length} parts)</span></span>
+        <button onclick="addImportedRow('${grp.replace(/'/g,"\\'")}')\"
+          style="background:rgba(212,145,58,0.1);border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:2px 10px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">
+          + ADD ROW
+        </button>
       </div>
       <div style="overflow-x:auto">
-      <table class="cutlist-table" style="width:100%">
+      <table style="width:100%;border-collapse:collapse;font-family:'Barlow',sans-serif">
         <thead>
-          <tr>
-            <th>Part</th><th class="qty">Qty</th><th class="dim">L (mm)</th><th class="dim">W (mm)</th>
-            <th class="material">Material</th>
-            <th class="edge">El1</th><th class="edge">El2</th><th class="edge">Ew1</th><th class="edge">Ew2</th>
-            <th>Notes</th>
+          <tr style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.18)">
+            <th style="padding:5px 4px;text-align:left;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Part</th>
+            <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Qty</th>
+            <th style="padding:5px 4px;text-align:right;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">L mm</th>
+            <th style="padding:5px 4px;text-align:right;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">W mm</th>
+            <th style="padding:5px 4px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Material</th>
+            <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">El1</th>
+            <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">El2</th>
+            <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Ew1</th>
+            <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Ew2</th>
+            <th style="padding:5px 4px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Notes</th>
+            <th style="padding:5px 4px;width:28px"></th>
           </tr>
         </thead>
-        <tbody>
-          ${gparts.map(p => `
-          <tr>
-            <td>${escHtml(p.name||'Part')}</td>
-            <td class="qty">${p.qty||1}</td>
-            <td class="dim">${p.l||0}</td>
-            <td class="dim">${p.w||0}</td>
-            <td class="material" style="font-size:12px">${escHtml(p.mat||'')}</td>
-            <td class="edge">${edgeCell(p.el1)}</td>
-            <td class="edge">${edgeCell(p.el2)}</td>
-            <td class="edge">${edgeCell(p.ew1)}</td>
-            <td class="edge">${edgeCell(p.ew2)}</td>
-            <td style="font-size:11px;color:var(--text-muted)">${escHtml(p.holes||'')}</td>
-          </tr>`).join('')}
-        </tbody>
+        <tbody>${rows}</tbody>
       </table>
       </div>
     </div>`;
   }
 
   el.innerHTML = `
-  <div style="max-width:1100px;margin:0 auto;padding:24px 20px;font-family:'Barlow',sans-serif">
+  <div style="max-width:1200px;margin:0 auto;padding:24px 20px;font-family:'Barlow',sans-serif">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
       <div>
-        <div style="font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:2px;color:var(--amber)">📋 ${escHtml(label)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
-          ${parts.length} parts total
-          ${savedAt ? ` · Saved ${savedAt}` : ' · <span style="color:var(--amber-dim)">Not saved</span>'}
+        <input value="${escHtml(label)}" oninput="importedCutlistData.label=this.value"
+          style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--amber);background:none;border:none;border-bottom:1px solid transparent;outline:none;padding:0 2px"
+          onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='transparent'">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          ${parts.length} parts
+          ${importedCutlistData._changed ? ' · <span style="color:var(--amber-dim)">Unsaved changes</span>' : ''}
+          ${savedAt ? ` · Saved ${savedAt}` : ''}
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${importedCutlistData._history?.length ? `<button onclick="undoImportedEdit()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
+          ↩ UNDO
+        </button>` : ''}
         <button onclick="saveImportedCutlist()"
           style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           💾 SAVE JSON
@@ -10576,6 +10608,67 @@ function renderImportedCutlistView() {
 
   </div>`;
 }
+
+function updateImportedPart(idx, field, value) {
+  if (!importedCutlistData) return;
+  _pushImportedHistory();
+  const p = importedCutlistData.parts[idx];
+  if (!p) return;
+  if (field === 'qty' || field === 'l' || field === 'w') {
+    p[field] = parseFloat(value) || 0;
+  } else {
+    p[field] = value;
+  }
+  importedCutlistData._changed = true;
+  // Update just the part count header without full re-render
+  const el = document.getElementById('imported-cutlist-view');
+  const meta = el?.querySelector('div[style*="12px;color:var(--text-muted)"]');
+  if (meta) meta.innerHTML = `${importedCutlistData.parts.length} parts · <span style="color:var(--amber-dim)">Unsaved changes</span>`;
+}
+
+function deleteImportedPart(idx) {
+  if (!importedCutlistData) return;
+  _pushImportedHistory();
+  importedCutlistData.parts.splice(idx, 1);
+  importedCutlistData._changed = true;
+  renderImportedCutlistView();
+}
+
+function addImportedRow(group) {
+  if (!importedCutlistData) return;
+  _pushImportedHistory();
+  importedCutlistData.parts.push({
+    name: 'New Part', qty: 1, l: 0, w: 0,
+    mat: MATS[0] || '', el1: '', el2: '', ew1: '', ew2: '',
+    holes: '', group: group
+  });
+  importedCutlistData._changed = true;
+  renderImportedCutlistView();
+  // Scroll to and focus the new row's name input
+  setTimeout(() => {
+    const idx = importedCutlistData.parts.length - 1;
+    const row = document.getElementById(`icrow-${idx}`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.querySelector('input')?.select();
+    }
+  }, 60);
+}
+
+function _pushImportedHistory() {
+  if (!importedCutlistData) return;
+  if (!importedCutlistData._history) importedCutlistData._history = [];
+  if (importedCutlistData._history.length > 30) importedCutlistData._history.shift();
+  importedCutlistData._history.push(JSON.stringify(importedCutlistData.parts));
+}
+
+function undoImportedEdit() {
+  if (!importedCutlistData?._history?.length) return;
+  importedCutlistData.parts = JSON.parse(importedCutlistData._history.pop());
+  importedCutlistData._changed = true;
+  renderImportedCutlistView();
+}
+
 
 function saveImportedCutlist() {
   if (!importedCutlistData) return;
