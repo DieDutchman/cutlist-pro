@@ -3413,6 +3413,18 @@ function edgeKey(p) {
   return [p.el1||'',p.el2||'',p.ew1||'',p.ew2||''].join('|');
 }
 
+// Returns a sort key for the edging pattern so same-pattern parts cluster together.
+// Primary: number of edged sides DESC (4→3→2→1→0)
+// Secondary: canonical pattern string so e.g. all "L1+W1" are adjacent
+function edgePatternKey(p) {
+  const sides = [p.el1||'', p.el2||'', p.ew1||'', p.ew2||''];
+  const count = sides.filter(Boolean).length;
+  // canonical pattern: which positions are edged, ignoring which specific edge material
+  const pattern = sides.map(s => s ? '1' : '0').join('');
+  // sort: fewer edged sides last, then by pattern string for stable grouping
+  return String(4 - count).padStart(1,'0') + '_' + pattern;
+}
+
 function generateCutlist() {
   const allParts = [];
   getEffectiveUnits().forEach(u => {
@@ -3498,9 +3510,13 @@ function generateCutlist() {
     byCat[p.category].push(p);
   });
 
-  // Sort each cat by length desc
+  // Sort each cat: edging pattern first (most sides first, same pattern together), then L desc, W desc
   catOrder.forEach(c => {
-    byCat[c].sort((a,b) => b.l - a.l || b.w - a.w);
+    byCat[c].sort((a, b) => {
+      const ep = edgePatternKey(a).localeCompare(edgePatternKey(b));
+      if (ep !== 0) return ep;
+      return (b.l - a.l) || (b.w - a.w);
+    });
   });
 
   const now = new Date();
@@ -10699,7 +10715,10 @@ function sortImportedCutlist() {
     const ca = partCategory(a), cb = partCategory(b);
     const ri = (catRank[ca] ?? 999) - (catRank[cb] ?? 999);
     if (ri !== 0) return ri;
-    // Within category: longest first, then widest
+    // Within category: group by edging pattern (most sides first, same pattern together)
+    const ep = edgePatternKey(a).localeCompare(edgePatternKey(b));
+    if (ep !== 0) return ep;
+    // Within same pattern: longest first, then widest
     return (b.l - a.l) || (b.w - a.w);
   });
 
