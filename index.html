@@ -2692,6 +2692,29 @@ function saveCustomUnits() {
     localStorage.setItem('cutlist_unit_overrides', JSON.stringify(unitOverrides));
     localStorage.setItem('cutlist_deleted_units', JSON.stringify([...deletedUnits]));
   } catch(e) {}
+  // Sync to Supabase so templates persist across devices
+  if (sbUser) pushTemplatesToCloud();
+}
+
+// Debounced cloud push — avoids hammering Supabase on every keystroke
+let _templatePushTimer = null;
+function pushTemplatesToCloud() {
+  clearTimeout(_templatePushTimer);
+  _templatePushTimer = setTimeout(async () => {
+    try {
+      await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify({
+          templates: {
+            customUnits,
+            unitOverrides,
+            deletedUnits: [...deletedUnits],
+          }
+        }),
+      });
+    } catch(e) { console.warn('[Templates] Cloud sync failed:', e.message); }
+  }, 1500);
 }
 const saveDeletedUnits = saveCustomUnits;
 
@@ -6934,6 +6957,8 @@ async function onLoginSuccess() {
   await fetchUserRole();
   // Ensure profile row exists for new invited users
   await ensureProfile();
+  // Load templates (unit overrides, custom units) from cloud — these are global across jobs
+  await loadTemplatesFromCloud();
   document.getElementById('login-overlay').style.display = 'none';
   document.getElementById('login-form').style.display = 'block';
   document.getElementById('setpw-form').style.display = 'none';
@@ -6946,6 +6971,39 @@ async function onLoginSuccess() {
   checkFeedbackUnread();
   // Re-render panel now that real role is known (clears admin units for regular users)
   renderPanel();
+}
+
+async function loadTemplatesFromCloud() {
+  if (!sbUser) return;
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const t = rows[0]?.templates;
+    if (!t) return; // no cloud templates yet — localStorage values stay
+    // Apply cloud templates (they take priority over localStorage)
+    if (Array.isArray(t.customUnits)) {
+      customUnits.length = 0;
+      t.customUnits.forEach(u => customUnits.push(u));
+    }
+    if (t.unitOverrides && typeof t.unitOverrides === 'object') {
+      Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
+      Object.assign(unitOverrides, t.unitOverrides);
+    }
+    if (Array.isArray(t.deletedUnits)) {
+      deletedUnits.clear();
+      t.deletedUnits.forEach(id => deletedUnits.add(id));
+    }
+    // Sync back to localStorage
+    try {
+      localStorage.setItem('cutlist_custom_units',    JSON.stringify(customUnits));
+      localStorage.setItem('cutlist_unit_overrides',  JSON.stringify(unitOverrides));
+      localStorage.setItem('cutlist_deleted_units',   JSON.stringify([...deletedUnits]));
+    } catch(e) {}
+  } catch(e) { console.warn('[Templates] Cloud load failed:', e.message); }
 }
 
 async function ensureProfile() {
@@ -7035,11 +7093,10 @@ function getJobState() {
       hiddenMats:     costingPrices.hiddenMats,
       customHardware: costingPrices.customHardware,
     },
-    customUnits:    [...customUnits],
-    unitOverrides:  {...unitOverrides},
-    deletedUnits:   [...deletedUnits],
     userRooms:      [...userRooms],
     userUnits:      [...userUnits],
+    // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
+    // — they live in localStorage only and are NOT saved/restored per job
   };
 }
 
@@ -10212,8 +10269,7 @@ function applyState(state) {
     panelsState.label = state.panelsState.label || '';
     savePanelsState();
   }
-  if (state.unitOverrides)   Object.assign(unitOverrides, state.unitOverrides);
-  if (state.deletedUnits)  { deletedUnits.clear(); state.deletedUnits.forEach(id => deletedUnits.add(id)); }
+  // unitOverrides, customUnits, deletedUnits are global template settings — not restored from job state
   if (state.userRooms) {
     userRooms = [...state.userRooms];
     // Re-register in MAT_GROUPS so material selectors work after reload
