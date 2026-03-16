@@ -1932,6 +1932,25 @@
     style="flex:1;min-width:180px;max-width:340px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
     <option value="">— New Job —</option>
   </select>
+  <!-- Inline job detail fields — always accessible regardless of tab -->
+  <div id="job-bar-details" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <input id="job-client" type="text" placeholder="Client name"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:130px;outline:none;font-family:'Barlow',sans-serif"
+      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+      oninput="saveJobDetails()">
+    <input id="job-house" type="text" placeholder="Stand / nr"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:90px;outline:none;font-family:'Barlow',sans-serif"
+      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+      oninput="saveJobDetails()">
+    <input id="job-address" type="text" placeholder="Address"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:140px;outline:none;font-family:'Barlow',sans-serif"
+      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+      oninput="saveJobDetails()">
+    <input id="job-notes" type="text" placeholder="Notes"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:120px;outline:none;font-family:'Barlow',sans-serif"
+      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+      oninput="saveJobDetails()">
+  </div>
   <button onclick="saveJobToCloud()" id="job-save-btn"
     style="background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap">
     💾 SAVE JOB
@@ -1950,8 +1969,8 @@
       👥 USERS
     </button>
     <button onclick="openFeedbackModal()" id="feedback-btn" title="Send feedback or report an issue"
-      style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">
-      💬 FEEDBACK
+      style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;position:relative">
+      💬 FEEDBACK<span id="fb-unread-dot" style="display:none;position:absolute;top:2px;right:2px;background:#e05252;color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:0px 4px;border-radius:8px;line-height:16px;min-width:16px;text-align:center;pointer-events:none"></span>
     </button>
     <button onclick="doLogout()"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">
@@ -2086,25 +2105,6 @@
     <div class="layout">
       <div id="unit-panel"></div>
       <div class="sidebar">
-        <div class="card">
-          <div class="card-title">Job Details</div>
-          <div class="job-field">
-            <label class="job-label" for="job-client">Client Name</label>
-            <input class="job-input" id="job-client" type="text" placeholder="e.g. Smith Family" oninput="saveJobDetails()">
-          </div>
-          <div class="job-field">
-            <label class="job-label" for="job-house">House Number / Stand</label>
-            <input class="job-input" id="job-house" type="text" placeholder="e.g. 17 or W17" oninput="saveJobDetails()">
-          </div>
-          <div class="job-field">
-            <label class="job-label" for="job-address">Address / Complex</label>
-            <input class="job-input" id="job-address" type="text" placeholder="e.g. 12 Oak Street" oninput="saveJobDetails()">
-          </div>
-          <div class="job-field" style="margin-bottom:0">
-            <label class="job-label" for="job-notes">Notes</label>
-            <input class="job-input" id="job-notes" type="text" placeholder="e.g. Dunblane finish" oninput="saveJobDetails()">
-          </div>
-        </div>
         <div class="card">
           <div class="card-title">Quote Summary</div>
           <div id="summary-lines"></div>
@@ -2696,8 +2696,8 @@ function saveCustomUnits() {
 const saveDeletedUnits = saveCustomUnits;
 
 function getEffectiveUnits() {
-  // Non-admin users always use their own units (empty array if none created yet)
-  if (sbRole !== 'admin') {
+  // Non-admin/superuser users always use their own units (empty array if none created yet)
+  if (!isAdmin()) {
     return userUnits;
   }
   const base = UNITS
@@ -3210,10 +3210,10 @@ function switchTab(btn, section) {
 
 function renderPanel() {
   // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
-  if (sbRole !== 'admin' && userRooms.length === 0) return;
+  if (!isAdmin() && userRooms.length === 0) return;
 
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
-  const isUserMode = sbRole !== 'admin' && userRooms.length > 0;
+  const isUserMode = !isAdmin() && userRooms.length > 0;
   const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
   const sec = userRoom
     ? {id: userRoom.id, label: userRoom.name}
@@ -3365,7 +3365,7 @@ function setQty(id, input) {
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
-  const roomList = (sbRole !== 'admin' && userRooms.length > 0)
+  const roomList = (!isAdmin() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   roomList.forEach(sec => {
@@ -3381,7 +3381,7 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  const roomList = (sbRole !== 'admin' && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
+  const roomList = (!isAdmin() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
   roomList.forEach(sec => {
     const count = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
@@ -3398,6 +3398,7 @@ function clearAll() {
     btn.style.color = '';
     getEffectiveUnits().forEach(u => quantities[u.id] = 0);
     Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+  panelsState.items = []; panelsState.label = '';
     // Reset bedroom addons
     ADDON_SECTIONS.forEach(sec => {
       bedroomAddons[sec].plantOn  = { enabled: false, items: [defaultAddon()] };
@@ -3448,7 +3449,7 @@ function clearAll() {
     importState.error = null;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     // For user mode, activate first user room; for admin, activate kitchen
-    if (sbRole !== 'admin' && userRooms.length > 0) {
+    if (!isAdmin() && userRooms.length > 0) {
       currentSection = userRooms[0].id;
     } else {
       currentSection = 'kitchen';
@@ -4517,7 +4518,7 @@ let EDGES = ['','Dunblane Edging 1mm','White Edging 1mm','Iceberg White Edging 1
 
 function renderEditor() {
   const ev = document.getElementById('editor-view');
-  const isUserMode = sbRole !== 'admin';
+  const isUserMode = !isAdmin();
 
   // For non-admin: use userRooms as sections, userUnits as units
   const roomList  = isUserMode ? userRooms.map(r => ({id: r.id, label: r.name})) : sections;
@@ -4576,7 +4577,7 @@ function buildUnitForm(id) {
   if (!unit) return '<div class="editor-placeholder">Unit not found</div>';
   const isCustom = customUnits.some(u => u.id === id);
 
-  const roomList = (sbRole !== 'admin')
+  const roomList = (!isAdmin())
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionOpts = roomList.map(s =>
@@ -4636,7 +4637,7 @@ function buildUnitForm(id) {
     <div class="editor-actions">
       <button class="btn btn-primary" onclick="saveUnit('${id}')">💾 Save Unit</button>
       <button class="btn btn-ghost" onclick="editingUnitId=null;renderEditor()">Cancel</button>
-      ${sbRole !== 'admin'
+      ${!isAdmin()
         ? `<button class="btn btn-danger-soft" onclick="editorDeleteUserUnit('${id}')">🗑 Delete Unit</button>`
         : isCustom
           ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')">⧉ Copy Unit</button>
@@ -4718,7 +4719,7 @@ function saveUnit(id) {
   if (!name) { alert('Unit name cannot be empty.'); return; }
 
   // Non-admin: save into userUnits
-  if (sbRole !== 'admin') {
+  if (!isAdmin()) {
     const idx = userUnits.findIndex(u => u.id === id);
     if (idx >= 0) userUnits[idx] = { ...userUnits[idx], name, section, parts };
     editorSection = section;
@@ -4748,7 +4749,7 @@ function saveUnit(id) {
 function copyUnit(id) {
   const source = getEffectiveUnits().find(u => u.id === id);
   if (!source) return;
-  const newId = (sbRole !== 'admin' ? 'uu_' : 'custom_') + Date.now();
+  const newId = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
   const copy = {
     id: newId,
     section: source.section,
@@ -4756,7 +4757,7 @@ function copyUnit(id) {
     price: source.price || 0,
     parts: (source.parts || []).map(p => ({...p})),
   };
-  if (sbRole !== 'admin') {
+  if (!isAdmin()) {
     userUnits.push(copy);
   } else {
     customUnits.push(copy);
@@ -4767,13 +4768,13 @@ function copyUnit(id) {
   editorSection = copy.section;
   editingUnitId = newId;
   renderEditor();
-  if (sbRole !== 'admin') scheduleAutoSave();
+  if (!isAdmin()) scheduleAutoSave();
 }
 
 function newUnit() {
-  const id = (sbRole !== 'admin' ? 'uu_' : 'custom_') + Date.now();
+  const id = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
   const unit = { id, section: editorSection, name: 'New Unit', price: 0, parts: [] };
-  if (sbRole !== 'admin') {
+  if (!isAdmin()) {
     userUnits.push(unit);
   } else {
     customUnits.push(unit);
@@ -4783,7 +4784,7 @@ function newUnit() {
   save();
   editingUnitId = id;
   renderEditor();
-  if (sbRole !== 'admin') scheduleAutoSave();
+  if (!isAdmin()) scheduleAutoSave();
 }
 
 function editorDeleteUserUnit(id) {
@@ -5784,7 +5785,7 @@ function renderQuoteView() {
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
 
   // Build section data — include sections that have selected units OR enabled addons
-  const activeSections = (sbRole !== 'admin' && userRooms.length > 0)
+  const activeSections = (!isAdmin() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionData = activeSections.map(sec => {
@@ -6535,7 +6536,7 @@ function downloadQuoteXLSX() {
   rows.push(['Qty', 'Unit', '', 'Unit Price', 'Line Total']);
 
   let grandSub = 0;
-  const _qxlsxSecs = (sbRole !== 'admin' && userRooms.length > 0)
+  const _qxlsxSecs = (!isAdmin() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   _qxlsxSecs.forEach(sec => {
@@ -6942,6 +6943,7 @@ async function onLoginSuccess() {
   applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
+  checkFeedbackUnread();
   // Re-render panel now that real role is known (clears admin units for regular users)
   renderPanel();
 }
@@ -7132,9 +7134,10 @@ function newJob() {
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  // Reset quantities and state
-  getEffectiveUnits().forEach(u => quantities[u.id] = 0);
+  // Reset quantities and state — wipe every key so nothing from old job persists
+  Object.keys(quantities).forEach(k => { quantities[k] = 0; });
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+  panelsState.items = []; panelsState.label = '';
   Object.keys(quoteState).forEach(k => delete quoteState[k]);
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
   quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800;
@@ -7165,13 +7168,44 @@ async function deleteCurrentJob() {
 
 // Auto-save: debounced 4s after any change (only when logged in and job already exists)
 // ── User Management Modal ─────────────────────────────────────────────────────
+async function checkFeedbackUnread() {
+  if (!canManageUsers()) return;
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/feedback?select=id&read=eq.false`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const dot = document.getElementById('fb-unread-dot');
+    if (!dot) return;
+    if (rows.length > 0) {
+      dot.textContent = rows.length;
+      dot.style.display = 'inline-block';
+      document.getElementById('feedback-btn').style.borderColor = '#e05252';
+      document.getElementById('feedback-btn').style.color = '#e05252';
+    } else {
+      dot.style.display = 'none';
+      document.getElementById('feedback-btn').style.borderColor = '';
+      document.getElementById('feedback-btn').style.color = '';
+    }
+  } catch(e) { /* silent */ }
+}
+
+function clearFeedbackDot() {
+  const dot = document.getElementById('fb-unread-dot');
+  if (dot) dot.style.display = 'none';
+  const btn = document.getElementById('feedback-btn');
+  if (btn) { btn.style.borderColor = ''; btn.style.color = ''; }
+}
+
 function showUsersTab(tab) {
   const isUsers = tab === 'users';
   document.getElementById('um-panel-users').style.display    = isUsers ? 'flex' : 'none';
   document.getElementById('um-panel-feedback').style.display = isUsers ? 'none' : 'flex';
   document.getElementById('um-tab-users').style.cssText    = `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${isUsers ? 'var(--amber)' : 'transparent'};background:${isUsers ? 'rgba(212,145,58,0.08)' : 'none'};color:${isUsers ? 'var(--amber)' : 'var(--text-muted)'}`;
   document.getElementById('um-tab-feedback').style.cssText = `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${!isUsers ? 'var(--amber)' : 'transparent'};background:${!isUsers ? 'rgba(212,145,58,0.08)' : 'none'};color:${!isUsers ? 'var(--amber)' : 'var(--text-muted)'}`;
-  if (!isUsers) loadFeedbackInbox();
+  if (!isUsers) { clearFeedbackDot(); loadFeedbackInbox(); }
 }
 function openUsersModal() {
   document.getElementById('users-modal').style.display = 'flex';
@@ -7310,6 +7344,17 @@ async function loadFeedbackInbox() {
     const unread = rows.filter(r => !r.read).length;
     const badge = document.getElementById('fb-inbox-badge');
     if (badge) badge.textContent = unread > 0 ? ` (${unread} unread)` : '';
+    // Update button dot
+    const dot = document.getElementById('fb-unread-dot');
+    const fbBtn = document.getElementById('feedback-btn');
+    if (dot && fbBtn) {
+      if (unread > 0) {
+        dot.textContent = unread; dot.style.display = 'inline-block';
+        fbBtn.style.borderColor = '#e05252'; fbBtn.style.color = '#e05252';
+      } else {
+        dot.style.display = 'none'; fbBtn.style.borderColor = ''; fbBtn.style.color = '';
+      }
+    }
     el.innerHTML = rows.map(r => {
       const date = new Date(r.created_at).toLocaleString('en-ZA', {
         day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
@@ -7769,7 +7814,7 @@ function applyRoleRestrictions() {
       if (el) el.style.display = 'none';
     });
     // Hide job bar quote fields — only keep email badge, users btn, sign out
-    ['job-select','job-save-btn','job-delete-btn'].forEach(id => {
+    ['job-select','job-save-btn','job-delete-btn','job-bar-details'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
