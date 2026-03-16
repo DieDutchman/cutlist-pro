@@ -6879,9 +6879,11 @@ async function fetchUserRole() {
   }
 }
 
-function isAdmin()    { return sbRole === 'admin'; }
-function isSupplier() { return sbRole === 'supplier'; }
-function canEditPrices() { return sbRole === 'admin' || sbRole === 'supplier'; }
+function isSuperuser()   { return sbRole === 'superuser'; }
+function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; } // superuser inherits all admin rights
+function isSupplier()    { return sbRole === 'supplier'; }
+function canEditPrices() { return sbRole === 'admin' || sbRole === 'superuser' || sbRole === 'supplier'; }
+function canManageUsers(){ return sbRole === 'superuser'; }
 
 
 
@@ -6936,7 +6938,7 @@ async function onLoginSuccess() {
   document.getElementById('setpw-form').style.display = 'none';
   document.getElementById('job-bar').style.display = 'flex';
   document.getElementById('user-email-badge').textContent =
-    sbUser.email + (isAdmin() ? ' ★' : isSupplier() ? ' ◆' : '');
+    sbUser.email + (isSuperuser() ? ' ★★' : isAdmin() ? ' ★' : isSupplier() ? ' ◆' : '');
   applyRoleRestrictions();
   await loadUserJobs();
   await loadSupplierPrices();
@@ -7387,7 +7389,7 @@ async function loadUsersModal() {
 
 function renderUserRow(u) {
   const isMe = u.id === sbUser?.id;
-  const roleColor = u.role === 'admin' ? 'var(--amber)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
+  const roleColor = u.role === 'superuser' ? '#d4913a' : u.role === 'admin' ? 'var(--amber-dim)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
   return `
   <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border)">
     <div style="flex:1;min-width:0">
@@ -7398,9 +7400,10 @@ function renderUserRow(u) {
     </div>
     <select onchange="updateUserRole('${u.id}', this.value, this)" ${isMe ? 'disabled title="Cannot change your own role"' : ''}
       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;outline:none;${isMe ? 'opacity:0.4;cursor:not-allowed' : ''}">
-      <option value="user"     ${u.role === 'user'     ? 'selected' : ''}>User</option>
-      <option value="supplier" ${u.role === 'supplier' ? 'selected' : ''}>Supplier</option>
-      <option value="admin"    ${u.role === 'admin'    ? 'selected' : ''}>Admin</option>
+      <option value="user"      ${u.role === 'user'      ? 'selected' : ''}>User</option>
+      <option value="supplier"  ${u.role === 'supplier'  ? 'selected' : ''}>Supplier</option>
+      <option value="admin"     ${u.role === 'admin'     ? 'selected' : ''}>Admin</option>
+      <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
     <span id="user-status-${u.id}" style="font-size:11px;width:60px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"></span>
   </div>`;
@@ -7743,7 +7746,7 @@ function applyRoleRestrictions() {
   if (pricesTab) pricesTab.textContent = canEditPrices() ? '🧾 Supplier Prices' : '🧾 View Prices';
   // Users button: admin only
   const usersBtn = document.getElementById('users-btn');
-  if (usersBtn) usersBtn.style.display = isAdmin() ? 'block' : 'none';
+  if (usersBtn) usersBtn.style.display = canManageUsers() ? 'block' : 'none';
 
   // ── Supplier role ─────────────────────────────────────────────────────────────
   if (isSupplier()) {
@@ -9201,7 +9204,7 @@ function renderPricesView() {
         </div>
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-        ${isAdmin() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
+        ${canEditPrices() && !isSupplier() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
       </div>
 
       <!-- Column headers -->
