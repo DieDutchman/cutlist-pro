@@ -9657,78 +9657,186 @@ function removeSpecialService(id) {
 }
 
 // Per-unit special services
+// ── Special Services (enhanced with cut-out support) ─────────────────────────
+
+function _svcStore(targetType) {
+  return targetType === 'unit' ? unitSpecialServices : panelSpecialServices;
+}
+
 function toggleUnitSpecialService(unitId, serviceId, qty) {
-  if (!unitSpecialServices[unitId]) unitSpecialServices[unitId] = [];
-  const arr = unitSpecialServices[unitId];
-  const idx = arr.findIndex(s => s.serviceId === serviceId);
-  if (qty <= 0) {
-    if (idx >= 0) arr.splice(idx, 1);
-  } else {
-    if (idx >= 0) arr[idx].qty = qty;
-    else arr.push({ serviceId, qty });
-  }
+  _setSpecialService('unit', unitId, serviceId, qty);
   saveUnitSpecialServices();
   renderPanel();
 }
 
-// Per-panel special services
 function togglePanelSpecialService(panelId, serviceId, qty) {
-  if (!panelSpecialServices[panelId]) panelSpecialServices[panelId] = [];
-  const arr = panelSpecialServices[panelId];
+  _setSpecialService('panel', panelId, serviceId, qty);
+  saveUnitSpecialServices();
+  refreshCostingResults();
+}
+
+function _setSpecialService(targetType, targetId, serviceId, qty, extra) {
+  const store = _svcStore(targetType);
+  if (!store[targetId]) store[targetId] = [];
+  const arr = store[targetId];
   const idx = arr.findIndex(s => s.serviceId === serviceId);
   if (qty <= 0) {
     if (idx >= 0) arr.splice(idx, 1);
   } else {
-    if (idx >= 0) arr[idx].qty = qty;
-    else arr.push({ serviceId, qty });
+    const entry = { serviceId, qty: parseInt(qty) || 1 };
+    if (extra) Object.assign(entry, extra);
+    if (idx >= 0) Object.assign(arr[idx], entry);
+    else arr.push(entry);
   }
-  saveUnitSpecialServices();
-  // Update cost display inline without full re-render
-  refreshCostingResults();
 }
 
-// Calculate special service cost for a unit or panel
-function calcSpecialServicesCost(svcs) {
+function updateSvcField(targetType, targetId, serviceId, field, value) {
+  const store = _svcStore(targetType);
+  const arr = store[targetId] || [];
+  const entry = arr.find(s => s.serviceId === serviceId);
+  if (!entry) return;
+  entry[field] = field === 'qty' ? (parseInt(value) || 1) : (parseFloat(value) || 0);
+  if (field === 'edgeType') entry.edgeType = value;
+  saveUnitSpecialServices();
+  // Refresh popup body and costing
+  const body = document.getElementById('svc-popup-body');
+  if (body) body.innerHTML = renderSpecialServicesWidget(targetId, targetType);
+  if (targetType === 'unit') renderPanel(); else refreshCostingResults();
+}
+
+// Calculate special service cost including cut-out edging
+function calcSpecialServicesCost(svcs, dims) {
+  // dims: { l, w } in mm — optional, used for cut-out edging calculation
   if (!svcs || !svcs.length) return 0;
   return svcs.reduce((total, s) => {
     const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
-    return total + (svc ? svc.price * (s.qty || 1) : 0);
+    if (!svc) return total;
+    const base = svc.price * (s.qty || 1);
+    // Cut-out extra edging cost
+    let edgingExtra = 0;
+    if (svc.category === 'Cut-out' && s.border > 0 && s.edgeType && dims) {
+      const holeL = Math.max(0, dims.l - 2 * s.border);
+      const holeW = Math.max(0, dims.w - 2 * s.border);
+      const perimM = (2 * holeL + 2 * holeW) / 1000; // mm → m
+      const edgeRate = costingPrices.edge[s.edgeType] || 0;
+      edgingExtra = (Math.ceil(perimM) + 1) * edgeRate * (s.qty || 1); // +1m buffer like normal edging
+    }
+    return total + base + edgingExtra;
   }, 0);
 }
 
+// Get hole dimensions for a cut-out entry
+function cutoutHoleDims(s, dims) {
+  if (!s.border || !dims) return null;
+  return {
+    l: Math.max(0, dims.l - 2 * s.border),
+    w: Math.max(0, dims.w - 2 * s.border),
+  };
+}
+
+// Get dims for a target (unit or panel)
+function _getTargetDims(targetId, targetType) {
+  if (targetType === 'panel') {
+    const p = panelsState.items.find(x => x.id === targetId);
+    return p ? { l: p.l, w: p.w } : null;
+  }
+  // For units: try to get first part dims as representative
+  const u = getEffectiveUnits().find(x => x.id === targetId);
+  if (!u || !u.parts?.length) return null;
+  const parts = u.parts.filter(p => p.l && p.w);
+  if (!parts.length) return null;
+  // Use the largest part as the door/panel reference
+  parts.sort((a, b) => (b.l * b.w) - (a.l * a.w));
+  const rp = applyMaterials(parts[0], u);
+  return { l: rp.l, w: rp.w };
+}
+
 function renderSpecialServicesWidget(targetId, targetType) {
-  // targetType: 'unit' or 'panel'
   const svcs = costingPrices.specialServices;
-  if (!svcs.length) return '<span style="font-size:11px;color:var(--text-muted);font-style:italic">No special services configured</span>';
-  const selected = targetType === 'unit'
-    ? (unitSpecialServices[targetId] || [])
-    : (panelSpecialServices[targetId] || []);
+  if (!svcs.length) return '<span style="font-size:11px;color:var(--text-muted);font-style:italic">No special services configured yet</span>';
+  const selected = (targetType === 'unit' ? unitSpecialServices : panelSpecialServices)[targetId] || [];
   const toggleFn = targetType === 'unit' ? 'toggleUnitSpecialService' : 'togglePanelSpecialService';
+  const dims = _getTargetDims(targetId, targetType);
+  const edgeOpts = EDGES.filter(Boolean).map(e =>
+    `<option value="${e}">${e.replace(' Edging 1mm','').replace(' Edging','')}</option>`).join('');
 
   const rows = svcs.map(svc => {
     const sel = selected.find(s => s.serviceId === svc.id);
-    const qty = sel?.qty || 0;
-    const active = qty > 0;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-      <input type="checkbox" ${active ? 'checked' : ''} style="cursor:pointer;flex-shrink:0"
-        onchange="${toggleFn}('${targetId}','${svc.id}',this.checked?1:0)">
-      <span style="flex:1;font-size:12px;color:${active?'var(--text)':'var(--text-muted)'}">
-        ${escHtml(svc.name)} <span style="font-size:10px;color:var(--amber-dim)">${svc.category}</span>
-      </span>
-      ${active ? `<input type="number" min="1" value="${qty}"
-        style="width:50px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:2px 5px;font-size:11px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace"
-        oninput="${toggleFn}('${targetId}','${svc.id}',parseInt(this.value)||1)"
-        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">` : ''}
-      <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;min-width:60px;text-align:right">
-        ${active ? `R ${(svc.price * qty).toFixed(0)}` : `R ${svc.price.toFixed(0)}/${svc.unit.replace('per ','')}`}
-      </span>
+    const active = !!(sel?.qty > 0);
+    const isCutout = svc.category === 'Cut-out';
+
+    let cutoutExtra = '';
+    if (active && isCutout) {
+      const border   = sel.border || 0;
+      const edgeType = sel.edgeType || '';
+      const hole     = border > 0 && dims ? cutoutHoleDims(sel, dims) : null;
+      const perimM   = hole ? ((2*hole.l + 2*hole.w) / 1000) : 0;
+      const edgeRate = edgeType ? (costingPrices.edge[edgeType] || 0) : 0;
+      const edgeCost = edgeRate > 0 && hole ? (Math.ceil(perimM)+1) * edgeRate * sel.qty : 0;
+
+      cutoutExtra = `
+        <div style="background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.1);padding:10px 12px;margin-top:6px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:10px;color:var(--amber-dim);letter-spacing:1px;font-family:'Oswald',sans-serif">CUT-OUT DETAILS</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Border (each side)
+              <input type="number" min="0" max="200" step="1" value="${border}"
+                style="width:60px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none;margin-left:6px;font-family:'JetBrains Mono',monospace"
+                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','border',this.value)"> mm
+            </label>
+            ${hole ? `<span style="font-size:11px;color:#4caf82">Hole: ${hole.l} × ${hole.w} mm</span>` : (dims ? `<span style="font-size:10px;color:var(--text-muted)">Enter border to see hole size</span>` : '')}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Edging around hole
+              <select onchange="updateSvcField('${targetType}','${targetId}','${svc.id}','edgeType',this.value)"
+                style="background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:11px;outline:none;margin-left:6px"
+                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+                <option value="">— none —</option>
+                ${EDGES.filter(Boolean).map(e => `<option value="${e}" ${e===edgeType?'selected':''}>${e.replace(' Edging 1mm','').replace(' Edging','')}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+          ${hole && edgeRate > 0 ? `<div style="font-size:11px;color:var(--text-muted)">
+            Hole perimeter: ${perimM.toFixed(2)} m → ${(Math.ceil(perimM)+1).toFixed(0)} m billed
+            <span style="color:var(--amber)"> + R ${edgeCost.toFixed(0)} edging</span>
+          </div>` : ''}
+        </div>`;
+    }
+
+    const baseCost = active ? svc.price * sel.qty : 0;
+    const totalEntryCost = active ? calcSpecialServicesCost([sel], dims) : 0;
+
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" ${active ? 'checked' : ''} style="cursor:pointer;flex-shrink:0"
+          onchange="${toggleFn}('${targetId}','${svc.id}',this.checked?1:0)">
+        <span style="flex:1;font-size:12px;color:${active?'var(--text)':'var(--text-muted)'}">
+          ${escHtml(svc.name)}
+          <span style="font-size:10px;color:var(--amber-dim);margin-left:4px">${svc.category}</span>
+        </span>
+        ${active ? `
+          <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">
+            ${isCutout ? 'Cut-outs:' : 'Qty:'}
+            <input type="number" min="1" value="${sel.qty}"
+              style="width:44px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:2px 4px;font-size:11px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace;margin-left:4px"
+              oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','qty',this.value)"
+              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          </label>
+          <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;min-width:64px;text-align:right">
+            R ${totalEntryCost.toFixed(0)}
+          </span>` : `
+          <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">
+            R ${svc.price.toFixed(0)}/${svc.unit.replace('per ','')}
+          </span>`}
+      </div>
+      ${cutoutExtra}
     </div>`;
   }).join('');
 
-  const totalCost = calcSpecialServicesCost(selected);
-  return `<div style="font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;margin-bottom:6px">SPECIAL SERVICES</div>
+  const total = calcSpecialServicesCost(selected, dims);
+  return `<div style="font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;margin-bottom:8px">SPECIAL SERVICES</div>
     ${rows}
-    ${totalCost > 0 ? `<div style="display:flex;justify-content:flex-end;padding-top:6px;font-size:12px;color:var(--amber);font-family:'JetBrains Mono',monospace">+ R ${totalCost.toFixed(0)}</div>` : ''}`;
+    ${total > 0 ? `<div style="display:flex;justify-content:flex-end;padding-top:8px;font-size:13px;color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600">Total: R ${total.toFixed(0)}</div>` : ''}`;
 }
 
 function openSpecialServicesPopup(targetId, targetType, anchorEl) {
@@ -10017,7 +10125,13 @@ function renderCostingView() {
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
-            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${svc.category} — ${svc.unit}</span></td><td class="num">${s.qty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)} × ${s.qty} × ${unitQty}</td><td class="num cost">R ${Math.round(svc.price * s.qty * unitQty).toLocaleString('en-ZA')}</td></tr>`;
+            const isCutout = svc.category === 'Cut-out';
+            const _hole = isCutout && s.border > 0 && _unitDims ? cutoutHoleDims(s, _unitDims) : null;
+            const _perim = _hole ? (2*_hole.l+2*_hole.w)/1000 : 0;
+            const _eCost = _hole && s.edgeType ? (Math.ceil(_perim)+1)*(costingPrices.edge[s.edgeType]||0)*s.qty*unitQty : 0;
+            const _detail = _hole ? ` hole ${_hole.l}×${_hole.w}mm` : '';
+            const _eDetail = _eCost > 0 ? ` +R${Math.round(_eCost)} edging` : '';
+            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${s.qty} cut-out${s.qty>1?'s':''}${_detail}${_eDetail}</span></td><td class="num">${s.qty}×${unitQty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)}×${s.qty}×${unitQty}</td><td class="num cost">R ${Math.round(svc.price*s.qty*unitQty+_eCost).toLocaleString('en-ZA')}</td></tr>`;
           }).join('') : ''}
           <tr class="cv-subtotal">
             <td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td>
@@ -10449,6 +10563,9 @@ function refreshCostingResults() {
     const perUnit = c.total / unitQty;
     grandTotal += c.total;
 
+    const _b2Parts = u.parts ? u.parts.filter(p=>p.l&&p.w) : [];
+    _b2Parts.sort((a,b)=>(b.l*b.w)-(a.l*a.w));
+    const _unitDims2 = _b2Parts.length ? (()=>{const rp=applyMaterials(_b2Parts[0],u);return{l:rp.l,w:rp.w};})() : null;
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
       const sheets = withWaste / SHEET_AREA;
@@ -10493,7 +10610,13 @@ function refreshCostingResults() {
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
-            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${svc.category}</span></td><td class="num">${s.qty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)} × ${s.qty} × ${unitQty}</td><td class="num cost">R ${Math.round(svc.price * s.qty * unitQty).toLocaleString('en-ZA')}</td></tr>`;
+            const isCutout = svc.category === 'Cut-out';
+            const _hole = isCutout && s.border > 0 && _unitDims2 ? cutoutHoleDims(s, _unitDims2) : null;
+            const _perim = _hole ? (2*_hole.l+2*_hole.w)/1000 : 0;
+            const _eCost = _hole && s.edgeType ? (Math.ceil(_perim)+1)*(costingPrices.edge[s.edgeType]||0)*s.qty*unitQty : 0;
+            const _detail = _hole ? ` hole ${_hole.l}×${_hole.w}mm` : '';
+            const _eDetail = _eCost > 0 ? ` +R${Math.round(_eCost)} edging` : '';
+            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${s.qty} cut-out${s.qty>1?'s':''}${_detail}${_eDetail}</span></td><td class="num">${s.qty}×${unitQty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)}×${s.qty}×${unitQty}</td><td class="num cost">R ${Math.round(svc.price*s.qty*unitQty+_eCost).toLocaleString('en-ZA')}</td></tr>`;
           }).join('') : ''}
           <tr class="cv-subtotal"><td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.total).toLocaleString('en-ZA')}</td></tr>
         </tbody>
