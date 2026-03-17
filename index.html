@@ -9428,8 +9428,8 @@ function renderPricesView() {
     </div>`;
   }).join('');
 
-  // ── Orphan edges (admin only) ────────────────────────────────────────────────
-  const orphanHtml = admin && orphanEdges.length > 0 ? `
+  // ── Orphan edges — superuser/admin only, not supplier ───────────────────────
+  const orphanHtml = isAdmin() && orphanEdges.length > 0 ? `
     <div style="border:1px solid rgba(212,145,58,0.3);background:rgba(212,145,58,0.04);margin-top:16px">
       <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid rgba(255,255,255,0.18)">
         ⚠ ORPHAN EDGES — no matching board (safe to remove)
@@ -9666,12 +9666,16 @@ function _svcStore(targetType) {
 function toggleUnitSpecialService(unitId, serviceId, qty) {
   _setSpecialService('unit', unitId, serviceId, qty);
   saveUnitSpecialServices();
-  renderPanel();
+  const body = document.getElementById('svc-popup-body');
+  if (body) body.innerHTML = renderSpecialServicesWidget(unitId, 'unit');
+  updateCounts();
 }
 
 function togglePanelSpecialService(panelId, serviceId, qty) {
   _setSpecialService('panel', panelId, serviceId, qty);
   saveUnitSpecialServices();
+  const body = document.getElementById('svc-popup-body');
+  if (body) body.innerHTML = renderSpecialServicesWidget(panelId, 'panel');
   refreshCostingResults();
 }
 
@@ -9695,13 +9699,16 @@ function updateSvcField(targetType, targetId, serviceId, field, value) {
   const arr = store[targetId] || [];
   const entry = arr.find(s => s.serviceId === serviceId);
   if (!entry) return;
-  entry[field] = field === 'qty' ? (parseInt(value) || 1) : (parseFloat(value) || 0);
-  if (field === 'edgeType') entry.edgeType = value;
+  entry[field] = field === 'qty' ? (parseInt(value) || 1)
+                 : field === 'edgeType' ? value
+                 : (parseFloat(value) || 0);
   saveUnitSpecialServices();
-  // Refresh popup body and costing
+  // Refresh popup body in place — don't destroy it
   const body = document.getElementById('svc-popup-body');
   if (body) body.innerHTML = renderSpecialServicesWidget(targetId, targetType);
-  if (targetType === 'unit') renderPanel(); else refreshCostingResults();
+  // Update costing/panel counts but skip full re-render while popup is open
+  if (targetType === 'panel') refreshCostingResults();
+  else updateCounts(); // just refresh qty counts, not the full panel render
 }
 
 // Calculate special service cost including cut-out edging
@@ -12042,7 +12049,7 @@ function renderPanelsView() {
   };
 
   const rowsHtml = panelsState.items.map(p => `
-    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 70px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
@@ -12079,7 +12086,7 @@ function renderPanelsView() {
 
       ${panelsState.items.length > 0 ? `
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 70px;gap:6px;padding:4px 10px;margin-bottom:2px">
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;padding:4px 10px;margin-bottom:2px">
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">NAME / DESCRIPTION</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">QTY</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">LENGTH mm</div>
