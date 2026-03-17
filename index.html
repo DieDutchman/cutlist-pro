@@ -6957,6 +6957,12 @@ async function onLoginSuccess() {
   await fetchUserRole();
   // Ensure profile row exists for new invited users
   await ensureProfile();
+  // Check trial expiry before showing anything
+  const expired = await checkTrialExpiry();
+  if (expired) {
+    showTrialExpiredScreen(sbUser.email);
+    return;
+  }
   // Load templates (unit overrides, custom units) from cloud — these are global across jobs
   await loadTemplatesFromCloud();
   document.getElementById('login-overlay').style.display = 'none';
@@ -7476,7 +7482,7 @@ async function loadUsersModal() {
   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
   status.textContent = '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role&order=email.asc`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,trial_expires_at&order=email.asc`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const users = await res.json();
     if (!users.length) {
@@ -7493,10 +7499,18 @@ async function loadUsersModal() {
 function renderUserRow(u) {
   const isMe = u.id === sbUser?.id;
   const roleColor = u.role === 'superuser' ? '#d4913a' : u.role === 'admin' ? 'var(--amber-dim)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
+  const trialDate = u.trial_expires_at || '';
+  const today = new Date().toISOString().split('T')[0];
+  const isExpired = trialDate && trialDate < today;
+  const isPermanent = ['superuser','admin','supplier'].includes(u.role);
+  const trialStatus = isPermanent ? ''
+    : !trialDate ? '<span style="font-size:10px;color:var(--text-muted)">No expiry</span>'
+    : isExpired  ? '<span style="font-size:10px;color:#e07070;font-weight:600">⚠ Expired ' + trialDate + '</span>'
+    : '<span style="font-size:10px;color:#4caf82">Active until ' + trialDate + '</span>';
   return `
-  <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border)">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+  <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+    <div style="flex:1;min-width:160px">
+      <div style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         ${u.email}${isMe ? ' <span style="font-size:10px;color:var(--amber);font-family:Oswald,sans-serif;letter-spacing:1px">YOU</span>' : ''}
       </div>
       <div style="font-size:11px;color:${roleColor};font-family:'Oswald',sans-serif;letter-spacing:1px;margin-top:2px;text-transform:uppercase">${u.role}</div>
@@ -7508,8 +7522,75 @@ function renderUserRow(u) {
       <option value="admin"     ${u.role === 'admin'     ? 'selected' : ''}>Admin</option>
       <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
-    <span id="user-status-${u.id}" style="font-size:11px;width:60px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"></span>
+    ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+      <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
+      <div style="display:flex;align-items:center;gap:5px">
+        <input type="date" value="${trialDate}"
+          onchange="updateTrialExpiry('${u.id}', this.value)"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:11px;outline:none;font-family:'Barlow',sans-serif"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        ${trialDate ? `<button onclick="updateTrialExpiry('${u.id}','')" title="Remove expiry (permanent access)"
+          style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:2px 6px;cursor:pointer">✕</button>` : ''}
+      </div>
+      <div>${trialStatus}</div>
+    </div>` : `<div style="font-size:10px;color:var(--text-muted);font-style:italic">No trial (${u.role})</div>`}
+    <span id="user-status-${u.id}" style="font-size:11px;width:50px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)"></span>
   </div>`;
+}
+
+async function updateTrialExpiry(userId, dateVal) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ trial_expires_at: dateVal || null }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+  }
+}
+
+async function checkTrialExpiry() {
+  // Superuser/admin/supplier never expire
+  if (['superuser','admin','supplier'].includes(sbRole)) return false;
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=trial_expires_at`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) return false;
+    const rows = await res.json();
+    const exp = rows[0]?.trial_expires_at;
+    if (!exp) return false; // no expiry = permanent access
+    const today = new Date().toISOString().split('T')[0];
+    return exp < today; // true = expired
+  } catch(e) { return false; }
+}
+
+function showTrialExpiredScreen(email) {
+  // Overlay the whole app
+  const el = document.createElement('div');
+  el.id = 'trial-expired-screen';
+  el.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  el.innerHTML = `
+    <div style="text-align:center;max-width:420px;padding:40px 32px">
+      <div style="font-size:48px;margin-bottom:20px">⏳</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:24px;letter-spacing:3px;color:var(--text);margin-bottom:12px">TRIAL EXPIRED</div>
+      <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:28px">
+        Your trial period for <strong style="color:var(--text)">${email}</strong> has ended.<br>
+        Contact us to continue using Cutlist Pro.
+      </div>
+      <button onclick="doLogout()"
+        style="background:var(--amber);color:#111;border:none;padding:10px 28px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">
+        SIGN OUT
+      </button>
+    </div>`;
+  document.body.appendChild(el);
 }
 
 async function updateUserRole(userId, newRole, selectEl) {
