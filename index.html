@@ -2861,13 +2861,27 @@ function unitHasHardware(unitId) {
 
 // Per-unit material overrides — { [unitId]: { wood, edging } }
 const unitMatOverrides = {};
+const unitSpecialServices = {}; // {[unitId]: [{serviceId, qty}]}
+const panelSpecialServices = {}; // {[panelId]: [{serviceId, qty}]}
 try {
   const saved = JSON.parse(localStorage.getItem('cutlist_unit_mat_overrides') || '{}');
   Object.assign(unitMatOverrides, saved);
+  try {
+    const usvcs = JSON.parse(localStorage.getItem('cutlist_unit_special_svcs') || '{}');
+    Object.assign(unitSpecialServices, usvcs);
+    const psvcs = JSON.parse(localStorage.getItem('cutlist_panel_special_svcs') || '{}');
+    Object.assign(panelSpecialServices, psvcs);
+  } catch(e) {}
 } catch(e) {}
 
 function saveUnitMatOverrides() {
   try { localStorage.setItem('cutlist_unit_mat_overrides', JSON.stringify(unitMatOverrides)); } catch(e) {}
+}
+function saveUnitSpecialServices() {
+  try {
+    localStorage.setItem('cutlist_unit_special_svcs', JSON.stringify(unitSpecialServices));
+    localStorage.setItem('cutlist_panel_special_svcs', JSON.stringify(panelSpecialServices));
+  } catch(e) {}
 }
 
 function setUnitMatOverride(unitId, type, val) {
@@ -3314,6 +3328,15 @@ function renderPanel() {
            style="${ovBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:6px">🎨</button>`
       : '';
 
+    const hasSvcOverride = (unitSpecialServices[u.id]||[]).length > 0;
+    const svcBtnStyle = hasSvcOverride
+      ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82'
+      : 'background:var(--bg3);border:1px solid var(--border);color:var(--text-muted)';
+    const svcBtn = costingPrices.specialServices.length > 0
+      ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
+           style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
+      : '';
+
 
 
     const colOpts = (sel, list) => {
@@ -3354,8 +3377,8 @@ function renderPanel() {
     html += `<tr class="unit-row">
       <td><input class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${userBtns}</td>
-    </tr>${ovRow}`;
+      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
+    </tr>${ovRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
   });
 
   html += `</tbody></table>`;
@@ -3421,6 +3444,8 @@ function clearAll() {
     btn.style.color = '';
     getEffectiveUnits().forEach(u => quantities[u.id] = 0);
     Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+  Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
+  Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
   panelsState.items = []; panelsState.label = '';
     // Reset bedroom addons
     ADDON_SECTIONS.forEach(sec => {
@@ -4506,6 +4531,24 @@ async function downloadSummaryXLSX() {
       dr.getCell(4).font = { size:11, color:hex('374151') };
       dr.getCell(5).font = { size:11, color:hex('374151') };
     });
+
+    // Special services for this unit block
+    const unitId = getEffectiveUnits().find(eu => eu.name === u.unit)?.id;
+    if (unitId) {
+      const svcs = unitSpecialServices[unitId] || [];
+      svcs.forEach(s => {
+        const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+        if (!svc) return;
+        const svcRow = ws.addRow([`⚙ ${svc.name}`, u.unitQty * s.qty, s.qty, '—', '—',
+          svc.category, '', '', '', '', svc.unit, 'Special Service']);
+        svcRow.height = 15;
+        for (let c=1;c<=12;c++) {
+          svcRow.getCell(c).font   = { size:10, italic:true, color:hex('065F46') };
+          svcRow.getCell(c).fill   = { type:'pattern', pattern:'solid', fgColor:hex('D1FAE5') };
+          svcRow.getCell(c).border = aT('A7F3D0');
+        }
+      });
+    }
 
     ws.addRow([]); // spacer
   });
@@ -5906,6 +5949,19 @@ function renderQuoteView() {
         <td class="qv-unit-price">${fmt(price)}</td>
         <td class="qv-line-total">${fmt(lineTotal)}</td>
       </tr>`;
+      // Special services for this unit
+      (unitSpecialServices[u.id] || []).forEach(s => {
+        const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+        if (!svc) return;
+        const svcTotal = svc.price * s.qty * qty;
+        secDisplayTotal += svcTotal;
+        mainHtml += `<tr>
+          <td class="qv-qty" style="color:var(--text-muted)"></td>
+          <td class="qv-unit-name" style="color:var(--text-muted);font-size:12px">⚙ ${svc.name} <span style="font-size:10px">(${svc.category} — ${s.qty} × ${svc.unit})</span></td>
+          <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)">${fmt(svc.price * s.qty)}</td>
+          <td class="qv-line-total" style="color:var(--text-muted)">${fmt(svcTotal)}</td>
+        </tr>`;
+      });
     });
 
     // Addon line items — show ≈ estimated cost; included in section total
@@ -6781,6 +6837,7 @@ const costingPrices = {
   // Custom boards added per-job: [{id, boardName, boardPrice, edgeName, edgePrice}]
   customBoards: [],
   hiddenMats: [], // standard boards removed from pricing list
+  specialServices: [], // [{id, name, price, unit, category}] — CNC, cut-outs, shakers etc.
   matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
@@ -6802,6 +6859,7 @@ try {
   if (saved.customHardware)  costingPrices.customHardware  = saved.customHardware;
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
+  if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
   // Re-inject custom boards into runtime MATS/EDGES/COLORS/EDGE_COLORS arrays
@@ -7099,8 +7157,10 @@ function getJobState() {
       hiddenMats:     costingPrices.hiddenMats,
       customHardware: costingPrices.customHardware,
     },
-    userRooms:      [...userRooms],
-    userUnits:      [...userUnits],
+    userRooms:            [...userRooms],
+    userUnits:            [...userUnits],
+    unitSpecialServices:  {...unitSpecialServices},
+    panelSpecialServices: {...panelSpecialServices},
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
@@ -7200,6 +7260,8 @@ function newJob() {
   // Reset quantities and state — wipe every key so nothing from old job persists
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+  Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
+  Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
   panelsState.items = []; panelsState.label = '';
   Object.keys(quoteState).forEach(k => delete quoteState[k]);
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
@@ -7288,13 +7350,14 @@ async function openBoardCleanupModal() {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*&order=category,name`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
-    const boards = rows.filter(r => r.category === 'board');
-    const edges  = rows.filter(r => r.category === 'edge');
+    const boards  = rows.filter(r => r.category === 'board');
+    const edges   = rows.filter(r => r.category === 'edge');
+    const svcs    = rows.filter(r => r.category === 'special_service');
     const renderRow = (r) => `
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
         <span style="flex:1;font-size:13px;color:var(--text)">${r.name}</span>
         <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;width:70px;text-align:right">R ${Number(r.price).toFixed(2)}</span>
-        <span style="font-size:10px;color:var(--text-muted);width:40px">${r.category === 'board' ? '/sheet' : '/m'}</span>
+        <span style="font-size:10px;color:var(--text-muted);width:40px">${r.category === 'board' ? '/sheet' : r.category === 'edge' ? '/m' : ''}</span>
         <button onclick="cleanupDeleteRow('${r.name.replace(/'/g,"\\'")}', this)"
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 8px;cursor:pointer;flex-shrink:0">
           Delete
@@ -7304,7 +7367,10 @@ async function openBoardCleanupModal() {
       <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin:0 0 8px">BOARDS (${boards.length})</div>
       ${boards.map(renderRow).join('')}
       <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin:16px 0 8px">EDGING (${edges.length})</div>
-      ${edges.map(renderRow).join('')}`;
+      ${edges.map(renderRow).join('')}
+      ${svcs.length > 0 ? `
+      <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:#4caf82;margin:16px 0 8px">SPECIAL SERVICES (${svcs.length})</div>
+      ${svcs.map(renderRow).join('')}` : ''}`;
   } catch(e) {
     body.innerHTML = `<div style="color:#e05252;padding:20px 0">Error: ${e.message}</div>`;
   }
@@ -8270,6 +8336,7 @@ async function loadSupplierPrices() {
       if (!EDGES.includes(r.name)) EDGES.push(r.name);
     });
 
+    loadSpecialServicesFromSupabase(rows);
     rows.forEach(row => {
       if (row.category === 'board')   costingPrices.mat[row.name]  = Number(row.price);
       if (row.category === 'service') {
@@ -8386,7 +8453,7 @@ function applyStaleRemap(names) {
   renderEditor();
 }
 
-async function pushSupplierPrice(category, name, price) {
+async function pushSupplierPrice(category, name, price, meta) {
   if (!sbUser) {
     sbSyncStatus = 'error';
     sbLastSyncError = 'Not logged in';
@@ -8394,10 +8461,12 @@ async function pushSupplierPrice(category, name, price) {
     return;
   }
   try {
+    const payload = { category, name, price: Number(price), updated_at: new Date().toISOString() };
+    if (meta) payload.meta = JSON.stringify(meta);
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ category, name, price: Number(price), updated_at: new Date().toISOString() })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const body = await res.text();
@@ -8460,7 +8529,8 @@ function calcPanelCost(p) {
     edgeCost   += rounded * (costingPrices.edge[k] || 0);
     hPriceCost += rounded * hPrice;
   });
-  const lineTotal = matCost + edgeCost + cutCost + hPriceCost;
+  const svcCost    = calcSpecialServicesCost(panelSpecialServices[p.id]);
+  const lineTotal = matCost + edgeCost + cutCost + hPriceCost + svcCost;
   return { lineTotal, unitCost: lineTotal / p.qty };
 }
 
@@ -9078,12 +9148,13 @@ function calcUnitCost(u, unitQty) {
   const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
-  const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost;
+  const svcCost = calcSpecialServicesCost(unitSpecialServices[u.id]);
+  const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost + svcCost;
 
   return { matM2, edgeM, partCount, doorCount, matCost, edgeCost, cutLabelCost, drillingCost,
            hingeCount, runnerCount, handle160Count, handle240Count,
            hingeCost, runnerCost, handle160Cost, handle240Cost, hardwareCost, hwHandlingCost,
-           hPriceCost, total,
+           hPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
 }
 
@@ -9468,8 +9539,244 @@ function renderPricesView() {
         </div>
       </div>
 
+      <!-- Special Services -->
+      <div style="margin-top:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Special Services</div>
+          <div style="font-size:11px;color:var(--text-muted)">CNC, cut-outs, shakers, routing — selectable per unit &amp; panel</div>
+        </div>
+        <div id="special-services-list" style="border:1px solid var(--border);margin-bottom:8px">
+          ${costingPrices.specialServices.length === 0
+            ? `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">No special services added yet — add one below</div>`
+            : costingPrices.specialServices.map(svc => `
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18)" id="svc-row-${svc.id}">
+                <input type="text" value="${escHtml(svc.name)}"
+                  style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif" ${ro}
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="updateSpecialService('${svc.id}','name',this.value)">
+                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px" ${ro}
+                  onchange="updateSpecialService('${svc.id}','category',this.value)"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+                  ${['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other'].map(c =>
+                    `<option value="${c}" ${svc.category===c?'selected':''}>${c}</option>`).join('')}
+                </select>
+                <input type="number" min="0" step="0.01" value="${svc.price||0}"
+                  style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace" ${ro}
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="updateSpecialService('${svc.id}','price',this.value)">
+                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:90px" ${ro}
+                  onchange="updateSpecialService('${svc.id}','unit',this.value)"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+                  ${['per unit','per door','per panel','per m','per m²','each'].map(u =>
+                    `<option value="${u}" ${svc.unit===u?'selected':''}>${u}</option>`).join('')}
+                </select>
+                <span style="font-size:10px;color:var(--text-muted)">R</span>
+                ${admin ? `<button onclick="removeSpecialService('${svc.id}')"
+                  style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>` : ''}
+              </div>`).join('')}
+        </div>
+        ${admin ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="new-svc-name" type="text" placeholder="Service name e.g. CNC cut-out"
+            style="flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onkeydown="if(event.key==='Enter')addSpecialService()">
+          <select id="new-svc-category"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;width:120px"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            ${['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other'].map(c =>
+              `<option value="${c}">${c}</option>`).join('')}
+          </select>
+          <input id="new-svc-price" type="number" min="0" step="0.01" placeholder="Price"
+            style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onkeydown="if(event.key==='Enter')addSpecialService()">
+          <select id="new-svc-unit"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;width:90px"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            ${['per unit','per door','per panel','per m','per m²','each'].map(u =>
+              `<option value="${u}">${u}</option>`).join('')}
+          </select>
+          <button onclick="addSpecialService()"
+            style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:7px 16px;cursor:pointer;white-space:nowrap">
+            + ADD SERVICE
+          </button>
+        </div>` : ''}
+      </div>
+
     </div>`;
 }
+
+// ── Special Services ──────────────────────────────────────────────────────────
+function addSpecialService() {
+  const name  = document.getElementById('new-svc-name')?.value.trim();
+  const cat   = document.getElementById('new-svc-category')?.value || 'Other';
+  const price = parseFloat(document.getElementById('new-svc-price')?.value) || 0;
+  const unit  = document.getElementById('new-svc-unit')?.value || 'per unit';
+  if (!name) { document.getElementById('new-svc-name')?.focus(); return; }
+  const id = 'svc_' + Date.now();
+  costingPrices.specialServices.push({ id, name, category: cat, price, unit });
+  saveCostingPrices();
+  pushSupplierPrice('special_service', id, price, { name, category: cat, unit });
+  if (document.getElementById('new-svc-name'))  document.getElementById('new-svc-name').value  = '';
+  if (document.getElementById('new-svc-price')) document.getElementById('new-svc-price').value = '';
+  renderPricesView();
+}
+
+function updateSpecialService(id, field, value) {
+  const svc = costingPrices.specialServices.find(s => s.id === id);
+  if (!svc) return;
+  if (field === 'price') svc.price = parseFloat(value) || 0;
+  else svc[field] = value;
+  saveCostingPrices();
+  // Debounced push
+  clearTimeout(svc._pushTimer);
+  svc._pushTimer = setTimeout(() => {
+    pushSupplierPrice('special_service', id, svc.price, { name: svc.name, category: svc.category, unit: svc.unit });
+  }, 800);
+}
+
+function removeSpecialService(id) {
+  if (!confirm('Remove this special service?')) return;
+  costingPrices.specialServices = costingPrices.specialServices.filter(s => s.id !== id);
+  // Also clean up any unit/panel references
+  Object.values(unitSpecialServices).forEach(arr => {
+    const i = arr.findIndex(s => s.serviceId === id);
+    if (i >= 0) arr.splice(i, 1);
+  });
+  Object.values(panelSpecialServices).forEach(arr => {
+    const i = arr.findIndex(s => s.serviceId === id);
+    if (i >= 0) arr.splice(i, 1);
+  });
+  saveCostingPrices();
+  saveUnitSpecialServices();
+  // Delete from Supabase
+  fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(id)}`,
+    { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } })
+    .catch(e => console.warn('Delete svc failed:', e.message));
+  renderPricesView();
+}
+
+// Per-unit special services
+function toggleUnitSpecialService(unitId, serviceId, qty) {
+  if (!unitSpecialServices[unitId]) unitSpecialServices[unitId] = [];
+  const arr = unitSpecialServices[unitId];
+  const idx = arr.findIndex(s => s.serviceId === serviceId);
+  if (qty <= 0) {
+    if (idx >= 0) arr.splice(idx, 1);
+  } else {
+    if (idx >= 0) arr[idx].qty = qty;
+    else arr.push({ serviceId, qty });
+  }
+  saveUnitSpecialServices();
+  renderPanel();
+}
+
+// Per-panel special services
+function togglePanelSpecialService(panelId, serviceId, qty) {
+  if (!panelSpecialServices[panelId]) panelSpecialServices[panelId] = [];
+  const arr = panelSpecialServices[panelId];
+  const idx = arr.findIndex(s => s.serviceId === serviceId);
+  if (qty <= 0) {
+    if (idx >= 0) arr.splice(idx, 1);
+  } else {
+    if (idx >= 0) arr[idx].qty = qty;
+    else arr.push({ serviceId, qty });
+  }
+  saveUnitSpecialServices();
+  // Update cost display inline without full re-render
+  refreshCostingResults();
+}
+
+// Calculate special service cost for a unit or panel
+function calcSpecialServicesCost(svcs) {
+  if (!svcs || !svcs.length) return 0;
+  return svcs.reduce((total, s) => {
+    const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+    return total + (svc ? svc.price * (s.qty || 1) : 0);
+  }, 0);
+}
+
+function renderSpecialServicesWidget(targetId, targetType) {
+  // targetType: 'unit' or 'panel'
+  const svcs = costingPrices.specialServices;
+  if (!svcs.length) return '<span style="font-size:11px;color:var(--text-muted);font-style:italic">No special services configured</span>';
+  const selected = targetType === 'unit'
+    ? (unitSpecialServices[targetId] || [])
+    : (panelSpecialServices[targetId] || []);
+  const toggleFn = targetType === 'unit' ? 'toggleUnitSpecialService' : 'togglePanelSpecialService';
+
+  const rows = svcs.map(svc => {
+    const sel = selected.find(s => s.serviceId === svc.id);
+    const qty = sel?.qty || 0;
+    const active = qty > 0;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <input type="checkbox" ${active ? 'checked' : ''} style="cursor:pointer;flex-shrink:0"
+        onchange="${toggleFn}('${targetId}','${svc.id}',this.checked?1:0)">
+      <span style="flex:1;font-size:12px;color:${active?'var(--text)':'var(--text-muted)'}">
+        ${escHtml(svc.name)} <span style="font-size:10px;color:var(--amber-dim)">${svc.category}</span>
+      </span>
+      ${active ? `<input type="number" min="1" value="${qty}"
+        style="width:50px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:2px 5px;font-size:11px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace"
+        oninput="${toggleFn}('${targetId}','${svc.id}',parseInt(this.value)||1)"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">` : ''}
+      <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;min-width:60px;text-align:right">
+        ${active ? `R ${(svc.price * qty).toFixed(0)}` : `R ${svc.price.toFixed(0)}/${svc.unit.replace('per ','')}`}
+      </span>
+    </div>`;
+  }).join('');
+
+  const totalCost = calcSpecialServicesCost(selected);
+  return `<div style="font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;margin-bottom:6px">SPECIAL SERVICES</div>
+    ${rows}
+    ${totalCost > 0 ? `<div style="display:flex;justify-content:flex-end;padding-top:6px;font-size:12px;color:var(--amber);font-family:'JetBrains Mono',monospace">+ R ${totalCost.toFixed(0)}</div>` : ''}`;
+}
+
+function openSpecialServicesPopup(targetId, targetType, anchorEl) {
+  // Close any existing popup
+  document.getElementById('svc-popup')?.remove();
+  if (costingPrices.specialServices.length === 0) {
+    alert('No special services have been added yet.\nAsk your supplier to add services in the Supplier Prices tab.');
+    return;
+  }
+  const popup = document.createElement('div');
+  popup.id = 'svc-popup';
+  popup.style.cssText = 'position:fixed;z-index:8000;background:var(--bg2);border:1px solid var(--border);padding:14px 16px;min-width:320px;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:\'Barlow\',sans-serif';
+  popup.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;color:var(--amber)">⚙ SPECIAL SERVICES</span>
+      <button onclick="document.getElementById('svc-popup').remove()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;padding:0">×</button>
+    </div>
+    <div id="svc-popup-body">${renderSpecialServicesWidget(targetId, targetType)}</div>`;
+  document.body.appendChild(popup);
+  // Position near anchor
+  const rect = anchorEl.getBoundingClientRect();
+  const top = Math.min(rect.bottom + 6, window.innerHeight - 280);
+  const left = Math.min(rect.left, window.innerWidth - 430);
+  popup.style.top  = top  + 'px';
+  popup.style.left = left + 'px';
+  // Close on outside click
+  setTimeout(() => {
+    const close = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl) { popup.remove(); document.removeEventListener('click', close); } };
+    document.addEventListener('click', close);
+  }, 100);
+}
+
+function loadSpecialServicesFromSupabase(rows) {
+  // Called from loadSupplierPrices — extract special_service rows
+  const svcs = rows.filter(r => r.category === 'special_service');
+  costingPrices.specialServices = svcs.map(r => {
+    let meta = {};
+    try { meta = JSON.parse(r.meta || '{}'); } catch(e) {}
+    return {
+      id:       r.name,
+      name:     meta.name || r.name,
+      category: meta.category || 'Other',
+      unit:     meta.unit || 'per unit',
+      price:    Number(r.price),
+    };
+  });
+}
+
 
 function renderMaterialsView() {
   const section = (title) =>
@@ -9707,6 +10014,11 @@ function renderCostingView() {
             <td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td>
           </tr>` : ''}
           ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
+            const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+            if (!svc) return '';
+            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${svc.category} — ${svc.unit}</span></td><td class="num">${s.qty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)} × ${s.qty} × ${unitQty}</td><td class="num cost">R ${Math.round(svc.price * s.qty * unitQty).toLocaleString('en-ZA')}</td></tr>`;
+          }).join('') : ''}
           <tr class="cv-subtotal">
             <td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td>
             <td colspan="3"></td>
@@ -10028,6 +10340,27 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
         ${hasWhiteEdge  ? `<tr><td style="padding-left:16px">White edging</td><td class="num">${Object.values(edgeWhite).reduce((s,m)=>s+(Math.ceil(m)+1),0)} m billed</td><td class="num">—</td><td class="num cost">${R(whiteEdgeCost)}</td></tr>` : ''}
         ${(hasColourEdge || hasWhiteEdge) ? `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Edging subtotal</td><td class="num cost">${R(totalEdgeCostCalc)}</td></tr>` : ''}
         <tr><td style="padding-left:16px">Cut &amp; Label</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(totalCutLabel)}</td></tr>
+        ${(() => {
+          const allSvcCosts = [];
+          selectedUnits.forEach(u => {
+            const c = calcUnitCost(u, quantities[u.id]||0);
+            if (c.svcCost > 0) (unitSpecialServices[u.id]||[]).forEach(s => {
+              const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+              if (svc) allSvcCosts.push({name: svc.name, cat: svc.category, cost: svc.price * s.qty * (quantities[u.id]||0)});
+            });
+          });
+          panelItems.forEach(p => {
+            const svcCost = calcSpecialServicesCost(panelSpecialServices[p.id]);
+            if (svcCost > 0) (panelSpecialServices[p.id]||[]).forEach(s => {
+              const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+              if (svc) allSvcCosts.push({name: svc.name, cat: svc.category, cost: svc.price * s.qty});
+            });
+          });
+          if (!allSvcCosts.length) return '';
+          const total = allSvcCosts.reduce((s,x)=>s+x.cost,0);
+          return allSvcCosts.map(x=>`<tr><td style="padding-left:16px">⚙ ${x.name} <span style="font-size:10px;color:var(--text-muted)">${x.cat}</span></td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(x.cost)}</td></tr>`).join('') +
+            `<tr class="cv-subtotal"><td colspan="3" style="padding-left:16px">Special Services total</td><td class="num cost">${R(total)}</td></tr>`;
+        })()}
         ${totalDrilling > 0 ? `<tr><td style="padding-left:16px">Hinge Drilling</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(totalDrilling)}</td></tr>` : ''}
         <tr class="cv-subtotal"><td colspan="3">Materials total</td><td class="num cost">${R(totalMaterials)}</td></tr>
 
@@ -10157,6 +10490,11 @@ function refreshCostingResults() {
           ${hPriceRow(c)}
           ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
           ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
+            const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
+            if (!svc) return '';
+            return `<tr style="background:rgba(76,175,130,0.04)"><td>⚙ ${svc.name} <span style="font-size:10px;color:var(--text-muted)">${svc.category}</span></td><td class="num">${s.qty}</td><td class="num">—</td><td class="num" style="font-size:11px;color:var(--text-muted)">R${svc.price.toFixed(0)} × ${s.qty} × ${unitQty}</td><td class="num cost">R ${Math.round(svc.price * s.qty * unitQty).toLocaleString('en-ZA')}</td></tr>`;
+          }).join('') : ''}
           <tr class="cv-subtotal"><td>Total (× ${unitQty} unit${unitQty>1?'s':''})</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.total).toLocaleString('en-ZA')}</td></tr>
         </tbody>
       </table>
@@ -10351,6 +10689,8 @@ function applyState(state) {
     savePanelsState();
   }
   // unitOverrides, customUnits, deletedUnits are global template settings — not restored from job state
+  if (state.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  state.unitSpecialServices); }
+  if (state.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, state.panelSpecialServices); }
   if (state.userRooms) {
     userRooms = [...state.userRooms];
     // Re-register in MAT_GROUPS so material selectors work after reload
@@ -11590,6 +11930,8 @@ function renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:4px">
+        ${costingPrices.specialServices.length > 0 ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+          style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82' : 'background:var(--bg3);border:1px solid var(--border);color:var(--text-muted)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
       </div>
