@@ -2728,7 +2728,8 @@ function pushTemplatesToCloud() {
           templates: {
             customUnits,
             unitOverrides,
-            deletedUnits: [...deletedUnits],
+            deletedUnits:     [...deletedUnits],
+            customHardware:   costingPrices.customHardware,
           }
         }),
       });
@@ -4406,6 +4407,79 @@ function generateSummary() {
     ${totalRunners > 0 ? `<div class="st-cell"><div class="st-label">Drawer Runners</div><div class="st-val">${totalRunners} sets</div></div>` : ''}
   </div>`;
 
+  // ── Extras / Shopping List block ─────────────────────────────────────────
+  const _extrasForSummary = (quoteState.extras || []).filter(e => parseFloat(e.amount) > 0 || e.hwType || e.otherType || e.skirtingMode !== undefined || e.baseMode !== undefined);
+  if (_extrasForSummary.length > 0) {
+    const _fmtAmt = n => 'R ' + Math.round(n).toLocaleString('en-ZA');
+    const _extraLines = _extrasForSummary.map(e => {
+      if (e.hwType) {
+        const opt = _hwOptions().find(o => o.key === e.hwType);
+        const label = opt ? opt.label : e.hwType;
+        const qty   = e.hwQty || 1;
+        const unit  = opt ? opt.price : 0;
+        return { icon:'🔩', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
+      }
+      if (e.otherType !== undefined) {
+        const opt = _otherOptions().find(o => o.key === e.otherType);
+        const label = opt ? opt.label : (e.otherType || 'Other item');
+        const qty   = e.otherQty || 1;
+        const unit  = opt ? opt.price : 0;
+        return { icon:'🛒', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
+      }
+      if (e.skirtingMode !== undefined) {
+        const isPlinth = e.skirtingMode === 'plinth';
+        const label = isPlinth
+          ? `Plinth ${e.plinthSize||''} × ${e.plinthQty||1} lengths`
+          : `Skirting ${e.skirtingHeight||100}mm — ${((e.skirtingLength||0)/1000).toFixed(1)}m`;
+        return { icon:'📏', label, qty: null, unit: null, amount: e.amount, note: e.skirtingMat||'' };
+      }
+      if (e.baseMode !== undefined) {
+        const label = e.baseMode === 'shutterply' ? 'Shutterply base' : `Cabinet bases (${e.baseQty||1} × ${e.baseMode==='feet'?'feet':'bases'})`;
+        return { icon:'🪵', label, qty: null, unit: null, amount: e.amount, note: '' };
+      }
+      if (e.desc) {
+        return { icon:'➕', label: e.desc, qty: null, unit: null, amount: e.amount, note: '' };
+      }
+      return null;
+    }).filter(Boolean);
+
+    if (_extraLines.length) {
+      html += `
+      <div style="margin:24px 0 0">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--amber)">🛍 EXTRAS & SHOPPING LIST</span>
+          <span style="font-size:11px;color:var(--text-muted)">from Quote — items to source / purchase</span>
+        </div>
+        <div style="border:1px solid var(--border)">
+          <div style="display:grid;grid-template-columns:24px 1fr 60px 90px 100px;gap:0;padding:5px 12px;background:rgba(212,145,58,0.08)">
+            <div></div>
+            <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">ITEM</div>
+            <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;text-align:center">QTY</div>
+            <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;text-align:right">UNIT</div>
+            <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;text-align:right">TOTAL</div>
+          </div>
+          ${_extraLines.map((l,li) => `
+          <div style="display:grid;grid-template-columns:24px 1fr 60px 90px 100px;gap:0;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06);background:${li%2===0?'transparent':'rgba(255,255,255,0.02)'}">
+            <div style="font-size:14px">${l.icon}</div>
+            <div>
+              <div style="font-size:13px;color:var(--text)">${escHtml(l.label)}</div>
+              ${l.note ? `<div style="font-size:10px;color:var(--text-muted)">${escHtml(l.note)}</div>` : ''}
+            </div>
+            <div style="font-size:12px;color:var(--text);text-align:center;font-family:'JetBrains Mono',monospace">${l.qty !== null ? l.qty : '—'}</div>
+            <div style="font-size:12px;color:var(--text-muted);text-align:right;font-family:'JetBrains Mono',monospace">${l.unit !== null && l.unit > 0 ? _fmtAmt(l.unit) : '—'}</div>
+            <div style="font-size:13px;color:var(--amber);text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600">${_fmtAmt(l.amount)}</div>
+          </div>`).join('')}
+          <div style="display:grid;grid-template-columns:24px 1fr 60px 90px 100px;gap:0;padding:8px 12px;border-top:1px solid var(--border);background:rgba(212,145,58,0.06)">
+            <div></div>
+            <div style="font-size:12px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">EXTRAS TOTAL</div>
+            <div></div><div></div>
+            <div style="font-size:13px;color:var(--amber);text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">${_fmtAmt(_extraLines.reduce((s,l)=>s+(parseFloat(l.amount)||0),0))}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
   document.getElementById('summary-view').innerHTML = html;
   window._lastSummary = { summaryData, dateTimeStr, jobClient,
     jobHouse: document.getElementById('job-house')?.value.trim()||'',
@@ -4572,6 +4646,71 @@ async function downloadSummaryXLSX() {
 
     ws.addRow([]); // spacer
   });
+
+  // ── Extras / Shopping List sheet ──
+  const extrasForXlsx = (quoteState.extras || []).filter(e => parseFloat(e.amount) > 0 || e.hwType || e.otherType || e.skirtingMode !== undefined || e.baseMode !== undefined);
+  if (extrasForXlsx.length > 0) {
+    const wsE = wb.addWorksheet('Shopping List');
+    wsE.columns = [{width:32},{width:12},{width:16},{width:18}];
+    // Header
+    const eHdr = wsE.addRow(['Item','Qty','Unit Price','Total (incl. handling)']);
+    eHdr.height = 18;
+    for (let c=1;c<=4;c++) {
+      eHdr.getCell(c).font = { bold:true, size:11, color:hex('FFFFFF') };
+      eHdr.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('1E3A5F') };
+      eHdr.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
+      eHdr.getCell(c).border = aM('1E3A5F');
+    }
+    let extrasTotal = 0;
+    extrasForXlsx.forEach((e, ei) => {
+      let label = '', qty = '', unitPrice = '', amount = parseFloat(e.amount) || 0;
+      extrasTotal += amount;
+      if (e.hwType) {
+        const opt = _hwOptions().find(o => o.key === e.hwType);
+        label = opt ? opt.label : e.hwType;
+        qty = e.hwQty || 1;
+        unitPrice = opt ? opt.price : 0;
+      } else if (e.otherType !== undefined) {
+        const opt = _otherOptions().find(o => o.key === e.otherType);
+        label = opt ? opt.label : 'Other item';
+        qty = e.otherQty || 1;
+        unitPrice = opt ? opt.price : 0;
+      } else if (e.skirtingMode !== undefined) {
+        label = e.skirtingMode === 'plinth'
+          ? `Plinth ${e.plinthSize||''} × ${e.plinthQty||1} lengths`
+          : `Skirting ${e.skirtingHeight||100}mm — ${((e.skirtingLength||0)/1000).toFixed(1)}m`;
+        qty = '—'; unitPrice = '—';
+      } else if (e.baseMode !== undefined) {
+        label = `Cabinet bases (${e.baseQty||1})`;
+        qty = '—'; unitPrice = '—';
+      } else {
+        label = e.desc || ''; qty = '—'; unitPrice = '—';
+      }
+      const dr = wsE.addRow([label, qty, unitPrice !== '—' ? unitPrice : '—', amount]);
+      dr.height = 16;
+      const bg = ei % 2 === 0 ? 'F9FAFB' : 'F0F4F8';
+      for (let c=1;c<=4;c++) {
+        dr.getCell(c).font = { size:11, color:hex('111827') };
+        dr.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex(bg) };
+        dr.getCell(c).border = aT();
+        dr.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
+      }
+      dr.getCell(4).font = { bold:true, size:11, color:hex('92400E') };
+      dr.getCell(4).numFmt = 'R #,##0.00';
+      if (typeof unitPrice === 'number') {
+        dr.getCell(3).numFmt = 'R #,##0.00';
+      }
+    });
+    // Total row
+    const totRow = wsE.addRow(['TOTAL', '', '', extrasTotal]);
+    totRow.height = 20;
+    for (let c=1;c<=4;c++) {
+      totRow.getCell(c).font = { bold:true, size:12, color:hex('FFFFFF') };
+      totRow.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('8C5A2E') };
+      totRow.getCell(c).border = aM('8C5A2E');
+    }
+    totRow.getCell(4).numFmt = 'R #,##0.00';
+  }
 
   // ── Download ──
   const fileDateStr = new Date().toISOString().slice(0,10);
@@ -7203,11 +7342,15 @@ async function loadTemplatesFromCloud() {
       deletedUnits.clear();
       t.deletedUnits.forEach(id => deletedUnits.add(id));
     }
+    if (Array.isArray(t.customHardware)) {
+      costingPrices.customHardware = t.customHardware;
+    }
     // Sync back to localStorage
     try {
       localStorage.setItem('cutlist_custom_units',    JSON.stringify(customUnits));
       localStorage.setItem('cutlist_unit_overrides',  JSON.stringify(unitOverrides));
       localStorage.setItem('cutlist_deleted_units',   JSON.stringify([...deletedUnits]));
+      localStorage.setItem('cutlist_costing_prices',  JSON.stringify(costingPrices));
     } catch(e) {}
   } catch(e) { console.warn('[Templates] Cloud load failed:', e.message); }
 }
@@ -7325,7 +7468,7 @@ function getJobState() {
       hardware:       costingPrices.hardware,
       customBoards:   costingPrices.customBoards,
       hiddenMats:     costingPrices.hiddenMats,
-      customHardware: costingPrices.customHardware,
+      // NOTE: customHardware is global (My Costs items) — not saved per job
     },
     userRooms:            [...userRooms],
     userUnits:            [...userUnits],
@@ -8750,6 +8893,8 @@ function renderSyncBadge() {
 
 function saveCostingPrices() {
   try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+  // Sync customHardware to cloud templates so it persists across devices/jobs
+  if (sbUser) pushTemplatesToCloud();
 }
 
 // Single source of truth for one panel row cost
@@ -11053,7 +11198,7 @@ function applyState(state) {
     if (state.costingPrices.tops)         Object.assign(costingPrices.tops,     state.costingPrices.tops);
     if (state.costingPrices.customBoards)    costingPrices.customBoards    = state.costingPrices.customBoards;
     if (state.costingPrices.hiddenMats)      costingPrices.hiddenMats      = state.costingPrices.hiddenMats;
-    if (state.costingPrices.customHardware)  costingPrices.customHardware  = state.costingPrices.customHardware;
+    // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
     // 1. Remove any hidden standard boards
