@@ -26,8 +26,8 @@
     --line: 1px solid var(--border);
   }
 
-  /* Supplier light theme */
-  body.supplier-theme {
+  /* Shared light theme variables — applied by both supplier-theme and user-light-theme */
+  body.supplier-theme, body.user-light-theme {
     --bg: #f0ede8;
     --bg2: #faf8f5;
     --bg3: #edeae4;
@@ -37,21 +37,32 @@
     --text-muted: #6a5e50;
     --border: #9a8e7e;
     --border-light: #8a7e6e;
+    --border-inner: rgba(0,0,0,0.14);
+    --border-inner-strong: rgba(0,0,0,0.20);
     --amber: #b87030;
     --amber-dim: #c88040;
     --amber-light: #d09050;
   }
-  body.supplier-theme .nav-tabs { background: #e8e4dc; border-bottom-color: #c8c0b0; }
-  body.supplier-theme .tab { color: #4a3f30; }
-  body.supplier-theme .tab:hover, body.supplier-theme .tab.active { background: rgba(0,0,0,0.06); color: #1a1612; }
-  body.supplier-theme .cv-extra-input { background: #edeae4; border-color: #c8c0b0; color: #1a1612; }
-  body.supplier-theme .cv-extra-input:focus { border-color: var(--amber); }
+  body.supplier-theme .nav-tabs, body.user-light-theme .nav-tabs { background: #e8e4dc; border-bottom-color: #c8c0b0; }
+  body.supplier-theme .tab, body.user-light-theme .tab { color: #4a3f30; }
+  body.supplier-theme .tab:hover, body.supplier-theme .tab.active,
+  body.user-light-theme .tab:hover, body.user-light-theme .tab.active { background: rgba(0,0,0,0.06); color: #1a1612; }
+  body.supplier-theme .cv-extra-input, body.user-light-theme .cv-extra-input { background: #edeae4; border-color: #c8c0b0; color: #1a1612; }
+  body.supplier-theme .cv-extra-input:focus, body.user-light-theme .cv-extra-input:focus { border-color: var(--amber); }
+  /* Light theme: darken internal dividers in prices/costing views */
+  body.supplier-theme .cv-unit-card, body.user-light-theme .cv-unit-card { background: #f5f2ee; }
+  body.supplier-theme #price-ticker, body.user-light-theme #price-ticker { background: #f5e8d0; border-bottom-color: var(--amber-dim); }
+  body.supplier-theme #price-ticker .ticker-label, body.user-light-theme #price-ticker .ticker-label { background: var(--amber); }
 
   @keyframes ticker-scroll {
     0%   { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
 
+  :root {
+    --border-inner: rgba(255,255,255,0.18);
+    --border-inner-strong: rgba(255,255,255,0.22);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -1970,6 +1981,10 @@
   <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
     <span id="job-sync-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
     <span id="user-email-badge" style="font-size:11px;color:var(--text-muted)"></span>
+    <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme"
+      style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:13px;cursor:pointer;line-height:1">
+      🌙
+    </button>
     <button id="users-btn" onclick="openUsersModal()" style="display:none;background:none;border:1px solid var(--border);color:var(--amber-dim);padding:4px 10px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">
       👥 USERS
     </button>
@@ -7311,6 +7326,8 @@ async function onLoginSuccess() {
   document.getElementById('user-email-badge').textContent =
     sbUser.email + (isSuperuser() ? ' ★★' : isAdmin() ? ' ★' : isSupplier() ? ' ◆' : '');
   applyRoleRestrictions();
+  applyStoredTheme();
+  _updateThemeToggleIcon();
   await loadUserJobs();
   await loadSupplierPrices();
   checkFeedbackUnread();
@@ -8599,6 +8616,36 @@ function scheduleAutoSave() {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function toggleUserTheme() {
+  const body = document.body;
+  // Supplier theme is fixed — only toggle within user-light-theme for non-supplier
+  if (isSupplier()) return; // supplier always uses supplier-theme
+  const isLight = body.classList.contains('user-light-theme');
+  body.classList.toggle('user-light-theme', !isLight);
+  try { localStorage.setItem('cutlist_theme', isLight ? 'dark' : 'light'); } catch(e) {}
+  _updateThemeToggleIcon();
+}
+
+function _updateThemeToggleIcon() {
+  const btn = document.getElementById('theme-toggle-btn');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('user-light-theme') || document.body.classList.contains('supplier-theme');
+  btn.textContent = isLight ? '🌑' : '🌙';
+  btn.title = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+}
+
+function applyStoredTheme() {
+  if (isSupplier()) return; // supplier theme applied by applyRoleRestrictions
+  try {
+    const saved = localStorage.getItem('cutlist_theme');
+    if (saved === 'light') {
+      document.body.classList.add('user-light-theme');
+    }
+  } catch(e) {}
+  _updateThemeToggleIcon();
+}
+
 async function loadSupplierPrices() {
   sbSyncStatus = 'loading';
   renderSyncBadge();
@@ -9793,7 +9840,7 @@ function renderPricesView() {
       const edgeInputs = matEdges.map(edgeKey => {
         const sizeLabel = edgeKey.replace(/^.*? Edging /, '');
         const safeKey   = edgeKey.replace(/'/g, "\\\\'");
-        return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.18)' : ''}">
+        return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))' : ''}">
           <span style="font-size:12px;color:var(--text-muted);width:32px;flex-shrink:0">${sizeLabel}</span>
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
             onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
@@ -9805,9 +9852,9 @@ function renderPricesView() {
         </div>`;
       }).join('');
       const addEdgeRow = admin ? `
-        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.18);margin-top:3px">
+        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid var(--border-inner, rgba(255,255,255,0.18));margin-top:3px">
           <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
-            style="flex:1;min-width:0;background:var(--bg4);border:1px solid rgba(255,255,255,0.18);color:var(--text);padding:3px 6px;font-size:11px;outline:none"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border-inner, rgba(255,255,255,0.18));color:var(--text);padding:3px 6px;font-size:11px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
           <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
@@ -9821,8 +9868,8 @@ function renderPricesView() {
       edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
     }
 
-    return `<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.18)">
-      <div style="border-right:1px solid rgba(255,255,255,0.22)">${boardCell}</div>
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
+      <div style="border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">${boardCell}</div>
       <div>${edgeCell}</div>
     </div>`;
   }).join('');
@@ -9830,10 +9877,10 @@ function renderPricesView() {
   // ── Orphan edges — superuser/admin only, not supplier ───────────────────────
   const orphanHtml = isAdmin() && orphanEdges.length > 0 ? `
     <div style="border:1px solid rgba(212,145,58,0.3);background:rgba(212,145,58,0.04);margin-top:16px">
-      <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid rgba(255,255,255,0.18)">
+      <div style="padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:1.5px;font-family:'Oswald',sans-serif;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
         ⚠ ORPHAN EDGES — no matching board (safe to remove)
       </div>
-      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.18)">
+      ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
         <span style="flex:1;font-size:12px;color:var(--amber-dim)">${e}</span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()"
@@ -9863,7 +9910,7 @@ function renderPricesView() {
 
       <!-- Column headers -->
       <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-bottom:none">
-        <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.22)">
+        <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
           <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Board</span>
           <span style="font-size:10px;color:var(--text-muted);margin-left:8px">per sheet</span>
         </div>
@@ -9907,21 +9954,21 @@ function renderPricesView() {
       <div style="margin-top:24px">
         <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
-          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18);border-right:1px solid rgba(255,255,255,0.22)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
               onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
               onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
-          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
             <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
               onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
               onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
-          <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.22)">
+          <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
             <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
               onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
@@ -9946,26 +9993,22 @@ function renderPricesView() {
         </div>
         <div id="special-services-list" style="border:1px solid var(--border);margin-bottom:8px">
           ${costingPrices.specialServices.length === 0
-            ? `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">No special services added yet — add one below</div>`
+            ? `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">${admin ? 'No special services added yet — add one below' : 'No special services configured yet'}</div>`
             : costingPrices.specialServices.map(svc => `
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.18)" id="svc-row-${svc.id}">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))" id="svc-row-${svc.id}">
                 <input type="text" value="${escHtml(svc.name)}"
-                  style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif" ${ro}
-                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-                  oninput="updateSpecialService('${svc.id}','name',this.value)">
-                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px" ${ro}
-                  onchange="updateSpecialService('${svc.id}','category',this.value)"
-                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+                  style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                  ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','name',this.value)"`}>
+                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                  ${!admin ? 'disabled' : `onchange="updateSpecialService('${svc.id}','category',this.value)" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
                   ${['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other'].map(c =>
                     `<option value="${c}" ${svc.category===c?'selected':''}>${c}</option>`).join('')}
                 </select>
                 <input type="number" min="0" step="0.01" value="${svc.price||0}"
-                  style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace" ${ro}
-                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-                  oninput="updateSpecialService('${svc.id}','price',this.value)">
-                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:90px" ${ro}
-                  onchange="updateSpecialService('${svc.id}','unit',this.value)"
-                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+                  style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                  ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','price',this.value)"`}>
+                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:90px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                  ${!admin ? 'disabled' : `onchange="updateSpecialService('${svc.id}','unit',this.value)" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
                   ${['per unit','per door','per panel','per m','per m²','each'].map(u =>
                     `<option value="${u}" ${svc.unit===u?'selected':''}>${u}</option>`).join('')}
                 </select>
@@ -12014,7 +12057,7 @@ function renderImportedCutlistView() {
       <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-family:'Barlow',sans-serif">
         <thead>
-          <tr style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.18)">
+          <tr style="background:rgba(255,255,255,0.04);border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
             <th style="padding:5px 4px;text-align:left;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Part</th>
             <th style="padding:5px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">Qty</th>
             <th style="padding:5px 4px;text-align:right;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">L mm</th>
