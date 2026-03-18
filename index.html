@@ -3351,7 +3351,7 @@ function renderPanel() {
     const svcBtnStyle = hasSvcOverride
       ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
       : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
-    const svcBtn = costingPrices.specialServices.length > 0
+    const svcBtn = costingPrices.specialServices.length > 0 && canEditPrices()
       ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
            style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
       : '';
@@ -8481,11 +8481,14 @@ function applyStaleRemap(names) {
 }
 
 function loadPriceTicker(rows) {
-  // Show items updated in the last 7 days
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const recent = rows
-    .filter(r => r.updated_at && r.updated_at > cutoff && r.category !== 'special_service')
+  // Show items updated in the last 30 days; fall back to all priced items if none have updated_at
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  let recent = rows
+    .filter(r => r.updated_at && r.updated_at > cutoff)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  if (!recent.length) {
+    recent = rows.filter(r => ['board','edge','special_service'].includes(r.category) && Number(r.price) > 0);
+  }
 
   const ticker  = document.getElementById('price-ticker');
   const track   = document.getElementById('ticker-track');
@@ -8503,7 +8506,7 @@ function loadPriceTicker(rows) {
       : r.category === 'edge'
         ? `R ${Number(r.price).toFixed(2)}/m`
         : `R ${Number(r.price).toFixed(2)}`;
-    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : '⚙ Service';
+    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : r.category === 'special_service' ? '⚙ Special Service' : '🔧 Service';
     return `<span style="font-size:11px;color:var(--amber);padding:0 28px;display:inline-flex;align-items:center;gap:6px">
       <span style="color:var(--text-muted);font-size:10px">${action}</span>
       <span style="color:var(--text)">${r.name.replace(/ Edging.*$/,'')}</span>
@@ -9843,6 +9846,7 @@ function _getTargetDims(targetId, targetType) {
 function renderSpecialServicesWidget(targetId, targetType) {
   const svcs = costingPrices.specialServices;
   if (!svcs.length) return '<span style="font-size:11px;color:var(--text-muted);font-style:italic">No special services configured yet</span>';
+  const canEdit = true; // all users can select/configure services; only prices are restricted
   const selected = (targetType === 'unit' ? unitSpecialServices : panelSpecialServices)[targetId] || [];
   const toggleFn = targetType === 'unit' ? 'toggleUnitSpecialService' : 'togglePanelSpecialService';
   const dims = _getTargetDims(targetId, targetType);
@@ -9908,7 +9912,7 @@ function renderSpecialServicesWidget(targetId, targetType) {
             ${isCutout ? 'Cut-outs:' : 'Qty:'}
             <input type="number" min="1" value="${sel.qty}"
               style="width:44px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:2px 4px;font-size:11px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace;margin-left:4px"
-              oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','qty',this.value)"
+              ${canEdit ? `oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','qty',this.value)"` : 'readonly style="pointer-events:none;opacity:0.7"'}
               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
           </label>
           <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;min-width:64px;text-align:right">
@@ -12142,7 +12146,7 @@ function renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:4px;flex-wrap:nowrap">
-        ${costingPrices.specialServices.length > 0 ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && canEditPrices() ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
