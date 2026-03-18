@@ -8331,10 +8331,14 @@ async function loadSupplierPrices() {
     costingPrices.customBoards = [];
     sbBoards.forEach(r => {
       if (r.name === '3MM White Masonite') return; // keep as standard
-      // Find matching edge from Supabase
-      const edgeName  = r.name === 'White Melamine' ? 'White Edging 1mm' : r.name + ' Edging 1mm';
-      const edgeRow   = rows.find(e => e.category === 'edge' && e.name === edgeName);
-      const edgePrice = edgeRow ? Number(edgeRow.price) : 0;
+      // Find ALL matching edges for this board (any size suffix)
+      const edgePrefix = r.name === 'White Melamine' ? 'White Edging' : r.name + ' Edging';
+      const matchingEdgeRows = sbEdges.filter(e => e.name.startsWith(edgePrefix));
+      // Primary edge: prefer 1mm if exists, else first match, else construct default
+      const primaryEdgeRow = matchingEdgeRows.find(e => e.name === edgePrefix + ' 1mm')
+                          || matchingEdgeRows[0];
+      const edgeName  = primaryEdgeRow ? primaryEdgeRow.name : edgePrefix + ' 1mm';
+      const edgePrice = primaryEdgeRow ? Number(primaryEdgeRow.price) : 0;
       costingPrices.customBoards.push({
         id:         'cb_sb_' + r.name.replace(/\s+/g,'_'),
         boardName:  r.name,
@@ -8342,11 +8346,14 @@ async function loadSupplierPrices() {
         edgeName,
         edgePrice,
       });
-      // Ensure EDGES has this edge
+      // Ensure ALL matching edges are in EDGES (not just primary)
+      matchingEdgeRows.forEach(e => {
+        if (!EDGES.includes(e.name)) EDGES.push(e.name);
+      });
       if (edgeName && !EDGES.includes(edgeName)) EDGES.push(edgeName);
       // Ensure COLORS/EDGE_COLORS has this board
       if (!COLORS.includes(r.name)) COLORS.push(r.name);
-      const edgeColor = edgeName.replace(' Edging 1mm','');
+      const edgeColor = edgeName.replace(/ Edging.*$/,'');
       if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
     });
     // Also add any extra edges that don't match the pattern
@@ -8654,6 +8661,9 @@ function addCustomBoard() {
   if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
 
   saveCostingPrices();
+  // Push both board and edging to Supabase so all users see them
+  pushSupplierPrice('board', name, price);
+  if (edgeName) pushSupplierPrice('edge', edgeName, edgePrice);
   if (nameEl)      nameEl.value      = '';
   if (priceEl)     priceEl.value     = '';
   if (edgeNameEl)  edgeNameEl.value  = '';
@@ -8992,6 +9002,7 @@ function addBoardEdging(mat) {
   if (!EDGES.includes(edgeName)) EDGES.push(edgeName);
   costingPrices.edge[edgeName] = price;
   saveCostingPrices();
+  pushSupplierPrice('edge', edgeName, price);
   refreshPriceViews();
 }
 
@@ -9001,6 +9012,10 @@ function removeBoardEdging(edgeKey) {
   delete costingPrices.edge[edgeKey];
   saveCostingPrices();
   refreshPriceViews();
+  // Delete from Supabase
+  fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(edgeKey)}`,
+    { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } })
+    .catch(e => console.warn('[Supabase] Edge delete failed:', e.message));
 }
 
 function updateCustomBoardPrice(id, field, val) {
