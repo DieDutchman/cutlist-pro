@@ -6150,7 +6150,7 @@ function renderQuoteView() {
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="addQuoteHardware()">+ Hardware</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="addQuoteBases()">+ Bases</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="addQuoteSkirting()">+ Skirting / Plinth</button>
-      ${_myCostItems.length > 0 ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;border-color:rgba(93,186,110,0.4);color:#5dba6e" onclick="openMyCostsQuickAdd()">+ My Costs</button>` : ''}
+      ${_myCostItems.length > 0 ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;border-color:rgba(93,186,110,0.4);color:#5dba6e" onclick="addQuoteOther()">+ Other</button>` : ''}
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="addQuoteExtra()">+ Custom Line</button>
     </div>
   </div>
@@ -6294,6 +6294,17 @@ function _hwOptions() {
 
 function _hwUnitPrice(key) {
   const opt = _hwOptions().find(o => o.key === key);
+  return opt ? opt.price : 0;
+}
+
+function _otherOptions() {
+  return costingPrices.customHardware
+    .filter(h => h.name && (h.pricePerUnit || 0) > 0)
+    .map(h => ({ key: h.id, label: h.name, price: h.pricePerUnit || 0 }));
+}
+
+function _otherUnitPrice(key) {
+  const opt = _otherOptions().find(o => o.key === key);
   return opt ? opt.price : 0;
 }
 
@@ -6470,6 +6481,32 @@ function addQuoteSkirting() {
 function buildExtraRow(e, i) {
   if (e.baseMode !== undefined) return buildBaseExtraRow(e, i);
   if (e.skirtingMode !== undefined) return buildSkirtingExtraRow(e, i);
+  if (e.otherType !== undefined) {
+    // Other / My Costs row — same layout as hardware
+    const opts = _otherOptions();
+    if (!opts.length) return `<tr><td colspan="3" style="color:var(--text-muted);font-size:11px;padding:6px">No items in My Costs yet — add them in the My Costs tab.</td></tr>`;
+    const currentKey = e.otherType || opts[0]?.key || '';
+    const selectOpts = opts.map(o =>
+      `<option value="${o.key}" ${currentKey===o.key?'selected':''}>${escHtml(o.label)} — R${o.price.toFixed(2)}/unit</option>`
+    ).join('');
+    const unitPrice = _otherUnitPrice(currentKey);
+    const qty = e.otherQty || 1;
+    const total = qty * unitPrice * (1 + HW_HANDLING);
+    return `<tr>
+      <td>
+        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer"
+          onchange="quoteState.extras[${i}].otherType=this.value;quoteState.extras[${i}].amount=(quoteState.extras[${i}].otherQty||1)*_otherUnitPrice(this.value)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
+          ${selectOpts}
+        </select>
+      </td>
+      <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
+        <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
+          oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').textContent=fmt(quoteState.extras[${i}].amount)">
+        <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
+      </td>
+      <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+    </tr>`;
+  }
   if (e.hwType) {
     // Hardware row
     const opts = _hwOptions();
@@ -6536,10 +6573,11 @@ function addMyCostItemToQuote(hwId) {
     if (qTab) { qTab.classList.add('active'); }
     return;
   }
+  const unitPrice = item.pricePerUnit || 0;
   quoteState.extras.push({
-    myCostId: hwId,
-    desc: item.name,
-    amount: item.pricePerUnit || 0,
+    otherType: hwId,
+    otherQty:  1,
+    amount:    unitPrice * (1 + HW_HANDLING),
   });
   saveQuoteState();
   // Show confirmation near button
@@ -6552,40 +6590,17 @@ function addMyCostItemToQuote(hwId) {
   }
 }
 
-function openMyCostsQuickAdd() {
-  document.getElementById('my-costs-quick-add')?.remove();
-  const items = costingPrices.customHardware.filter(h => h.name && h.pricePerUnit > 0);
-  if (!items.length) return;
-
-  const popup = document.createElement('div');
-  popup.id = 'my-costs-quick-add';
-  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9500;display:flex;align-items:center;justify-content:center';
-  popup.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:460px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--amber)">ADD FROM MY COSTS</span>
-        <button onclick="document.getElementById('my-costs-quick-add').remove()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0">×</button>
-      </div>
-      <div style="overflow-y:auto;flex:1">
-        ${items.map(h => {
-          const alreadyAdded = quoteState.extras.some(e => e.myCostId === h.id);
-          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.06)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(h.name)}</div>
-              <div style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace">R ${h.pricePerUnit.toFixed(2)}</div>
-            </div>
-            ${alreadyAdded
-              ? `<span style="font-size:11px;color:#5dba6e">✓ In quote</span>`
-              : `<button onclick="addMyCostItemToQuote('${h.id}');renderQuoteView()" style="background:rgba(93,186,110,0.15);border:1px solid rgba(93,186,110,0.4);color:#5dba6e;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:5px 14px;cursor:pointer">ADD</button>`}
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;text-align:right">
-        <button onclick="document.getElementById('my-costs-quick-add').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:7px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">DONE</button>
-      </div>
-    </div>`;
-  document.body.appendChild(popup);
-  popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
+function addQuoteOther() {
+  const opts = _otherOptions();
+  if (!opts.length) {
+    alert('No items in My Costs yet. Add items in the My Costs tab first.');
+    return;
+  }
+  const firstKey  = opts[0].key;
+  const unitPrice = opts[0].price;
+  quoteState.extras.push({ otherType: firstKey, otherQty: 1, amount: unitPrice * (1 + HW_HANDLING) });
+  saveQuoteState();
+  renderQuoteView();
 }
 
 function addQuoteHardware() {
