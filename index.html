@@ -262,6 +262,11 @@
   .qty-input:focus { border-color: var(--amber); }
   .qty-input::-webkit-inner-spin-button,
   .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .no-spin::-webkit-inner-spin-button,
+  .no-spin::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
   .qty-input.nonzero {
     border-color: var(--amber-dim);
@@ -9717,7 +9722,7 @@ function renderPricesView() {
         <span style="font-size:10px;color:var(--text-muted);margin-left:4px">min:
           <input type="number" min="0.05" max="1" step="0.05"
             value="${costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25}"
-            style="width:${Math.max(3, String(costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25).length + 1)}ch;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace"
+            class="no-spin" style="width:${Math.max(3, String(costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25).length + 1)}ch;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;-moz-appearance:textfield;appearance:textfield"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="this.style.width=Math.max(3,this.value.length+1)+'ch';setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)"> sheets
         </span>` : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">Supplier offcuts included — billed as 1 full sheet</span>`}
