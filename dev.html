@@ -14055,41 +14055,76 @@ plLoad();
 
 // ── Snapshot: calculate costing & quote totals from a saved job state ──────────
 function plCalcFromState(state) {
-  if (!state) return { costingTotal: 0, quoteGrand: 0, quoteMarkupAmt: 0, topsTotal:0, consult:0, diesel:0, extras:0, markup:0 };
+  if (!state) return { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0, topsTotal:0, consult:0, diesel:0, extras:0, markup:0 };
 
-  // Deep-copy the incoming state so we never mutate the caller's objects
+  // Deep-copy so we never mutate the caller's objects
   const st = JSON.parse(JSON.stringify(state));
 
-  // Save ALL globals that affect costing/quote calculations
-  const savedQty      = JSON.parse(JSON.stringify(quantities));
-  const savedQS       = JSON.parse(JSON.stringify(quoteState));
-  const savedPanels   = JSON.parse(JSON.stringify(panelsState));
-  const savedUserU    = JSON.parse(JSON.stringify(userUnits));
-  const savedCustomU  = JSON.parse(JSON.stringify(customUnits));
+  // ── Save every global that affects costing/quote output ──────────────────────
+  const savedQty         = JSON.parse(JSON.stringify(quantities));
+  const savedQS          = JSON.parse(JSON.stringify(quoteState));
+  const savedPanels      = JSON.parse(JSON.stringify(panelsState));
+  const savedUserU       = JSON.parse(JSON.stringify(userUnits));
+  const savedCustomU     = JSON.parse(JSON.stringify(customUnits));
+  const savedMatCfg      = JSON.parse(JSON.stringify(materialConfig));
+  const savedUnitMatOvr  = JSON.parse(JSON.stringify(unitMatOverrides));
+  const savedBedroomAdd  = JSON.parse(JSON.stringify(bedroomAddons));
+  const savedCostingPrices = JSON.parse(JSON.stringify(costingPrices));
 
   try {
-    // Apply snapshot quantities
+    // ── Apply snapshot state ──────────────────────────────────────────────────
+
+    // quantities
     Object.keys(quantities).forEach(k => { quantities[k] = 0; });
     if (st.quantities) Object.assign(quantities, st.quantities);
 
-    // Apply snapshot quoteState
+    // quoteState
     Object.keys(quoteState).forEach(k => delete quoteState[k]);
-    const defaultQS = { markup:0.40, extras:[], tops:{m2:0,type:'Platinum',pricePerM2:2900},
-                        consultFee:false, dieselFee:false, consultFeeAmt:500, dieselFeeAmt:1800 };
-    Object.assign(quoteState, defaultQS);
+    Object.assign(quoteState, {
+      markup:0.40, extras:[], tops:{m2:0,type:'Platinum',pricePerM2:2900},
+      consultFee:false, dieselFee:false, consultFeeAmt:500, dieselFeeAmt:1800
+    });
     if (st.quoteState) Object.assign(quoteState, st.quoteState);
 
-    // Apply snapshot panels
+    // panelsState
     panelsState.items = st.panelsState?.items || [];
 
-    // Apply snapshot userUnits & customUnits so getEffectiveUnits() returns the right set
+    // materialConfig
+    if (st.materialConfig) Object.assign(materialConfig, st.materialConfig);
+
+    // unitMatOverrides
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    if (st.unitMatOverrides) Object.assign(unitMatOverrides, st.unitMatOverrides);
+
+    // bedroomAddons — needed for ADDON_SECTIONS cost calculation
+    if (st.bedroomAddons) {
+      ADDON_SECTIONS.forEach(sec => {
+        if (!st.bedroomAddons[sec]) return;
+        if (st.bedroomAddons[sec].plantOn)
+          Object.assign(bedroomAddons[sec].plantOn, st.bedroomAddons[sec].plantOn);
+        if (st.bedroomAddons[sec].spacers)
+          bedroomAddons[sec].spacers = st.bedroomAddons[sec].spacers;
+      });
+    }
+
+    // costingPrices — apply the prices that were active when the job was saved
+    if (st.costingPrices) {
+      if (st.costingPrices.mat)      Object.assign(costingPrices.mat,      st.costingPrices.mat);
+      if (st.costingPrices.edge)     Object.assign(costingPrices.edge,     st.costingPrices.edge);
+      if (st.costingPrices.extras)   Object.assign(costingPrices.extras,   st.costingPrices.extras);
+      if (st.costingPrices.hardware) Object.assign(costingPrices.hardware, st.costingPrices.hardware);
+      if (st.costingPrices.matMinSheets)   costingPrices.matMinSheets   = st.costingPrices.matMinSheets   || {};
+      if (st.costingPrices.matSpecialOrder)costingPrices.matSpecialOrder= st.costingPrices.matSpecialOrder|| {};
+      if (st.costingPrices.specialServices)costingPrices.specialServices= st.costingPrices.specialServices|| [];
+    }
+
+    // userUnits & customUnits
     userUnits.length = 0;
-    if (st.userUnits) st.userUnits.forEach(u => userUnits.push(u));
+    if (st.userUnits) st.userUnits.forEach(u => { userUnits.push(u); if (!(u.id in quantities)) quantities[u.id] = 0; });
     customUnits.length = 0;
     if (st.customUnits) st.customUnits.forEach(u => customUnits.push(u));
-    // Ensure every unit in quantities has a qty entry initialised
-    if (st.userUnits) st.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; });
 
+    // ── Calculate ─────────────────────────────────────────────────────────────
     const allUnits = getEffectiveUnits();
     const STATIC   = new Set(['bth_top','fl_solid_back']);
     const secMap   = {};
@@ -14105,29 +14140,65 @@ function plCalcFromState(state) {
       const costed = units.filter(u => !STATIC.has(u.id) && u.parts && u.parts.length);
       if (costed.length) unitsTotal += calcSectionCost(secId, costed, quantities);
     });
+
+    // Addon-only sections (mirrors refreshQuoteTotals)
+    ADDON_SECTIONS.forEach(secId => {
+      if (secMap[secId]) return;
+      const addons = bedroomAddons[secId] || {};
+      [addons.plantOn, addons.spacers].forEach(group => {
+        if (!group?.enabled) return;
+        group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
+      });
+    });
+
+    // Panels
     panelsState.items.filter(p => p.l>0 && p.w>0 && p.qty>0)
       .forEach(p => { unitsTotal += calcPanelCost(p).lineTotal; });
 
     const costingTotal = unitsTotal;
 
-    // Quote grand total (mirrors refreshQuoteTotals logic)
-    const topsExcl  = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
-    const topsTotal = (topsExcl + (topsExcl>0?500:0)) * 1.10;
-    const consult   = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
-    const diesel    = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
-    const extras    = (quoteState.extras||[]).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
-    const markup    = quoteState.markup || 0;
-    const quoteGrand      = unitsTotal*(1+markup) + topsTotal + consult + diesel + extras;
-    const quoteMarkupAmt  = unitsTotal * markup;
+    // Quote grand total — exact mirror of refreshQuoteTotals
+    const topsExcl       = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
+    const topsTotal      = (topsExcl + (topsExcl>0?500:0)) * 1.10;
+    const consult        = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
+    const diesel         = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
+    const extras         = (quoteState.extras||[]).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    const markup         = quoteState.markup || 0;
+    const quoteGrand     = unitsTotal*(1+markup) + topsTotal + consult + diesel + extras;
+    const quoteMarkupAmt = unitsTotal * markup;
 
     return { costingTotal, quoteGrand, quoteMarkupAmt, topsTotal, consult, diesel, extras, markup };
+
   } finally {
-    // Restore ALL globals
+    // ── Restore ALL globals ───────────────────────────────────────────────────
     Object.keys(quantities).forEach(k => { quantities[k] = 0; });
     Object.assign(quantities, savedQty);
+
     Object.keys(quoteState).forEach(k => delete quoteState[k]);
     Object.assign(quoteState, savedQS);
+
     panelsState.items = savedPanels.items || [];
+
+    Object.assign(materialConfig, savedMatCfg);
+
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    Object.assign(unitMatOverrides, savedUnitMatOvr);
+
+    ADDON_SECTIONS.forEach(sec => {
+      bedroomAddons[sec] = savedBedroomAdd[sec] || bedroomAddons[sec];
+    });
+
+    // Restore costingPrices
+    Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+    Object.assign(costingPrices.mat, savedCostingPrices.mat);
+    Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+    Object.assign(costingPrices.edge, savedCostingPrices.edge);
+    Object.assign(costingPrices.extras,   savedCostingPrices.extras);
+    Object.assign(costingPrices.hardware, savedCostingPrices.hardware);
+    costingPrices.matMinSheets    = savedCostingPrices.matMinSheets    || {};
+    costingPrices.matSpecialOrder = savedCostingPrices.matSpecialOrder || {};
+    costingPrices.specialServices = savedCostingPrices.specialServices || [];
+
     userUnits.length = 0;
     savedUserU.forEach(u => userUnits.push(u));
     customUnits.length = 0;
