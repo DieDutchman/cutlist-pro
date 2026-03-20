@@ -10004,11 +10004,17 @@ function renderPricesView() {
                 <input type="text" value="${escHtml(svc.name)}"
                   style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','name',this.value)"`}>
+                ${(()=>{ const kc=['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other']; const isCust=!kc.includes(svc.category); return `
                 <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
-                  ${!admin ? 'disabled' : `onchange="updateSpecialService('${svc.id}','category',this.value)" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
-                  ${['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other'].map(c =>
-                    `<option value="${c}" ${svc.category===c?'selected':''}>${c}</option>`).join('')}
+                  ${!admin ? 'disabled' : `onchange="handleSvcCategoryChange(this,'${svc.id}')" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
+                  ${kc.map(c=>`<option value="${c}" ${!isCust&&svc.category===c?'selected':''}>${c}</option>`).join('')}
+                  <option value="__custom__" ${isCust?'selected':''}>＋ Custom…</option>
                 </select>
+                <input type="text" id="svc-custom-cat-${svc.id}" placeholder="e.g. Polishing"
+                  value="${isCust ? escHtml(svc.category) : ''}"
+                  style="width:110px;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;display:${isCust?'block':'none'}"
+                  ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--amber-dim)'" oninput="updateSpecialService('${svc.id}','category',this.value)"`}>
+                `; })()}
                 <input type="number" min="0" step="0.01" value="${svc.price||0}"
                   style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','price',this.value)"`}>
@@ -10028,11 +10034,17 @@ function renderPricesView() {
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             onkeydown="if(event.key==='Enter')addSpecialService()">
           <select id="new-svc-category"
-            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;width:120px"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;width:130px"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onchange="handleNewSvcCategoryChange(this)">
             ${['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other'].map(c =>
               `<option value="${c}">${c}</option>`).join('')}
+            <option value="__custom__">＋ Custom…</option>
           </select>
+          <input id="new-svc-custom-cat" type="text" placeholder="e.g. Polishing"
+            style="width:110px;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;display:none"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--amber-dim)'"
+            onkeydown="if(event.key==='Enter')addSpecialService()">
           <input id="new-svc-price" type="number" min="0" step="0.01" placeholder="Price"
             style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
@@ -10055,18 +10067,50 @@ function renderPricesView() {
 
 // ── Special Services ──────────────────────────────────────────────────────────
 function addSpecialService() {
-  const name  = document.getElementById('new-svc-name')?.value.trim();
-  const cat   = document.getElementById('new-svc-category')?.value || 'Other';
-  const price = parseFloat(document.getElementById('new-svc-price')?.value) || 0;
-  const unit  = document.getElementById('new-svc-unit')?.value || 'per unit';
+  const name     = document.getElementById('new-svc-name')?.value.trim();
+  const catSel   = document.getElementById('new-svc-category')?.value || 'Other';
+  const catCustom= document.getElementById('new-svc-custom-cat')?.value.trim();
+  const cat      = catSel === '__custom__' ? (catCustom || 'Custom') : catSel;
+  const price    = parseFloat(document.getElementById('new-svc-price')?.value) || 0;
+  const unit     = document.getElementById('new-svc-unit')?.value || 'per unit';
   if (!name) { document.getElementById('new-svc-name')?.focus(); return; }
+  if (catSel === '__custom__' && !catCustom) {
+    document.getElementById('new-svc-custom-cat')?.focus(); return;
+  }
   const id = 'svc_' + Date.now();
   costingPrices.specialServices.push({ id, name, category: cat, price, unit });
   saveCostingPrices();
   pushSupplierPrice('special_service', id, price, { name, category: cat, unit });
-  if (document.getElementById('new-svc-name'))  document.getElementById('new-svc-name').value  = '';
-  if (document.getElementById('new-svc-price')) document.getElementById('new-svc-price').value = '';
+  if (document.getElementById('new-svc-name'))        document.getElementById('new-svc-name').value  = '';
+  if (document.getElementById('new-svc-price'))       document.getElementById('new-svc-price').value = '';
+  if (document.getElementById('new-svc-custom-cat'))  document.getElementById('new-svc-custom-cat').value = '';
+  const sel = document.getElementById('new-svc-category');
+  if (sel) { sel.value = 'CNC'; }
+  const ci = document.getElementById('new-svc-custom-cat');
+  if (ci) ci.style.display = 'none';
   renderPricesView();
+}
+
+// Show/hide custom category input for existing service rows
+function handleSvcCategoryChange(sel, svcId) {
+  const inp = document.getElementById('svc-custom-cat-' + svcId);
+  if (sel.value === '__custom__') {
+    if (inp) { inp.style.display = 'block'; inp.focus(); }
+  } else {
+    if (inp) { inp.style.display = 'none'; inp.value = ''; }
+    updateSpecialService(svcId, 'category', sel.value);
+  }
+}
+
+// Show/hide custom category input on the add-new row
+function handleNewSvcCategoryChange(sel) {
+  const inp = document.getElementById('new-svc-custom-cat');
+  if (!inp) return;
+  if (sel.value === '__custom__') {
+    inp.style.display = 'block'; inp.focus();
+  } else {
+    inp.style.display = 'none'; inp.value = '';
+  }
 }
 
 function updateSpecialService(id, field, value) {
