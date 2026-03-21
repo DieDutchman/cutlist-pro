@@ -14378,10 +14378,19 @@ function plOpenPDFImport(jobId) {
           ondrop="event.preventDefault();this.style.borderColor='';plHandlePDFDrop(event,'${jobId}')">
           <div style="font-size:32px;margin-bottom:8px">📄</div>
           <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px;color:var(--text-muted)">Click or drag a PDF here</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Supplier invoices, delivery notes, hardware quotes</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Supplier invoices, delivery notes, hardware quotes — or a JPG/PNG image</div>
         </div>
         <input type="file" id="pl-pdf-file" accept=".pdf,image/*" style="display:none"
           onchange="plHandlePDFFile(this,'${jobId}')">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:10px 12px;background:rgba(212,145,58,0.07);border:1px solid var(--amber-dim)">
+          <span style="font-size:14px;flex-shrink:0">💡</span>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.7">
+            <strong style="color:var(--text)">Digital PDFs only.</strong>
+            This works with PDFs that have selectable text — the kind you receive by email or download from a supplier portal.
+            If your invoice is a <strong style="color:var(--text)">scanned or photographed document</strong>,
+            upload it as a <strong style="color:var(--text)">JPG or PNG image</strong> instead — the picker above accepts both.
+          </div>
+        </div>
         <div id="pl-pdf-status" style="margin-top:16px;font-size:12px;color:var(--text-muted);min-height:20px"></div>
         <div id="pl-pdf-results" style="margin-top:12px"></div>
       </div>
@@ -14450,22 +14459,57 @@ Rules:
       }
 
     } else {
-      // ── Image: convert to base64 data URI and include inline in the prompt ─
+      // ── Image: read as base64 and send to vision model ──────────────────────
       status.innerHTML = '<span style="color:var(--amber)">↻ Reading image…</span>';
-      const dataUrl = await new Promise((res, rej) => {
+      const base64 = await new Promise((res, rej) => {
         const reader = new FileReader();
-        reader.onload  = () => res(reader.result);
+        reader.onload  = () => res(reader.result.split(',')[1]);
         reader.onerror = rej;
         reader.readAsDataURL(file);
       });
-      // Groq vision: send the image URL inline in the user message
-      rawText = `[IMAGE ATTACHED — extract all invoice line items from this image]
-Image data: ${dataUrl}`;
+      const mediaType = file.type || 'image/jpeg';
+
+      status.innerHTML = '<span style="color:var(--amber)">↻ Analysing with AI…</span>';
+
+      // Send to edge function with image flag — edge fn uses vision model
+      const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SB_KEY}`,
+        },
+        body: JSON.stringify({ base64, mediaType, systemPrompt, isImage: true })
+      });
+
+      if (!response.ok) {
+        const txt = await response.text();
+        let msg = `Error ${response.status}`;
+        try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
+        throw new Error(msg);
+      }
+      const imgData = await response.json();
+      if (imgData.error) throw new Error(imgData.error.message || imgData.error);
+      const imgText = (imgData.content || []).map(b => b.text || '').join('');
+      let items;
+      try {
+        const clean = imgText.replace(/```json|```/g,'').trim();
+        const parsed = JSON.parse(clean);
+        items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.line_items || Object.values(parsed)[0] || []);
+      } catch(e) {
+        throw new Error('Could not parse AI response — try a clearer photo');
+      }
+      if (!items.length) {
+        status.innerHTML = '<span style="color:var(--text-muted)">No line items found in this image.</span>';
+        return;
+      }
+      status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
+      renderPLPDFResults(items, jobId);
+      return;
     }
 
     status.innerHTML = '<span style="color:var(--amber)">↻ Analysing with AI…</span>';
 
-    // ── Call edge function (same pattern as parse-cutlist) ──────────────────
+    // ── Call edge function for text PDFs ────────────────────────────────────
     const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
       method: 'POST',
       headers: {
@@ -14502,46 +14546,51 @@ Image data: ${dataUrl}`;
     }
 
     status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
-
-    const cats_opts = plInvoiceCategories().map(c => `<option value="${c}">${c}</option>`).join('');
-    results.innerHTML = `
-      <div style="border:1px solid var(--border);margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
-          <span style="width:20px"></span>
-          <span style="flex:2">DESCRIPTION</span>
-          <span style="width:140px">CATEGORY</span>
-          <span style="width:100px;text-align:right">AMOUNT</span>
-        </div>
-        ${items.map((item, i) => {
-          const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
-          return `
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
-            <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
-            <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
-              id="pl-pdf-desc-${i}"
-              style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
-            <select id="pl-pdf-cat-${i}" style="width:140px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
-              ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
-            </select>
-            <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
-              style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button onclick="document.getElementById('pl-pdf-overlay').remove()"
-          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
-          CANCEL
-        </button>
-        <button onclick="plImportSelectedLines(${JSON.stringify(jobId)},${items.length})"
-          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
-          ＋ IMPORT SELECTED
-        </button>
-      </div>`;
+    renderPLPDFResults(items, jobId);
 
   } catch(e) {
     status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message}</span>`;
   }
+}
+
+// Shared results renderer used by both PDF and image paths
+function renderPLPDFResults(items, jobId) {
+  const results = document.getElementById('pl-pdf-results');
+  if (!results) return;
+  results.innerHTML = `
+    <div style="border:1px solid var(--border);margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
+        <span style="width:20px"></span>
+        <span style="flex:2">DESCRIPTION</span>
+        <span style="width:140px">CATEGORY</span>
+        <span style="width:100px;text-align:right">AMOUNT</span>
+      </div>
+      ${items.map((item, i) => {
+        const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
+          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
+          <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
+            id="pl-pdf-desc-${i}"
+            style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <select id="pl-pdf-cat-${i}" style="width:140px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
+            ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
+            style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('pl-pdf-overlay').remove()"
+        style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
+        CANCEL
+      </button>
+      <button onclick="plImportSelectedLines(${JSON.stringify(jobId)},${items.length})"
+        style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
+        ＋ IMPORT SELECTED
+      </button>
+    </div>`;
 }
 
 function plImportSelectedLines(jobId, count) {
