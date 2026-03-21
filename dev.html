@@ -14443,9 +14443,7 @@ Rules:
         const content = await page.getTextContent();
         pageTexts.push(content.items.map(item => item.str).join(' '));
       }
-      rawText = pageTexts.join('
-
-');
+      rawText = pageTexts.join('\n\n');
 
       if (!rawText.trim()) {
         throw new Error('No text found in PDF — this may be a scanned image. Try uploading the invoice as a JPG or PNG instead.');
