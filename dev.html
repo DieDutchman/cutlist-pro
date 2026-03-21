@@ -6804,45 +6804,64 @@ function removeQuoteExtra(i) {
   renderQuoteView();
 }
 
-// Pure calculation — returns numbers, touches no DOM. Used by both
-// refreshQuoteTotals() (live) and plCalcFromState() (P&L snapshot).
+// Pure calculation — mirrors renderQuoteView's unitsTotal exactly.
+// Used by both refreshQuoteTotals() (live) and plCalcFromState() (P&L snapshot).
 function computeQuoteTotals() {
   const allUnits = getEffectiveUnits();
   const STATIC_IDS = new Set(['bth_top','fl_solid_back']);
-  const secMap = {};
-  allUnits.filter(u => (quantities[u.id]||0) > 0).forEach(u => {
-    if (!secMap[u.section]) secMap[u.section] = [];
-    secMap[u.section].push(u);
-  });
+
+  // Use the same per-unit approach as renderQuoteView (not pooled calcSectionCost)
+  // so the P&L total always matches what the user sees on the Quote tab.
+  const activeSections = (!isAdmin() && userRooms.length > 0)
+    ? userRooms.map(r => ({ id: r.id, label: r.name }))
+    : sections;
+
+  // Build sectionData the same way renderQuoteView does
+  const sectionData = activeSections.map(sec => {
+    const units = allUnits.filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const addons = bedroomAddons[sec.id] || {};
+    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    return { sec, units, hasEnabledAddons };
+  }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
+
+  // Per-unit cost cache — same as renderQuoteView
+  const unitCostCache = {};
+  sectionData.forEach(d => d.units.forEach(u => {
+    const qty = quantities[u.id] || 0;
+    if (STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0) {
+      unitCostCache[u.id] = u.price || 0;
+    } else {
+      unitCostCache[u.id] = qty > 0 ? calcUnitCost(u, qty).total / qty : 0;
+    }
+  }));
+
   let unitsTotal = 0;
-  Object.entries(secMap).forEach(([secId, units]) => {
-    units.filter(u => STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0).forEach(u => {
-      unitsTotal += (u.price || 0) * (quantities[u.id] || 0);
+  sectionData.forEach(({ sec, units }) => {
+    units.forEach(u => {
+      unitsTotal += (unitCostCache[u.id] || 0) * (quantities[u.id] || 0);
     });
-    const costedUnits = units.filter(u => !STATIC_IDS.has(u.id) && u.parts && u.parts.length > 0);
-    if (costedUnits.length > 0) unitsTotal += calcSectionCost(secId, costedUnits, quantities);
-  });
-  // Addon-only sections (any section key, including custom rooms)
-  Object.keys(bedroomAddons).forEach(secId => {
-    if (secMap[secId]) return;
-    const addons = bedroomAddons[secId] || {};
+    // Addons for this section (any section key, including custom rooms)
+    const addons = bedroomAddons[sec.id] || {};
     [addons.plantOn, addons.spacers].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
     });
   });
+
   // Panels
   panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
     unitsTotal += calcPanelCost(p).lineTotal;
   });
+
   const topsExcl     = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
   const topsDelivery = topsExcl > 0 ? 500 : 0;
-  const topsTotal    = (topsExcl + topsDelivery) * 1.10;
+  const topsHandling = (topsExcl + topsDelivery) * 0.10;
+  const topsTotal    = topsExcl + topsDelivery + topsHandling; // matches renderQuoteView exactly
   const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
   const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
   // Recalculate dynamic extra amounts
   quoteState.extras.forEach((e, i) => {
-    if (e.baseMode !== undefined)     quoteState.extras[i].amount = _calcBaseExtraCost(e);
+    if (e.baseMode !== undefined)          quoteState.extras[i].amount = _calcBaseExtraCost(e);
     else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
