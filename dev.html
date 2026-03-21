@@ -6804,78 +6804,69 @@ function removeQuoteExtra(i) {
   renderQuoteView();
 }
 
-function refreshQuoteTotals() {
+// Pure calculation — returns numbers, touches no DOM. Used by both
+// refreshQuoteTotals() (live) and plCalcFromState() (P&L snapshot).
+function computeQuoteTotals() {
   const allUnits = getEffectiveUnits();
   const STATIC_IDS = new Set(['bth_top','fl_solid_back']);
-
-  // Group selected units by section and use pooled section cost
   const secMap = {};
   allUnits.filter(u => (quantities[u.id]||0) > 0).forEach(u => {
     if (!secMap[u.section]) secMap[u.section] = [];
     secMap[u.section].push(u);
   });
-
   let unitsTotal = 0;
   Object.entries(secMap).forEach(([secId, units]) => {
-    // Static-priced units (no parts) added at face value
     units.filter(u => STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0).forEach(u => {
       unitsTotal += (u.price || 0) * (quantities[u.id] || 0);
     });
-    // Costed units — pooled with addons for shared cut & label
     const costedUnits = units.filter(u => !STATIC_IDS.has(u.id) && u.parts && u.parts.length > 0);
-    if (costedUnits.length > 0) {
-      unitsTotal += calcSectionCost(secId, costedUnits, quantities);
-    }
+    if (costedUnits.length > 0) unitsTotal += calcSectionCost(secId, costedUnits, quantities);
   });
-  // Addon-only sections (enabled addons but no selected units) — cost them separately
-  ADDON_SECTIONS.forEach(secId => {
-    if (secMap[secId]) return; // already handled above
+  // Addon-only sections (any section key, including custom rooms)
+  Object.keys(bedroomAddons).forEach(secId => {
+    if (secMap[secId]) return;
     const addons = bedroomAddons[secId] || {};
     [addons.plantOn, addons.spacers].forEach(group => {
       if (!group?.enabled) return;
-      group.items.forEach(item => {
-        if (item.w && item.h) unitsTotal += _calcItemCost(item);
-      });
+      group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
     });
-
   });
-  // Add custom panels cost
+  // Panels
   panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
     unitsTotal += calcPanelCost(p).lineTotal;
   });
-  // Add custom hardware items
-
-  const topsExcl     = (quoteState.tops.m2||0) * (quoteState.tops.pricePerM2||0);
-  const topsDelivery2= topsExcl > 0 ? 500 : 0;
-  const topsVAT2     = (topsExcl + topsDelivery2) * 0.15;
-  const topsTotal    = (topsExcl + topsDelivery2) * 1.10;   // +delivery +10% handling, excl. VAT
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
-  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
-  // Recalculate base and skirting extra amounts in case prices changed
+  const topsExcl     = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
+  const topsDelivery = topsExcl > 0 ? 500 : 0;
+  const topsTotal    = (topsExcl + topsDelivery) * 1.10;
+  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
+  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
+  // Recalculate dynamic extra amounts
   quoteState.extras.forEach((e, i) => {
-    if (e.baseMode !== undefined) {
-      quoteState.extras[i].amount = _calcBaseExtraCost(e);
-    } else if (e.skirtingMode !== undefined) {
-      quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
-    }
+    if (e.baseMode !== undefined)     quoteState.extras[i].amount = _calcBaseExtraCost(e);
+    else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + extrasTotal;
-  const grand        = unitsTotal * (1 + quoteState.markup) + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  const markup       = quoteState.markup || 0;
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  return { unitsTotal, topsTotal, consultTotal, dieselTotal, extrasTotal, subtotal, grand, markup };
+}
 
+function refreshQuoteTotals() {
+  const t = computeQuoteTotals();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('qv-val-units',   fmt(unitsTotal));
-  set('qv-val-markup',  '+ ' + fmt(unitsTotal * quoteState.markup));
-  set('qv-val-tops',    fmt(topsTotal));
-  set('qv-val-consult', fmt(consultTotal));
-  set('qv-val-diesel',  fmt(dieselTotal));
-  set('qv-val-extras',  fmt(extrasTotal));
-  set('qv-val-sub',     fmt(subtotal));
-  set('qv-val-grand',   fmt(grand));
-  set('qv-val-vat',     fmt(grand * 0.15));
-  set('qv-val-grand-vat', fmt(grand * 1.15));
+  set('qv-val-units',     fmt(t.unitsTotal));
+  set('qv-val-markup',    '+ ' + fmt(t.unitsTotal * t.markup));
+  set('qv-val-tops',      fmt(t.topsTotal));
+  set('qv-val-consult',   fmt(t.consultTotal));
+  set('qv-val-diesel',    fmt(t.dieselTotal));
+  set('qv-val-extras',    fmt(t.extrasTotal));
+  set('qv-val-sub',       fmt(t.subtotal));
+  set('qv-val-grand',     fmt(t.grand));
+  set('qv-val-vat',       fmt(t.grand * 0.15));
+  set('qv-val-grand-vat', fmt(t.grand * 1.15));
   const td = document.getElementById('qv-tops-total');
-  if (td) td.textContent = topsTotal > 0 ? fmt(topsTotal) : '—';
+  if (td) td.textContent = t.topsTotal > 0 ? fmt(t.topsTotal) : '—';
 }
 
 function switchToUnits() {
@@ -14053,34 +14044,34 @@ function plSave() {
 }
 plLoad();
 
-// ── Snapshot: read quote totals by temporarily applying job state and calling
-//    the real refreshQuoteTotals() — guaranteed to match the Quote tab exactly.
+// ── Snapshot: apply job state silently, call computeQuoteTotals(), restore ─────
 function plCalcFromState(state) {
   const zero = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0,
                  topsTotal:0, consult:0, diesel:0, extras:0, markup:0, unitsTotal:0 };
   if (!state) return zero;
 
-  // ── 1. Snapshot every global that captureState() touches ──────────────────
+  const st = JSON.parse(JSON.stringify(state)); // deep-copy — never mutate caller's objects
+
+  // ── Save every global captureState() touches ──────────────────────────────
   const snap = {
-    quantities:       JSON.parse(JSON.stringify(quantities)),
-    quoteState:       JSON.parse(JSON.stringify(quoteState)),
-    panelsState:      JSON.parse(JSON.stringify(panelsState)),
-    materialConfig:   JSON.parse(JSON.stringify(materialConfig)),
-    unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
-    bedroomAddons:    JSON.parse(JSON.stringify(bedroomAddons)),
-    costingPrices:    JSON.parse(JSON.stringify(costingPrices)),
-    userUnits:        JSON.parse(JSON.stringify(userUnits)),
-    customUnits:      JSON.parse(JSON.stringify(customUnits)),
-    unitOverrides:    JSON.parse(JSON.stringify(unitOverrides)),
-    deletedUnits:     [...deletedUnits],
-    userRooms:        JSON.parse(JSON.stringify(userRooms)),
+    quantities:           JSON.parse(JSON.stringify(quantities)),
+    quoteState:           JSON.parse(JSON.stringify(quoteState)),
+    panelsState:          JSON.parse(JSON.stringify(panelsState)),
+    materialConfig:       JSON.parse(JSON.stringify(materialConfig)),
+    unitMatOverrides:     JSON.parse(JSON.stringify(unitMatOverrides)),
+    bedroomAddons:        JSON.parse(JSON.stringify(bedroomAddons)),
+    costingPrices:        JSON.parse(JSON.stringify(costingPrices)),
+    userUnits:            JSON.parse(JSON.stringify(userUnits)),
+    customUnits:          JSON.parse(JSON.stringify(customUnits)),
+    unitOverrides:        JSON.parse(JSON.stringify(unitOverrides)),
+    deletedUnits:         [...deletedUnits],
+    userRooms:            JSON.parse(JSON.stringify(userRooms)),
     unitSpecialServices:  JSON.parse(JSON.stringify(unitSpecialServices)),
     panelSpecialServices: JSON.parse(JSON.stringify(panelSpecialServices)),
   };
 
-  // ── 2. Silently apply the job's saved state to globals (no renders/saves) ──
-  function silentApply(st) {
-    if (!st) return;
+  try {
+    // ── Apply job snapshot to globals ────────────────────────────────────────
 
     // quantities
     Object.keys(quantities).forEach(k => { quantities[k] = 0; });
@@ -14105,7 +14096,7 @@ function plCalcFromState(state) {
     Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
     if (st.unitMatOverrides) Object.assign(unitMatOverrides, st.unitMatOverrides);
 
-    // bedroomAddons — all sections
+    // bedroomAddons — all sections including custom rooms
     if (st.bedroomAddons) {
       Object.keys(st.bedroomAddons).forEach(sec => {
         if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]} };
@@ -14114,18 +14105,18 @@ function plCalcFromState(state) {
       });
     }
 
-    // costingPrices
+    // costingPrices — prices from when the job was saved
     if (st.costingPrices) {
-      if (st.costingPrices.mat)            { Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]); Object.assign(costingPrices.mat, st.costingPrices.mat); }
-      if (st.costingPrices.edge)           { Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge, st.costingPrices.edge); }
-      if (st.costingPrices.extras)         Object.assign(costingPrices.extras,   st.costingPrices.extras);
-      if (st.costingPrices.hardware)       Object.assign(costingPrices.hardware, st.costingPrices.hardware);
-      if (st.costingPrices.matMinSheets)   costingPrices.matMinSheets    = st.costingPrices.matMinSheets;
-      if (st.costingPrices.matSpecialOrder)costingPrices.matSpecialOrder = st.costingPrices.matSpecialOrder;
-      if (st.costingPrices.specialServices)costingPrices.specialServices = st.costingPrices.specialServices;
+      if (st.costingPrices.mat)             { Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]); Object.assign(costingPrices.mat, st.costingPrices.mat); }
+      if (st.costingPrices.edge)            { Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge, st.costingPrices.edge); }
+      if (st.costingPrices.extras)          Object.assign(costingPrices.extras,   st.costingPrices.extras);
+      if (st.costingPrices.hardware)        Object.assign(costingPrices.hardware, st.costingPrices.hardware);
+      if (st.costingPrices.matMinSheets)    costingPrices.matMinSheets    = st.costingPrices.matMinSheets;
+      if (st.costingPrices.matSpecialOrder) costingPrices.matSpecialOrder = st.costingPrices.matSpecialOrder;
+      if (st.costingPrices.specialServices) costingPrices.specialServices = st.costingPrices.specialServices;
     }
 
-    // userUnits, customUnits
+    // userUnits & customUnits (for getEffectiveUnits)
     userUnits.length = 0;
     if (st.userUnits) st.userUnits.forEach(u => { userUnits.push(u); if (!(u.id in quantities)) quantities[u.id] = 0; });
     customUnits.length = 0;
@@ -14135,87 +14126,258 @@ function plCalcFromState(state) {
     if (st.userRooms) { userRooms.length = 0; st.userRooms.forEach(r => userRooms.push(r)); }
 
     // unitOverrides / deletedUnits
-    if (st.unitOverrides)  Object.assign(unitOverrides, st.unitOverrides);
-    if (st.deletedUnits)   { deletedUnits.clear(); st.deletedUnits.forEach(id => deletedUnits.add(id)); }
+    if (st.unitOverrides) Object.assign(unitOverrides, st.unitOverrides);
+    if (st.deletedUnits)  { deletedUnits.clear(); st.deletedUnits.forEach(id => deletedUnits.add(id)); }
 
-    // special services assignments
-    if (st.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  st.unitSpecialServices); }
+    // special service assignments
+    if (st.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);  Object.assign(unitSpecialServices,  st.unitSpecialServices); }
     if (st.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, st.panelSpecialServices); }
-  }
 
-  // ── 3. Restore helper ─────────────────────────────────────────────────────
-  function silentRestore(sn) {
-    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
-    Object.assign(quantities, sn.quantities);
+    // ── Call the canonical calculation — guaranteed identical to Quote tab ────
+    const t = computeQuoteTotals();
 
-    Object.keys(quoteState).forEach(k => delete quoteState[k]);
-    Object.assign(quoteState, sn.quoteState);
-
-    panelsState.items = sn.panelsState.items || [];
-    panelsState.label = sn.panelsState.label || '';
-
-    Object.assign(materialConfig, sn.materialConfig);
-
-    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
-    Object.assign(unitMatOverrides, sn.unitMatOverrides);
-
-    // bedroomAddons
-    Object.keys(sn.bedroomAddons).forEach(sec => { bedroomAddons[sec] = sn.bedroomAddons[sec]; });
-
-    // costingPrices
-    Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]);  Object.assign(costingPrices.mat,      sn.costingPrices.mat);
-    Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge,     sn.costingPrices.edge);
-    Object.assign(costingPrices.extras,   sn.costingPrices.extras);
-    Object.assign(costingPrices.hardware, sn.costingPrices.hardware);
-    costingPrices.matMinSheets    = sn.costingPrices.matMinSheets    || {};
-    costingPrices.matSpecialOrder = sn.costingPrices.matSpecialOrder || {};
-    costingPrices.specialServices = sn.costingPrices.specialServices || [];
-
-    userUnits.length = 0;    sn.userUnits.forEach(u => userUnits.push(u));
-    customUnits.length = 0;  sn.customUnits.forEach(u => customUnits.push(u));
-    userRooms.length = 0;    sn.userRooms.forEach(r => userRooms.push(r));
-
-    Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
-    Object.assign(unitOverrides, sn.unitOverrides);
-    deletedUnits.clear(); sn.deletedUnits.forEach(id => deletedUnits.add(id));
-
-    Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);  Object.assign(unitSpecialServices,  sn.unitSpecialServices);
-    Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, sn.panelSpecialServices);
-  }
-
-  // ── 4. Parse formatted "R 12 345" strings back to numbers ─────────────────
-  const parseR = id => {
-    const el = document.getElementById(id);
-    if (!el) return 0;
-    return parseFloat((el.textContent || '').replace(/[^0-9.,-]/g,'').replace(/\s/g,'').replace(',','.')) || 0;
-  };
-
-  try {
-    silentApply(state);
-
-    // Call the real quote total calculator — this handles ALL room types,
-    // custom rooms, panels-only jobs, addons, extras — everything.
-    refreshQuoteTotals();
-
-    // Read the results straight from the DOM
-    const unitsTotal     = parseR('qv-val-units');
-    const quoteMarkupAmt = parseR('qv-val-markup');
-    const topsTotal      = parseR('qv-val-tops');
-    const consult        = parseR('qv-val-consult');
-    const diesel         = parseR('qv-val-diesel');
-    const extras         = parseR('qv-val-extras');
-    const quoteGrand     = parseR('qv-val-grand');
-    const markup         = quoteState.markup || 0;
-    const costingTotal   = unitsTotal; // cost before markup
-
-    return { costingTotal, quoteGrand, quoteMarkupAmt, topsTotal, consult, diesel, extras, markup, unitsTotal };
+    return {
+      costingTotal:   t.unitsTotal,       // raw material cost before markup
+      unitsTotal:     t.unitsTotal,
+      quoteGrand:     t.grand,
+      quoteMarkupAmt: t.unitsTotal * t.markup,
+      topsTotal:      t.topsTotal,
+      consult:        t.consultTotal,
+      diesel:         t.dieselTotal,
+      extras:         t.extrasTotal,
+      markup:         t.markup,
+    };
 
   } finally {
-    silentRestore(snap);
-    // Re-run quote totals to restore the DOM to the current job's values
-    refreshQuoteTotals();
+    // ── Restore ALL globals ───────────────────────────────────────────────────
+    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+    Object.assign(quantities, snap.quantities);
+
+    Object.keys(quoteState).forEach(k => delete quoteState[k]);
+    Object.assign(quoteState, snap.quoteState);
+
+    panelsState.items = snap.panelsState.items || [];
+    panelsState.label = snap.panelsState.label || '';
+
+    Object.assign(materialConfig, snap.materialConfig);
+
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    Object.assign(unitMatOverrides, snap.unitMatOverrides);
+
+    Object.keys(snap.bedroomAddons).forEach(sec => { bedroomAddons[sec] = snap.bedroomAddons[sec]; });
+
+    Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]);
+    Object.assign(costingPrices.mat, snap.costingPrices.mat);
+    Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]);
+    Object.assign(costingPrices.edge, snap.costingPrices.edge);
+    Object.assign(costingPrices.extras,   snap.costingPrices.extras);
+    Object.assign(costingPrices.hardware, snap.costingPrices.hardware);
+    costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
+    costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
+    costingPrices.specialServices = snap.costingPrices.specialServices || [];
+
+    userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
+    customUnits.length = 0;  snap.customUnits.forEach(u => customUnits.push(u));
+    userRooms.length = 0;    snap.userRooms.forEach(r => userRooms.push(r));
+
+    Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
+    Object.assign(unitOverrides, snap.unitOverrides);
+    deletedUnits.clear(); snap.deletedUnits.forEach(id => deletedUnits.add(id));
+
+    Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);
+    Object.assign(unitSpecialServices,  snap.unitSpecialServices);
+    Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]);
+    Object.assign(panelSpecialServices, snap.panelSpecialServices);
   }
 }
+// ── Invoice category list — built from supplier prices + standard categories ──
+function plInvoiceCategories() {
+  const cats = ['Boards', 'Edging', 'Cut & Label', 'Hinge Drilling'];
+  // Add any special services from costingPrices as their own categories
+  (costingPrices.specialServices || []).forEach(svc => {
+    const label = svc.name + (svc.category && svc.category !== 'Other' ? ' (' + svc.category + ')' : '');
+    if (!cats.includes(label)) cats.push(label);
+  });
+  cats.push('Hardware – Hinges', 'Hardware – Runners', 'Hardware – Handles',
+            'Hardware – Other', 'Labour', 'Transport', 'Tops', 'Other');
+  return cats;
+}
+
+// ── PDF Invoice Import via Anthropic API ───────────────────────────────────────
+function plOpenPDFImport(jobId) {
+  const overlay = document.createElement('div');
+  overlay.id = 'pl-pdf-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">📄 IMPORT INVOICE PDF</div>
+        <button onclick="document.getElementById('pl-pdf-overlay').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.7">
+          Upload a supplier invoice PDF — Claude will read it and extract the line items automatically. You can review and edit them before adding to the job.
+        </p>
+        <div id="pl-pdf-drop" onclick="document.getElementById('pl-pdf-file').click()"
+          style="border:2px dashed var(--border);padding:32px;text-align:center;cursor:pointer;transition:border-color 0.15s"
+          ondragover="event.preventDefault();this.style.borderColor='var(--amber)'"
+          ondragleave="this.style.borderColor=''"
+          ondrop="event.preventDefault();this.style.borderColor='';plHandlePDFDrop(event,'${jobId}')">
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px;color:var(--text-muted)">Click or drag a PDF here</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Supplier invoices, delivery notes, hardware quotes</div>
+        </div>
+        <input type="file" id="pl-pdf-file" accept=".pdf,image/*" style="display:none"
+          onchange="plHandlePDFFile(this,'${jobId}')">
+        <div id="pl-pdf-status" style="margin-top:16px;font-size:12px;color:var(--text-muted);min-height:20px"></div>
+        <div id="pl-pdf-results" style="margin-top:12px"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function plHandlePDFDrop(event, jobId) {
+  const file = event.dataTransfer.files[0];
+  if (file) plProcessPDFFile(file, jobId);
+}
+
+function plHandlePDFFile(input, jobId) {
+  const file = input.files[0];
+  if (file) plProcessPDFFile(file, jobId);
+}
+
+async function plProcessPDFFile(file, jobId) {
+  const status  = document.getElementById('pl-pdf-status');
+  const results = document.getElementById('pl-pdf-results');
+  if (!status || !results) return;
+
+  status.innerHTML = '<span style="color:var(--amber)">↻ Reading invoice…</span>';
+  results.innerHTML = '';
+
+  // Read file as base64
+  const base64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = () => res(reader.result.split(',')[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+
+  const isPDF  = file.type === 'application/pdf';
+  const media  = isPDF ? 'application/pdf' : (file.type || 'image/jpeg');
+  const docType = isPDF ? 'document' : 'image';
+
+  const cats = plInvoiceCategories().join(', ');
+
+  const prompt = `You are reading a supplier invoice or delivery note for a cabinet-making business.
+Extract every line item that represents a cost. For each line item return a JSON array with objects:
+{ "desc": "short description", "supplier": "supplier name if visible", "category": "best matching category", "amount": number }
+
+Use these categories where possible: ${cats}
+
+Rules:
+- amount must be a number (no currency symbols)
+- If VAT is shown as a separate line, include it as category "VAT"
+- Skip page numbers, addresses, dates, reference numbers, terms — only cost lines
+- If a total/subtotal line is present, include it as category "Total" so the user can verify
+- Return ONLY valid JSON array, no other text, no markdown fences`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: docType, source: { type: 'base64', media_type: media, data: base64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const text = (data.content || []).map(b => b.text || '').join('');
+    let items;
+    try {
+      const clean = text.replace(/```json|```/g,'').trim();
+      items = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('Could not parse response — try a clearer PDF scan');
+    }
+
+    if (!items.length) {
+      status.innerHTML = '<span style="color:var(--text-muted)">No line items found in this document.</span>';
+      return;
+    }
+
+    status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
+
+    const cats_opts = plInvoiceCategories().map(c => `<option value="${c}">${c}</option>`).join('');
+    results.innerHTML = `
+      <div style="border:1px solid var(--border);margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
+          <span style="width:20px"></span>
+          <span style="flex:2">DESCRIPTION</span>
+          <span style="width:140px">CATEGORY</span>
+          <span style="width:100px;text-align:right">AMOUNT</span>
+        </div>
+        ${items.map((item, i) => {
+          const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
+          return `
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
+            <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
+            <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
+              id="pl-pdf-desc-${i}"
+              style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+            <select id="pl-pdf-cat-${i}" style="width:140px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
+              ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
+              style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('pl-pdf-overlay').remove()"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
+          CANCEL
+        </button>
+        <button onclick="plImportSelectedLines(${JSON.stringify(jobId)},${items.length})"
+          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
+          ＋ IMPORT SELECTED
+        </button>
+      </div>`;
+
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message}</span>`;
+  }
+}
+
+function plImportSelectedLines(jobId, count) {
+  if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
+  let added = 0;
+  for (let i = 0; i < count; i++) {
+    const chk = document.getElementById('pl-pdf-chk-' + i);
+    if (!chk || !chk.checked) continue;
+    const desc   = document.getElementById('pl-pdf-desc-' + i)?.value.trim() || '';
+    const cat    = document.getElementById('pl-pdf-cat-'  + i)?.value || 'Other';
+    const amount = parseFloat(document.getElementById('pl-pdf-amt-' + i)?.value) || 0;
+    if (!desc && !amount) continue;
+    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier:'', category:cat, amount });
+    added++;
+  }
+  plSave();
+  document.getElementById('pl-pdf-overlay')?.remove();
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+
 // ── Render ─────────────────────────────────────────────────────────────────────
 function renderPLView() {
   const view = document.getElementById('pl-view');
@@ -14246,17 +14408,8 @@ function renderPLView() {
   } else if (selJobId) {
     // Try loading from current loaded state if this is the active job
     if (selJobId === currentJobId) {
-      // Must pass deep copies — plCalcFromState zeros globals before restoring,
-      // so passing live references would wipe the data before it can be read
-      try {
-        snap = plCalcFromState({
-          quantities:  JSON.parse(JSON.stringify(quantities)),
-          quoteState:  JSON.parse(JSON.stringify(quoteState)),
-          panelsState: JSON.parse(JSON.stringify(panelsState)),
-          userUnits:   JSON.parse(JSON.stringify(userUnits)),
-          customUnits: JSON.parse(JSON.stringify(customUnits))
-        });
-      } catch(e) { console.warn('PL snap error:', e); }
+      // Use captureState() — already produces a full deep-copy of all globals
+      try { snap = plCalcFromState(captureState()); } catch(e) { console.warn('PL snap error:', e); }
     }
   }
 
@@ -14283,9 +14436,9 @@ function renderPLView() {
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)">
-        <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:110px"
+        <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
           onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)">
-          ${['Boards','Edging','Hardware','Labour','Transport','Other'].map(c =>
+          ${plInvoiceCategories().map(c =>
             `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
@@ -14416,9 +14569,12 @@ function renderPLView() {
 
     <!-- Invoice entry section -->
     <div style="margin-bottom:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0;flex-wrap:wrap;gap:8px">
         <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">ACTUAL COSTS — INVOICE LINES</div>
-        <div style="font-size:11px;color:var(--text-muted)">Add every invoice or cost you paid for this job</div>
+        <button onclick="plOpenPDFImport('${selJobId}')"
+          style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer;white-space:nowrap">
+          📄 IMPORT PDF INVOICE
+        </button>
       </div>
       <div style="border:1px solid var(--border);border-top:none;margin-bottom:8px">
         ${invRowsHtml}
@@ -14435,8 +14591,8 @@ function renderPLView() {
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <select id="pl-new-cat"
-          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:110px">
-          ${['Boards','Edging','Hardware','Labour','Transport','Other'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px">
+          ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01"
