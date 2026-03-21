@@ -6059,7 +6059,7 @@ function renderQuoteView() {
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
 
   // Build section data — include sections that have selected units OR enabled addons
-  const activeSections = (!isAdmin() && userRooms.length > 0)
+  const activeSections = userRooms.length > 0
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionData = activeSections.map(sec => {
@@ -6813,7 +6813,10 @@ function computeQuoteTotals() {
 
   // Use the same per-unit approach as renderQuoteView (not pooled calcSectionCost)
   // so the P&L total always matches what the user sees on the Quote tab.
-  const activeSections = (!isAdmin() && userRooms.length > 0)
+  // Use userRooms if any are defined (restored from job state or current user's rooms).
+  // Do NOT gate on isAdmin() here — during P&L snapshot the viewer is superuser but
+  // the saved job may have been created by a regular user with custom rooms.
+  const activeSections = userRooms.length > 0
     ? userRooms.map(r => ({ id: r.id, label: r.name }))
     : sections;
 
@@ -14212,6 +14215,7 @@ function plCalcFromState(state) {
     panelsState:          JSON.parse(JSON.stringify(panelsState)),
     materialConfig:       JSON.parse(JSON.stringify(materialConfig)),
     unitMatOverrides:     JSON.parse(JSON.stringify(unitMatOverrides)),
+    sectionHardware:      JSON.parse(JSON.stringify(sectionHardware)),
     bedroomAddons:        JSON.parse(JSON.stringify(bedroomAddons)),
     costingPrices:        JSON.parse(JSON.stringify(costingPrices)),
     userUnits:            JSON.parse(JSON.stringify(userUnits)),
@@ -14248,6 +14252,11 @@ function plCalcFromState(state) {
     // unitMatOverrides
     Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
     if (st.unitMatOverrides) Object.assign(unitMatOverrides, st.unitMatOverrides);
+
+    // sectionHardware — controls whether hardware costs are included per section
+    // saved as 'sectionHardware' in getJobState() (Supabase) and captureState() doesn't have it
+    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+    if (st.sectionHardware) Object.assign(sectionHardware, st.sectionHardware);
 
     // bedroomAddons — all sections including custom rooms
     if (st.bedroomAddons) {
@@ -14316,6 +14325,9 @@ function plCalcFromState(state) {
 
     Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
     Object.assign(unitMatOverrides, snap.unitMatOverrides);
+
+    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+    Object.assign(sectionHardware, snap.sectionHardware);
 
     Object.keys(snap.bedroomAddons).forEach(sec => { bedroomAddons[sec] = snap.bedroomAddons[sec]; });
 
@@ -14586,7 +14598,7 @@ function renderPLPDFResults(items, jobId) {
         style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
         CANCEL
       </button>
-      <button onclick="plImportSelectedLines(${JSON.stringify(jobId)},${items.length})"
+      <button onclick="plImportSelectedLines('${jobId}',${items.length})"
         style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
         ＋ IMPORT SELECTED
       </button>
