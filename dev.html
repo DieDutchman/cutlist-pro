@@ -3061,6 +3061,31 @@ function buildMatSelector(groupIds) {
             <span style="font-size:10px;letter-spacing:0.5px">${hwOn ? 'Included' : 'Excluded'}</span>
             <span style="font-size:9px;color:${hwOn ? '#1a7a4a' : '#8a3030'};text-align:center;line-height:1.3">Hinges, Runners<br>&amp; Handles</span>
           </button>
+          ${hwOn ? `
+          <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Hinges</div>
+            <div style="display:flex;gap:3px">
+              <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'}">
+                SOFT
+              </button>
+              <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'}">
+                NORM
+              </button>
+            </div>
+            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Runners</div>
+            <div style="display:flex;gap:3px">
+              <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'}">
+                SOFT
+              </button>
+              <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'}">
+                NORM
+              </button>
+            </div>
+          </div>` : ''}
         </div>
       </div>
     </div>`;
@@ -6352,32 +6377,6 @@ function renderQuoteView() {
   const markupPct = Math.round(quoteState.markup * 100);
 
   const sideHtml = `
-    <div class="qv-card-title">Hardware Spec</div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">Hinges</div>
-      <div style="display:flex;gap:5px;margin-bottom:10px">
-        <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          SOFT CLOSE
-        </button>
-        <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          NORMAL
-        </button>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">Drawer Runners</div>
-      <div style="display:flex;gap:5px">
-        <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          SOFT CLOSE
-        </button>
-        <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          NORMAL
-        </button>
-      </div>
-    </div>
-
     <div class="qv-card-title">Markup</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <input type="range" class="wb-slider" min="20" max="100" step="1"
@@ -7150,6 +7149,7 @@ const costingPrices = {
     drilling:          8,
     skirtingPerM:     65,
     hPrice:         5.31,
+    edgeRoundPerPart: false, // false = round total per edge type (old); true = round per physical panel (per supplier invoice)
   },
   hardware: {
     hingeNormal:  22,
@@ -8996,6 +8996,24 @@ function saveCostingPrices() {
 }
 
 // Single source of truth for one panel row cost
+// Edging cost for a single edge — rounds per physical piece if edgeRoundPerPart is set
+function calcEdgeMeters(edgeLengthM, qty) {
+  if (costingPrices.extras.edgeRoundPerPart) {
+    // Round up each physical panel separately, then multiply
+    return Math.ceil(edgeLengthM) * qty;
+  }
+  // Original behaviour: accumulate raw, round at the end (caller does Math.ceil + 1)
+  return edgeLengthM * qty;
+}
+
+// Final rounding step — only applies in total-mode (per-part mode already rounded above)
+function finalRoundEdge(totalM) {
+  if (costingPrices.extras.edgeRoundPerPart) {
+    return totalM + 1; // still add 1m waste buffer, no extra ceil needed
+  }
+  return Math.ceil(totalM) + 1; // original: ceil then +1 buffer
+}
+
 function calcPanelCost(p) {
   const lM = p.l/1000, wM = p.w/1000;
   const withWaste  = lM * wM * p.qty * WASTE_FACTOR;
@@ -9008,11 +9026,11 @@ function calcPanelCost(p) {
   let hPriceCost   = (billedSh + wholeSh) * hPrice;
   const edgeMap = {};
   [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
-    if (k) edgeMap[k] = (edgeMap[k]||0) + l * p.qty;
+    if (k) edgeMap[k] = (edgeMap[k]||0) + calcEdgeMeters(l, p.qty);
   });
   let edgeCost = 0;
   Object.entries(edgeMap).forEach(([k,m]) => {
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     edgeCost   += rounded * (costingPrices.edge[k] || 0);
     hPriceCost += rounded * hPrice;
   });
@@ -9477,7 +9495,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
       [[rp.el1,lM],[rp.el2,lM],[rp.ew1,wM],[rp.ew2,wM]].forEach(([k,l]) => {
         if (k) {
           const ck = `${k}|${mat}`;
-          edgeM[ck] = (edgeM[ck] || 0) + l * totalQty;
+          edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(l, totalQty);
         }
       });
       const n = rp.name.toLowerCase();
@@ -9510,7 +9528,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
       [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l]) => {
         if (k) {
           const ck = `${k}|${item.mat}`;
-          edgeM[ck] = (edgeM[ck] || 0) + l * item.qty;
+          edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(l, item.qty);
         }
       });
     });
@@ -9531,7 +9549,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
     hPriceCost      += sheets * hPrice;
   });
   Object.entries(edgeM).forEach(([ck, m]) => {
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     edgeCost   += rounded * (costingPrices.edge[ck.split('|')[0]] || 0);
     hPriceCost += rounded * hPrice;
   });
@@ -9574,7 +9592,7 @@ function calcUnitCost(u, unitQty) {
     edgeLengths.forEach(([key, len]) => {
       if (key) {
         const comboKey = `${key}|${rp.mat}`;
-        edgeM[comboKey] = (edgeM[comboKey] || 0) + len * totalQty;
+        edgeM[comboKey] = (edgeM[comboKey] || 0) + calcEdgeMeters(len, totalQty);
       }
     });
 
@@ -9630,7 +9648,7 @@ function calcUnitCost(u, unitQty) {
   });
   Object.entries(edgeM).forEach(([comboKey, m]) => {
     const edgeKey = comboKey.split('|')[0];
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     const pricePerM = costingPrices.edge[edgeKey] || 0;
     edgeCost   += rounded * pricePerM;
     hPriceCost += rounded * hPrice;
@@ -10003,7 +10021,21 @@ function renderPricesView() {
 
       <!-- Cutting & Services -->
       <div style="margin-top:24px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Cutting &amp; Services</div>
+          ${admin ? `<div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--text-muted)">Edging billing:</span>
+            <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();renderPricesView()"
+              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${!costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
+              Per job total
+            </button>
+            <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();renderPricesView()"
+              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
+              Per panel
+            </button>
+            <span style="font-size:10px;color:var(--text-muted)" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices."">ℹ</span>
+          </div>` : `<span style="font-size:11px;color:var(--text-muted)">Edging: <strong style="color:var(--text)">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
@@ -11587,7 +11619,7 @@ function buildPanelsTotalsHTML() {
     edges.forEach(({ key, len }) => {
       if (!key) return;
       const ck = key + '|' + p.mat;
-      edgeM[ck] = (edgeM[ck] || 0) + len * p.qty;
+      edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(len, p.qty);
     });
   });
 
