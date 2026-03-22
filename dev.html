@@ -11286,18 +11286,21 @@ function saveSnapshots(snaps) {
 function captureState() {
   return {
     version: 2,
-    quantities:     JSON.parse(JSON.stringify(quantities)),
-    holesOverrides: JSON.parse(JSON.stringify(holesOverrides)),
-    materialConfig: JSON.parse(JSON.stringify(materialConfig)),
+    quantities:       JSON.parse(JSON.stringify(quantities)),
+    holesOverrides:   JSON.parse(JSON.stringify(holesOverrides)),
+    materialConfig:   JSON.parse(JSON.stringify(materialConfig)),
     unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
-    quoteState:     JSON.parse(JSON.stringify(quoteState)),
-    bedroomAddons:  JSON.parse(JSON.stringify(bedroomAddons)),
-    costingPrices:  JSON.parse(JSON.stringify(costingPrices)),
-    customUnits:    JSON.parse(JSON.stringify(customUnits)),
-    unitOverrides:  JSON.parse(JSON.stringify(unitOverrides)),
-    deletedUnits:   [...deletedUnits],
-    unitImages:     JSON.parse(JSON.stringify(unitImages)),
-    panelsState:    JSON.parse(JSON.stringify(panelsState)),
+    sectionHardware:  JSON.parse(JSON.stringify(sectionHardware)),
+    quoteState:       JSON.parse(JSON.stringify(quoteState)),
+    bedroomAddons:    JSON.parse(JSON.stringify(bedroomAddons)),
+    costingPrices:    JSON.parse(JSON.stringify(costingPrices)),
+    customUnits:      JSON.parse(JSON.stringify(customUnits)),
+    unitOverrides:    JSON.parse(JSON.stringify(unitOverrides)),
+    deletedUnits:     [...deletedUnits],
+    unitImages:       JSON.parse(JSON.stringify(unitImages)),
+    panelsState:      JSON.parse(JSON.stringify(panelsState)),
+    userRooms:        JSON.parse(JSON.stringify(userRooms)),
+    userUnits:        JSON.parse(JSON.stringify(userUnits)),
     job: {
       client:  document.getElementById('job-client')?.value  || '',
       house:   document.getElementById('job-house')?.value   || '',
@@ -14655,8 +14658,22 @@ function renderPLView() {
   } else if (selJobId) {
     // Try loading from current loaded state if this is the active job
     if (selJobId === currentJobId) {
-      // Use captureState() — already produces a full deep-copy of all globals
-      try { snap = plCalcFromState(captureState()); } catch(e) { console.warn('PL snap error:', e); }
+      // Current job is already live in globals — call computeQuoteTotals() directly.
+      // This guarantees a perfect match with the Quote tab (no snapshot risk).
+      try {
+        const t = computeQuoteTotals();
+        snap = {
+          costingTotal:   t.unitsTotal,
+          unitsTotal:     t.unitsTotal,
+          quoteGrand:     t.grand,
+          quoteMarkupAmt: t.unitsTotal * t.markup,
+          topsTotal:      t.topsTotal,
+          consult:        t.consultTotal,
+          diesel:         t.dieselTotal,
+          extras:         t.extrasTotal,
+          markup:         t.markup,
+        };
+      } catch(e) { console.warn('PL snap error:', e); }
     }
   }
 
