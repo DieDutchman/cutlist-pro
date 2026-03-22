@@ -14934,7 +14934,8 @@ function renderPLView() {
           value="${labourCost > 0 ? labourCost : ''}"
           style="width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:14px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateLabour('${selJobId}', this.value)">
+          oninput="plUpdateLabour('${selJobId}', this.value)"
+          onblur="plUpdateLabourDone('${selJobId}')">
         ${labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted)">No VAT — full amount deducted from profit</span>` : ''}
       </div>
     </div>
@@ -15115,7 +15116,10 @@ function plUpdateLabour(jobId, value) {
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
   plData[jobId].labourCost = parseFloat(value) || 0;
   plSave();
-  // Re-render just the result banners by triggering a full re-render
+}
+
+function plUpdateLabourDone(jobId) {
+  // Only re-render once the user finishes typing (on blur)
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
