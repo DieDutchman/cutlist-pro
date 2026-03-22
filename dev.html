@@ -14710,13 +14710,15 @@ function renderPLView() {
   }
 
   // Invoice totals — VAT-aware
+  const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
   const invoiceTotal      = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
   const invoiceVAT        = invoiceTotal * 15 / 115;           // input VAT claimable
-  const invoiceExclVAT    = invoiceTotal / 1.15;               // true cost excl VAT
+  const invoiceExclVAT    = invoiceTotal / 1.15;               // true material cost excl VAT
+  const totalCostExclVAT  = invoiceExclVAT + labourCost;       // full cost: materials excl VAT + labour
   const quoteExclVAT      = snap.quoteGrand;                   // quote is already excl VAT
-  const realProfit        = quoteExclVAT - invoiceExclVAT;     // apples vs apples
+  const realProfit        = quoteExclVAT - totalCostExclVAT;   // apples vs apples
   const realProfitMargin  = quoteExclVAT > 0 ? (realProfit / quoteExclVAT) * 100 : 0;
-  const costingVariance   = snap.costingTotal - invoiceExclVAT; // how far costing estimate was off
+  const costingVariance   = snap.costingTotal - invoiceExclVAT; // how far costing estimate was off (materials only)
 
   const profitColor  = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
@@ -14868,8 +14870,9 @@ function renderPLView() {
             </div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08));font-size:11px;color:var(--text-muted);line-height:1.8">
               <div style="display:flex;justify-content:space-between"><span>Quote (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">${R(quoteExclVAT)}</span></div>
-              <div style="display:flex;justify-content:space-between"><span>Cost (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(invoiceExclVAT)}</span></div>
-              <div style="display:flex;justify-content:space-between;color:#4caf82"><span>VAT claimable</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(invoiceVAT)}</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Materials (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(invoiceExclVAT)}</span></div>
+              ${labourCost > 0 ? `<div style="display:flex;justify-content:space-between"><span>Labour (no VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(labourCost)}</span></div>` : ''}
+              <div style="display:flex;justify-content:space-between;color:#4caf82"><span>VAT claimable on materials</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(invoiceVAT)}</span></div>
             </div>
           </div>
         </div>
@@ -14909,9 +14912,32 @@ function renderPLView() {
             <span><strong style="color:var(--text)">Net VAT payable to SARS</strong></span>
             <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text)">${R(snap.quoteGrand * 0.15 - invoiceVAT)}</span>
           </div>
+          ${labourCost > 0 ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.06));font-size:10px;color:var(--text-muted)">
+            Labour (R ${R(labourCost)}) has no VAT — not claimable, not payable.
+          </div>` : ''}
         </div>
       </div>
     </div>` : ''}
+
+    <!-- Labour costs section -->
+    <div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">LABOUR COSTS</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">What you paid workers to complete this job — no VAT, deducted directly from profit</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Total labour paid</span>
+        <span style="font-size:13px;color:var(--text-muted)">R</span>
+        <input type="number" min="0" step="0.01" placeholder="0.00"
+          value="${labourCost > 0 ? labourCost : ''}"
+          style="width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:14px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+          oninput="plUpdateLabour('${selJobId}', this.value)">
+        ${labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted)">No VAT — full amount deducted from profit</span>` : ''}
+      </div>
+    </div>
 
     <!-- Invoice entry section -->
     <div style="margin-bottom:24px">
@@ -14975,7 +15001,7 @@ function plSelectJob(jobId) {
   if (!view) return;
 
   if (jobId && !plData[jobId]) {
-    plData[jobId] = { invoices: [], notes: '' };
+    plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
     plSave();
   }
 
@@ -15081,6 +15107,15 @@ function plRemoveInvoice(jobId, invId) {
   if (!pd) return;
   pd.invoices = pd.invoices.filter(i => i.id !== invId);
   plSave();
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+function plUpdateLabour(jobId, value) {
+  if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
+  plData[jobId].labourCost = parseFloat(value) || 0;
+  plSave();
+  // Re-render just the result banners by triggering a full re-render
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
