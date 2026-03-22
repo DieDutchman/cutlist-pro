@@ -14652,29 +14652,29 @@ function renderPLView() {
   const invs = pd ? pd.invoices : [];
 
   // Calc snapshot totals
+  // IMPORTANT: check currentJobId FIRST — if this is the live job, always use
+  // computeQuoteTotals() directly so it matches the Quote tab exactly.
+  // Only fall back to the Supabase snapshot for jobs other than the current one.
   let snap = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0 };
-  if (selJob && selJob._state) {
-    try { snap = plCalcFromState(selJob._state); } catch(e) {}
-  } else if (selJobId) {
-    // Try loading from current loaded state if this is the active job
-    if (selJobId === currentJobId) {
-      // Current job is already live in globals — call computeQuoteTotals() directly.
-      // This guarantees a perfect match with the Quote tab (no snapshot risk).
-      try {
-        const t = computeQuoteTotals();
-        snap = {
-          costingTotal:   t.unitsTotal,
-          unitsTotal:     t.unitsTotal,
-          quoteGrand:     t.grand,
-          quoteMarkupAmt: t.unitsTotal * t.markup,
-          topsTotal:      t.topsTotal,
-          consult:        t.consultTotal,
-          diesel:         t.dieselTotal,
-          extras:         t.extrasTotal,
-          markup:         t.markup,
-        };
-      } catch(e) { console.warn('PL snap error:', e); }
-    }
+  if (selJobId && selJobId === currentJobId) {
+    // Live job — guaranteed match with Quote tab
+    try {
+      const t = computeQuoteTotals();
+      snap = {
+        costingTotal:   t.unitsTotal,
+        unitsTotal:     t.unitsTotal,
+        quoteGrand:     t.grand,
+        quoteMarkupAmt: t.unitsTotal * t.markup,
+        topsTotal:      t.topsTotal,
+        consult:        t.consultTotal,
+        diesel:         t.dieselTotal,
+        extras:         t.extrasTotal,
+        markup:         t.markup,
+      };
+    } catch(e) { console.warn('PL live calc error:', e); }
+  } else if (selJob && selJob._state) {
+    // Different job — use saved state snapshot
+    try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
 
   // Invoice totals — VAT-aware
@@ -14947,11 +14947,34 @@ function plSelectJob(jobId) {
     plSave();
   }
 
-  // Load full job state for snapshot calculation
+  // If currentJobId is null but this job's client/house matches the job bar,
+  // treat it as the current job so we use computeQuoteTotals() directly.
+  if (jobId && !currentJobId) {
+    const barClient  = document.getElementById('job-client')?.value.trim()  || '';
+    const barHouse   = document.getElementById('job-house')?.value.trim()   || '';
+    const candidate  = sbJobs.find(j => j.id === jobId);
+    if (candidate) {
+      const candClient = (candidate.client || '').trim();
+      const candHouse  = (candidate.house  || '').trim();
+      // Match on client+house, or if both are blank treat as same blank job
+      if (candClient === barClient && candHouse === barHouse) {
+        currentJobId = jobId;
+      }
+    }
+  }
+
+  // If this is the current live job, skip the Supabase fetch — we'll use
+  // computeQuoteTotals() directly in renderPLView for a guaranteed match.
+  if (jobId && jobId === currentJobId) {
+    view._selectedJobId = jobId;
+    renderPLView();
+    return;
+  }
+
+  // Load full job state from Supabase for snapshot calculation of other jobs
   if (jobId) {
     const existing = sbJobs.find(j => j.id === jobId);
     if (existing && !existing._state) {
-      // Fetch full job state from Supabase
       fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() })
         .then(r => r.json())
         .then(rows => {
