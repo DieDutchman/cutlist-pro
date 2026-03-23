@@ -14731,13 +14731,16 @@ function renderPLView() {
         <input type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
           style="flex:2;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)">
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
         <input type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)">
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
         <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
-          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)">
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
           ${plInvoiceCategories().map(c =>
             `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
         </select>
@@ -14745,7 +14748,8 @@ function renderPLView() {
         <input type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
           style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)">
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
         <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')"
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>
       </div>`).join('');
@@ -15096,11 +15100,13 @@ function plUpdateInvoice(jobId, invId, field, value) {
   if (!inv) return;
   inv[field] = field === 'amount' ? (parseFloat(value)||0) : value;
   plSave();
-  // Only re-render totals for amount changes (avoid cursor jump on text fields)
-  if (field === 'amount') {
-    const view = document.getElementById('pl-view');
-    if (view) { const jid = view._selectedJobId; renderPLView(); view._selectedJobId = jid; renderPLView(); }
-  }
+  // Never re-render while typing — update is saved, re-render deferred to blur
+}
+
+function plInvoiceBlur(jobId) {
+  // Re-render totals once the user leaves any invoice field
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
 
 function plRemoveInvoice(jobId, invId) {
