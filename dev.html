@@ -2237,6 +2237,36 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════
+// SCROLL PRESERVATION — prevents page jumping when inputs re-render views
+// ═══════════════════════════════════════════════════════════
+// Wrap any function that rebuilds innerHTML to preserve scroll + focus
+function withScrollLock(fn) {
+  // Save scroll position of the main scrollable area and the window
+  const mainEl   = document.querySelector('.main') || document.documentElement;
+  const winScrollY   = window.scrollY;
+  const mainScrollTop = mainEl.scrollTop;
+
+  // Save focused element info so we can restore focus after render
+  const focused   = document.activeElement;
+  const focusedId = focused?.id || null;
+  const focusedSel = focused && focused !== document.body
+    ? focused.getAttribute('data-restore-focus') || null
+    : null;
+
+  fn();
+
+  // Restore scroll
+  window.scrollTo(0, winScrollY);
+  if (mainEl !== document.documentElement) mainEl.scrollTop = mainScrollTop;
+
+  // Restore focus if the element still exists (it may have been re-rendered)
+  if (focusedId) {
+    const el = document.getElementById(focusedId);
+    if (el) { try { el.focus(); } catch(e) {} }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // BAKED STATE — replaced on "Save as HTML" export
 // ═══════════════════════════════════════════════════════════
 const BAKED_STATE = null;
@@ -3337,7 +3367,8 @@ function switchTab(btn, section) {
   renderPanel();
 }
 
-function renderPanel() {
+function renderPanel() { withScrollLock(_renderPanel); }
+function _renderPanel() {
   // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
   if (!isAdmin() && userRooms.length === 0) return;
 
@@ -6134,7 +6165,8 @@ function saveQuoteState() {
 
 function fmt(n) { return 'R ' + Math.round(n).toLocaleString('en-ZA'); }
 
-function renderQuoteView() {
+function renderQuoteView() { withScrollLock(_renderQuoteView); }
+function _renderQuoteView() {
   const allUnits = getEffectiveUnits();
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
 
@@ -9773,7 +9805,8 @@ function refreshPriceViews() {
   if (document.getElementById('materials-view').style.display !== 'none') renderMaterialsView();
 }
 
-function renderPricesView() {
+function renderPricesView() { withScrollLock(_renderPricesView); }
+function _renderPricesView() {
   const admin = canEditPrices();
   const ro    = admin ? '' : 'readonly style="opacity:1;cursor:default;pointer-events:none;background:var(--bg2);border-color:var(--border)"';
   const roBtn = admin ? '' : 'disabled style="display:none"';
@@ -10518,7 +10551,8 @@ function loadSpecialServicesFromSupabase(rows) {
 }
 
 
-function renderMaterialsView() {
+function renderMaterialsView() { withScrollLock(_renderMaterialsView); }
+function _renderMaterialsView() {
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
 
@@ -10674,7 +10708,8 @@ function quickAddHardware(cat, name) {
   if (priceEl) { priceEl.value = ''; priceEl.style.borderColor = 'var(--amber)'; priceEl.focus(); }
 }
 
-function renderCostingView() {
+function renderCostingView() { withScrollLock(_renderCostingView); }
+function _renderCostingView() {
   try {
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
@@ -11182,7 +11217,8 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   </div>`;
 }
 
-function refreshCostingResults() {
+function refreshCostingResults() { withScrollLock(_refreshCostingResults); }
+function _refreshCostingResults() {
   // Re-render only the main panel results, leaving sidebar inputs untouched
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
@@ -11781,7 +11817,8 @@ function fuzzyMatchEdge(val) {
   return '';
 }
 
-function renderImportView() {
+function renderImportView() { withScrollLock(_renderImportView); }
+function _renderImportView() {
   const iv = document.getElementById('import-view');
   if (!iv) return;
 
@@ -12801,7 +12838,8 @@ function importIntoPanels() {
   if (panelsBtn) switchTab(panelsBtn, '__panels__');
 }
 
-function renderPanelsView() {
+function renderPanelsView() { withScrollLock(_renderPanelsView); }
+function _renderPanelsView() {
   const pv = document.getElementById('panels-view');
   if (!pv) return;
 
@@ -14030,7 +14068,8 @@ function build3DView() {
 
 
 
-function renderBuilderView() {
+function renderBuilderView() { withScrollLock(_renderBuilderView); }
+function _renderBuilderView() {
   const bv = document.getElementById('builder-view');
   if (!bv) return;
 
@@ -14335,7 +14374,15 @@ function drawerInput(key, val) {
   drawerRedraw();
 }
 function drawerRedraw() {
-  if (_builderMode === 'drawer') renderBuilderView();
+  if (_builderMode !== 'drawer') return;
+  // Save left panel scroll before re-render, restore after
+  const panel = document.querySelector('#builder-view .bldr-panel');
+  const panelScroll = panel ? panel.scrollTop : 0;
+  renderBuilderView();
+  requestAnimationFrame(() => {
+    const p = document.querySelector('#builder-view .bldr-panel');
+    if (p) p.scrollTop = panelScroll;
+  });
 }
 
 // ── Core geometry ────────────────────────────────────────────────────────────
@@ -15151,7 +15198,8 @@ function plImportSelectedLines(jobId, count) {
 
 
 // ── Render ─────────────────────────────────────────────────────────────────────
-function renderPLView() {
+function renderPLView() { withScrollLock(_renderPLView); }
+function _renderPLView() {
   const view = document.getElementById('pl-view');
   if (!view) return;
 
