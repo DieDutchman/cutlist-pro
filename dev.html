@@ -12987,6 +12987,7 @@ const drawerState = {
   drawerCount:   4,
   potTopHeight: 192,  // face height of the small top drawer in pot mode
   customHeights: [],  // used when drawerType === 'custom'
+  topType:     'solid', // 'solid' | 'nailers'
   hasBacking: true,
   materials: {
     carcass:    'White Melamine',
@@ -14367,6 +14368,35 @@ function drawerNum(key, val) {
   obj[keys[keys.length-1]] = v;
   drawerRedraw();
 }
+// Update a custom drawer height live (SVG only), full redraw on blur
+function drawerCustomHeightInput(idx, val) {
+  const v = parseFloat(val); if (isNaN(v)) return;
+  const ds = drawerState;
+  const fh = drawerFaceHeights();
+  if (!ds.customHeights || ds.customHeights.length !== ds.drawerCount) {
+    ds.customHeights = [...fh];
+  }
+  ds.customHeights[idx] = v;
+  // Refresh SVGs in place
+  const frontWrap = document.querySelector('#builder-view .bldr-svg-wrap');
+  if (frontWrap) frontWrap.innerHTML = drawerSVG();
+  const sideWrap = document.querySelector('#builder-view .bldr-svg-side-wrap');
+  if (sideWrap) sideWrap.innerHTML = drawerSideSVG();
+}
+function drawerNumInput(key, val) {
+  const v = parseFloat(val); if (isNaN(v)) return;
+  const keys = key.split('.'); let obj = drawerState;
+  keys.slice(0,-1).forEach(k => obj=obj[k]);
+  obj[keys[keys.length-1]] = v;
+  // Update SVG previews in place
+  const frontWrap = document.querySelector('#builder-view .bldr-svg-wrap');
+  if (frontWrap) frontWrap.innerHTML = drawerSVG();
+  const sideWrap = document.querySelector('#builder-view .bldr-svg-side-wrap');
+  if (sideWrap) sideWrap.innerHTML = drawerSideSVG();
+  // Update dims badge
+  const badge = document.querySelector('#builder-view .bldr-dims-badge');
+  if (badge) badge.textContent = `${drawerState.width}W × ${drawerState.height}H × ${drawerState.depth}D mm`;
+}
 function drawerInput(key, val) {
   const keys = key.split('.'); let obj = drawerState;
   keys.slice(0,-1).forEach(k => obj=obj[k]);
@@ -14400,9 +14430,9 @@ function drawerFaceHeights() {
   const n  = ds.drawerCount;
   const fg = ds.faceGap; // gap between faces
 
-  // Total face space = full carcass height (faces overlay, no T deduction)
-  // faces fill from bottom flush, gaps between them
-  const totalForGaps = (n - 1) * fg;
+  // Total face space = carcass height minus all gaps
+  // Gaps: (n-1) between faces + 1 at the top (top gap = faceGap)
+  const totalForGaps = n * fg;  // n gaps total: (n-1) between faces + 1 above top face
   const available    = H - totalForGaps; // space for all faces combined
 
   if (ds.drawerType === 'equal') {
@@ -14438,12 +14468,13 @@ function drawerFaceHeights() {
 function drawerGapCheck() {
   const ds = drawerState;
   const fh = drawerFaceHeights();
-  const total = fh.reduce((s,h)=>s+h,0) + (ds.drawerCount-1)*ds.faceGap;
+  const total = fh.reduce((s,h)=>s+h,0) + n*ds.faceGap; // n gaps: (n-1) between + 1 top
   return { total, diff: ds.height - total };
 }
 
-// ── SVG preview ───────────────────────────────────────────────────────────────
+// ── SVG preview ───────────────────────────────────────────────────────────
 // Faces are shown OVERLAPPING the carcass (flush outside, no inset)
+// Bottom face is flush with carcass bottom; top gap = faceGap above top face
 function drawerSVG() {
   const ds  = drawerState;
   const W   = ds.width, H = ds.height, T = ds.thickness;
@@ -14458,27 +14489,120 @@ function drawerSVG() {
   const fgPx = Math.max(1, Math.round(fg * SCALE));
 
   // Draw faces bottom to top (index 0 = bottom)
+  // Bottom face is flush; top gap (= faceGap) sits above the top face
   let faceSVG = '';
-  let yPx = sh; // start at bottom
+  let yPx = sh; // start at bottom (flush)
   fh.forEach((h, i) => {
     const hPx = Math.round(h * SCALE);
     yPx -= hPx;
-    faceSVG += `<rect x="${sgPx}" y="${yPx}" width="${fwPx}" height="${hPx - (i < fh.length-1 ? fgPx : 0)}" rx="1"
+    faceSVG += `<rect x="${sgPx}" y="${yPx}" width="${fwPx}" height="${hPx}" rx="1"
       fill="rgba(212,145,58,0.18)" stroke="var(--amber)" stroke-width="1.5"/>
-    <text x="${sw/2}" y="${yPx + hPx/2 - (i < fh.length-1 ? fgPx/2 : 0)}" text-anchor="middle"
+    <text x="${sw/2}" y="${yPx + hPx/2}" text-anchor="middle"
       dominant-baseline="middle" font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">${h}mm</text>`;
-    yPx -= (i < fh.length-1 ? fgPx : 0);
+    yPx -= fgPx; // gap above each face (including the top gap above last face)
   });
 
   return `<svg viewBox="0 0 ${sw+20} ${sh+20}" width="${sw+20}" height="${sh+20}" xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(0,10)">
-    <!-- Carcass sides (shown behind faces) -->
+    <!-- Carcass outline -->
     <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
     <!-- Drawer faces (overlay) -->
     ${faceSVG}
     <!-- Width dim -->
     <line x1="0" y1="${sh+6}" x2="${sw}" y2="${sh+6}" stroke="var(--text-muted)" stroke-width="0.5"/>
     <text x="${sw/2}" y="${sh+16}" text-anchor="middle" font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${W}mm</text>
+    </g>
+  </svg>`;
+}
+
+// ── Side view SVG ─────────────────────────────────────────────────────────────
+function drawerSideSVG() {
+  const ds  = drawerState;
+  const H   = ds.height, D = ds.depth, T = ds.thickness;
+  const DD  = ds.drawerDepth;
+  const fh  = drawerFaceHeights();
+  const fg  = ds.faceGap;
+
+  // Scale so the SVG fits roughly 160px wide × 260px tall
+  const SCALE  = Math.min(160 / D, 260 / H);
+  const sh     = Math.round(H * SCALE);   // total height in px
+  const sd     = Math.round(D * SCALE);   // total depth in px
+  const tPx    = Math.round(T * SCALE);   // panel thickness in px
+  const fgPx   = Math.max(1, Math.round(fg * SCALE));
+  const ddPx   = Math.round(DD * SCALE);  // drawer box depth in px
+
+  // ── Side view orientation ────────────────────────────────────────────────
+  // x = 0  → BACK of cabinet (back panel)
+  // x = sd → FRONT of cabinet (face/door side)
+
+  // Bottom panel
+  const botY = sh - tPx;
+
+  // ── Drawer box outlines (dashed, amber tint) ─────────────────────────────
+  // Boxes start just inside the front panel and extend ddPx towards the back.
+  // Vertically they sit between bottom panel and bottom of their face, offset
+  // by the 8mm runner clearance at the top of each box.
+  let boxSVG = '';
+  let yPx = sh - tPx; // cursor starts at top of bottom panel
+  fh.forEach(h => {
+    const hPx    = Math.round(h * SCALE);
+    yPx -= hPx;                                         // move up by face height
+    const boxH   = Math.max(4, Math.round((h - 16) * SCALE));
+    const boxTop = yPx + Math.round(8 * SCALE);        // 8mm runner clearance
+    const boxX   = sd - tPx - ddPx;                    // boxes extend from front inward
+    boxSVG += `<rect x="${Math.max(tPx, boxX)}" y="${boxTop}" width="${Math.min(ddPx, sd - 2*tPx)}" height="${boxH}" rx="1"
+      fill="rgba(212,145,58,0.08)" stroke="rgba(212,145,58,0.45)" stroke-width="1" stroke-dasharray="3,2"/>`;
+    yPx -= fgPx;
+  });
+
+  // ── Top: solid board or front + back nailers ─────────────────────────────
+  // Nailers occupy the top-panel slot (y=0, height=tPx) but only span their
+  // own depth within the inner space (between back and front carcass panels).
+  //   Back nailer  – 70mm deep, sits against the back panel
+  //   Front nailer – 100mm deep, sits against the front panel
+  let topSVG = '';
+  if (ds.topType === 'nailers') {
+    const backNW  = Math.max(3, Math.round(70  * SCALE)); // 70mm from back
+    const frontNW = Math.max(3, Math.round(100 * SCALE)); // 100mm from front
+    const innerX  = tPx;                       // inner space starts after back panel
+    const frontX  = sd - tPx - frontNW;        // front nailer butts against front panel
+    topSVG = `
+      <rect x="${innerX}" y="0" width="${backNW}" height="${tPx}"
+        fill="rgba(255,255,255,0.14)" stroke="var(--border-light)" stroke-width="1"/>
+      <text x="${innerX + backNW/2}" y="${tPx/2}" dominant-baseline="middle"
+        text-anchor="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">70</text>
+      <rect x="${frontX}" y="0" width="${frontNW}" height="${tPx}"
+        fill="rgba(255,255,255,0.14)" stroke="var(--border-light)" stroke-width="1"/>
+      <text x="${frontX + frontNW/2}" y="${tPx/2}" dominant-baseline="middle"
+        text-anchor="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">100</text>`;
+  } else {
+    topSVG = `<rect x="0" y="0" width="${sd}" height="${tPx}"
+      fill="rgba(255,255,255,0.12)" stroke="var(--border-light)" stroke-width="1"/>`;
+  }
+
+  return `<svg viewBox="0 0 ${sd+32} ${sh+28}" width="${sd+32}" height="${sh+28}" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(0,10)">
+    <!-- Back panel -->
+    <rect x="0" y="0" width="${tPx}" height="${sh}" fill="rgba(255,255,255,0.10)" stroke="var(--border-light)" stroke-width="1"/>
+    <!-- Front panel (face side) -->
+    <rect x="${sd - tPx}" y="0" width="${tPx}" height="${sh}" fill="rgba(255,255,255,0.10)" stroke="var(--border-light)" stroke-width="1"/>
+    <!-- Top (solid or nailers) -->
+    ${topSVG}
+    <!-- Bottom panel -->
+    <rect x="0" y="${botY}" width="${sd}" height="${tPx}" fill="rgba(255,255,255,0.12)" stroke="var(--border-light)" stroke-width="1"/>
+    <!-- Drawer boxes -->
+    ${boxSVG}
+    <!-- BACK / FRONT labels -->
+    <text x="${tPx/2}" y="${sh+12}" text-anchor="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">BACK</text>
+    <text x="${sd - tPx/2}" y="${sh+12}" text-anchor="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">FRONT</text>
+    <!-- Depth dim line (below labels) -->
+    <line x1="0" y1="${sh+4}" x2="${sd}" y2="${sh+4}" stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sd/2}" y="${sh+14}" text-anchor="middle" font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${D}mm</text>
+    <!-- Height dim -->
+    <line x1="${sd+4}" y1="0" x2="${sd+4}" y2="${sh}" stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sd+15}" y="${sh/2}" text-anchor="middle" dominant-baseline="middle" font-size="8"
+      fill="var(--text-muted)" font-family="JetBrains Mono,monospace"
+      transform="rotate(90 ${sd+15} ${sh/2})">${H}mm</text>
     </g>
   </svg>`;
 }
@@ -14507,7 +14631,8 @@ function renderDrawerBuilderHTML() {
     <div class="bldr-row">
       <span class="bldr-label" style="font-size:11px">Drawer ${i+1} ${i===0?'(bottom)':i===fh.length-1?'(top)':''}</span>
       <input class="bldr-input" type="number" min="50" max="800" value="${h}"
-        oninput="if(!drawerState.customHeights||drawerState.customHeights.length!==${ds.drawerCount})drawerState.customHeights=[${fh.join(',')}];drawerState.customHeights[${i}]=parseFloat(this.value)||${h};drawerRedraw()">
+        oninput="drawerCustomHeightInput(${i},this.value)"
+        onblur="drawerRedraw()">
       <span class="bldr-unit">mm</span>
     </div>`).join('') : '';
 
@@ -14527,20 +14652,31 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-head">📦 Carcass</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Width</span>
-            <input class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNum('width',this.value)">
+            <input class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNumInput('width',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Height</span>
-            <input class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNum('height',this.value)">
+            <input class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNumInput('height',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Depth</span>
-            <input class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNum('depth',this.value)">
+            <input class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNumInput('depth',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
-            <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNum('thickness',this.value)">
+            <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Drawer depth</span>
-            <input class="bldr-input" type="number" value="${ds.drawerDepth}" min="200" max="700" oninput="drawerNum('drawerDepth',this.value)">
+            <input class="bldr-input" type="number" value="${ds.drawerDepth}" min="200" max="700" oninput="drawerNumInput('drawerDepth',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
+          <!-- Top type: solid or nailers -->
+          <div style="margin-top:8px;margin-bottom:4px">
+            <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
+            <div style="display:flex;gap:4px">
+              <button onclick="drawerInput('topType','solid');drawerRedraw()"
+                style="flex:1;padding:5px 0;border:1px solid ${ds.topType==='solid'?'var(--amber)':'var(--border)'};background:${ds.topType==='solid'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.topType==='solid'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">SOLID</button>
+              <button onclick="drawerInput('topType','nailers');drawerRedraw()"
+                style="flex:1;padding:5px 0;border:1px solid ${ds.topType==='nailers'?'var(--amber)':'var(--border)'};background:${ds.topType==='nailers'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.topType==='nailers'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">NAILERS</button>
+            </div>
+            ${ds.topType==='nailers'?`<div style="font-size:10px;color:var(--text-muted);line-height:1.6;margin-top:4px">Front: ${ds.width - 2*ds.thickness} × 100mm<br>Back: ${ds.width - 2*ds.thickness} × 70mm</div>`:''}
+          </div>
           <div class="bldr-check-row">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
               <input type="checkbox" ${ds.hasBacking?'checked':''} onchange="drawerInput('hasBacking',this.checked)" style="accent-color:var(--amber)">
@@ -14555,19 +14691,19 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-body">
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between face edge and carcass edge on each side">Side gap</span>
-            <input class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNum('sideGap',this.value)">
+            <input class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('sideGap',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
             Face width = ${ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
           </div>
           <div class="bldr-row">
-            <span class="bldr-label" title="Gap between drawer faces">Face gap</span>
-            <input class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNum('faceGap',this.value)">
+            <span class="bldr-label" title="Gap between drawer faces + gap above top face">Face gap</span>
+            <input class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('faceGap',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
-            Bottom face flush with carcass bottom
+            Bottom face flush · top gap = face gap (${ds.faceGap}mm)
           </div>
         </div>
       </div>
@@ -14586,7 +14722,7 @@ function renderDrawerBuilderHTML() {
           ${ds.drawerType === 'pot' ? `
           <div class="bldr-row" style="margin-top:4px">
             <span class="bldr-label" style="font-size:11px">Top face H</span>
-            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNum('potTopHeight',this.value)">
+            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNumInput('potTopHeight',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>` : ''}
           ${customRows}
@@ -14623,13 +14759,22 @@ function renderDrawerBuilderHTML() {
 
     <!-- MIDDLE: Preview -->
     <div class="bldr-preview">
-      <div class="bldr-title">Preview — Front View</div>
+      <div class="bldr-title">Preview</div>
       <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Faces overlay carcass · bottom face flush</div>
-      <div class="bldr-svg-wrap">${drawerSVG()}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Faces overlay carcass · bottom flush · top gap = face gap</div>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">FRONT VIEW</div>
+          <div class="bldr-svg-wrap">${drawerSVG()}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">SIDE VIEW</div>
+          <div class="bldr-svg-side-wrap">${drawerSideSVG()}</div>
+        </div>
+      </div>
       <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
         <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
-        <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong></div>
+        <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
         ${fh.map((h,i)=>`<div>Drawer ${i+1}${i===0?' (bottom)':i===fh.length-1?' (top)':''}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
       </div>
     </div>
@@ -14683,7 +14828,13 @@ function drawerCalcParts() {
   const parts = [];
 
   // ── Carcass ──────────────────────────────────────────────────────────────
-  parts.push(p('Top Panel',    1, W, D, cm, ce, ce, ce, ce));
+  if (ds.topType === 'nailers') {
+    const innerW2 = W - 2 * T;
+    parts.push(p('Front Nailer (Top)', 1, innerW2, 100, cm, ce));
+    parts.push(p('Back Nailer (Top)',  1, innerW2,  70, cm, ce));
+  } else {
+    parts.push(p('Top Panel', 1, W, D, cm, ce, ce, ce, ce));
+  }
   parts.push(p('Bottom Panel', 1, W, D, cm, ce, '', ce, ce));
   parts.push(p('Sides',        2, H, D, cm, ce));
   if (ds.hasBacking) parts.push(p('Backing', 1, H, W, '3MM White Masonite'));
