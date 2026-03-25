@@ -12938,17 +12938,17 @@ let _builderMode = 'unit'; // 'unit' | 'drawer'
 
 // ── Drawer Builder State ──────────────────────────────────────────────────────
 const drawerState = {
-  width:      600,
-  height:     780,
-  depth:      560,
-  thickness:  16,
-  drawerDepth:500,  // internal drawer box depth
-  drawerType: 'equal',    // 'equal' | 'pot' | 'custom'
-  drawerCount: 4,
-  // pot drawer: top drawer is small, rest are large
-  potTopHeight: 150,  // face height of the small top drawer
-  // custom: array of face heights (auto-computed initially, user can override)
-  customHeights: [],
+  width:       600,
+  height:      780,
+  depth:       560,
+  thickness:    16,
+  drawerDepth: 500,   // internal drawer box depth (mm)
+  sideGap:       2,   // mm between face edge and carcass edge (each side)
+  faceGap:       4,   // mm gap between drawer faces
+  drawerType:  'equal',  // 'equal' | 'pot' | 'custom'
+  drawerCount:   4,
+  potTopHeight: 192,  // face height of the small top drawer in pot mode
+  customHeights: [],  // used when drawerType === 'custom'
   hasBacking: true,
   materials: {
     carcass:    'White Melamine',
@@ -14335,125 +14335,147 @@ function drawerInput(key, val) {
   drawerRedraw();
 }
 function drawerRedraw() {
-  const bv = document.getElementById('builder-view');
-  if (!bv || _builderMode !== 'drawer') return;
-  const modeBar = bv.querySelector('div[style*="border-bottom:1px solid var(--border)"]');
-  if (modeBar) modeBar.outerHTML; // keep
-  bv.innerHTML = bv.innerHTML.replace(/<div style="display:flex.*?DRAWER BUILDER[\s\S]*?<\/div>/, '');
-  // Just fully re-render
-  renderBuilderView();
+  if (_builderMode === 'drawer') renderBuilderView();
 }
 
-// Compute face heights for each drawer
+// ── Core geometry ────────────────────────────────────────────────────────────
+// Faces sit on the FRONT of the carcass (overlay style):
+//   face width  = carcass width − 2 × sideGap
+//   bottom face is flush with carcass bottom
+//   gaps between faces are equal, calculated from remaining height
+function drawerFaceWidth() {
+  return drawerState.width - 2 * drawerState.sideGap;
+}
+
 function drawerFaceHeights() {
   const ds = drawerState;
-  const T = ds.thickness;
-  const totalFaceH = ds.height - 2 * T - 3; // available face space minus small gaps
-  const gapCount   = ds.drawerCount - 1;
-  const totalGaps  = gapCount * 2; // 2mm gap between drawers
-  const available  = totalFaceH - totalGaps;
+  const H  = ds.height;
+  const n  = ds.drawerCount;
+  const fg = ds.faceGap; // gap between faces
+
+  // Total face space = full carcass height (faces overlay, no T deduction)
+  // faces fill from bottom flush, gaps between them
+  const totalForGaps = (n - 1) * fg;
+  const available    = H - totalForGaps; // space for all faces combined
 
   if (ds.drawerType === 'equal') {
-    const h = Math.floor(available / ds.drawerCount);
-    return Array(ds.drawerCount).fill(h);
+    const h = Math.floor(available / n);
+    const rem = available - h * n; // leftover added to top drawer
+    return Array(n).fill(h).map((v, i) => i === n-1 ? v + rem : v);
   }
 
   if (ds.drawerType === 'pot') {
-    // Top drawer is small (fixed), rest are equal large
+    // Top drawer fixed height, rest equal
     const topH  = ds.potTopHeight;
-    const large = ds.drawerCount - 1;
-    const restH = Math.floor((available - topH) / large);
-    return [topH, ...Array(large).fill(restH)];
+    const large = n - 1;
+    const restAvail = available - topH;
+    const h = Math.floor(restAvail / large);
+    const rem = restAvail - h * large;
+    // Bottom drawers first (large), top drawer last
+    const heights = Array(large).fill(h);
+    heights[large - 1] += rem;
+    heights.push(topH); // top drawer at end of array = visually top
+    return heights;
   }
 
   if (ds.drawerType === 'custom') {
-    if (ds.customHeights.length !== ds.drawerCount) {
-      // Initialise from equal
-      const h = Math.floor(available / ds.drawerCount);
-      drawerState.customHeights = Array(ds.drawerCount).fill(h);
+    if (!ds.customHeights || ds.customHeights.length !== n) {
+      const h = Math.floor(available / n);
+      drawerState.customHeights = Array(n).fill(h);
     }
-    return ds.customHeights;
+    return drawerState.customHeights;
   }
-  return [];
+  return Array(n).fill(Math.floor(available / n));
 }
 
-// Draw SVG preview of the drawer unit (front view)
+function drawerGapCheck() {
+  const ds = drawerState;
+  const fh = drawerFaceHeights();
+  const total = fh.reduce((s,h)=>s+h,0) + (ds.drawerCount-1)*ds.faceGap;
+  return { total, diff: ds.height - total };
+}
+
+// ── SVG preview ───────────────────────────────────────────────────────────────
+// Faces are shown OVERLAPPING the carcass (flush outside, no inset)
 function drawerSVG() {
-  const ds    = drawerState;
-  const T     = ds.thickness;
-  const W     = ds.width, H = ds.height;
+  const ds  = drawerState;
+  const W   = ds.width, H = ds.height, T = ds.thickness;
+  const fg  = ds.faceGap, sg = ds.sideGap;
+  const fh  = drawerFaceHeights();
+  const fw  = drawerFaceWidth();
+
   const SCALE = Math.min(200 / W, 280 / H);
-  const sw    = Math.round(W * SCALE), sh = Math.round(H * SCALE), st = Math.round(T * SCALE);
+  const sw = Math.round(W * SCALE), sh = Math.round(H * SCALE);
+  const fwPx = Math.round(fw * SCALE);
+  const sgPx = Math.round(sg * SCALE);
+  const fgPx = Math.max(1, Math.round(fg * SCALE));
 
-  const faceHeights = drawerFaceHeights();
-  const totalGaps = (ds.drawerCount - 1) * 2;
-  const totalFaceH = ds.height - 2 * T - 3;
-
+  // Draw faces bottom to top (index 0 = bottom)
   let faceSVG = '';
-  let y = st; // start after top panel
-  faceHeights.forEach((fh, i) => {
-    const fhPx = Math.round(fh * SCALE);
-    const gap  = i < faceHeights.length - 1 ? Math.round(2 * SCALE) : 0;
-    faceSVG += `<rect x="${st+2}" y="${y+2}" width="${sw-2*st-4}" height="${fhPx-2}" rx="1"
+  let yPx = sh; // start at bottom
+  fh.forEach((h, i) => {
+    const hPx = Math.round(h * SCALE);
+    yPx -= hPx;
+    faceSVG += `<rect x="${sgPx}" y="${yPx}" width="${fwPx}" height="${hPx - (i < fh.length-1 ? fgPx : 0)}" rx="1"
       fill="rgba(212,145,58,0.18)" stroke="var(--amber)" stroke-width="1.5"/>
-    <text x="${sw/2}" y="${y + fhPx/2 + 4}" text-anchor="middle" font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">${fh}mm</text>`;
-    y += fhPx + gap;
+    <text x="${sw/2}" y="${yPx + hPx/2 - (i < fh.length-1 ? fgPx/2 : 0)}" text-anchor="middle"
+      dominant-baseline="middle" font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">${h}mm</text>`;
+    yPx -= (i < fh.length-1 ? fgPx : 0);
   });
 
-  return `<svg viewBox="0 0 ${sw} ${sh}" width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">
-    <!-- Carcass outline -->
-    <rect x="0" y="0" width="${sw}" height="${sh}" rx="2" fill="none" stroke="var(--border-light)" stroke-width="1"/>
-    <!-- Top panel -->
-    <rect x="0" y="0" width="${sw}" height="${st}" fill="rgba(255,255,255,0.06)" stroke="var(--border)" stroke-width="1"/>
-    <!-- Bottom panel -->
-    <rect x="0" y="${sh-st}" width="${sw}" height="${st}" fill="rgba(255,255,255,0.06)" stroke="var(--border)" stroke-width="1"/>
-    <!-- Left side -->
-    <rect x="0" y="${st}" width="${st}" height="${sh-2*st}" fill="rgba(255,255,255,0.06)" stroke="var(--border)" stroke-width="1"/>
-    <!-- Right side -->
-    <rect x="${sw-st}" y="${st}" width="${st}" height="${sh-2*st}" fill="rgba(255,255,255,0.06)" stroke="var(--border)" stroke-width="1"/>
-    <!-- Drawer faces -->
+  return `<svg viewBox="0 0 ${sw+20} ${sh+20}" width="${sw+20}" height="${sh+20}" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(0,10)">
+    <!-- Carcass sides (shown behind faces) -->
+    <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
+    <!-- Drawer faces (overlay) -->
     ${faceSVG}
-    <!-- Dims -->
-    <text x="${sw/2}" y="${sh+14}" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${W}mm</text>
-    <text x="${sw+4}" y="${sh/2}" dominant-baseline="middle" font-size="9" fill="var(--text-muted)" font-family="JetBrains Mono,monospace" transform="rotate(90,${sw+10},${sh/2})">${H}mm</text>
+    <!-- Width dim -->
+    <line x1="0" y1="${sh+6}" x2="${sw}" y2="${sh+6}" stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sw/2}" y="${sh+16}" text-anchor="middle" font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${W}mm</text>
+    </g>
   </svg>`;
 }
 
+// ── HTML ──────────────────────────────────────────────────────────────────────
 function renderDrawerBuilderHTML() {
-  const ds = drawerState;
-  const T  = ds.thickness;
-  const faceHeights = drawerFaceHeights();
-  const totalFaceH  = ds.height - 2*T - 3;
-  const totalGaps   = (ds.drawerCount-1)*2;
-  const usedH       = faceHeights.reduce((s,h)=>s+h,0) + totalGaps;
-  const leftover    = totalFaceH - usedH + totalGaps;
+  const ds  = drawerState;
+  const fh  = drawerFaceHeights();
+  const fw  = drawerFaceWidth();
+  const chk = drawerGapCheck();
 
   const matOpts  = (sel) => MATS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
   const edgeOpts = (sel) => ['',...EDGES].map(e=>`<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
   const secOpts  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}]
     .map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
 
-  const typeBtn = (val, label) => `<button onclick="drawerState.drawerType='${val}';drawerState.customHeights=[];drawerRedraw()"
-    style="flex:1;padding:5px 0;border:1px solid ${ds.drawerType===val?'var(--amber)':'var(--border)'};background:${ds.drawerType===val?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerType===val?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">${label}</button>`;
+  const typeBtn = (val, label, title) =>
+    `<button onclick="drawerState.drawerType='${val}';drawerState.customHeights=[];drawerRedraw()" title="${title}"
+      style="flex:1;padding:5px 0;border:1px solid ${ds.drawerType===val?'var(--amber)':'var(--border)'};background:${ds.drawerType===val?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerType===val?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">${label}</button>`;
 
-  const countBtn = (n) => `<button onclick="drawerState.drawerCount=${n};drawerState.customHeights=[];drawerRedraw()"
-    style="flex:1;padding:5px 0;border:1px solid ${ds.drawerCount===n?'var(--amber)':'var(--border)'};background:${ds.drawerCount===n?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerCount===n?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">${n}</button>`;
+  const countBtn = (n) =>
+    `<button onclick="drawerState.drawerCount=${n};drawerState.customHeights=[];drawerRedraw()"
+      style="flex:1;padding:5px 0;border:1px solid ${ds.drawerCount===n?'var(--amber)':'var(--border)'};background:${ds.drawerCount===n?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerCount===n?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">${n}</button>`;
 
-  const customHeightRows = ds.drawerType === 'custom' ? faceHeights.map((h,i) => `
+  const customRows = ds.drawerType === 'custom' ? fh.map((h,i) => `
     <div class="bldr-row">
-      <span class="bldr-label">Drawer ${i+1}</span>
+      <span class="bldr-label" style="font-size:11px">Drawer ${i+1} ${i===0?'(bottom)':i===fh.length-1?'(top)':''}</span>
       <input class="bldr-input" type="number" min="50" max="800" value="${h}"
-        oninput="drawerState.customHeights[${i}]=parseFloat(this.value)||${h};drawerRedraw()">
+        oninput="if(!drawerState.customHeights||drawerState.customHeights.length!==${ds.drawerCount})drawerState.customHeights=[${fh.join(',')}];drawerState.customHeights[${i}]=parseFloat(this.value)||${h};drawerRedraw()">
       <span class="bldr-unit">mm</span>
     </div>`).join('') : '';
 
-  return `<div style="display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 112px);overflow:hidden">
+  const balanceColor = Math.abs(chk.diff) <= 1 ? 'var(--green)' : 'var(--red)';
+  const balanceMsg   = Math.abs(chk.diff) <= 1
+    ? `✓ Heights balanced (${ds.height}mm)`
+    : chk.diff > 0 ? `⚠ ${chk.diff}mm remaining — add to a drawer height`
+                   : `⚠ Over by ${Math.abs(chk.diff)}mm — reduce a drawer height`;
+
+  return `<div style="display:grid;grid-template-columns:280px 1fr 240px;height:calc(100vh - 112px);overflow:hidden">
 
     <!-- LEFT controls -->
     <div class="bldr-panel" style="border-right:var(--line)">
       <div class="bldr-title">Drawer Builder</div>
 
-      <!-- Carcass size -->
       <div class="bldr-section">
         <div class="bldr-section-head">📦 Carcass</div>
         <div class="bldr-section-body">
@@ -14481,44 +14503,50 @@ function renderDrawerBuilderHTML() {
         </div>
       </div>
 
-      <!-- Number of drawers -->
       <div class="bldr-section">
-        <div class="bldr-section-head">🔢 Number of Drawers</div>
+        <div class="bldr-section-head">↔ Spacing</div>
         <div class="bldr-section-body">
-          <div style="display:flex;gap:4px">
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between face edge and carcass edge on each side">Side gap</span>
+            <input class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNum('sideGap',this.value)">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
+            Face width = ${ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between drawer faces">Face gap</span>
+            <input class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNum('faceGap',this.value)">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
+            Bottom face flush with carcass bottom
+          </div>
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">🔢 Drawers</div>
+        <div class="bldr-section-body">
+          <div style="display:flex;gap:4px;margin-bottom:10px">
             ${[2,3,4,5].map(n=>countBtn(n)).join('')}
           </div>
-        </div>
-      </div>
-
-      <!-- Drawer type -->
-      <div class="bldr-section">
-        <div class="bldr-section-head">📐 Drawer Type</div>
-        <div class="bldr-section-body">
           <div style="display:flex;gap:4px;margin-bottom:8px">
-            ${typeBtn('equal','EQUAL')}
-            ${typeBtn('pot','POT')}
-            ${typeBtn('custom','CUSTOM')}
+            ${typeBtn('equal','EQUAL','All drawers the same height')}
+            ${typeBtn('pot','POT','Small top + large pot drawers')}
+            ${typeBtn('custom','CUSTOM','Set each drawer height manually')}
           </div>
-          <div style="font-size:10px;color:var(--text-muted);line-height:1.6">
-            ${ds.drawerType==='equal'?`All ${ds.drawerCount} drawers the same height`:
-              ds.drawerType==='pot'?`Top drawer small (${ds.potTopHeight}mm), ${ds.drawerCount-1} large pot drawers below`:
-              'Set each drawer face height individually'}
-          </div>
-          ${ds.drawerType==='pot' ? `
-          <div class="bldr-row" style="margin-top:8px">
-            <span class="bldr-label">Top face H</span>
-            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="80" max="300" oninput="drawerNum('potTopHeight',this.value)">
+          ${ds.drawerType === 'pot' ? `
+          <div class="bldr-row" style="margin-top:4px">
+            <span class="bldr-label" style="font-size:11px">Top face H</span>
+            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNum('potTopHeight',this.value)">
             <span class="bldr-unit">mm</span>
           </div>` : ''}
-          ${customHeightRows}
-          <div style="font-size:10px;color:${Math.abs(leftover)>3?'var(--red)':'var(--green)'};margin-top:6px">
-            ${Math.abs(leftover)<=3 ? '✓ Heights balanced' : leftover > 0 ? `⚠ ${leftover}mm unaccounted — adjust heights` : `⚠ Over by ${Math.abs(leftover)}mm — reduce heights`}
-          </div>
+          ${customRows}
+          <div style="font-size:10px;color:${balanceColor};margin-top:6px;padding:4px 6px;background:${Math.abs(chk.diff)<=1?'rgba(106,170,100,0.08)':'rgba(224,96,96,0.08)'};border-radius:2px">${balanceMsg}</div>
         </div>
       </div>
 
-      <!-- Materials -->
       <div class="bldr-section">
         <div class="bldr-section-head">🎨 Materials</div>
         <div class="bldr-section-body">
@@ -14533,8 +14561,7 @@ function renderDrawerBuilderHTML() {
         </div>
       </div>
 
-      <!-- Save -->
-      <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto">
+      <div style="padding:12px 16px;border-top:1px solid var(--border)">
         <div class="bldr-row" style="margin-bottom:8px">
           <span class="bldr-label">Name</span>
           <input class="bldr-input" type="text" value="${ds.unitName}" oninput="drawerState.unitName=this.value" placeholder="Unit name">
@@ -14547,27 +14574,23 @@ function renderDrawerBuilderHTML() {
       </div>
     </div>
 
-    <!-- RIGHT: preview + parts -->
-    <div style="display:flex;gap:0;overflow:hidden;height:100%">
-
-      <!-- SVG Preview -->
-      <div class="bldr-preview" style="flex:1">
-        <div class="bldr-title">Preview</div>
-        <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px">Front view</div>
-        <div class="bldr-svg-wrap">${drawerSVG()}</div>
-        <div style="margin-top:16px;font-size:11px;color:var(--text-muted);line-height:1.8">
-          <div>Available face height: <strong style="color:var(--text)">${totalFaceH}mm</strong></div>
-          ${faceHeights.map((h,i)=>`<div>Drawer ${i+1}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
-        </div>
+    <!-- MIDDLE: Preview -->
+    <div class="bldr-preview">
+      <div class="bldr-title">Preview — Front View</div>
+      <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Faces overlay carcass · bottom face flush</div>
+      <div class="bldr-svg-wrap">${drawerSVG()}</div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
+        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
+        <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong></div>
+        ${fh.map((h,i)=>`<div>Drawer ${i+1}${i===0?' (bottom)':i===fh.length-1?' (top)':''}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
       </div>
+    </div>
 
-      <!-- Parts list -->
-      <div class="bldr-panel" style="border-left:var(--line);width:280px;flex-shrink:0">
-        <div class="bldr-title">Parts List</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:10px">Auto-calculated from dimensions</div>
-        ${drawerPartsPreviewHTML()}
-      </div>
+    <!-- RIGHT: Parts -->
+    <div class="bldr-panel" style="border-left:var(--line)">
+      <div class="bldr-title">Parts</div>
+      ${drawerPartsPreviewHTML()}
     </div>
   </div>`;
 }
@@ -14594,82 +14617,98 @@ function drawerPartsPreviewHTML() {
 function drawerCalcParts() {
   const ds = drawerState;
   const W  = ds.width, H = ds.height, D = ds.depth, T = ds.thickness;
-  const DD = ds.drawerDepth; // drawer box depth
-  const cm = ds.materials.carcass;
-  const ce = ds.materials.carcassEdge;
-  const fm = ds.materials.face;
-  const fe = ds.materials.faceEdge;
+  const DD = ds.drawerDepth;
+  const cm = ds.materials.carcass, ce = ds.materials.carcassEdge;
+  const fm = ds.materials.face,    fe = ds.materials.faceEdge;
   const fh = drawerFaceHeights();
+  const fw = drawerFaceWidth();
   const n  = ds.drawerCount;
-
-  // Inner width of carcass
   const innerW = W - 2 * T;
-  // Drawer box dimensions
-  // Box width = innerW - 2 sides of box - clearance
-  const boxW   = innerW - 2 * 16 - 8;  // 2×box side + 8mm total clearance
-  const boxSideH = 116;  // standard drawer side height (mm)
-  const boxBackH = boxSideH;
+
+  // Drawer box: 16mm sides each side + 4mm clearance each side = 8mm total from innerW
+  const boxW    = innerW - 32 - 8;   // inner box width (between box sides)
+  const boxSideW = 16;               // box side thickness
+  const fullBoxW = boxW + 2 * boxSideW; // runner / bottom full span
 
   const p = (name, qty, l, w, mat, el1='', el2='', ew1='', ew2='') =>
-    ({ name, qty, l, w, mat, el1, el2, ew1, ew2, holes:'' });
+    ({ name, qty, l: Math.round(l), w: Math.round(w), mat, el1, el2, ew1, ew2, holes:'' });
 
   const parts = [];
 
-  // Carcass
+  // ── Carcass ──────────────────────────────────────────────────────────────
   parts.push(p('Top Panel',    1, W, D, cm, ce, ce, ce, ce));
   parts.push(p('Bottom Panel', 1, W, D, cm, ce, '', ce, ce));
-  parts.push(p('Left Side',    2, H, D, cm, ce));
+  parts.push(p('Sides',        2, H, D, cm, ce));
   if (ds.hasBacking) parts.push(p('Backing', 1, H, W, '3MM White Masonite'));
   parts.push(p('Front Support', 1, innerW, 100, cm, ce));
   parts.push(p('Back Support',  1, innerW, 70,  cm, ce));
-  parts.push(p('Bottom Support', n > 2 ? n-1 : 0, innerW, 100, cm));
+  // Intermediate supports between drawer boxes (n-1 gaps between n drawers)
+  if (n > 1) parts.push(p('Supports', n - 1, W, 100, cm));
 
-  // Drawer faces (grouped if equal)
-  const equalFaces = fh.every(h => h === fh[0]);
-  if (equalFaces && ds.drawerType !== 'pot') {
-    parts.push(p('Drawer Faces', n, fh[0], innerW - 2, fm, fe, fe, fe, fe));
+  // ── Drawer faces (overlay — full width minus side gaps) ───────────────────
+  if (ds.drawerType === 'equal') {
+    parts.push(p('Drawer Faces', n, fw, fh[0], fm, fe, fe, fe, fe));
+  } else if (ds.drawerType === 'pot') {
+    const topH   = fh[fh.length - 1]; // top drawer face height
+    const largeH = fh[0];             // large pot drawer face height
+    parts.push(p('Drawer Faces',   n - 1, fw, largeH, fm, fe, fe, fe, fe));
+    parts.push(p('Top Drawer Face', 1,    fw, topH,   fm, fe, fe, fe, fe));
   } else {
+    // Custom — group identical heights
+    const grouped = {};
     fh.forEach((h, i) => {
-      const label = ds.drawerType === 'pot' && i === 0 ? 'Top Drawer Face' : `Drawer Face ${i+1}`;
-      parts.push(p(label, 1, h, innerW - 2, fm, fe, fe, fe, fe));
+      grouped[h] = (grouped[h] || 0) + 1;
+    });
+    Object.entries(grouped).forEach(([h, qty]) => {
+      parts.push(p(`Drawer Face ${h}mm`, qty, fw, parseInt(h), fm, fe, fe, fe, fe));
     });
   }
 
-  // Drawer boxes
-  const largeIdx = ds.drawerType === 'pot' ? fh.slice(1).map((_,i)=>i+1) : fh.map((_,i)=>i);
-  const largeSideH = ds.drawerType === 'pot' ? Math.max(...fh.slice(1)) - 16 : boxSideH;
-  const smallSideH = ds.drawerType === 'pot' ? fh[0] - 16 : null;
-
+  // ── Drawer boxes ──────────────────────────────────────────────────────────
+  // Box side height: face height minus ~16mm clearance (runner hardware)
   if (ds.drawerType === 'pot') {
-    // Large pot drawers
-    parts.push(p('Pot Drawer Sides',        n-1,  DD,       largeSideH, cm, ce));
-    parts.push(p('Pot Drawer Fronts/Backs', 2*(n-1), boxW,  largeSideH, cm, ce));
-    parts.push(p('Pot Drawer Bottoms',      n-1,  boxW + 2*16 - 4, DD-50, cm));
-    // Small top drawer
-    parts.push(p('Top Drawer Sides',        2,    DD,       smallSideH, cm, ce));
-    parts.push(p('Top Drawer Fronts/Backs', 2,    boxW,     smallSideH, cm, ce));
-    parts.push(p('Top Drawer Bottom',       1,    boxW + 2*16 - 4, DD-50, cm));
+    const topH   = fh[fh.length - 1];
+    const largeH = fh[0];
+    const topBoxH   = topH   - 16;
+    const largeBoxH = largeH - 16;
+
+    parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
+    parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), boxW, largeBoxH, cm, ce));
+    parts.push(p('Pot Drawer Bottoms',        n-1,    fullBoxW - 4, DD - 50, cm));
+    parts.push(p('Top Drawer Sides',          2,       DD, topBoxH, cm, ce));
+    parts.push(p('Top Drawer Fronts & Backs', 2,       boxW, topBoxH, cm, ce));
+    parts.push(p('Top Drawer Bottom',         1,       fullBoxW - 4, DD - 50, cm));
   } else {
-    // Equal drawers
-    parts.push(p('Drawer Sides',        2*n, DD,        boxSideH, cm, ce));
-    parts.push(p('Drawer Fronts/Backs', 2*n, boxW,      boxSideH, cm, ce));
-    parts.push(p('Drawer Bottoms',      n,   boxW + 2*16 - 4, DD-50, cm));
+    // Equal or custom — use tallest face height for box height (conservative)
+    const maxFaceH = Math.max(...fh);
+    const boxH = maxFaceH - 16;
+    if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
+      parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
+      parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
+      parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
+    } else {
+      // Custom different heights — list each separately
+      fh.forEach((h, i) => {
+        const bh = h - 16;
+        parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
+        parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, boxW, bh,   cm, ce));
+        parts.push(p(`Drawer ${i+1} Bottom`,        1, fullBoxW-4, DD-50, cm));
+      });
+    }
   }
 
-  return parts.filter(p => p.qty > 0);
+  return parts.filter(pr => pr.qty > 0 && pr.l > 0 && pr.w > 0);
 }
 
 function drawerSaveUnit() {
-  const ds    = drawerState;
   const parts = drawerCalcParts();
-  const name  = ds.unitName.trim() || 'Custom Drawer Unit';
+  const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
   const id    = 'drw_' + Date.now();
-  customUnits.push({ id, name, section: ds.section, parts, price: 0 });
+  customUnits.push({ id, name, section: drawerState.section, parts, price: 0 });
   saveCustomUnits();
   updateCounts();
-  alert(`✓ "${name}" added to ${ds.section} unit list!`);
+  alert(`✓ "${name}" added to ${drawerState.section} unit list!`);
 }
-
 
 // ═══════════════════════════════════════════════════════════
 // JOB P&L — PROFIT & LOSS RECONCILER (Superuser only)
