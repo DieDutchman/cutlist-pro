@@ -12972,7 +12972,7 @@ const builderState = {
 };
 
 let _bldrShelfIdCounter = 2;
-let _builderMode = 'unit'; // 'unit' | 'drawer'
+let _builderMode = (() => { try { return localStorage.getItem('cutlist_builder_mode') || 'unit'; } catch(e) { return 'unit'; } })(); // 'unit' | 'drawer'
 
 // ── Drawer Builder State ──────────────────────────────────────────────────────
 const drawerState = {
@@ -14090,26 +14090,39 @@ function _renderBuilderView() {
   const d  = bs.doors;
   const bk = bs.backing;
   const mt = bs.materials;
-  const geo = builderGeometry();
 
-  // Mode toggle header
-  const modeBar = `<div style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0">
-    <button onclick="_builderMode='unit';renderBuilderView()"
+  // ── Step 1: commit the mode-bar to the DOM immediately ───────────────────
+  // This guarantees both buttons are always clickable, even if content
+  // rendering below throws an error.
+  bv.innerHTML = `<div class="bldr-mode-bar" style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;position:relative;z-index:2">
+    <button onclick="_builderMode='unit';try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
       style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
       🔨 UNIT BUILDER
     </button>
-    <button onclick="_builderMode='drawer';renderBuilderView()"
+    <button onclick="_builderMode='drawer';try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
       style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
       🗂 DRAWER BUILDER
     </button>
-  </div>`;
+  </div><div id="bldr-content-area"></div>`;
 
+  const contentArea = document.getElementById('bldr-content-area');
+
+  // ── Step 2: render content into the separate content div ─────────────────
   if (_builderMode === 'drawer') {
-    bv.innerHTML = modeBar + renderDrawerBuilderHTML();
+    try {
+      contentArea.innerHTML = renderDrawerBuilderHTML();
+    } catch(err) {
+      contentArea.innerHTML = `<div style="padding:40px;color:var(--red);font-family:'Barlow',sans-serif;font-size:13px">
+        ⚠ Drawer Builder failed to render.<br><small style="color:var(--text-muted)">${err}</small>
+      </div>`;
+      console.error('Drawer Builder render error:', err);
+    }
     return;
   }
 
-  bv.innerHTML = modeBar + `<div style="display:grid;grid-template-columns:300px 1fr 260px;height:calc(100vh - 112px);overflow:hidden">
+  // ── Unit Builder ──────────────────────────────────────────────────────────
+  const geo = builderGeometry();
+  contentArea.innerHTML = `<div style="display:grid;grid-template-columns:300px 1fr 260px;height:calc(100vh - 112px);overflow:hidden">
 
     <!-- LEFT: Build controls -->
     <div class="bldr-panel" style="border-right:var(--line)">
