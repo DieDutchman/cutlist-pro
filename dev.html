@@ -6223,8 +6223,8 @@ function _renderQuoteView() {
 
   // Add panel costs to grand total
   const quotePanelItems = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
-  const quotePanelTotal = quotePanelItems.reduce((s, p) => s + calcPanelCost(p).lineTotal, 0);
-  unitsTotal += quotePanelTotal;
+  const _panelsPooled   = calcPanelsCostPooled(quotePanelItems);
+  unitsTotal += _panelsPooled.total;
 
   const topsExcl    = (quoteState.tops.m2 || 0) * (quoteState.tops.pricePerM2 || 0);
   const topsDelivery= topsExcl > 0 ? 500 : 0;
@@ -6326,10 +6326,13 @@ function _renderQuoteView() {
   // ── Custom Panels section in quote ──────────────────────────────
   if (quotePanelItems.length > 0) {
     const quotePanelLabel = panelsState.label ? `Panels — ${panelsState.label}` : 'Custom Panels';
+    const pooled = _panelsPooled; // already computed above for unitsTotal
+    const quotePanelTotalPooled = pooled.total;
     mainHtml += `<div class="qv-section-head">🪵 ${quotePanelLabel}</div>
       <table class="qv-table"><tbody>`;
     quotePanelItems.forEach(p => {
-      const { lineTotal, unitCost } = calcPanelCost(p);
+      const lineTotal = pooled.perPanel.get(p.id) ?? calcPanelCost(p).lineTotal;
+      const unitCost  = lineTotal / p.qty;
       mainHtml += `<tr>
         <td class="qv-qty">${p.qty}×</td>
         <td class="qv-unit-name">${p.name || 'Panel'} <span style="font-size:11px;color:var(--text-muted)">(${p.l}×${p.w}mm ${p.mat})</span></td>
@@ -6337,11 +6340,19 @@ function _renderQuoteView() {
         <td class="qv-line-total">${fmt(lineTotal)}</td>
       </tr>`;
     });
+    // Show material pool breakdown as a sub-note when pooling actually reduced the cost
+    const simpleSum = quotePanelItems.reduce((s, p) => s + calcPanelCost(p).lineTotal, 0);
+    const saving    = simpleSum - quotePanelTotalPooled;
+    if (saving > 0.5) {
+      mainHtml += `<tr><td colspan="4" style="font-size:10px;color:#4caf82;padding:2px 8px 6px">
+        ℹ Panels pooled by material — combined sheet minimum saves R ${Math.round(saving).toLocaleString('en-ZA')} vs pricing each panel separately
+      </td></tr>`;
+    }
     mainHtml += `<tr class="qv-section-subtotal">
       <td colspan="3" style="color:var(--text-muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;font-family:'Oswald',sans-serif">
         Panels subtotal
       </td>
-      <td class="qv-line-total">${fmt(quotePanelTotal)}</td>
+      <td class="qv-line-total">${fmt(quotePanelTotalPooled)}</td>
     </tr></tbody></table>`;
   }
 
@@ -6938,10 +6949,9 @@ function computeQuoteTotals() {
     });
   });
 
-  // Panels
-  panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
-    unitsTotal += calcPanelCost(p).lineTotal;
-  });
+  // Panels — pool all panels by material so sheet minimums apply to the combined area
+  const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
+  if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
 
   const topsExcl     = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
   const topsDelivery = topsExcl > 0 ? 500 : 0;
@@ -9150,7 +9160,100 @@ function calcPanelCost(p) {
 }
 
 
-// ── Custom board helpers ────────────────────────────────────────────────────
+// ── Pooled panel costing ──────────────────────────────────────────────────────
+// Costs all panels together, pooling m² by material so the sheet minimum and
+// Full Sheet rounding applies to the combined area — not per panel individually.
+// Returns:
+//   total       — grand total cost for all panels
+//   perPanel    — Map<panelId, lineTotal>  (proportional allocation)
+//   matBreakdown— [{mat, m2, billedSh, rawSh, pricePerSheet, cost}]
+function calcPanelsCostPooled(panels) {
+  if (!panels || !panels.length) return { total: 0, perPanel: new Map(), matBreakdown: [] };
+
+  const activePanels = panels.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
+  if (!activePanels.length) return { total: 0, perPanel: new Map(), matBreakdown: [] };
+
+  // ── Step 1: pool raw m² and edging by material ──────────────────────────────
+  const matM2   = {};   // { mat: total m² (before waste) }
+  const matEdge = {};   // { `edgeKey|mat`: total metres }
+
+  activePanels.forEach(p => {
+    const lM = p.l / 1000, wM = p.w / 1000;
+    const m2 = lM * wM * p.qty;
+    matM2[p.mat] = (matM2[p.mat] || 0) + m2;
+    [[p.edgeL1, lM], [p.edgeL2, lM], [p.edgeW1, wM], [p.edgeW2, wM]].forEach(([k, l]) => {
+      if (k) {
+        const ck = `${k}|${p.mat}`;
+        matEdge[ck] = (matEdge[ck] || 0) + calcEdgeMeters(l, p.qty);
+      }
+    });
+  });
+
+  // ── Step 2: cost each material pool with billedSheetsForMat ─────────────────
+  const matBreakdown = [];
+  let totalMatCost = 0;
+  let totalCutCost = 0;
+  let totalHPrice  = 0;
+  const hPrice = costingPrices.extras.hPrice || 0;
+
+  Object.entries(matM2).forEach(([mat, m2]) => {
+    const withWaste     = m2 * WASTE_FACTOR;
+    const rawSh         = billSheets(withWaste, SHEET_AREA);
+    const billedSh      = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+    const wholeSh       = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
+    const pricePerSheet = costingPrices.mat[mat] || 0;
+    const isMas         = mat === '3MM White Masonite';
+    const matCost       = billedSh * pricePerSheet;
+    const cutCost       = wholeSh  * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
+    const hpc           = (billedSh + wholeSh) * hPrice;
+    totalMatCost += matCost;
+    totalCutCost += cutCost;
+    totalHPrice  += hpc;
+    matBreakdown.push({ mat, m2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc });
+  });
+
+  // ── Step 3: edging cost (pooled per edge+mat combination) ──────────────────
+  let totalEdgeCost = 0;
+  Object.entries(matEdge).forEach(([ck, m]) => {
+    const edgeKey  = ck.split('|')[0];
+    const rounded  = finalRoundEdge(m);
+    const eCost    = rounded * (costingPrices.edge[edgeKey] || 0);
+    totalEdgeCost += eCost;
+    totalHPrice   += rounded * hPrice;
+  });
+
+  // ── Step 4: special services (still per-panel, not poolable) ───────────────
+  let totalSvcCost = 0;
+  activePanels.forEach(p => {
+    totalSvcCost += calcSpecialServicesCost(panelSpecialServices[p.id]);
+  });
+
+  const total = totalMatCost + totalEdgeCost + totalCutCost + totalHPrice + totalSvcCost;
+
+  // ── Step 5: allocate total back to individual panels proportionally ─────────
+  // Each panel's share = its own (m² + edging cost weight) / total weight
+  // We use individual calcPanelCost for the ratio, but scale to the pooled total.
+  const individualCosts = new Map();
+  let individualSum = 0;
+  activePanels.forEach(p => {
+    const c = calcPanelCost(p).lineTotal;
+    individualCosts.set(p.id, c);
+    individualSum += c;
+  });
+
+  const perPanel = new Map();
+  if (individualSum > 0) {
+    activePanels.forEach(p => {
+      perPanel.set(p.id, (individualCosts.get(p.id) / individualSum) * total);
+    });
+  } else {
+    // Edge case: all zero — split evenly
+    const share = total / activePanels.length;
+    activePanels.forEach(p => perPanel.set(p.id, share));
+  }
+
+  return { total, perPanel, matBreakdown };
+}
 // Refresh all material/edge dropdowns already in the DOM without full re-render
 function refreshMatDropdowns() {
   // Editor part-row material selects
@@ -11048,20 +11151,25 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
 
-  // Fold panel items into the combined totals
-  panelItems.forEach(p => {
-    const lM = p.l / 1000, wM = p.w / 1000;
-    const m2 = lM * wM * p.qty;
-    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + m2;
-    const cutRate = p.mat === '3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
-    totalCutLabel += Math.ceil(m2 * WASTE_FACTOR / SHEET_AREA) * cutRate;
-    const pCost = calcPanelCost(p).lineTotal;
-    grandTotal += pCost;
-    totalMat   += billSheets(m2 * WASTE_FACTOR, SHEET_AREA) * (costingPrices.mat[p.mat] || 0);
-    [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
-      if (k) { const ck = `${k}|${p.mat}`; allEdgeM[ck] = (allEdgeM[ck] || 0) + l * p.qty; }
+  // Fold panel items into the combined totals — pool by material first
+  if (panelItems.length > 0) {
+    const pooled = calcPanelsCostPooled(panelItems);
+    grandTotal += pooled.total;
+    // Add pooled material m² to allMatM2 for the summary bar
+    pooled.matBreakdown.forEach(({ mat, m2 }) => {
+      allMatM2[mat] = (allMatM2[mat] || 0) + m2;
     });
-  });
+    totalMat += pooled.matBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
+    // Edging still needs to be accumulated for summary
+    panelItems.forEach(p => {
+      const lM = p.l / 1000, wM = p.w / 1000;
+      [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
+        if (k) { const ck = `${k}|${p.mat}`; allEdgeM[ck] = (allEdgeM[ck] || 0) + l * p.qty; }
+      });
+      const cutRate = p.mat === '3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
+      totalCutLabel += Math.ceil((p.l/1000) * (p.w/1000) * p.qty * WASTE_FACTOR / SHEET_AREA) * cutRate;
+    });
+  }
 
 
 
@@ -12765,6 +12873,11 @@ function openSaveAsUnitModal(parts, defaultLabel) {
   overlay.id = 'sau-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;display:flex;align-items:center;justify-content:center';
 
+  // Store data on the overlay element so the button doesn't need to serialise
+  // potentially unsafe strings into an HTML attribute
+  overlay._sauGroupNames = groupNames;
+  overlay._sauGroups     = groups;
+
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -12810,7 +12923,7 @@ function openSaveAsUnitModal(parts, defaultLabel) {
           style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
           CANCEL
         </button>
-        <button onclick="saveImportAsUnit(${JSON.stringify(groupNames)}, ${JSON.stringify(groups)})"
+        <button id="sau-confirm-btn"
           style="background:#4caf82;color:#fff;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
           ✓ SAVE ${groupNames.length > 1 ? groupNames.length + ' UNITS' : 'UNIT'}
         </button>
@@ -12818,6 +12931,13 @@ function openSaveAsUnitModal(parts, defaultLabel) {
     </div>`;
 
   document.body.appendChild(overlay);
+
+  // Wire confirm button via addEventListener — avoids serialising group names
+  // (which may contain quotes/backslashes) into an HTML onclick attribute
+  document.getElementById('sau-confirm-btn').addEventListener('click', () => {
+    const ol = document.getElementById('sau-overlay');
+    if (ol) saveImportAsUnit(ol._sauGroupNames, ol._sauGroups);
+  });
 }
 
 function saveImportAsUnit(groupNames, groups) {
