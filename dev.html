@@ -5549,7 +5549,7 @@ function buildSpacersCard(secId) {
       ? (() => {
           const lM = item.h/1000, wM = item.w/1000;
           const ww  = lM * wM * item.qty * WASTE_FACTOR;
-          const mc  = (ww/SHEET_AREA) * (costingPrices.mat[item.mat]||0);
+          const mc  = billedSheetsForMat(item.mat, ww, SHEET_AREA) * (costingPrices.mat[item.mat]||0);
           let ec = 0;
           [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l])=>{ if(k) ec+=l*item.qty*(costingPrices.edge[k]||0); });
           return mc + ec + Math.ceil(ww/SHEET_AREA)*costingPrices.extras.cutLabel;
@@ -7165,15 +7165,19 @@ function billSheets(m2withWaste, sheetArea) {
   return Math.ceil((m2withWaste / sheetArea) / 0.05) * 0.05;
 }
 
-// Like billSheets but applies a per-material minimum if configured
+// Like billSheets but applies a per-material minimum if configured.
+// Three billing modes (mutually exclusive, checked in priority order):
+//   1. matFullSheet   — supplier sells full sheets only → ceil to nearest whole sheet
+//   2. matSpecialOrder— not normally stocked, must order → minimum 1 full sheet
+//   3. default        — in stock, billed in 0.05 increments with configurable minimum
 function billedSheetsForMat(mat, m2withWaste, sheetArea) {
   const raw = billSheets(m2withWaste, sheetArea);
-  // Special order = must buy full sheet
+  // Full sheet purchase — must buy whole sheet(s), supplier provides offcuts
+  if (costingPrices.matFullSheet?.[mat]) return Math.max(1, Math.ceil(raw));
+  // Special order — not in stock, minimum 1 full sheet
   if (costingPrices.matSpecialOrder?.[mat]) return Math.max(raw, 1.0);
-  // Default minimum is 0.25 for all stock boards; override with matMinSheets if set
-  const min = costingPrices.matMinSheets?.[mat] != null
-    ? costingPrices.matMinSheets[mat]
-    : 0.25;
+  // Default — in stock, apply minimum (0.25 sheets unless overridden)
+  const min = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
   return min > 0 ? Math.max(raw, min) : raw;
 }
 
@@ -7194,10 +7198,27 @@ function setMatMinSheets(mat, value) {
 function setMatSpecialOrder(mat, isSpecial) {
   if (isSpecial) {
     costingPrices.matSpecialOrder[mat] = true;
-    // Clear any custom min override — special order always means full sheet
+    // Exclusive — clear other billing modes
     delete costingPrices.matMinSheets[mat];
+    delete costingPrices.matFullSheet[mat];
   } else {
     delete costingPrices.matSpecialOrder[mat];
+  }
+  saveCostingPrices();
+  refreshCostingResults();
+  renderPricesView();
+}
+
+// Toggle full-sheet-purchase flag for a material
+// When set: billing always rounds up to whole sheets, supplier supplies offcuts
+function setMatFullSheet(mat, isFullSheet) {
+  if (isFullSheet) {
+    costingPrices.matFullSheet[mat] = true;
+    // Exclusive — clear other billing modes
+    delete costingPrices.matSpecialOrder[mat];
+    delete costingPrices.matMinSheets[mat];
+  } else {
+    delete costingPrices.matFullSheet[mat];
   }
   saveCostingPrices();
   refreshCostingResults();
@@ -7252,6 +7273,7 @@ const costingPrices = {
   specialServices: [], // [{id, name, price, unit, category}] — CNC, cut-outs, shakers etc.
   matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
+  matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -7271,6 +7293,7 @@ try {
   if (saved.customHardware)  costingPrices.customHardware  = saved.customHardware;
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
+  if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
@@ -9627,7 +9650,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
   Object.entries(matM2).forEach(([mat, m2]) => {
     const sheetArea  = mat === 'Shutterply' ? SHUTTERPLY_AREA : SHEET_AREA;
     const withWaste  = m2 * WASTE_FACTOR;
-    const billed     = billSheets(withWaste, sheetArea);
+    const billed     = billedSheetsForMat(mat, withWaste, sheetArea);
     matCost         += billed * (costingPrices.mat[mat] || 0);
     hPriceCost      += billed * hPrice;
     const sheets     = Math.ceil(withWaste / sheetArea);
@@ -9848,6 +9871,7 @@ function _renderPricesView() {
       <div class="cv-extra-row" style="border-bottom:none;padding:7px 0 3px 0">
         <span class="cv-extra-label">
           ${mat}${badge}
+          ${costingPrices.matFullSheet?.[mat]    ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 5px;margin-left:6px;vertical-align:middle">FULL SHEET</span>` : ''}
           ${costingPrices.matSpecialOrder?.[mat] ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 5px;margin-left:6px;letter-spacing:0.5px;vertical-align:middle">SPECIAL ORDER</span>` : ''}
         </span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
@@ -9860,24 +9884,32 @@ function _renderPricesView() {
       ${edgeRows}
       ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;width:80px">Stock type</span>
-        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false)"
+        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false);setMatFullSheet('${mat.replace(/'/g,"\'")}', false)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
-                 ${!costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+                 ${!costingPrices.matSpecialOrder?.[mat] && !costingPrices.matFullSheet?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
           ✓ In Stock
+        </button>
+        <button onclick="setMatFullSheet('${mat.replace(/'/g,"\'")}', true)"
+          style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
+                 ${costingPrices.matFullSheet?.[mat] ? 'background:rgba(100,160,255,0.15);border-color:#5090e0;color:#7ab0ff;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🟦 Full Sheet
         </button>
         <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', true)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
                  ${costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
-          🛒 Special Order <span style="font-size:9px;opacity:0.8">(full sheet)</span>
+          🛒 Special Order
         </button>
-        ${!costingPrices.matSpecialOrder?.[mat] ? `
+        ${!costingPrices.matSpecialOrder?.[mat] && !costingPrices.matFullSheet?.[mat] ? `
         <span style="font-size:10px;color:var(--text-muted);margin-left:4px">min:
           <input type="number" min="0.05" max="1" step="0.05"
             value="${costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25}"
             class="no-spin" style="width:${Math.max(3, String(costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25).length + 1)}ch;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;-moz-appearance:textfield;appearance:textfield"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="this.style.width=Math.max(3,this.value.length+1)+'ch';setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)"> sheets
-        </span>` : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">Supplier offcuts included — billed as 1 full sheet</span>`}
+        </span>`
+        : costingPrices.matFullSheet?.[mat]
+          ? `<span style="font-size:10px;color:#7ab0ff;margin-left:4px">🟦 Billed in whole sheets — offcuts included</span>`
+          : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">🛒 Must be ordered — minimum 1 full sheet</span>`}
       </div>` : ''}
       ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
@@ -9943,42 +9975,75 @@ function _renderPricesView() {
     const delFn     = custom
       ? `removeCustomBoard('${custom.id}')`
       : `deleteStandardBoard('${mat.replace(/'/g,"\\\\'")}')`;
-    const isSpecial = costingPrices.matSpecialOrder?.[mat];
+    const isSpecial  = costingPrices.matSpecialOrder?.[mat];
+    const isFullSheet = costingPrices.matFullSheet?.[mat];
     const matEdges  = matchingEdges(mat);
     const noEdge    = NO_EDGE_MATS.has(mat);
     const safeId    = mat.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeMatJS = mat.replace(/'/g, "\\'");
 
-    // ── Board cell (left) ────────────────────────────────────────────────────
-    const stockPill = isSpecial
-      ? `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',false)" title="Click → In Stock"
-           style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px;cursor:pointer;flex-shrink:0">🛒 SPECIAL</span>`
-      : `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',true)" title="Click → Special Order"
-           style="font-size:9px;background:rgba(76,175,130,0.12);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;cursor:pointer;flex-shrink:0">✓ STOCK</span>`;
+    // ── Stock-type badge (read-only users) ───────────────────────────────────
+    const stockBadge = isFullSheet
+      ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 6px">FULL SHEET</span>`
+      : isSpecial
+        ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px">SPECIAL ORDER</span>`
+        : '';
+
+    // ── Stock-type toggle buttons (admin only) ───────────────────────────────
+    // Three modes: In Stock | Full Sheet | Special Order
+    const activeStock = !isFullSheet && !isSpecial;
+    const stockPill = admin ? `
+      <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+        <button onclick="setMatSpecialOrder('${safeMatJS}',false);setMatFullSheet('${safeMatJS}',false)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${activeStock ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          ✓ In Stock
+        </button>
+        <button onclick="setMatFullSheet('${safeMatJS}',true)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${isFullSheet ? 'background:rgba(100,160,255,0.15);border-color:#5090e0;color:#7ab0ff;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🟦 Full Sheet
+        </button>
+        <button onclick="setMatSpecialOrder('${safeMatJS}',true)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${isSpecial ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🛒 Special Order
+        </button>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:3px;min-height:16px">
+        ${isFullSheet  ? '🟦 Supplier sells full sheets only — billed in whole sheets, offcuts included'
+          : isSpecial  ? '🛒 Not in stock — must be ordered, minimum 1 full sheet'
+          :              ''}
+      </div>` : stockBadge;
+
     const minVal  = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
-    const minHtml = admin && !isSpecial
+    const minHtml = admin && activeStock
       ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap">min
            <input type="number" min="0.05" max="1" step="0.05" value="${minVal}"
              style="width:40px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:1px 4px;font-size:10px;outline:none;font-family:'JetBrains Mono',monospace"
              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-             oninput="setMatMinSheets('${mat.replace(/'/g,"\\'")}',this.value)"> sh
+             oninput="setMatMinSheets('${safeMatJS}',this.value)"> sh
          </span>` : '';
 
+    // ── Board cell (left) ────────────────────────────────────────────────────
     const boardCell = `
       <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${mat}</span>
-          ${admin ? stockPill : (isSpecial ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px">SPECIAL</span>` : '')}
+          ${!admin ? stockBadge : ''}
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
-            onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
-            onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
+            onchange="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
+            onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/sheet</span>
-          ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
+          ${admin ? `<button onclick="renameMat('${safeMatJS}')" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
           <button onclick="${delFn}" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
           ${minHtml}
         </div>
-        ${!admin && isSpecial ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
+        ${admin ? stockPill : ''}
+        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">Full sheet billed</div>` : ''}
+        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
       </div>`;
 
     // ── Edging cell (right) ──────────────────────────────────────────────────
@@ -10742,12 +10807,22 @@ function _renderCostingView() {
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
       const sheets    = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const rawSheets = billSheets(withWaste, SHEET_AREA);
       const pricePerSheet = costingPrices.mat[mat] || 0;
       const cost = sheets * pricePerSheet;
+      // Billing mode badge
+      const modeBadge = costingPrices.matFullSheet?.[mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 4px;margin-left:4px;vertical-align:middle">FULL SHEET</span>`
+        : costingPrices.matSpecialOrder?.[mat]
+          ? `<span style="font-size:8px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 4px;margin-left:4px;vertical-align:middle">SPECIAL ORDER</span>`
+          : '';
+      const sheetsDisplay = sheets !== rawSheets
+        ? `<span style="color:var(--text)">${sheets.toFixed(2)}</span> <span style="font-size:9px;color:var(--text-muted)">(raw ${rawSheets.toFixed(2)})</span>${modeBadge}`
+        : `${sheets.toFixed(2)}${modeBadge}`;
       return `<tr>
         <td>${mat}</td>
         <td class="num">${m2.toFixed(3)}</td>
-        <td class="num">${sheets.toFixed(2)}</td>
+        <td class="num">${sheetsDisplay}</td>
         <td class="num">R ${pricePerSheet.toFixed(0)}/sheet</td>
         <td class="num cost">R ${cost.toFixed(0)}</td>
       </tr>`;
@@ -10892,10 +10967,13 @@ function _renderCostingView() {
       const cost = _calcItemCost(item);
       const lM = item.h/1000, wM = item.w/1000;
       const ww = lM * wM * item.qty * WASTE_FACTOR;
+      const billedSh = billedSheetsForMat(item.mat, ww, SHEET_AREA);
+      const fsBadge  = costingPrices.matFullSheet?.[item.mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 3px;margin-left:3px">FS</span>` : '';
       return `<tr>
         <td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td>
         <td class="num">${(lM*wM*item.qty).toFixed(3)}</td>
-        <td class="num">${(ww/SHEET_AREA).toFixed(2)}</td>
+        <td class="num">${billedSh.toFixed(2)}${fsBadge}</td>
         <td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td>
         <td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td>
       </tr>`;
@@ -11246,10 +11324,19 @@ function _refreshCostingResults() {
     const _unitDims2 = _b2Parts.length ? (()=>{const rp=applyMaterials(_b2Parts[0],u);return{l:rp.l,w:rp.w};})() : null;
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
-      const sheets = withWaste / SHEET_AREA;
-      const price = costingPrices.mat[mat] || 0;
-      const cost = withWaste * price;
-      return `<tr><td>${mat}</td><td class="num">${m2.toFixed(3)}</td><td class="num">${sheets.toFixed(2)}</td><td class="num">R ${(costingPrices.mat[mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${(sheets*(costingPrices.mat[mat]||0)).toFixed(0)}</td></tr>`;
+      const sheets    = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const rawSh     = billSheets(withWaste, SHEET_AREA);
+      const price     = costingPrices.mat[mat] || 0;
+      const cost      = sheets * price;
+      const modeBadge = costingPrices.matFullSheet?.[mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 4px;margin-left:4px">FULL SHEET</span>`
+        : costingPrices.matSpecialOrder?.[mat]
+          ? `<span style="font-size:8px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 4px;margin-left:4px">SPECIAL ORDER</span>`
+          : '';
+      const sheetsCell = sheets !== rawSh
+        ? `${sheets.toFixed(2)} <span style="font-size:9px;color:var(--text-muted)">(raw ${rawSh.toFixed(2)})</span>${modeBadge}`
+        : `${sheets.toFixed(2)}${modeBadge}`;
+      return `<tr><td>${mat}</td><td class="num">${m2.toFixed(3)}</td><td class="num">${sheetsCell}</td><td class="num">R ${price.toFixed(0)}/sheet</td><td class="num cost">R ${cost.toFixed(0)}</td></tr>`;
     }).join('');
 
     const buildEdgeRowsHtml2 = (edgeMap) => Object.entries(edgeMap).map(([ck, m]) => {
@@ -11326,7 +11413,9 @@ function _refreshCostingResults() {
       const cost = _calcItemCost(item);
       const lM = item.h/1000, wM = item.w/1000;
       const ww = lM * wM * item.qty * WASTE_FACTOR;
-      return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${(ww/SHEET_AREA).toFixed(2)}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
+      const bSh = billedSheetsForMat(item.mat, ww, SHEET_AREA);
+      const fsBadge2 = costingPrices.matFullSheet?.[item.mat] ? ' FS' : costingPrices.matSpecialOrder?.[item.mat] ? ' SO' : '';
+      return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${bSh.toFixed(2)}${fsBadge2}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
     }).join('');
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
       <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')">
@@ -11462,6 +11551,9 @@ function applyState(state) {
     if (state.costingPrices.tops)         Object.assign(costingPrices.tops,     state.costingPrices.tops);
     if (state.costingPrices.customBoards)    costingPrices.customBoards    = state.costingPrices.customBoards;
     if (state.costingPrices.hiddenMats)      costingPrices.hiddenMats      = state.costingPrices.hiddenMats;
+    if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
+    if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
+    if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
     // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
@@ -15083,6 +15175,7 @@ function plCalcFromState(state) {
       if (st.costingPrices.hardware)        Object.assign(costingPrices.hardware, st.costingPrices.hardware);
       if (st.costingPrices.matMinSheets)    costingPrices.matMinSheets    = st.costingPrices.matMinSheets;
       if (st.costingPrices.matSpecialOrder) costingPrices.matSpecialOrder = st.costingPrices.matSpecialOrder;
+      if (st.costingPrices.matFullSheet)    costingPrices.matFullSheet    = st.costingPrices.matFullSheet;
       if (st.costingPrices.specialServices) costingPrices.specialServices = st.costingPrices.specialServices;
     }
 
@@ -15147,6 +15240,7 @@ function plCalcFromState(state) {
     Object.assign(costingPrices.hardware, snap.costingPrices.hardware);
     costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
     costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
+    costingPrices.matFullSheet    = snap.costingPrices.matFullSheet    || {};
     costingPrices.specialServices = snap.costingPrices.specialServices || [];
 
     userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
