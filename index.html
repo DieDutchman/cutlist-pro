@@ -3369,8 +3369,11 @@ function switchTab(btn, section) {
 
 function renderPanel() { withScrollLock(_renderPanel); }
 function _renderPanel() {
-  // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
-  if (!isAdmin() && userRooms.length === 0) return;
+  // Non-admin with no rooms yet — show welcome screen and ensure nav button is visible
+  if (!isAdmin() && userRooms.length === 0) {
+    applyRoleRestrictions();
+    return;
+  }
 
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
   const isUserMode = !isAdmin() && userRooms.length > 0;
@@ -8249,6 +8252,20 @@ function renderUserRoomsNav() {
 
 // ── Add Room Modal ────────────────────────────────────────────────────────────
 function openAddRoomModal() {
+  // If user has no rooms and is on a tool view, navigate back to quote-view first
+  // so after the modal closes the welcome screen is visible
+  if (!isAdmin() && userRooms.length === 0) {
+    const qv = document.getElementById('quote-view');
+    if (qv && qv.style.display === 'none') {
+      ['cutlist-view','summary-view','editor-view','quote-price-view','costing-view',
+       'materials-view','prices-view','builder-view','panels-view','import-view',
+       'imported-cutlist-view','pl-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      qv.style.display = 'block';
+    }
+  }
   const icons = ROOM_ICONS.map((ic,i) =>
     `<button onclick="selectRoomIcon('${ic}',this)"
       style="font-size:22px;background:var(--bg3);border:1px solid var(--border);padding:6px 10px;cursor:pointer;border-radius:3px"
@@ -8541,16 +8558,27 @@ function applyRoleRestrictions() {
     if (userRooms.length > 0) {
       renderUserRoomsNav();
     } else {
-      // New user — hide static rooms row, show welcome
+      // New user / no rooms — hide static rooms row, show welcome nav button
       setTimeout(() => {
         const navTabs = document.getElementById('navTabs');
         if (!navTabs) return;
-        const rows = navTabs.querySelectorAll('.nav-row');
-        if (rows[0]) rows[0].style.display = 'none';
-        const dividers = navTabs.querySelectorAll('.nav-divider');
-        if (dividers[0]) dividers[0].style.display = 'none';
-        if (!document.getElementById('user-rooms-row')) {
-          const row = document.createElement('div');
+        // ── Hide ONLY the static admin rooms row and its divider ─────────────
+        // Don't use rows[0] — user-rooms-row may have been inserted before it
+        const staticRow = navTabs.querySelector('.nav-row:not(#user-rooms-row)');
+        if (staticRow) staticRow.style.display = 'none';
+        const staticDivider = navTabs.querySelector('.nav-divider:not(#user-rooms-divider)');
+        if (staticDivider) staticDivider.style.display = 'none';
+
+        // ── Ensure the Add Your First Room nav row is visible ────────────────
+        let row = document.getElementById('user-rooms-row');
+        if (row) {
+          // Row exists — make sure it's visible (may have been hidden by a bad rows[0] call)
+          row.style.display = '';
+          const divider = document.getElementById('user-rooms-divider');
+          if (divider) divider.style.display = '';
+        } else {
+          // Create it fresh
+          row = document.createElement('div');
           row.className = 'nav-row';
           row.id = 'user-rooms-row';
           const label = document.createElement('span');
@@ -8569,17 +8597,21 @@ function applyRoleRestrictions() {
           div.className = 'nav-divider';
           div.id = 'user-rooms-divider';
           row.after(div);
-          document.getElementById('quote-view').style.display = 'block';
-          document.getElementById('unit-panel').innerHTML = `
-            <div style="padding:60px 20px;text-align:center">
-              <div style="font-size:40px;margin-bottom:16px">🏠</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
-              <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
-                Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
-              </div>
-              <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
-            </div>`;
         }
+
+        // ── Show the welcome screen ──────────────────────────────────────────
+        // Always restore quote-view + welcome content so it shows correctly
+        // regardless of which tool tab the user may have navigated to first
+        document.getElementById('quote-view').style.display = 'block';
+        document.getElementById('unit-panel').innerHTML = `
+          <div style="padding:60px 20px;text-align:center">
+            <div style="font-size:40px;margin-bottom:16px">🏠</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
+            <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
+              Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
+            </div>
+            <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+          </div>`;
       }, 0);
     }
   }
