@@ -3455,7 +3455,7 @@ function _renderPanel() {
     const svcBtnStyle = hasSvcOverride
       ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
       : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
-    const svcBtn = costingPrices.specialServices.length > 0 && canEditPrices()
+    const svcBtn = costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user')
       ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
            style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
       : '';
@@ -13081,7 +13081,7 @@ function _renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:4px;flex-wrap:nowrap">
-        ${costingPrices.specialServices.length > 0 && canEditPrices() ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
