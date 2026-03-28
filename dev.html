@@ -14759,28 +14759,27 @@ function drawerSideSVG() {
   const fh  = drawerFaceHeights();
   const fg  = ds.faceGap;
 
-  // ── Use SAME height-scale as front view so both SVGs are the same height ──
+  // Same SCALE as front view so both SVGs share the same height
   const W     = ds.width;
-  const SCALE = Math.min(200 / W, 280 / H);   // identical to drawerSVG()
-  const sh    = Math.round(H * SCALE);          // height px  (matches front view)
-  const sd    = Math.round(D * SCALE);          // depth px
-  const tPx   = Math.round(T * SCALE);          // board thickness px
+  const SCALE = Math.min(200 / W, 280 / H);
+  const sh    = Math.round(H * SCALE);
+  const sd    = Math.round(D * SCALE);
+  const tPx   = Math.round(T * SCALE);
   const fgPx  = Math.max(1, Math.round(fg * SCALE));
   const ddPx  = Math.round(DD * SCALE);
 
-  // ── Back panel ────────────────────────────────────────────────────────────
-  // Masonite (3 mm) when backing enabled, otherwise the carcass board (T)
-  const backRawMM = ds.hasBacking ? 3 : T;
-  const backW     = Math.max(2, Math.round(backRawMM * SCALE));
+  // Inner space boundaries
+  const innerTop = tPx;
+  const innerBot = sh - tPx;
 
-  // ── Top: solid board or nailers ───────────────────────────────────────────
-  // Top board sits ON the side panels → spans full depth x=0..sd, y=0..tPx
-  // Nailers sit INSIDE the inner space, at the back and front edges of the top slot
+  // Back panel (masonite 3mm when backing enabled, otherwise board thickness)
+  const backMM = ds.hasBacking ? 3 : T;
+  const backW  = Math.max(2, Math.round(backMM * SCALE));
+
+  // Top board or nailers
   let topSVG = '';
   if (ds.topType === 'nailers') {
-    // Back nailer: 70mm, starts at inner-back (x = backW)
     const bNW = Math.max(3, Math.round(70  * SCALE));
-    // Front nailer: 100mm, flush with open front (x = sd - frontNW)
     const fNW = Math.max(3, Math.round(100 * SCALE));
     topSVG = `
       <rect x="${backW}" y="0" width="${bNW}" height="${tPx}"
@@ -14794,115 +14793,95 @@ function drawerSideSVG() {
         text-anchor="middle" font-size="6" fill="var(--text-muted)"
         font-family="JetBrains Mono,monospace">100</text>`;
   } else {
-    // Solid top spans full depth
     topSVG = `<rect x="0" y="0" width="${sd}" height="${tPx}"
       fill="rgba(255,255,255,0.22)" stroke="var(--border-light)" stroke-width="1.5"/>`;
   }
 
-  // ── Bottom board ──────────────────────────────────────────────────────────
-  // Sits between the side panels → full depth, at the bottom of the inner space.
-  // y position: the bottom board's TOP face is at sh-tPx.
-  const botY  = sh - tPx;
-  const botSVG = `<rect x="0" y="${botY}" width="${sd}" height="${tPx}"
+  // Bottom board
+  const botSVG = `<rect x="0" y="${innerBot}" width="${sd}" height="${tPx}"
     fill="rgba(255,255,255,0.22)" stroke="var(--border-light)" stroke-width="1.5"/>`;
 
-  // ── Back panel strip ──────────────────────────────────────────────────────
-  // Sits BETWEEN top and bottom, at x=0..backW
-  const backSVG = `<rect x="0" y="${tPx}" width="${backW}" height="${sh - 2*tPx}"
+  // Back panel strip (between top and bottom boards)
+  const backSVG = `<rect x="0" y="${innerTop}" width="${backW}" height="${innerBot - innerTop}"
     fill="rgba(255,255,255,0.14)" stroke="var(--border-light)" stroke-width="1"/>`;
 
-  // ── Drawer box outlines ───────────────────────────────────────────────────
-  // Each box extends from the open front inward by drawerDepth.
-  // Vertically: starts 8mm below the top of its face slot (runner clearance).
+  // Drawer box outlines
+  // Mirror drawerSVG() cursor exactly: start at sh (outer bottom), step up by
+  // hPx + fgPx. This keeps side-view boxes perfectly aligned with front-view faces.
+  // Each box is then clamped to the inner space [innerTop, innerBot].
   let boxSVG = '';
-  let yCur = sh - tPx; // start at top of bottom board
+  const boxLeft  = Math.max(backW + 1, sd - ddPx);
+  const boxWidth = sd - boxLeft;
+
+  let yCur = sh; // start at outer bottom, same as drawerSVG()
   fh.forEach(h => {
-    const hPx    = Math.round(h * SCALE);
-    yCur -= hPx;
-    const boxH   = Math.max(3, Math.round((h - 16) * SCALE));
-    const boxTop = yCur + Math.round(8 * SCALE);
-    // Box starts from front and goes inward by ddPx, clamped so it doesn't
-    // overlap the back panel
-    const boxLeft = Math.max(backW + 1, sd - ddPx);
-    const boxW    = sd - boxLeft;
-    if (boxW > 1) {
-      boxSVG += `<rect x="${boxLeft}" y="${boxTop}" width="${boxW}" height="${boxH}"
-        fill="rgba(212,145,58,0.10)" stroke="rgba(212,145,58,0.50)"
-        stroke-width="1" stroke-dasharray="3,2"/>`;
+    const hPx      = Math.round(h * SCALE);
+    yCur          -= hPx;                        // face top = yCur
+
+    const clearPx  = Math.round(8 * SCALE);      // 8mm runner clearance each end
+    const boxH     = Math.round((h - 16) * SCALE);
+    const rawTop   = yCur + clearPx;
+    const rawBot   = rawTop + boxH;
+
+    // Clamp to inner space so boxes never bleed into the boards
+    const clampTop = Math.max(innerTop, rawTop);
+    const clampBot = Math.min(innerBot, rawBot);
+    const clampH   = clampBot - clampTop;
+
+    if (boxWidth > 1 && clampH > 2) {
+      boxSVG += `<rect x="${boxLeft}" y="${clampTop}" width="${boxWidth}" height="${clampH}"
+        fill="rgba(212,145,58,0.12)" stroke="rgba(212,145,58,0.55)"
+        stroke-width="1" stroke-dasharray="3,2" rx="1"/>`;
     }
     yCur -= fgPx;
   });
 
-  // ── Open-front edge marker ────────────────────────────────────────────────
-  // A subtle dashed line showing the open front of the carcass
-  const openFront = `<line x1="${sd}" y1="${tPx}" x2="${sd}" y2="${botY}"
+  // Open-front edge marker
+  const openFront = `<line x1="${sd}" y1="${innerTop}" x2="${sd}" y2="${innerBot}"
     stroke="var(--amber-dim)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;
 
-  // ── Annotation: drawer depth arrow ───────────────────────────────────────
-  const arrowY  = Math.round(sh / 2);
-  const arrowX1 = sd - ddPx > backW ? sd - ddPx : backW + 1;
-  const arrowX2 = sd;
+  // Drawer depth annotation
+  const arrowMidY = Math.round((innerTop + innerBot) / 2);
+  const arrowX1   = sd - ddPx > backW ? sd - ddPx : backW + 1;
   const depthArrow = ddPx > 20 ? `
-    <line x1="${arrowX1}" y1="${arrowY}" x2="${arrowX2}" y2="${arrowY}"
+    <line x1="${arrowX1}" y1="${arrowMidY}" x2="${sd}" y2="${arrowMidY}"
       stroke="rgba(212,145,58,0.35)" stroke-width="1"/>
-    <text x="${(arrowX1+arrowX2)/2}" y="${arrowY - 4}" text-anchor="middle"
+    <text x="${(arrowX1 + sd)/2}" y="${arrowMidY - 4}" text-anchor="middle"
       font-size="7" fill="rgba(212,145,58,0.6)"
       font-family="JetBrains Mono,monospace">${DD}</text>` : '';
 
-  const PADX = 24; // room for height dim label
-  const PADY = 26; // room for depth dim label
+  const PADX = 24;
+  const PADY = 26;
 
   return `<svg viewBox="0 0 ${sd + PADX} ${sh + PADY}"
       width="${sd + PADX}" height="${sh + PADY}"
       xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(0,6)">
-
-    <!-- Side panel silhouette (outer boundary = the side panel itself) -->
     <rect x="0" y="0" width="${sd}" height="${sh}"
-      fill="rgba(255,255,255,0.04)" stroke="var(--border-light)"
-      stroke-width="1" rx="1"/>
-
-    <!-- Top board or nailers -->
+      fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" rx="1"/>
     ${topSVG}
-
-    <!-- Bottom board (between sides, full depth) -->
     ${botSVG}
-
-    <!-- Back panel (masonite or board) — sits between top and bottom -->
     ${backSVG}
-
-    <!-- Drawer box outlines -->
     ${boxSVG}
-
-    <!-- Open front edge marker -->
     ${openFront}
-
-    <!-- Drawer depth annotation -->
     ${depthArrow}
-
-    <!-- BACK label -->
     <text x="0" y="${sh + 10}" text-anchor="start" font-size="7"
       fill="var(--text-muted)" font-family="JetBrains Mono,monospace">BACK</text>
-    <!-- FRONT label -->
     <text x="${sd}" y="${sh + 10}" text-anchor="end" font-size="7"
       fill="var(--text-muted)" font-family="JetBrains Mono,monospace">FRONT</text>
-
-    <!-- Depth dim line -->
     <line x1="0" y1="${sh + 4}" x2="${sd}" y2="${sh + 4}"
       stroke="var(--text-muted)" stroke-width="0.5"/>
     <text x="${sd/2}" y="${sh + 16}" text-anchor="middle" font-size="8"
       fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${D}mm</text>
-
-    <!-- Height dim -->
     <line x1="${sd + 4}" y1="0" x2="${sd + 4}" y2="${sh}"
       stroke="var(--text-muted)" stroke-width="0.5"/>
     <text x="${sd + 15}" y="${sh / 2}" text-anchor="middle" dominant-baseline="middle"
       font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace"
       transform="rotate(90 ${sd + 15} ${sh / 2})">${H}mm</text>
-
     </g>
   </svg>`;
 }
+
 
 // ── HTML ──────────────────────────────────────────────────────────────────────
 function renderDrawerBuilderHTML() {
