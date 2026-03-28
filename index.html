@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" async></script>
 <style>
   :root {
     --bg: #141414;
@@ -2236,6 +2237,36 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════
+// SCROLL PRESERVATION — prevents page jumping when inputs re-render views
+// ═══════════════════════════════════════════════════════════
+// Wrap any function that rebuilds innerHTML to preserve scroll + focus
+function withScrollLock(fn) {
+  // Save scroll position of the main scrollable area and the window
+  const mainEl   = document.querySelector('.main') || document.documentElement;
+  const winScrollY   = window.scrollY;
+  const mainScrollTop = mainEl.scrollTop;
+
+  // Save focused element info so we can restore focus after render
+  const focused   = document.activeElement;
+  const focusedId = focused?.id || null;
+  const focusedSel = focused && focused !== document.body
+    ? focused.getAttribute('data-restore-focus') || null
+    : null;
+
+  fn();
+
+  // Restore scroll
+  window.scrollTo(0, winScrollY);
+  if (mainEl !== document.documentElement) mainEl.scrollTop = mainScrollTop;
+
+  // Restore focus if the element still exists (it may have been re-rendered)
+  if (focusedId) {
+    const el = document.getElementById(focusedId);
+    if (el) { try { el.focus(); } catch(e) {} }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // BAKED STATE — replaced on "Save as HTML" export
 // ═══════════════════════════════════════════════════════════
 const BAKED_STATE = null;
@@ -3060,6 +3091,31 @@ function buildMatSelector(groupIds) {
             <span style="font-size:10px;letter-spacing:0.5px">${hwOn ? 'Included' : 'Excluded'}</span>
             <span style="font-size:9px;color:${hwOn ? '#1a7a4a' : '#8a3030'};text-align:center;line-height:1.3">Hinges, Runners<br>&amp; Handles</span>
           </button>
+          ${hwOn ? `
+          <div style="display:flex;flex-direction:column;gap:4px;width:100%">
+            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Hinges</div>
+            <div style="display:flex;gap:3px">
+              <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'}">
+                SOFT
+              </button>
+              <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'}">
+                NORM
+              </button>
+            </div>
+            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Runners</div>
+            <div style="display:flex;gap:3px">
+              <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'}">
+                SOFT
+              </button>
+              <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
+                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'}">
+                NORM
+              </button>
+            </div>
+          </div>` : ''}
         </div>
       </div>
     </div>`;
@@ -3081,6 +3137,7 @@ const sections = [
 ];
 
 let currentSection = 'kitchen';
+const expandedUnits = new Set(); // tracks which unit IDs have their parts expanded
 
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -3310,7 +3367,8 @@ function switchTab(btn, section) {
   renderPanel();
 }
 
-function renderPanel() {
+function renderPanel() { withScrollLock(_renderPanel); }
+function _renderPanel() {
   // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
   if (!isAdmin() && userRooms.length === 0) return;
 
@@ -3439,11 +3497,59 @@ function renderPanel() {
       <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
       <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
       <button onclick="deleteUserUnit('${u.id}')" title="Remove unit" style="background:none;border:1px solid #3a1a1a;color:#5a3030;font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='#e05252';this.style.color='#e05252'" onmouseout="this.style.borderColor='#3a1a1a';this.style.color='#5a3030'">× Remove</button>` : '';
+    const isExpanded = expandedUnits.has(u.id);
+    const hasParts   = u.parts && u.parts.length > 0;
+    const expandBtn  = hasParts
+      ? `<button onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}"
+           style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;transition:transform 0.15s;transform:rotate(${isExpanded?'90':'0'}deg);display:inline-block">▶</button>`
+      : '';
+
+    // Parts expand row
+    const partsExpandRow = (isExpanded && hasParts) ? `
+    <tr style="background:var(--bg2)">
+      <td></td>
+      <td style="padding:6px 12px 10px">
+        <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+          <span style="color:var(--amber-dim)">PARTS — ${u.parts.length} piece${u.parts.length===1?'':'s'}</span>
+          <span style="font-style:italic;font-family:'Barlow',sans-serif;letter-spacing:0;color:var(--text-muted)">
+            To edit parts → go to the <strong style="color:var(--text)">✏ Edit Units</strong> tab
+          </span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'Barlow',sans-serif">
+          <thead>
+            <tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">Part</th>
+              <th style="text-align:center;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">Qty</th>
+              <th style="text-align:right;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">L mm</th>
+              <th style="text-align:right;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">W mm</th>
+              <th style="text-align:left;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">Material</th>
+              <th style="text-align:center;padding:4px 8px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted);font-weight:400">Edging</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${u.parts.map(p => {
+              const rp = applyMaterials(p, u);
+              const edgeSides = [rp.el1,rp.el2,rp.ew1,rp.ew2].filter(Boolean);
+              const edgeShort = [...new Set(edgeSides.map(e => e.replace(/ Edging.*$/,'').replace(/ \d+mm$/,'')))].join(', ') || '—';
+              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+                <td style="padding:4px 8px;color:var(--text)">${p.name||'Part'}</td>
+                <td style="padding:4px 8px;text-align:center;color:var(--text-muted)">${p.qty||1}</td>
+                <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.l||0}</td>
+                <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.w||0}</td>
+                <td style="padding:4px 8px;color:var(--text-muted);font-size:10px">${rp.mat||''}</td>
+                <td style="padding:4px 8px;text-align:center;color:var(--amber-dim);font-size:10px">${edgeShort}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </td>
+    </tr>` : '';
+
     html += `<tr class="unit-row">
       <td><input class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name"><span style="${nameStyle}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
-    </tr>${ovRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
+      <td class="unit-name">${expandBtn}<span style="${nameStyle};cursor:${hasParts?'pointer':'default'}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
+    </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
   });
 
   html += `</tbody></table>`;
@@ -3461,6 +3567,12 @@ function renderPanel() {
   document.getElementById('unit-panel').innerHTML = html;
   updateSummary();
   updateCounts();
+}
+
+function toggleUnitExpand(id) {
+  if (expandedUnits.has(id)) expandedUnits.delete(id);
+  else expandedUnits.add(id);
+  renderPanel();
 }
 
 function setQty(id, input) {
@@ -5437,7 +5549,7 @@ function buildSpacersCard(secId) {
       ? (() => {
           const lM = item.h/1000, wM = item.w/1000;
           const ww  = lM * wM * item.qty * WASTE_FACTOR;
-          const mc  = (ww/SHEET_AREA) * (costingPrices.mat[item.mat]||0);
+          const mc  = billedSheetsForMat(item.mat, ww, SHEET_AREA) * (costingPrices.mat[item.mat]||0);
           let ec = 0;
           [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l])=>{ if(k) ec+=l*item.qty*(costingPrices.edge[k]||0); });
           return mc + ec + Math.ceil(ww/SHEET_AREA)*costingPrices.extras.cutLabel;
@@ -6053,12 +6165,13 @@ function saveQuoteState() {
 
 function fmt(n) { return 'R ' + Math.round(n).toLocaleString('en-ZA'); }
 
-function renderQuoteView() {
+function renderQuoteView() { withScrollLock(_renderQuoteView); }
+function _renderQuoteView() {
   const allUnits = getEffectiveUnits();
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
 
   // Build section data — include sections that have selected units OR enabled addons
-  const activeSections = (!isAdmin() && userRooms.length > 0)
+  const activeSections = userRooms.length > 0
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionData = activeSections.map(sec => {
@@ -6110,8 +6223,8 @@ function renderQuoteView() {
 
   // Add panel costs to grand total
   const quotePanelItems = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
-  const quotePanelTotal = quotePanelItems.reduce((s, p) => s + calcPanelCost(p).lineTotal, 0);
-  unitsTotal += quotePanelTotal;
+  const _panelsPooled   = calcPanelsCostPooled(quotePanelItems);
+  unitsTotal += _panelsPooled.total;
 
   const topsExcl    = (quoteState.tops.m2 || 0) * (quoteState.tops.pricePerM2 || 0);
   const topsDelivery= topsExcl > 0 ? 500 : 0;
@@ -6213,10 +6326,13 @@ function renderQuoteView() {
   // ── Custom Panels section in quote ──────────────────────────────
   if (quotePanelItems.length > 0) {
     const quotePanelLabel = panelsState.label ? `Panels — ${panelsState.label}` : 'Custom Panels';
+    const pooled = _panelsPooled; // already computed above for unitsTotal
+    const quotePanelTotalPooled = pooled.total;
     mainHtml += `<div class="qv-section-head">🪵 ${quotePanelLabel}</div>
       <table class="qv-table"><tbody>`;
     quotePanelItems.forEach(p => {
-      const { lineTotal, unitCost } = calcPanelCost(p);
+      const lineTotal = pooled.perPanel.get(p.id) ?? calcPanelCost(p).lineTotal;
+      const unitCost  = lineTotal / p.qty;
       mainHtml += `<tr>
         <td class="qv-qty">${p.qty}×</td>
         <td class="qv-unit-name">${p.name || 'Panel'} <span style="font-size:11px;color:var(--text-muted)">(${p.l}×${p.w}mm ${p.mat})</span></td>
@@ -6224,11 +6340,19 @@ function renderQuoteView() {
         <td class="qv-line-total">${fmt(lineTotal)}</td>
       </tr>`;
     });
+    // Show material pool breakdown as a sub-note when pooling actually reduced the cost
+    const simpleSum = quotePanelItems.reduce((s, p) => s + calcPanelCost(p).lineTotal, 0);
+    const saving    = simpleSum - quotePanelTotalPooled;
+    if (saving > 0.5) {
+      mainHtml += `<tr><td colspan="4" style="font-size:10px;color:#4caf82;padding:2px 8px 6px">
+        ℹ Panels pooled by material — combined sheet minimum saves R ${Math.round(saving).toLocaleString('en-ZA')} vs pricing each panel separately
+      </td></tr>`;
+    }
     mainHtml += `<tr class="qv-section-subtotal">
       <td colspan="3" style="color:var(--text-muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;font-family:'Oswald',sans-serif">
         Panels subtotal
       </td>
-      <td class="qv-line-total">${fmt(quotePanelTotal)}</td>
+      <td class="qv-line-total">${fmt(quotePanelTotalPooled)}</td>
     </tr></tbody></table>`;
   }
 
@@ -6351,32 +6475,6 @@ function renderQuoteView() {
   const markupPct = Math.round(quoteState.markup * 100);
 
   const sideHtml = `
-    <div class="qv-card-title">Hardware Spec</div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">Hinges</div>
-      <div style="display:flex;gap:5px;margin-bottom:10px">
-        <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          SOFT CLOSE
-        </button>
-        <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          NORMAL
-        </button>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px">Drawer Runners</div>
-      <div style="display:flex;gap:5px">
-        <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          SOFT CLOSE
-        </button>
-        <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderQuoteView()"
-          style="flex:1;padding:5px;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">
-          NORMAL
-        </button>
-      </div>
-    </div>
-
     <div class="qv-card-title">Markup</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <input type="range" class="wb-slider" min="20" max="100" step="1"
@@ -6804,78 +6902,90 @@ function removeQuoteExtra(i) {
   renderQuoteView();
 }
 
-function refreshQuoteTotals() {
+// Pure calculation — mirrors renderQuoteView's unitsTotal exactly.
+// Used by both refreshQuoteTotals() (live) and plCalcFromState() (P&L snapshot).
+function computeQuoteTotals() {
   const allUnits = getEffectiveUnits();
   const STATIC_IDS = new Set(['bth_top','fl_solid_back']);
 
-  // Group selected units by section and use pooled section cost
-  const secMap = {};
-  allUnits.filter(u => (quantities[u.id]||0) > 0).forEach(u => {
-    if (!secMap[u.section]) secMap[u.section] = [];
-    secMap[u.section].push(u);
-  });
+  // Use the same per-unit approach as renderQuoteView (not pooled calcSectionCost)
+  // so the P&L total always matches what the user sees on the Quote tab.
+  // Use userRooms if any are defined (restored from job state or current user's rooms).
+  // Do NOT gate on isAdmin() here — during P&L snapshot the viewer is superuser but
+  // the saved job may have been created by a regular user with custom rooms.
+  const activeSections = userRooms.length > 0
+    ? userRooms.map(r => ({ id: r.id, label: r.name }))
+    : sections;
+
+  // Build sectionData the same way renderQuoteView does
+  const sectionData = activeSections.map(sec => {
+    const units = allUnits.filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const addons = bedroomAddons[sec.id] || {};
+    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    return { sec, units, hasEnabledAddons };
+  }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
+
+  // Per-unit cost cache — same as renderQuoteView
+  const unitCostCache = {};
+  sectionData.forEach(d => d.units.forEach(u => {
+    const qty = quantities[u.id] || 0;
+    if (STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0) {
+      unitCostCache[u.id] = u.price || 0;
+    } else {
+      unitCostCache[u.id] = qty > 0 ? calcUnitCost(u, qty).total / qty : 0;
+    }
+  }));
 
   let unitsTotal = 0;
-  Object.entries(secMap).forEach(([secId, units]) => {
-    // Static-priced units (no parts) added at face value
-    units.filter(u => STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0).forEach(u => {
-      unitsTotal += (u.price || 0) * (quantities[u.id] || 0);
+  sectionData.forEach(({ sec, units }) => {
+    units.forEach(u => {
+      unitsTotal += (unitCostCache[u.id] || 0) * (quantities[u.id] || 0);
     });
-    // Costed units — pooled with addons for shared cut & label
-    const costedUnits = units.filter(u => !STATIC_IDS.has(u.id) && u.parts && u.parts.length > 0);
-    if (costedUnits.length > 0) {
-      unitsTotal += calcSectionCost(secId, costedUnits, quantities);
-    }
-  });
-  // Addon-only sections (enabled addons but no selected units) — cost them separately
-  ADDON_SECTIONS.forEach(secId => {
-    if (secMap[secId]) return; // already handled above
-    const addons = bedroomAddons[secId] || {};
+    // Addons for this section (any section key, including custom rooms)
+    const addons = bedroomAddons[sec.id] || {};
     [addons.plantOn, addons.spacers].forEach(group => {
       if (!group?.enabled) return;
-      group.items.forEach(item => {
-        if (item.w && item.h) unitsTotal += _calcItemCost(item);
-      });
+      group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
     });
-
   });
-  // Add custom panels cost
-  panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
-    unitsTotal += calcPanelCost(p).lineTotal;
-  });
-  // Add custom hardware items
 
-  const topsExcl     = (quoteState.tops.m2||0) * (quoteState.tops.pricePerM2||0);
-  const topsDelivery2= topsExcl > 0 ? 500 : 0;
-  const topsVAT2     = (topsExcl + topsDelivery2) * 0.15;
-  const topsTotal    = (topsExcl + topsDelivery2) * 1.10;   // +delivery +10% handling, excl. VAT
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
-  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
-  // Recalculate base and skirting extra amounts in case prices changed
+  // Panels — pool all panels by material so sheet minimums apply to the combined area
+  const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
+  if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
+
+  const topsExcl     = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
+  const topsDelivery = topsExcl > 0 ? 500 : 0;
+  const topsHandling = (topsExcl + topsDelivery) * 0.10;
+  const topsTotal    = topsExcl + topsDelivery + topsHandling; // matches renderQuoteView exactly
+  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
+  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
+  // Recalculate dynamic extra amounts
   quoteState.extras.forEach((e, i) => {
-    if (e.baseMode !== undefined) {
-      quoteState.extras[i].amount = _calcBaseExtraCost(e);
-    } else if (e.skirtingMode !== undefined) {
-      quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
-    }
+    if (e.baseMode !== undefined)          quoteState.extras[i].amount = _calcBaseExtraCost(e);
+    else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + extrasTotal;
-  const grand        = unitsTotal * (1 + quoteState.markup) + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  const markup       = quoteState.markup || 0;
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  return { unitsTotal, topsTotal, consultTotal, dieselTotal, extrasTotal, subtotal, grand, markup };
+}
 
+function refreshQuoteTotals() {
+  const t = computeQuoteTotals();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('qv-val-units',   fmt(unitsTotal));
-  set('qv-val-markup',  '+ ' + fmt(unitsTotal * quoteState.markup));
-  set('qv-val-tops',    fmt(topsTotal));
-  set('qv-val-consult', fmt(consultTotal));
-  set('qv-val-diesel',  fmt(dieselTotal));
-  set('qv-val-extras',  fmt(extrasTotal));
-  set('qv-val-sub',     fmt(subtotal));
-  set('qv-val-grand',   fmt(grand));
-  set('qv-val-vat',     fmt(grand * 0.15));
-  set('qv-val-grand-vat', fmt(grand * 1.15));
+  set('qv-val-units',     fmt(t.unitsTotal));
+  set('qv-val-markup',    '+ ' + fmt(t.unitsTotal * t.markup));
+  set('qv-val-tops',      fmt(t.topsTotal));
+  set('qv-val-consult',   fmt(t.consultTotal));
+  set('qv-val-diesel',    fmt(t.dieselTotal));
+  set('qv-val-extras',    fmt(t.extrasTotal));
+  set('qv-val-sub',       fmt(t.subtotal));
+  set('qv-val-grand',     fmt(t.grand));
+  set('qv-val-vat',       fmt(t.grand * 0.15));
+  set('qv-val-grand-vat', fmt(t.grand * 1.15));
   const td = document.getElementById('qv-tops-total');
-  if (td) td.textContent = topsTotal > 0 ? fmt(topsTotal) : '—';
+  if (td) td.textContent = t.topsTotal > 0 ? fmt(t.topsTotal) : '—';
 }
 
 function switchToUnits() {
@@ -7065,15 +7175,19 @@ function billSheets(m2withWaste, sheetArea) {
   return Math.ceil((m2withWaste / sheetArea) / 0.05) * 0.05;
 }
 
-// Like billSheets but applies a per-material minimum if configured
+// Like billSheets but applies a per-material minimum if configured.
+// Three billing modes (mutually exclusive, checked in priority order):
+//   1. matFullSheet   — supplier sells full sheets only → ceil to nearest whole sheet
+//   2. matSpecialOrder— not normally stocked, must order → minimum 1 full sheet
+//   3. default        — in stock, billed in 0.05 increments with configurable minimum
 function billedSheetsForMat(mat, m2withWaste, sheetArea) {
   const raw = billSheets(m2withWaste, sheetArea);
-  // Special order = must buy full sheet
+  // Full sheet purchase — must buy whole sheet(s), supplier provides offcuts
+  if (costingPrices.matFullSheet?.[mat]) return Math.max(1, Math.ceil(raw));
+  // Special order — not in stock, minimum 1 full sheet
   if (costingPrices.matSpecialOrder?.[mat]) return Math.max(raw, 1.0);
-  // Default minimum is 0.25 for all stock boards; override with matMinSheets if set
-  const min = costingPrices.matMinSheets?.[mat] != null
-    ? costingPrices.matMinSheets[mat]
-    : 0.25;
+  // Default — in stock, apply minimum (0.25 sheets unless overridden)
+  const min = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
   return min > 0 ? Math.max(raw, min) : raw;
 }
 
@@ -7094,10 +7208,27 @@ function setMatMinSheets(mat, value) {
 function setMatSpecialOrder(mat, isSpecial) {
   if (isSpecial) {
     costingPrices.matSpecialOrder[mat] = true;
-    // Clear any custom min override — special order always means full sheet
+    // Exclusive — clear other billing modes
     delete costingPrices.matMinSheets[mat];
+    delete costingPrices.matFullSheet[mat];
   } else {
     delete costingPrices.matSpecialOrder[mat];
+  }
+  saveCostingPrices();
+  refreshCostingResults();
+  renderPricesView();
+}
+
+// Toggle full-sheet-purchase flag for a material
+// When set: billing always rounds up to whole sheets, supplier supplies offcuts
+function setMatFullSheet(mat, isFullSheet) {
+  if (isFullSheet) {
+    costingPrices.matFullSheet[mat] = true;
+    // Exclusive — clear other billing modes
+    delete costingPrices.matSpecialOrder[mat];
+    delete costingPrices.matMinSheets[mat];
+  } else {
+    delete costingPrices.matFullSheet[mat];
   }
   saveCostingPrices();
   refreshCostingResults();
@@ -7136,6 +7267,7 @@ const costingPrices = {
     drilling:          8,
     skirtingPerM:     65,
     hPrice:         5.31,
+    edgeRoundPerPart: false, // false = round total per edge type (old); true = round per physical panel (per supplier invoice)
   },
   hardware: {
     hingeNormal:  22,
@@ -7151,6 +7283,7 @@ const costingPrices = {
   specialServices: [], // [{id, name, price, unit, category}] — CNC, cut-outs, shakers etc.
   matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
+  matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -7170,6 +7303,7 @@ try {
   if (saved.customHardware)  costingPrices.customHardware  = saved.customHardware;
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
+  if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
@@ -8982,6 +9116,24 @@ function saveCostingPrices() {
 }
 
 // Single source of truth for one panel row cost
+// Edging cost for a single edge — rounds per physical piece if edgeRoundPerPart is set
+function calcEdgeMeters(edgeLengthM, qty) {
+  if (costingPrices.extras.edgeRoundPerPart) {
+    // Round up each physical panel separately, then multiply
+    return Math.ceil(edgeLengthM) * qty;
+  }
+  // Original behaviour: accumulate raw, round at the end (caller does Math.ceil + 1)
+  return edgeLengthM * qty;
+}
+
+// Final rounding step — only applies in total-mode (per-part mode already rounded above)
+function finalRoundEdge(totalM) {
+  if (costingPrices.extras.edgeRoundPerPart) {
+    return totalM + 1; // still add 1m waste buffer, no extra ceil needed
+  }
+  return Math.ceil(totalM) + 1; // original: ceil then +1 buffer
+}
+
 function calcPanelCost(p) {
   const lM = p.l/1000, wM = p.w/1000;
   const withWaste  = lM * wM * p.qty * WASTE_FACTOR;
@@ -8994,11 +9146,11 @@ function calcPanelCost(p) {
   let hPriceCost   = (billedSh + wholeSh) * hPrice;
   const edgeMap = {};
   [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
-    if (k) edgeMap[k] = (edgeMap[k]||0) + l * p.qty;
+    if (k) edgeMap[k] = (edgeMap[k]||0) + calcEdgeMeters(l, p.qty);
   });
   let edgeCost = 0;
   Object.entries(edgeMap).forEach(([k,m]) => {
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     edgeCost   += rounded * (costingPrices.edge[k] || 0);
     hPriceCost += rounded * hPrice;
   });
@@ -9008,7 +9160,100 @@ function calcPanelCost(p) {
 }
 
 
-// ── Custom board helpers ────────────────────────────────────────────────────
+// ── Pooled panel costing ──────────────────────────────────────────────────────
+// Costs all panels together, pooling m² by material so the sheet minimum and
+// Full Sheet rounding applies to the combined area — not per panel individually.
+// Returns:
+//   total       — grand total cost for all panels
+//   perPanel    — Map<panelId, lineTotal>  (proportional allocation)
+//   matBreakdown— [{mat, m2, billedSh, rawSh, pricePerSheet, cost}]
+function calcPanelsCostPooled(panels) {
+  if (!panels || !panels.length) return { total: 0, perPanel: new Map(), matBreakdown: [] };
+
+  const activePanels = panels.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
+  if (!activePanels.length) return { total: 0, perPanel: new Map(), matBreakdown: [] };
+
+  // ── Step 1: pool raw m² and edging by material ──────────────────────────────
+  const matM2   = {};   // { mat: total m² (before waste) }
+  const matEdge = {};   // { `edgeKey|mat`: total metres }
+
+  activePanels.forEach(p => {
+    const lM = p.l / 1000, wM = p.w / 1000;
+    const m2 = lM * wM * p.qty;
+    matM2[p.mat] = (matM2[p.mat] || 0) + m2;
+    [[p.edgeL1, lM], [p.edgeL2, lM], [p.edgeW1, wM], [p.edgeW2, wM]].forEach(([k, l]) => {
+      if (k) {
+        const ck = `${k}|${p.mat}`;
+        matEdge[ck] = (matEdge[ck] || 0) + calcEdgeMeters(l, p.qty);
+      }
+    });
+  });
+
+  // ── Step 2: cost each material pool with billedSheetsForMat ─────────────────
+  const matBreakdown = [];
+  let totalMatCost = 0;
+  let totalCutCost = 0;
+  let totalHPrice  = 0;
+  const hPrice = costingPrices.extras.hPrice || 0;
+
+  Object.entries(matM2).forEach(([mat, m2]) => {
+    const withWaste     = m2 * WASTE_FACTOR;
+    const rawSh         = billSheets(withWaste, SHEET_AREA);
+    const billedSh      = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+    const wholeSh       = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
+    const pricePerSheet = costingPrices.mat[mat] || 0;
+    const isMas         = mat === '3MM White Masonite';
+    const matCost       = billedSh * pricePerSheet;
+    const cutCost       = wholeSh  * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
+    const hpc           = (billedSh + wholeSh) * hPrice;
+    totalMatCost += matCost;
+    totalCutCost += cutCost;
+    totalHPrice  += hpc;
+    matBreakdown.push({ mat, m2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc });
+  });
+
+  // ── Step 3: edging cost (pooled per edge+mat combination) ──────────────────
+  let totalEdgeCost = 0;
+  Object.entries(matEdge).forEach(([ck, m]) => {
+    const edgeKey  = ck.split('|')[0];
+    const rounded  = finalRoundEdge(m);
+    const eCost    = rounded * (costingPrices.edge[edgeKey] || 0);
+    totalEdgeCost += eCost;
+    totalHPrice   += rounded * hPrice;
+  });
+
+  // ── Step 4: special services (still per-panel, not poolable) ───────────────
+  let totalSvcCost = 0;
+  activePanels.forEach(p => {
+    totalSvcCost += calcSpecialServicesCost(panelSpecialServices[p.id]);
+  });
+
+  const total = totalMatCost + totalEdgeCost + totalCutCost + totalHPrice + totalSvcCost;
+
+  // ── Step 5: allocate total back to individual panels proportionally ─────────
+  // Each panel's share = its own (m² + edging cost weight) / total weight
+  // We use individual calcPanelCost for the ratio, but scale to the pooled total.
+  const individualCosts = new Map();
+  let individualSum = 0;
+  activePanels.forEach(p => {
+    const c = calcPanelCost(p).lineTotal;
+    individualCosts.set(p.id, c);
+    individualSum += c;
+  });
+
+  const perPanel = new Map();
+  if (individualSum > 0) {
+    activePanels.forEach(p => {
+      perPanel.set(p.id, (individualCosts.get(p.id) / individualSum) * total);
+    });
+  } else {
+    // Edge case: all zero — split evenly
+    const share = total / activePanels.length;
+    activePanels.forEach(p => perPanel.set(p.id, share));
+  }
+
+  return { total, perPanel, matBreakdown };
+}
 // Refresh all material/edge dropdowns already in the DOM without full re-render
 function refreshMatDropdowns() {
   // Editor part-row material selects
@@ -9463,7 +9708,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
       [[rp.el1,lM],[rp.el2,lM],[rp.ew1,wM],[rp.ew2,wM]].forEach(([k,l]) => {
         if (k) {
           const ck = `${k}|${mat}`;
-          edgeM[ck] = (edgeM[ck] || 0) + l * totalQty;
+          edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(l, totalQty);
         }
       });
       const n = rp.name.toLowerCase();
@@ -9496,7 +9741,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
       [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l]) => {
         if (k) {
           const ck = `${k}|${item.mat}`;
-          edgeM[ck] = (edgeM[ck] || 0) + l * item.qty;
+          edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(l, item.qty);
         }
       });
     });
@@ -9508,7 +9753,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
   Object.entries(matM2).forEach(([mat, m2]) => {
     const sheetArea  = mat === 'Shutterply' ? SHUTTERPLY_AREA : SHEET_AREA;
     const withWaste  = m2 * WASTE_FACTOR;
-    const billed     = billSheets(withWaste, sheetArea);
+    const billed     = billedSheetsForMat(mat, withWaste, sheetArea);
     matCost         += billed * (costingPrices.mat[mat] || 0);
     hPriceCost      += billed * hPrice;
     const sheets     = Math.ceil(withWaste / sheetArea);
@@ -9517,7 +9762,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
     hPriceCost      += sheets * hPrice;
   });
   Object.entries(edgeM).forEach(([ck, m]) => {
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     edgeCost   += rounded * (costingPrices.edge[ck.split('|')[0]] || 0);
     hPriceCost += rounded * hPrice;
   });
@@ -9560,7 +9805,7 @@ function calcUnitCost(u, unitQty) {
     edgeLengths.forEach(([key, len]) => {
       if (key) {
         const comboKey = `${key}|${rp.mat}`;
-        edgeM[comboKey] = (edgeM[comboKey] || 0) + len * totalQty;
+        edgeM[comboKey] = (edgeM[comboKey] || 0) + calcEdgeMeters(len, totalQty);
       }
     });
 
@@ -9616,7 +9861,7 @@ function calcUnitCost(u, unitQty) {
   });
   Object.entries(edgeM).forEach(([comboKey, m]) => {
     const edgeKey = comboKey.split('|')[0];
-    const rounded = Math.ceil(m) + 1;
+    const rounded = finalRoundEdge(m);
     const pricePerM = costingPrices.edge[edgeKey] || 0;
     edgeCost   += rounded * pricePerM;
     hPriceCost += rounded * hPrice;
@@ -9686,7 +9931,8 @@ function refreshPriceViews() {
   if (document.getElementById('materials-view').style.display !== 'none') renderMaterialsView();
 }
 
-function renderPricesView() {
+function renderPricesView() { withScrollLock(_renderPricesView); }
+function _renderPricesView() {
   const admin = canEditPrices();
   const ro    = admin ? '' : 'readonly style="opacity:1;cursor:default;pointer-events:none;background:var(--bg2);border-color:var(--border)"';
   const roBtn = admin ? '' : 'disabled style="display:none"';
@@ -9728,6 +9974,7 @@ function renderPricesView() {
       <div class="cv-extra-row" style="border-bottom:none;padding:7px 0 3px 0">
         <span class="cv-extra-label">
           ${mat}${badge}
+          ${costingPrices.matFullSheet?.[mat]    ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 5px;margin-left:6px;vertical-align:middle">FULL SHEET</span>` : ''}
           ${costingPrices.matSpecialOrder?.[mat] ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 5px;margin-left:6px;letter-spacing:0.5px;vertical-align:middle">SPECIAL ORDER</span>` : ''}
         </span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
@@ -9740,24 +9987,32 @@ function renderPricesView() {
       ${edgeRows}
       ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;width:80px">Stock type</span>
-        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false)"
+        <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', false);setMatFullSheet('${mat.replace(/'/g,"\'")}', false)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
-                 ${!costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+                 ${!costingPrices.matSpecialOrder?.[mat] && !costingPrices.matFullSheet?.[mat] ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
           ✓ In Stock
+        </button>
+        <button onclick="setMatFullSheet('${mat.replace(/'/g,"\'")}', true)"
+          style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
+                 ${costingPrices.matFullSheet?.[mat] ? 'background:rgba(100,160,255,0.15);border-color:#5090e0;color:#7ab0ff;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🟦 Full Sheet
         </button>
         <button onclick="setMatSpecialOrder('${mat.replace(/'/g,"\'")}', true)"
           style="font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:0.3px;border:1px solid;
                  ${costingPrices.matSpecialOrder?.[mat] ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
-          🛒 Special Order <span style="font-size:9px;opacity:0.8">(full sheet)</span>
+          🛒 Special Order
         </button>
-        ${!costingPrices.matSpecialOrder?.[mat] ? `
+        ${!costingPrices.matSpecialOrder?.[mat] && !costingPrices.matFullSheet?.[mat] ? `
         <span style="font-size:10px;color:var(--text-muted);margin-left:4px">min:
           <input type="number" min="0.05" max="1" step="0.05"
             value="${costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25}"
             class="no-spin" style="width:${Math.max(3, String(costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25).length + 1)}ch;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;-moz-appearance:textfield;appearance:textfield"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="this.style.width=Math.max(3,this.value.length+1)+'ch';setMatMinSheets('${mat.replace(/'/g,"\'")}', this.value)"> sheets
-        </span>` : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">Supplier offcuts included — billed as 1 full sheet</span>`}
+        </span>`
+        : costingPrices.matFullSheet?.[mat]
+          ? `<span style="font-size:10px;color:#7ab0ff;margin-left:4px">🟦 Billed in whole sheets — offcuts included</span>`
+          : `<span style="font-size:10px;color:var(--amber-dim);margin-left:4px">🛒 Must be ordered — minimum 1 full sheet</span>`}
       </div>` : ''}
       ${admin ? `<div class="cv-extra-row" style="padding:4px 0 6px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:5px">
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0">+ edging</span>
@@ -9823,42 +10078,75 @@ function renderPricesView() {
     const delFn     = custom
       ? `removeCustomBoard('${custom.id}')`
       : `deleteStandardBoard('${mat.replace(/'/g,"\\\\'")}')`;
-    const isSpecial = costingPrices.matSpecialOrder?.[mat];
+    const isSpecial  = costingPrices.matSpecialOrder?.[mat];
+    const isFullSheet = costingPrices.matFullSheet?.[mat];
     const matEdges  = matchingEdges(mat);
     const noEdge    = NO_EDGE_MATS.has(mat);
     const safeId    = mat.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeMatJS = mat.replace(/'/g, "\\'");
 
-    // ── Board cell (left) ────────────────────────────────────────────────────
-    const stockPill = isSpecial
-      ? `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',false)" title="Click → In Stock"
-           style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px;cursor:pointer;flex-shrink:0">🛒 SPECIAL</span>`
-      : `<span onclick="setMatSpecialOrder('${mat.replace(/'/g,"\\'")}',true)" title="Click → Special Order"
-           style="font-size:9px;background:rgba(76,175,130,0.12);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;cursor:pointer;flex-shrink:0">✓ STOCK</span>`;
+    // ── Stock-type badge (read-only users) ───────────────────────────────────
+    const stockBadge = isFullSheet
+      ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 6px">FULL SHEET</span>`
+      : isSpecial
+        ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px">SPECIAL ORDER</span>`
+        : '';
+
+    // ── Stock-type toggle buttons (admin only) ───────────────────────────────
+    // Three modes: In Stock | Full Sheet | Special Order
+    const activeStock = !isFullSheet && !isSpecial;
+    const stockPill = admin ? `
+      <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+        <button onclick="setMatSpecialOrder('${safeMatJS}',false);setMatFullSheet('${safeMatJS}',false)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${activeStock ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          ✓ In Stock
+        </button>
+        <button onclick="setMatFullSheet('${safeMatJS}',true)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${isFullSheet ? 'background:rgba(100,160,255,0.15);border-color:#5090e0;color:#7ab0ff;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🟦 Full Sheet
+        </button>
+        <button onclick="setMatSpecialOrder('${safeMatJS}',true)"
+          style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
+                 ${isSpecial ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+          🛒 Special Order
+        </button>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:3px;min-height:16px">
+        ${isFullSheet  ? '🟦 Supplier sells full sheets only — billed in whole sheets, offcuts included'
+          : isSpecial  ? '🛒 Not in stock — must be ordered, minimum 1 full sheet'
+          :              ''}
+      </div>` : stockBadge;
+
     const minVal  = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
-    const minHtml = admin && !isSpecial
+    const minHtml = admin && activeStock
       ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap">min
            <input type="number" min="0.05" max="1" step="0.05" value="${minVal}"
              style="width:40px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:1px 4px;font-size:10px;outline:none;font-family:'JetBrains Mono',monospace"
              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-             oninput="setMatMinSheets('${mat.replace(/'/g,"\\'")}',this.value)"> sh
+             oninput="setMatMinSheets('${safeMatJS}',this.value)"> sh
          </span>` : '';
 
+    // ── Board cell (left) ────────────────────────────────────────────────────
     const boardCell = `
       <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${mat}</span>
-          ${admin ? stockPill : (isSpecial ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 6px">SPECIAL</span>` : '')}
+          ${!admin ? stockBadge : ''}
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
-            onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
-            onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
+            onchange="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
+            onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/sheet</span>
-          ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
+          ${admin ? `<button onclick="renameMat('${safeMatJS}')" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
           <button onclick="${delFn}" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
           ${minHtml}
         </div>
-        ${!admin && isSpecial ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
+        ${admin ? stockPill : ''}
+        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">Full sheet billed</div>` : ''}
+        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
       </div>`;
 
     // ── Edging cell (right) ──────────────────────────────────────────────────
@@ -9989,7 +10277,21 @@ function renderPricesView() {
 
       <!-- Cutting & Services -->
       <div style="margin-top:24px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Cutting &amp; Services</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Cutting &amp; Services</div>
+          ${admin ? `<div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--text-muted)">Edging billing:</span>
+            <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();renderPricesView()"
+              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${!costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
+              Per job total
+            </button>
+            <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();renderPricesView()"
+              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
+              Per panel
+            </button>
+            <span style="font-size:10px;color:var(--text-muted)" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices."">ℹ</span>
+          </div>` : `<span style="font-size:11px;color:var(--text-muted)">Edging: <strong style="color:var(--text)">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
@@ -10417,7 +10719,8 @@ function loadSpecialServicesFromSupabase(rows) {
 }
 
 
-function renderMaterialsView() {
+function renderMaterialsView() { withScrollLock(_renderMaterialsView); }
+function _renderMaterialsView() {
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
 
@@ -10573,7 +10876,8 @@ function quickAddHardware(cat, name) {
   if (priceEl) { priceEl.value = ''; priceEl.style.borderColor = 'var(--amber)'; priceEl.focus(); }
 }
 
-function renderCostingView() {
+function renderCostingView() { withScrollLock(_renderCostingView); }
+function _renderCostingView() {
   try {
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
@@ -10606,12 +10910,22 @@ function renderCostingView() {
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
       const sheets    = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const rawSheets = billSheets(withWaste, SHEET_AREA);
       const pricePerSheet = costingPrices.mat[mat] || 0;
       const cost = sheets * pricePerSheet;
+      // Billing mode badge
+      const modeBadge = costingPrices.matFullSheet?.[mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 4px;margin-left:4px;vertical-align:middle">FULL SHEET</span>`
+        : costingPrices.matSpecialOrder?.[mat]
+          ? `<span style="font-size:8px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 4px;margin-left:4px;vertical-align:middle">SPECIAL ORDER</span>`
+          : '';
+      const sheetsDisplay = sheets !== rawSheets
+        ? `<span style="color:var(--text)">${sheets.toFixed(2)}</span> <span style="font-size:9px;color:var(--text-muted)">(raw ${rawSheets.toFixed(2)})</span>${modeBadge}`
+        : `${sheets.toFixed(2)}${modeBadge}`;
       return `<tr>
         <td>${mat}</td>
         <td class="num">${m2.toFixed(3)}</td>
-        <td class="num">${sheets.toFixed(2)}</td>
+        <td class="num">${sheetsDisplay}</td>
         <td class="num">R ${pricePerSheet.toFixed(0)}/sheet</td>
         <td class="num cost">R ${cost.toFixed(0)}</td>
       </tr>`;
@@ -10756,10 +11070,13 @@ function renderCostingView() {
       const cost = _calcItemCost(item);
       const lM = item.h/1000, wM = item.w/1000;
       const ww = lM * wM * item.qty * WASTE_FACTOR;
+      const billedSh = billedSheetsForMat(item.mat, ww, SHEET_AREA);
+      const fsBadge  = costingPrices.matFullSheet?.[item.mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 3px;margin-left:3px">FS</span>` : '';
       return `<tr>
         <td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td>
         <td class="num">${(lM*wM*item.qty).toFixed(3)}</td>
-        <td class="num">${(ww/SHEET_AREA).toFixed(2)}</td>
+        <td class="num">${billedSh.toFixed(2)}${fsBadge}</td>
         <td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td>
         <td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td>
       </tr>`;
@@ -10834,20 +11151,25 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
 
-  // Fold panel items into the combined totals
-  panelItems.forEach(p => {
-    const lM = p.l / 1000, wM = p.w / 1000;
-    const m2 = lM * wM * p.qty;
-    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + m2;
-    const cutRate = p.mat === '3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
-    totalCutLabel += Math.ceil(m2 * WASTE_FACTOR / SHEET_AREA) * cutRate;
-    const pCost = calcPanelCost(p).lineTotal;
-    grandTotal += pCost;
-    totalMat   += billSheets(m2 * WASTE_FACTOR, SHEET_AREA) * (costingPrices.mat[p.mat] || 0);
-    [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
-      if (k) { const ck = `${k}|${p.mat}`; allEdgeM[ck] = (allEdgeM[ck] || 0) + l * p.qty; }
+  // Fold panel items into the combined totals — pool by material first
+  if (panelItems.length > 0) {
+    const pooled = calcPanelsCostPooled(panelItems);
+    grandTotal += pooled.total;
+    // Add pooled material m² to allMatM2 for the summary bar
+    pooled.matBreakdown.forEach(({ mat, m2 }) => {
+      allMatM2[mat] = (allMatM2[mat] || 0) + m2;
     });
-  });
+    totalMat += pooled.matBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
+    // Edging still needs to be accumulated for summary
+    panelItems.forEach(p => {
+      const lM = p.l / 1000, wM = p.w / 1000;
+      [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
+        if (k) { const ck = `${k}|${p.mat}`; allEdgeM[ck] = (allEdgeM[ck] || 0) + l * p.qty; }
+      });
+      const cutRate = p.mat === '3MM White Masonite' ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
+      totalCutLabel += Math.ceil((p.l/1000) * (p.w/1000) * p.qty * WASTE_FACTOR / SHEET_AREA) * cutRate;
+    });
+  }
 
 
 
@@ -11081,7 +11403,8 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   </div>`;
 }
 
-function refreshCostingResults() {
+function refreshCostingResults() { withScrollLock(_refreshCostingResults); }
+function _refreshCostingResults() {
   // Re-render only the main panel results, leaving sidebar inputs untouched
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
@@ -11109,10 +11432,19 @@ function refreshCostingResults() {
     const _unitDims2 = _b2Parts.length ? (()=>{const rp=applyMaterials(_b2Parts[0],u);return{l:rp.l,w:rp.w};})() : null;
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
-      const sheets = withWaste / SHEET_AREA;
-      const price = costingPrices.mat[mat] || 0;
-      const cost = withWaste * price;
-      return `<tr><td>${mat}</td><td class="num">${m2.toFixed(3)}</td><td class="num">${sheets.toFixed(2)}</td><td class="num">R ${(costingPrices.mat[mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${(sheets*(costingPrices.mat[mat]||0)).toFixed(0)}</td></tr>`;
+      const sheets    = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const rawSh     = billSheets(withWaste, SHEET_AREA);
+      const price     = costingPrices.mat[mat] || 0;
+      const cost      = sheets * price;
+      const modeBadge = costingPrices.matFullSheet?.[mat]
+        ? `<span style="font-size:8px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 4px;margin-left:4px">FULL SHEET</span>`
+        : costingPrices.matSpecialOrder?.[mat]
+          ? `<span style="font-size:8px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 4px;margin-left:4px">SPECIAL ORDER</span>`
+          : '';
+      const sheetsCell = sheets !== rawSh
+        ? `${sheets.toFixed(2)} <span style="font-size:9px;color:var(--text-muted)">(raw ${rawSh.toFixed(2)})</span>${modeBadge}`
+        : `${sheets.toFixed(2)}${modeBadge}`;
+      return `<tr><td>${mat}</td><td class="num">${m2.toFixed(3)}</td><td class="num">${sheetsCell}</td><td class="num">R ${price.toFixed(0)}/sheet</td><td class="num cost">R ${cost.toFixed(0)}</td></tr>`;
     }).join('');
 
     const buildEdgeRowsHtml2 = (edgeMap) => Object.entries(edgeMap).map(([ck, m]) => {
@@ -11189,7 +11521,9 @@ function refreshCostingResults() {
       const cost = _calcItemCost(item);
       const lM = item.h/1000, wM = item.w/1000;
       const ww = lM * wM * item.qty * WASTE_FACTOR;
-      return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${(ww/SHEET_AREA).toFixed(2)}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
+      const bSh = billedSheetsForMat(item.mat, ww, SHEET_AREA);
+      const fsBadge2 = costingPrices.matFullSheet?.[item.mat] ? ' FS' : costingPrices.matSpecialOrder?.[item.mat] ? ' SO' : '';
+      return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${bSh.toFixed(2)}${fsBadge2}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
     }).join('');
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
       <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')">
@@ -11272,18 +11606,21 @@ function saveSnapshots(snaps) {
 function captureState() {
   return {
     version: 2,
-    quantities:     JSON.parse(JSON.stringify(quantities)),
-    holesOverrides: JSON.parse(JSON.stringify(holesOverrides)),
-    materialConfig: JSON.parse(JSON.stringify(materialConfig)),
+    quantities:       JSON.parse(JSON.stringify(quantities)),
+    holesOverrides:   JSON.parse(JSON.stringify(holesOverrides)),
+    materialConfig:   JSON.parse(JSON.stringify(materialConfig)),
     unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
-    quoteState:     JSON.parse(JSON.stringify(quoteState)),
-    bedroomAddons:  JSON.parse(JSON.stringify(bedroomAddons)),
-    costingPrices:  JSON.parse(JSON.stringify(costingPrices)),
-    customUnits:    JSON.parse(JSON.stringify(customUnits)),
-    unitOverrides:  JSON.parse(JSON.stringify(unitOverrides)),
-    deletedUnits:   [...deletedUnits],
-    unitImages:     JSON.parse(JSON.stringify(unitImages)),
-    panelsState:    JSON.parse(JSON.stringify(panelsState)),
+    sectionHardware:  JSON.parse(JSON.stringify(sectionHardware)),
+    quoteState:       JSON.parse(JSON.stringify(quoteState)),
+    bedroomAddons:    JSON.parse(JSON.stringify(bedroomAddons)),
+    costingPrices:    JSON.parse(JSON.stringify(costingPrices)),
+    customUnits:      JSON.parse(JSON.stringify(customUnits)),
+    unitOverrides:    JSON.parse(JSON.stringify(unitOverrides)),
+    deletedUnits:     [...deletedUnits],
+    unitImages:       JSON.parse(JSON.stringify(unitImages)),
+    panelsState:      JSON.parse(JSON.stringify(panelsState)),
+    userRooms:        JSON.parse(JSON.stringify(userRooms)),
+    userUnits:        JSON.parse(JSON.stringify(userUnits)),
     job: {
       client:  document.getElementById('job-client')?.value  || '',
       house:   document.getElementById('job-house')?.value   || '',
@@ -11322,6 +11659,9 @@ function applyState(state) {
     if (state.costingPrices.tops)         Object.assign(costingPrices.tops,     state.costingPrices.tops);
     if (state.costingPrices.customBoards)    costingPrices.customBoards    = state.costingPrices.customBoards;
     if (state.costingPrices.hiddenMats)      costingPrices.hiddenMats      = state.costingPrices.hiddenMats;
+    if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
+    if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
+    if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
     // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
@@ -11570,7 +11910,7 @@ function buildPanelsTotalsHTML() {
     edges.forEach(({ key, len }) => {
       if (!key) return;
       const ck = key + '|' + p.mat;
-      edgeM[ck] = (edgeM[ck] || 0) + len * p.qty;
+      edgeM[ck] = (edgeM[ck] || 0) + calcEdgeMeters(len, p.qty);
     });
   });
 
@@ -11677,7 +12017,8 @@ function fuzzyMatchEdge(val) {
   return '';
 }
 
-function renderImportView() {
+function renderImportView() { withScrollLock(_renderImportView); }
+function _renderImportView() {
   const iv = document.getElementById('import-view');
   if (!iv) return;
 
@@ -11824,6 +12165,10 @@ function renderImportPreview() {
         <button onclick="openImportedCutlist()"
           style="background:rgba(212,145,58,0.15);border:1px solid var(--amber);color:var(--amber);padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           📋 OPEN AS CUTLIST
+        </button>
+        <button onclick="openSaveAsUnitModal(importState.parsed, importState.label)"
+          style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          🪵 SAVE AS UNIT
         </button>
         <button onclick="importIntoPanels()"
           style="background:var(--amber);color:#111;border:none;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
@@ -12198,7 +12543,12 @@ function renderImportedCutlistView() {
         ${isSupplier() ? `<button onclick="importedToCutlist()"
           style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           ✦ ADD TO CUTLIST
-        </button>` : `<button onclick="importIntoPanels()"
+        </button>` : `
+        <button onclick="openSaveAsUnitModal(importedCutlistData?.parts, importedCutlistData?.label)"
+          style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
+          🪵 SAVE AS UNIT
+        </button>
+        <button onclick="importIntoPanels()"
           style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           ✦ ADD TO PANELS
         </button>`}
@@ -12499,6 +12849,142 @@ function importedToCutlist() {
   if (tab) { tab.style.display = ''; switchTab(tab, '__cutlist__'); }
 }
 
+// ── Save Imported Parts as a Unit ──────────────────────────────────────────────
+function openSaveAsUnitModal(parts, defaultLabel) {
+  if (!parts || !parts.length) { alert('No parts to save.'); return; }
+
+  // Build group list from the parts so each group can become its own unit
+  const groups = {};
+  const label  = defaultLabel || 'Imported';
+  parts.forEach(p => {
+    const g = p.group || label;
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(p);
+  });
+  const groupNames = Object.keys(groups);
+
+  // Available sections: standard + user-created rooms
+  const availSections = [
+    ...sections,
+    ...userRooms.filter(r => !sections.find(s => s.id === r.id)).map(r => ({ id: r.id, label: r.name }))
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sau-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;display:flex;align-items:center;justify-content:center';
+
+  // Store data on the overlay element so the button doesn't need to serialise
+  // potentially unsafe strings into an HTML attribute
+  overlay._sauGroupNames = groupNames;
+  overlay._sauGroups     = groups;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">🪵 SAVE AS UNIT</div>
+        <button onclick="document.getElementById('sau-overlay').remove()"
+          style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:18px">
+          The imported parts will be saved as a custom unit that appears in your unit list and can be costed and quoted like any other unit.
+          ${groupNames.length > 1 ? `<br><strong style="color:var(--text)">${groupNames.length} groups detected</strong> — each group will become a separate unit.` : ''}
+        </p>
+
+        ${groupNames.map((grp, gi) => `
+        <div style="background:var(--bg3);border:1px solid var(--border);padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:10px">
+            GROUP ${gi+1} — ${groups[grp].length} part${groups[grp].length===1?'':'s'}
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Unit name</div>
+              <input id="sau-name-${gi}" type="text" value="${grp.replace(/"/g,'&quot;')}"
+                style="width:100%;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
+                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            </div>
+            <div style="min-width:150px">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Section / Room</div>
+              <select id="sau-section-${gi}"
+                style="width:100%;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none">
+                ${availSections.map(s => `<option value="${s.id}" ${s.id===currentSection?'selected':''}>${s.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">
+            Parts: ${groups[grp].map(p => `<span style="color:var(--text)">${p.name||'Part'}</span>`).join(', ')}
+          </div>
+        </div>`).join('')}
+
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+        <button onclick="document.getElementById('sau-overlay').remove()"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
+          CANCEL
+        </button>
+        <button id="sau-confirm-btn"
+          style="background:#4caf82;color:#fff;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
+          ✓ SAVE ${groupNames.length > 1 ? groupNames.length + ' UNITS' : 'UNIT'}
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Wire confirm button via addEventListener — avoids serialising group names
+  // (which may contain quotes/backslashes) into an HTML onclick attribute
+  document.getElementById('sau-confirm-btn').addEventListener('click', () => {
+    const ol = document.getElementById('sau-overlay');
+    if (ol) saveImportAsUnit(ol._sauGroupNames, ol._sauGroups);
+  });
+}
+
+function saveImportAsUnit(groupNames, groups) {
+  let savedCount = 0;
+  groupNames.forEach((grp, gi) => {
+    const name    = document.getElementById('sau-name-' + gi)?.value.trim() || grp;
+    const section = document.getElementById('sau-section-' + gi)?.value || currentSection;
+    const gparts  = groups[grp];
+
+    // Convert imported part format → unit part format
+    const parts = gparts.map(p => ({
+      name:  p.name  || 'Part',
+      qty:   parseInt(p.qty)  || 1,
+      l:     parseInt(p.l)    || 0,
+      w:     parseInt(p.w)    || 0,
+      mat:   p.mat   || (MATS[0] || ''),
+      el1:   p.el1   || '',
+      el2:   p.el2   || '',
+      ew1:   p.ew1   || '',
+      ew2:   p.ew2   || '',
+      holes: p.holes || '',
+    }));
+
+    const id = 'imp_unit_' + Date.now() + '_' + gi;
+
+    if (!isAdmin() && userRooms.length > 0) {
+      // Regular user — save to userUnits
+      userUnits.push({ id, name, section, parts, price: 0 });
+    } else {
+      // Admin — save to customUnits
+      customUnits.push({ id, name, section, parts, price: 0 });
+    }
+    if (!(id in quantities)) quantities[id] = 0;
+    savedCount++;
+  });
+
+  saveCustomUnits();
+  updateCounts();
+  renderPanel();
+
+  document.getElementById('sau-overlay')?.remove();
+
+  const sectionLabel = savedCount > 1 ? `${savedCount} units` : '1 unit';
+  alert(`✓ Saved ${sectionLabel} to your unit list! You can find ${savedCount > 1 ? 'them' : 'it'} in the room tabs and set quantities to include in your quote.`);
+}
+
+
 function importIntoPanels() {
   if (!importState.parsed || !importState.parsed.length) return;
   const label = importState.label || 'Imported';
@@ -12564,7 +13050,8 @@ function importIntoPanels() {
   if (panelsBtn) switchTab(panelsBtn, '__panels__');
 }
 
-function renderPanelsView() {
+function renderPanelsView() { withScrollLock(_renderPanelsView); }
+function _renderPanelsView() {
   const pv = document.getElementById('panels-view');
   if (!pv) return;
 
@@ -12697,6 +13184,32 @@ const builderState = {
 };
 
 let _bldrShelfIdCounter = 2;
+let _builderMode = (() => { try { return localStorage.getItem('cutlist_builder_mode') || 'unit'; } catch(e) { return 'unit'; } })(); // 'unit' | 'drawer'
+
+// ── Drawer Builder State ──────────────────────────────────────────────────────
+const drawerState = {
+  width:       600,
+  height:      780,
+  depth:       560,
+  thickness:    16,
+  drawerDepth: 500,   // internal drawer box depth (mm)
+  sideGap:       2,   // mm between face edge and carcass edge (each side)
+  faceGap:       4,   // mm gap between drawer faces
+  drawerType:  'equal',  // 'equal' | 'pot' | 'custom'
+  drawerCount:   4,
+  potTopHeight: 192,  // face height of the small top drawer in pot mode
+  customHeights: [],  // used when drawerType === 'custom'
+  topType:     'solid', // 'solid' | 'nailers'
+  hasBacking: true,
+  materials: {
+    carcass:    'White Melamine',
+    carcassEdge:'',
+    face:       'Dunblane',
+    faceEdge:   'Dunblane Edging 1mm',
+  },
+  unitName: 'Custom Drawer Unit',
+  section:  'kitchen',
+};
 
 function builderInput(key, val) {
   const keys = key.split('.');
@@ -13768,7 +14281,8 @@ function build3DView() {
 
 
 
-function renderBuilderView() {
+function renderBuilderView() { withScrollLock(_renderBuilderView); }
+function _renderBuilderView() {
   const bv = document.getElementById('builder-view');
   if (!bv) return;
 
@@ -13788,9 +14302,39 @@ function renderBuilderView() {
   const d  = bs.doors;
   const bk = bs.backing;
   const mt = bs.materials;
-  const geo = builderGeometry();
 
-  bv.innerHTML = `<div style="display:grid;grid-template-columns:300px 1fr 260px;height:calc(100vh - 56px);overflow:hidden">
+  // ── Step 1: commit the mode-bar to the DOM immediately ───────────────────
+  // This guarantees both buttons are always clickable, even if content
+  // rendering below throws an error.
+  bv.innerHTML = `<div class="bldr-mode-bar" style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;position:relative;z-index:2">
+    <button onclick="_builderMode='unit';try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
+      🔨 UNIT BUILDER
+    </button>
+    <button onclick="_builderMode='drawer';try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
+      🗂 DRAWER BUILDER
+    </button>
+  </div><div id="bldr-content-area"></div>`;
+
+  const contentArea = document.getElementById('bldr-content-area');
+
+  // ── Step 2: render content into the separate content div ─────────────────
+  if (_builderMode === 'drawer') {
+    try {
+      contentArea.innerHTML = renderDrawerBuilderHTML();
+    } catch(err) {
+      contentArea.innerHTML = `<div style="padding:40px;color:var(--red);font-family:'Barlow',sans-serif;font-size:13px">
+        ⚠ Drawer Builder failed to render.<br><small style="color:var(--text-muted)">${err}</small>
+      </div>`;
+      console.error('Drawer Builder render error:', err);
+    }
+    return;
+  }
+
+  // ── Unit Builder ──────────────────────────────────────────────────────────
+  const geo = builderGeometry();
+  contentArea.innerHTML = `<div style="display:grid;grid-template-columns:300px 1fr 260px;height:calc(100vh - 112px);overflow:hidden">
 
     <!-- LEFT: Build controls -->
     <div class="bldr-panel" style="border-right:var(--line)">
@@ -14038,6 +14582,682 @@ function builderSaveUnit() {
 }
 
 
+// ══════════════════════════════════════════════════════════════════════════════
+// DRAWER BUILDER
+// ══════════════════════════════════════════════════════════════════════════════
+
+function drawerNum(key, val) {
+  const v = parseFloat(val); if (isNaN(v)) return;
+  const keys = key.split('.'); let obj = drawerState;
+  keys.slice(0,-1).forEach(k => obj=obj[k]);
+  obj[keys[keys.length-1]] = v;
+  drawerRedraw();
+}
+// Update a custom drawer height live (SVG only), full redraw on blur
+function drawerCustomHeightInput(idx, val) {
+  const v = parseFloat(val); if (isNaN(v)) return;
+  const ds = drawerState;
+  const fh = drawerFaceHeights();
+  if (!ds.customHeights || ds.customHeights.length !== ds.drawerCount) {
+    ds.customHeights = [...fh];
+  }
+  ds.customHeights[idx] = v;
+  // Refresh SVGs in place
+  const frontWrap = document.querySelector('#builder-view .bldr-svg-wrap');
+  if (frontWrap) frontWrap.innerHTML = drawerSVG();
+  const sideWrap = document.querySelector('#builder-view .bldr-svg-side-wrap');
+  if (sideWrap) sideWrap.innerHTML = drawerSideSVG();
+}
+function drawerNumInput(key, val) {
+  const v = parseFloat(val); if (isNaN(v)) return;
+  const keys = key.split('.'); let obj = drawerState;
+  keys.slice(0,-1).forEach(k => obj=obj[k]);
+  obj[keys[keys.length-1]] = v;
+  // Update SVG previews in place
+  const frontWrap = document.querySelector('#builder-view .bldr-svg-wrap');
+  if (frontWrap) frontWrap.innerHTML = drawerSVG();
+  const sideWrap = document.querySelector('#builder-view .bldr-svg-side-wrap');
+  if (sideWrap) sideWrap.innerHTML = drawerSideSVG();
+  // Update dims badge
+  const badge = document.querySelector('#builder-view .bldr-dims-badge');
+  if (badge) badge.textContent = `${drawerState.width}W × ${drawerState.height}H × ${drawerState.depth}D mm`;
+}
+function drawerInput(key, val) {
+  const keys = key.split('.'); let obj = drawerState;
+  keys.slice(0,-1).forEach(k => obj=obj[k]);
+  obj[keys[keys.length-1]] = val === 'true' ? true : val === 'false' ? false : val;
+  drawerRedraw();
+}
+function drawerRedraw() {
+  if (_builderMode !== 'drawer') return;
+  // Save left panel scroll before re-render, restore after
+  const panel = document.querySelector('#builder-view .bldr-panel');
+  const panelScroll = panel ? panel.scrollTop : 0;
+  renderBuilderView();
+  requestAnimationFrame(() => {
+    const p = document.querySelector('#builder-view .bldr-panel');
+    if (p) p.scrollTop = panelScroll;
+  });
+}
+
+// ── Core geometry ────────────────────────────────────────────────────────────
+// Faces sit on the FRONT of the carcass (overlay style):
+//   face width  = carcass width − 2 × sideGap
+//   bottom face is flush with carcass bottom
+//   gaps between faces are equal, calculated from remaining height
+function drawerFaceWidth() {
+  return drawerState.width - 2 * drawerState.sideGap;
+}
+
+function drawerFaceHeights() {
+  const ds = drawerState;
+  const H  = ds.height;
+  const n  = ds.drawerCount;
+  const fg = ds.faceGap; // gap between faces
+
+  // Total face space = carcass height minus all gaps
+  // Gaps: (n-1) between faces + 1 at the top (top gap = faceGap)
+  const totalForGaps = n * fg;  // n gaps total: (n-1) between faces + 1 above top face
+  const available    = H - totalForGaps; // space for all faces combined
+
+  if (ds.drawerType === 'equal') {
+    const h = Math.floor(available / n);
+    const rem = available - h * n; // leftover added to top drawer
+    return Array(n).fill(h).map((v, i) => i === n-1 ? v + rem : v);
+  }
+
+  if (ds.drawerType === 'pot') {
+    // Top drawer fixed height, rest equal
+    const topH  = ds.potTopHeight;
+    const large = n - 1;
+    const restAvail = available - topH;
+    const h = Math.floor(restAvail / large);
+    const rem = restAvail - h * large;
+    // Bottom drawers first (large), top drawer last
+    const heights = Array(large).fill(h);
+    heights[large - 1] += rem;
+    heights.push(topH); // top drawer at end of array = visually top
+    return heights;
+  }
+
+  if (ds.drawerType === 'custom') {
+    if (!ds.customHeights || ds.customHeights.length !== n) {
+      const h = Math.floor(available / n);
+      drawerState.customHeights = Array(n).fill(h);
+    }
+    return drawerState.customHeights;
+  }
+  return Array(n).fill(Math.floor(available / n));
+}
+
+function drawerGapCheck() {
+  const ds = drawerState;
+  const n  = ds.drawerCount;
+  const fh = drawerFaceHeights();
+  const total = fh.reduce((s,h)=>s+h,0) + n*ds.faceGap; // n gaps: (n-1) between + 1 top
+  return { total, diff: ds.height - total };
+}
+
+// ── SVG preview ───────────────────────────────────────────────────────────
+// Faces are shown OVERLAPPING the carcass (flush outside, no inset)
+// Bottom face is flush with carcass bottom; top gap = faceGap above top face
+function drawerSVG() {
+  const ds  = drawerState;
+  const W   = ds.width, H = ds.height, T = ds.thickness;
+  const fg  = ds.faceGap, sg = ds.sideGap;
+  const fh  = drawerFaceHeights();
+  const fw  = drawerFaceWidth();
+
+  const SCALE = Math.min(200 / W, 280 / H);
+  const sw = Math.round(W * SCALE), sh = Math.round(H * SCALE);
+  const fwPx = Math.round(fw * SCALE);
+  const sgPx = Math.round(sg * SCALE);
+  const fgPx = Math.max(1, Math.round(fg * SCALE));
+
+  // Draw faces bottom to top (index 0 = bottom)
+  // Bottom face is flush; top gap (= faceGap) sits above the top face
+  let faceSVG = '';
+  let yPx = sh; // start at bottom (flush)
+  fh.forEach((h, i) => {
+    const hPx = Math.round(h * SCALE);
+    yPx -= hPx;
+    faceSVG += `<rect x="${sgPx}" y="${yPx}" width="${fwPx}" height="${hPx}" rx="1"
+      fill="rgba(212,145,58,0.18)" stroke="var(--amber)" stroke-width="1.5"/>
+    <text x="${sw/2}" y="${yPx + hPx/2}" text-anchor="middle"
+      dominant-baseline="middle" font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">${h}mm</text>`;
+    yPx -= fgPx; // gap above each face (including the top gap above last face)
+  });
+
+  return `<svg viewBox="0 0 ${sw+20} ${sh+20}" width="${sw+20}" height="${sh+20}" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(0,10)">
+    <!-- Carcass outline -->
+    <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
+    <!-- Drawer faces (overlay) -->
+    ${faceSVG}
+    <!-- Width dim -->
+    <line x1="0" y1="${sh+6}" x2="${sw}" y2="${sh+6}" stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sw/2}" y="${sh+16}" text-anchor="middle" font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${W}mm</text>
+    </g>
+  </svg>`;
+}
+
+// ── Side view SVG ─────────────────────────────────────────────────────────────
+// Cross-section looking from the RIGHT side of the cabinet.
+// Coordinate system:
+//   x = 0   → BACK of cabinet
+//   x = sd  → FRONT of cabinet (open — no front panel on drawer unit)
+//   y = 0   → TOP
+//   y = sh  → BOTTOM
+//
+// The SIDE PANEL itself is the outer rectangle.
+// Inside the cross-section we see: back panel strip, top board (or nailers),
+// bottom board (between the sides), drawer box outlines, and open front edge.
+function drawerSideSVG() {
+  const ds   = drawerState;
+  const H    = ds.height, D = ds.depth, T = ds.thickness;
+  const DD   = ds.drawerDepth;
+  const fh   = drawerFaceHeights();
+  const fg   = ds.faceGap;
+  const n    = ds.drawerCount;
+
+  // Same SCALE as front view so heights match exactly
+  const W     = ds.width;
+  const SCALE = Math.min(200 / W, 280 / H);
+  const sh    = Math.round(H * SCALE);    // carcass height px
+  const sd    = Math.round(D * SCALE);    // carcass depth px
+  const tPx   = Math.round(T * SCALE);   // board thickness px
+  const fgPx  = Math.max(1, Math.round(fg * SCALE));
+  const ddPx  = Math.round(DD * SCALE);  // drawer box depth px
+
+  // Face board shown as thin solid slab at the FRONT (overlay)
+  // It extends faceThPx past the carcass front edge
+  const faceThPx = tPx;  // face board is the same board thickness
+
+  const innerTop = tPx;
+  const innerBot = sh - tPx;
+
+  // Back panel
+  const backMM = ds.hasBacking ? 3 : T;
+  const backW  = Math.max(2, Math.round(backMM * SCALE));
+
+  // SVG canvas — extra faceThPx on the right to show the face overlay
+  const PADX = 24;
+  const PADY = 26;
+  const svgW = sd + faceThPx + PADX;
+
+  // ── Top board or nailers ────────────────────────────────────────────────
+  let topSVG = '';
+  if (ds.topType === 'nailers') {
+    const bNW = Math.max(3, Math.round(70  * SCALE));
+    const fNW = Math.max(3, Math.round(100 * SCALE));
+    topSVG = `
+      <rect x="${backW}" y="0" width="${bNW}" height="${tPx}"
+        fill="rgba(255,255,255,0.28)" stroke="#888" stroke-width="1"/>
+      <text x="${backW + bNW/2}" y="${tPx/2}" dominant-baseline="middle"
+        text-anchor="middle" font-size="6" fill="#888"
+        font-family="JetBrains Mono,monospace">70</text>
+      <rect x="${sd - fNW}" y="0" width="${fNW}" height="${tPx}"
+        fill="rgba(255,255,255,0.28)" stroke="#888" stroke-width="1"/>
+      <text x="${sd - fNW/2}" y="${tPx/2}" dominant-baseline="middle"
+        text-anchor="middle" font-size="6" fill="#888"
+        font-family="JetBrains Mono,monospace">100</text>`;
+  } else {
+    topSVG = `<rect x="0" y="0" width="${sd}" height="${tPx}"
+      fill="rgba(255,255,255,0.28)" stroke="#888" stroke-width="1.5"/>`;
+  }
+
+  // ── Bottom board ─────────────────────────────────────────────────────────
+  const botSVG = `<rect x="0" y="${innerBot}" width="${sd}" height="${tPx}"
+    fill="rgba(255,255,255,0.28)" stroke="#888" stroke-width="1.5"/>`;
+
+  // ── Back panel strip ──────────────────────────────────────────────────────
+  const backSVG = `<rect x="0" y="${innerTop}" width="${backW}" height="${innerBot - innerTop}"
+    fill="rgba(255,255,255,0.18)" stroke="#666" stroke-width="1"/>`;
+
+  // ── Drawer faces + boxes + runner lines ──────────────────────────────────
+  // Cursor mirrors drawerSVG() exactly — starts at sh (outer bottom)
+  let facesSVG  = '';
+  let boxesSVG  = '';
+  let runnerSVG = '';
+
+  // Box parameters
+  const boxStartX = Math.max(backW + 2, sd - ddPx);  // box left edge
+  const boxEndX   = sd;                                // box right edge (flush with carcass front)
+  const boxInnerW = boxEndX - boxStartX;
+
+  let yCur = sh;
+  fh.forEach((h, i) => {
+    const hPx      = Math.round(h * SCALE);
+    yCur          -= hPx;                        // face top y (matches front view)
+
+    const faceTop  = yCur;
+    const faceBot  = yCur + hPx;
+
+    // ── Drawer face (solid amber slab at the front) ───────────────────────
+    // In side view the face is seen edge-on: height=hPx, width=faceThPx
+    // It sits flush with the bottom of its slot and protrudes past the carcass front
+    facesSVG += `
+      <rect x="${sd}" y="${faceTop}" width="${faceThPx}" height="${hPx}"
+        fill="rgba(212,145,58,0.35)" stroke="var(--amber)" stroke-width="1.5"/>`;
+
+    // ── Drawer box (dashed outline inside carcass) ────────────────────────
+    // Box height = face height - 16mm total clearance (8mm top and bottom)
+    const clearPx = Math.round(8 * SCALE);
+    const boxH    = Math.round((h - 16) * SCALE);
+    const boxTop  = faceTop + clearPx;
+    const boxBot  = boxTop + boxH;
+
+    // Clamp to inner space
+    const clTop = Math.max(innerTop, boxTop);
+    const clBot = Math.min(innerBot, boxBot);
+    const clH   = clBot - clTop;
+
+    if (boxInnerW > 2 && clH > 2) {
+      // Box outline (4 sides dashed)
+      boxesSVG += `
+        <rect x="${boxStartX}" y="${clTop}" width="${boxInnerW}" height="${clH}"
+          fill="rgba(212,145,58,0.06)" stroke="rgba(212,145,58,0.7)"
+          stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- Box bottom board (visible edge) -->
+        <line x1="${boxStartX}" y1="${clBot}" x2="${boxEndX}" y2="${clBot}"
+          stroke="rgba(212,145,58,0.5)" stroke-width="1" stroke-dasharray="4,3"/>`;
+    }
+
+    // ── Runner / support rail line between drawers ────────────────────────
+    // Draw a thin horizontal divider line between consecutive drawers
+    if (i < fh.length - 1) {
+      // Support rail sits at the bottom of this face's gap zone
+      const railY = faceBot + Math.round(fg * SCALE / 2);
+      runnerSVG += `
+        <line x1="${backW}" y1="${faceBot}" x2="${sd}" y2="${faceBot}"
+          stroke="rgba(255,255,255,0.18)" stroke-width="0.75" stroke-dasharray="2,3"/>`;
+    }
+
+    yCur -= fgPx;
+  });
+
+  // ── Open-front carcass edge (dashed vertical) ────────────────────────────
+  const openFront = `<line x1="${sd}" y1="${innerTop}" x2="${sd}" y2="${innerBot}"
+    stroke="#555" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+  // ── Drawer depth annotation ───────────────────────────────────────────────
+  const arrowMidY = Math.round((innerTop + innerBot) / 2);
+  const arrowX1   = sd - ddPx > backW ? sd - ddPx : backW + 1;
+  const depthArrow = ddPx > 16 ? `
+    <line x1="${arrowX1}" y1="${arrowMidY}" x2="${sd - 2}" y2="${arrowMidY}"
+      stroke="rgba(212,145,58,0.4)" stroke-width="1"
+      marker-end="url(#arrowEnd)" marker-start="url(#arrowStart)"/>
+    <text x="${(arrowX1 + sd)/2}" y="${arrowMidY - 5}" text-anchor="middle"
+      font-size="7" fill="rgba(212,145,58,0.7)"
+      font-family="JetBrains Mono,monospace">${DD}mm</text>` : '';
+
+  return `<svg viewBox="0 0 ${svgW} ${sh + PADY}"
+      width="${svgW}" height="${sh + PADY}"
+      xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowEnd" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+        <path d="M0,0 L5,2.5 L0,5" fill="none" stroke="rgba(212,145,58,0.5)" stroke-width="1"/>
+      </marker>
+      <marker id="arrowStart" markerWidth="5" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+        <path d="M0,0 L5,2.5 L0,5" fill="none" stroke="rgba(212,145,58,0.5)" stroke-width="1"/>
+      </marker>
+    </defs>
+    <g transform="translate(0,6)">
+
+    <!-- Carcass side panel outline -->
+    <rect x="0" y="0" width="${sd}" height="${sh}"
+      fill="rgba(255,255,255,0.04)" stroke="#666" stroke-width="1.5"/>
+
+    <!-- Top board or nailers -->
+    ${topSVG}
+
+    <!-- Bottom board -->
+    ${botSVG}
+
+    <!-- Back panel -->
+    ${backSVG}
+
+    <!-- Runner lines between drawers -->
+    ${runnerSVG}
+
+    <!-- Drawer box outlines (dashed — visible through side panel) -->
+    ${boxesSVG}
+
+    <!-- Drawer faces (solid — seen edge-on at the front) -->
+    ${facesSVG}
+
+    <!-- Carcass open front edge -->
+    ${openFront}
+
+    <!-- Drawer depth annotation -->
+    ${depthArrow}
+
+    <!-- BACK / FRONT labels -->
+    <text x="0" y="${sh + 10}" text-anchor="start" font-size="7"
+      fill="var(--text-muted)" font-family="JetBrains Mono,monospace">BACK</text>
+    <text x="${sd + faceThPx}" y="${sh + 10}" text-anchor="end" font-size="7"
+      fill="var(--text-muted)" font-family="JetBrains Mono,monospace">FRONT</text>
+
+    <!-- Depth dim -->
+    <line x1="0" y1="${sh + 4}" x2="${sd}" y2="${sh + 4}"
+      stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sd/2}" y="${sh + 16}" text-anchor="middle" font-size="8"
+      fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${D}mm</text>
+
+    <!-- Height dim -->
+    <line x1="${sd + faceThPx + 4}" y1="0" x2="${sd + faceThPx + 4}" y2="${sh}"
+      stroke="var(--text-muted)" stroke-width="0.5"/>
+    <text x="${sd + faceThPx + 15}" y="${sh / 2}" text-anchor="middle" dominant-baseline="middle"
+      font-size="8" fill="var(--text-muted)" font-family="JetBrains Mono,monospace"
+      transform="rotate(90 ${sd + faceThPx + 15} ${sh / 2})">${H}mm</text>
+
+    </g>
+  </svg>`;
+}
+
+
+
+// ── HTML ──────────────────────────────────────────────────────────────────────
+function renderDrawerBuilderHTML() {
+  const ds  = drawerState;
+  const fh  = drawerFaceHeights();
+  const fw  = drawerFaceWidth();
+  const chk = drawerGapCheck();
+
+  const matOpts  = (sel) => MATS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
+  const edgeOpts = (sel) => ['',...EDGES].map(e=>`<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
+  const secOpts  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}]
+    .map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
+
+  const typeBtn = (val, label, title) =>
+    `<button onclick="drawerState.drawerType='${val}';drawerState.customHeights=[];drawerRedraw()" title="${title}"
+      style="flex:1;padding:5px 0;border:1px solid ${ds.drawerType===val?'var(--amber)':'var(--border)'};background:${ds.drawerType===val?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerType===val?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">${label}</button>`;
+
+  const countBtn = (n) =>
+    `<button onclick="drawerState.drawerCount=${n};drawerState.customHeights=[];drawerRedraw()"
+      style="flex:1;padding:5px 0;border:1px solid ${ds.drawerCount===n?'var(--amber)':'var(--border)'};background:${ds.drawerCount===n?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.drawerCount===n?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;border-radius:2px">${n}</button>`;
+
+  const customRows = ds.drawerType === 'custom' ? fh.map((h,i) => `
+    <div class="bldr-row">
+      <span class="bldr-label" style="font-size:11px">Drawer ${i+1} ${i===0?'(bottom)':i===fh.length-1?'(top)':''}</span>
+      <input class="bldr-input" type="number" min="50" max="800" value="${h}"
+        oninput="drawerCustomHeightInput(${i},this.value)"
+        onblur="drawerRedraw()">
+      <span class="bldr-unit">mm</span>
+    </div>`).join('') : '';
+
+  const balanceColor = Math.abs(chk.diff) <= 1 ? 'var(--green)' : 'var(--red)';
+  const balanceMsg   = Math.abs(chk.diff) <= 1
+    ? `✓ Heights balanced (${ds.height}mm)`
+    : chk.diff > 0 ? `⚠ ${chk.diff}mm remaining — add to a drawer height`
+                   : `⚠ Over by ${Math.abs(chk.diff)}mm — reduce a drawer height`;
+
+  return `<div style="display:grid;grid-template-columns:280px 1fr 240px;height:calc(100vh - 112px);overflow:hidden">
+
+    <!-- LEFT controls -->
+    <div class="bldr-panel" style="border-right:var(--line)">
+      <div class="bldr-title">Drawer Builder</div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">📦 Carcass</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Width</span>
+            <input class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNumInput('width',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span></div>
+          <div class="bldr-row"><span class="bldr-label">Height</span>
+            <input class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNumInput('height',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span></div>
+          <div class="bldr-row"><span class="bldr-label">Depth</span>
+            <input class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNumInput('depth',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span></div>
+          <div class="bldr-row"><span class="bldr-label">Thickness</span>
+            <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span></div>
+          <div class="bldr-row"><span class="bldr-label">Drawer depth</span>
+            <input class="bldr-input" type="number" value="${ds.drawerDepth}" min="200" max="700" oninput="drawerNumInput('drawerDepth',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span></div>
+          <!-- Top type: solid or nailers -->
+          <div style="margin-top:8px;margin-bottom:4px">
+            <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
+            <div style="display:flex;gap:4px">
+              <button onclick="drawerInput('topType','solid');drawerRedraw()"
+                style="flex:1;padding:5px 0;border:1px solid ${ds.topType==='solid'?'var(--amber)':'var(--border)'};background:${ds.topType==='solid'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.topType==='solid'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">SOLID</button>
+              <button onclick="drawerInput('topType','nailers');drawerRedraw()"
+                style="flex:1;padding:5px 0;border:1px solid ${ds.topType==='nailers'?'var(--amber)':'var(--border)'};background:${ds.topType==='nailers'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${ds.topType==='nailers'?'var(--amber)':'var(--text-muted)'};font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:2px">NAILERS</button>
+            </div>
+            ${ds.topType==='nailers'?`<div style="font-size:10px;color:var(--text-muted);line-height:1.6;margin-top:4px">Front: ${ds.width - 2*ds.thickness} × 100mm<br>Back: ${ds.width - 2*ds.thickness} × 70mm</div>`:''}
+          </div>
+          <div class="bldr-check-row">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+              <input type="checkbox" ${ds.hasBacking?'checked':''} onchange="drawerInput('hasBacking',this.checked)" style="accent-color:var(--amber)">
+              Masonite backing
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">↔ Spacing</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between face edge and carcass edge on each side">Side gap</span>
+            <input class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('sideGap',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
+            Face width = ${ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between drawer faces + gap above top face">Face gap</span>
+            <input class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('faceGap',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
+            Bottom face flush · top gap = face gap (${ds.faceGap}mm)
+          </div>
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">🔢 Drawers</div>
+        <div class="bldr-section-body">
+          <div style="display:flex;gap:4px;margin-bottom:10px">
+            ${[2,3,4,5].map(n=>countBtn(n)).join('')}
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:8px">
+            ${typeBtn('equal','EQUAL','All drawers the same height')}
+            ${typeBtn('pot','POT','Small top + large pot drawers')}
+            ${typeBtn('custom','CUSTOM','Set each drawer height manually')}
+          </div>
+          ${ds.drawerType === 'pot' ? `
+          <div class="bldr-row" style="margin-top:4px">
+            <span class="bldr-label" style="font-size:11px">Top face H</span>
+            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNumInput('potTopHeight',this.value)" onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>` : ''}
+          ${customRows}
+          <div style="font-size:10px;color:${balanceColor};margin-top:6px;padding:4px 6px;background:${Math.abs(chk.diff)<=1?'rgba(106,170,100,0.08)':'rgba(224,96,96,0.08)'};border-radius:2px">${balanceMsg}</div>
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">🎨 Materials</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Carcass</span>
+            <select class="bldr-input" onchange="drawerInput('materials.carcass',this.value)">${matOpts(ds.materials.carcass)}</select></div>
+          <div class="bldr-row"><span class="bldr-label">Carc. edge</span>
+            <select class="bldr-input" onchange="drawerInput('materials.carcassEdge',this.value)">${edgeOpts(ds.materials.carcassEdge)}</select></div>
+          <div class="bldr-row"><span class="bldr-label">Faces</span>
+            <select class="bldr-input" onchange="drawerInput('materials.face',this.value)">${matOpts(ds.materials.face)}</select></div>
+          <div class="bldr-row"><span class="bldr-label">Face edge</span>
+            <select class="bldr-input" onchange="drawerInput('materials.faceEdge',this.value)">${edgeOpts(ds.materials.faceEdge)}</select></div>
+        </div>
+      </div>
+
+      <div style="padding:12px 16px;border-top:1px solid var(--border)">
+        <div class="bldr-row" style="margin-bottom:8px">
+          <span class="bldr-label">Name</span>
+          <input class="bldr-input" type="text" value="${ds.unitName}" oninput="drawerState.unitName=this.value" placeholder="Unit name">
+        </div>
+        <div class="bldr-row" style="margin-bottom:12px">
+          <span class="bldr-label">Section</span>
+          <select class="bldr-input" onchange="drawerInput('section',this.value)">${secOpts}</select>
+        </div>
+        <button class="bldr-save-btn" onclick="drawerSaveUnit()">+ Add to Unit List</button>
+      </div>
+    </div>
+
+    <!-- MIDDLE: Preview -->
+    <div class="bldr-preview">
+      <div class="bldr-title">Preview</div>
+      <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Faces overlay carcass · bottom flush · top gap = face gap</div>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">FRONT VIEW</div>
+          <div class="bldr-svg-wrap">${drawerSVG()}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">SIDE VIEW</div>
+          <div class="bldr-svg-side-wrap">${drawerSideSVG()}</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
+        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
+        <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
+        ${fh.map((h,i)=>`<div>Drawer ${i+1}${i===0?' (bottom)':i===fh.length-1?' (top)':''}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
+      </div>
+    </div>
+
+    <!-- RIGHT: Parts -->
+    <div class="bldr-panel" style="border-left:var(--line)">
+      <div class="bldr-title">Parts</div>
+      ${drawerPartsPreviewHTML()}
+    </div>
+  </div>`;
+}
+
+function drawerPartsPreviewHTML() {
+  const parts = drawerCalcParts();
+  if (!parts.length) return '<div style="color:var(--text-muted);font-size:12px">—</div>';
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">PART</th>
+      <th style="text-align:center;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">QTY</th>
+      <th style="text-align:right;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">L</th>
+      <th style="text-align:right;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">W</th>
+    </thead><tbody>
+    ${parts.map(p=>`<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+      <td style="padding:3px 6px;color:var(--text)">${p.name}</td>
+      <td style="padding:3px 6px;text-align:center;color:var(--text-muted)">${p.qty}</td>
+      <td style="padding:3px 6px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text)">${p.l}</td>
+      <td style="padding:3px 6px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text)">${p.w}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function drawerCalcParts() {
+  const ds = drawerState;
+  const W  = ds.width, H = ds.height, D = ds.depth, T = ds.thickness;
+  const DD = ds.drawerDepth;
+  const cm = ds.materials.carcass, ce = ds.materials.carcassEdge;
+  const fm = ds.materials.face,    fe = ds.materials.faceEdge;
+  const fh = drawerFaceHeights();
+  const fw = drawerFaceWidth();
+  const n  = ds.drawerCount;
+  const innerW = W - 2 * T;
+
+  // Drawer box: 16mm sides each side + 4mm clearance each side = 8mm total from innerW
+  const boxW    = innerW - 32 - 8;   // inner box width (between box sides)
+  const boxSideW = 16;               // box side thickness
+  const fullBoxW = boxW + 2 * boxSideW; // runner / bottom full span
+
+  const p = (name, qty, l, w, mat, el1='', el2='', ew1='', ew2='') =>
+    ({ name, qty, l: Math.round(l), w: Math.round(w), mat, el1, el2, ew1, ew2, holes:'' });
+
+  const parts = [];
+
+  // ── Carcass ──────────────────────────────────────────────────────────────
+  if (ds.topType === 'nailers') {
+    const innerW2 = W - 2 * T;
+    parts.push(p('Front Nailer (Top)', 1, innerW2, 100, cm, ce));
+    parts.push(p('Back Nailer (Top)',  1, innerW2,  70, cm, ce));
+  } else {
+    parts.push(p('Top Panel', 1, W, D, cm, ce, ce, ce, ce));
+  }
+  parts.push(p('Bottom Panel', 1, W, D, cm, ce, '', ce, ce));
+  parts.push(p('Sides',        2, H, D, cm, ce));
+  if (ds.hasBacking) parts.push(p('Backing', 1, H, W, '3MM White Masonite'));
+  parts.push(p('Front Support', 1, innerW, 100, cm, ce));
+  parts.push(p('Back Support',  1, innerW, 70,  cm, ce));
+  // Intermediate supports between drawer boxes (n-1 gaps between n drawers)
+  if (n > 1) parts.push(p('Supports', n - 1, W, 100, cm));
+
+  // ── Drawer faces (overlay — full width minus side gaps) ───────────────────
+  if (ds.drawerType === 'equal') {
+    parts.push(p('Drawer Faces', n, fw, fh[0], fm, fe, fe, fe, fe));
+  } else if (ds.drawerType === 'pot') {
+    const topH   = fh[fh.length - 1]; // top drawer face height
+    const largeH = fh[0];             // large pot drawer face height
+    parts.push(p('Drawer Faces',   n - 1, fw, largeH, fm, fe, fe, fe, fe));
+    parts.push(p('Top Drawer Face', 1,    fw, topH,   fm, fe, fe, fe, fe));
+  } else {
+    // Custom — group identical heights
+    const grouped = {};
+    fh.forEach((h, i) => {
+      grouped[h] = (grouped[h] || 0) + 1;
+    });
+    Object.entries(grouped).forEach(([h, qty]) => {
+      parts.push(p(`Drawer Face ${h}mm`, qty, fw, parseInt(h), fm, fe, fe, fe, fe));
+    });
+  }
+
+  // ── Drawer boxes ──────────────────────────────────────────────────────────
+  // Box side height: face height minus ~16mm clearance (runner hardware)
+  if (ds.drawerType === 'pot') {
+    const topH   = fh[fh.length - 1];
+    const largeH = fh[0];
+    const topBoxH   = topH   - 16;
+    const largeBoxH = largeH - 16;
+
+    parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
+    parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), boxW, largeBoxH, cm, ce));
+    parts.push(p('Pot Drawer Bottoms',        n-1,    fullBoxW - 4, DD - 50, cm));
+    parts.push(p('Top Drawer Sides',          2,       DD, topBoxH, cm, ce));
+    parts.push(p('Top Drawer Fronts & Backs', 2,       boxW, topBoxH, cm, ce));
+    parts.push(p('Top Drawer Bottom',         1,       fullBoxW - 4, DD - 50, cm));
+  } else {
+    // Equal or custom — use tallest face height for box height (conservative)
+    const maxFaceH = Math.max(...fh);
+    const boxH = maxFaceH - 16;
+    if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
+      parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
+      parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
+      parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
+    } else {
+      // Custom different heights — list each separately
+      fh.forEach((h, i) => {
+        const bh = h - 16;
+        parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
+        parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, boxW, bh,   cm, ce));
+        parts.push(p(`Drawer ${i+1} Bottom`,        1, fullBoxW-4, DD-50, cm));
+      });
+    }
+  }
+
+  return parts.filter(pr => pr.qty > 0 && pr.l > 0 && pr.w > 0);
+}
+
+function drawerSaveUnit() {
+  const parts = drawerCalcParts();
+  const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
+  const id    = 'drw_' + Date.now();
+  customUnits.push({ id, name, section: drawerState.section, parts, price: 0 });
+  saveCustomUnits();
+  updateCounts();
+  alert(`✓ "${name}" added to ${drawerState.section} unit list!`);
+}
+
 // ═══════════════════════════════════════════════════════════
 // JOB P&L — PROFIT & LOSS RECONCILER (Superuser only)
 // ═══════════════════════════════════════════════════════════
@@ -14053,65 +15273,436 @@ function plSave() {
 }
 plLoad();
 
-// ── Snapshot: calculate costing & quote totals from a saved job state ──────────
+// ── Snapshot: apply job state silently, call computeQuoteTotals(), restore ─────
 function plCalcFromState(state) {
-  if (!state) return { costingTotal: 0, quoteGrand: 0, quoteMarkup: 0 };
+  const zero = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0,
+                 topsTotal:0, consult:0, diesel:0, extras:0, markup:0, unitsTotal:0 };
+  if (!state) return zero;
 
-  // Temporarily swap global state, calc, then restore
-  const savedQty   = JSON.parse(JSON.stringify(quantities));
-  const savedQS    = JSON.parse(JSON.stringify(quoteState));
-  const savedPanels= JSON.parse(JSON.stringify(panelsState));
+  const st = JSON.parse(JSON.stringify(state)); // deep-copy — never mutate caller's objects
+
+  // ── Save every global captureState() touches ──────────────────────────────
+  const snap = {
+    quantities:           JSON.parse(JSON.stringify(quantities)),
+    quoteState:           JSON.parse(JSON.stringify(quoteState)),
+    panelsState:          JSON.parse(JSON.stringify(panelsState)),
+    materialConfig:       JSON.parse(JSON.stringify(materialConfig)),
+    unitMatOverrides:     JSON.parse(JSON.stringify(unitMatOverrides)),
+    sectionHardware:      JSON.parse(JSON.stringify(sectionHardware)),
+    bedroomAddons:        JSON.parse(JSON.stringify(bedroomAddons)),
+    costingPrices:        JSON.parse(JSON.stringify(costingPrices)),
+    userUnits:            JSON.parse(JSON.stringify(userUnits)),
+    customUnits:          JSON.parse(JSON.stringify(customUnits)),
+    unitOverrides:        JSON.parse(JSON.stringify(unitOverrides)),
+    deletedUnits:         [...deletedUnits],
+    userRooms:            JSON.parse(JSON.stringify(userRooms)),
+    unitSpecialServices:  JSON.parse(JSON.stringify(unitSpecialServices)),
+    panelSpecialServices: JSON.parse(JSON.stringify(panelSpecialServices)),
+  };
 
   try {
-    // Apply snapshot
+    // ── Apply job snapshot to globals ────────────────────────────────────────
+
+    // quantities
     Object.keys(quantities).forEach(k => { quantities[k] = 0; });
-    if (state.quantities) Object.assign(quantities, state.quantities);
-    if (state.quoteState) Object.assign(quoteState, state.quoteState);
-    if (state.panelsState) { panelsState.items = state.panelsState.items || []; }
+    if (st.quantities) Object.assign(quantities, st.quantities);
 
-    const allUnits = getEffectiveUnits();
-    const STATIC   = new Set(['bth_top','fl_solid_back']);
-    const secMap   = {};
-    allUnits.filter(u => (quantities[u.id]||0) > 0).forEach(u => {
-      if (!secMap[u.section]) secMap[u.section] = [];
-      secMap[u.section].push(u);
-    });
-
-    let unitsTotal = 0;
-    Object.entries(secMap).forEach(([secId, units]) => {
-      units.filter(u => STATIC.has(u.id) || !u.parts || !u.parts.length)
-           .forEach(u => { unitsTotal += (u.price||0) * (quantities[u.id]||0); });
-      const costed = units.filter(u => !STATIC.has(u.id) && u.parts && u.parts.length);
-      if (costed.length) unitsTotal += calcSectionCost(secId, costed, quantities);
-    });
-    (panelsState.items||[]).filter(p => p.l>0 && p.w>0 && p.qty>0)
-      .forEach(p => { unitsTotal += calcPanelCost(p).lineTotal; });
-
-    const costingTotal = unitsTotal; // raw cost before markup
-
-    // Quote grand total
-    const topsExcl  = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
-    const topsTotal = (topsExcl + (topsExcl>0?500:0)) * 1.10;
-    const consult   = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0;
-    const diesel    = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
-    const extras    = (quoteState.extras||[]).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
-    const markup    = quoteState.markup||0;
-    const quoteGrand= unitsTotal*(1+markup) + topsTotal + consult + diesel + extras;
-    const quoteMarkupAmt = unitsTotal * markup;
-
-    return { costingTotal, quoteGrand, quoteMarkupAmt, topsTotal, consult, diesel, extras, markup };
-  } finally {
-    // Restore global state
-    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
-    Object.assign(quantities, savedQty);
+    // quoteState
     Object.keys(quoteState).forEach(k => delete quoteState[k]);
-    Object.assign(quoteState, savedQS);
-    panelsState.items = savedPanels.items || [];
+    Object.assign(quoteState, {
+      markup:0.40, extras:[], tops:{m2:0,type:'Platinum',pricePerM2:2900},
+      consultFee:false, dieselFee:false, consultFeeAmt:500, dieselFeeAmt:1800
+    });
+    if (st.quoteState) Object.assign(quoteState, st.quoteState);
+
+    // panels
+    panelsState.items = st.panelsState?.items || [];
+    panelsState.label = st.panelsState?.label || '';
+
+    // materialConfig
+    if (st.materialConfig) Object.assign(materialConfig, st.materialConfig);
+
+    // unitMatOverrides
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    if (st.unitMatOverrides) Object.assign(unitMatOverrides, st.unitMatOverrides);
+
+    // sectionHardware — controls whether hardware costs are included per section
+    // saved as 'sectionHardware' in getJobState() (Supabase) and captureState() doesn't have it
+    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+    if (st.sectionHardware) Object.assign(sectionHardware, st.sectionHardware);
+
+    // bedroomAddons — all sections including custom rooms
+    if (st.bedroomAddons) {
+      Object.keys(st.bedroomAddons).forEach(sec => {
+        if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]} };
+        if (st.bedroomAddons[sec].plantOn) Object.assign(bedroomAddons[sec].plantOn, st.bedroomAddons[sec].plantOn);
+        if (st.bedroomAddons[sec].spacers) bedroomAddons[sec].spacers = st.bedroomAddons[sec].spacers;
+      });
+    }
+
+    // costingPrices — prices from when the job was saved
+    if (st.costingPrices) {
+      if (st.costingPrices.mat)             { Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]); Object.assign(costingPrices.mat, st.costingPrices.mat); }
+      if (st.costingPrices.edge)            { Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge, st.costingPrices.edge); }
+      if (st.costingPrices.extras)          Object.assign(costingPrices.extras,   st.costingPrices.extras);
+      if (st.costingPrices.hardware)        Object.assign(costingPrices.hardware, st.costingPrices.hardware);
+      if (st.costingPrices.matMinSheets)    costingPrices.matMinSheets    = st.costingPrices.matMinSheets;
+      if (st.costingPrices.matSpecialOrder) costingPrices.matSpecialOrder = st.costingPrices.matSpecialOrder;
+      if (st.costingPrices.matFullSheet)    costingPrices.matFullSheet    = st.costingPrices.matFullSheet;
+      if (st.costingPrices.specialServices) costingPrices.specialServices = st.costingPrices.specialServices;
+    }
+
+    // userUnits & customUnits (for getEffectiveUnits)
+    userUnits.length = 0;
+    if (st.userUnits) st.userUnits.forEach(u => { userUnits.push(u); if (!(u.id in quantities)) quantities[u.id] = 0; });
+    customUnits.length = 0;
+    if (st.customUnits) st.customUnits.forEach(u => customUnits.push(u));
+
+    // userRooms
+    if (st.userRooms) { userRooms.length = 0; st.userRooms.forEach(r => userRooms.push(r)); }
+
+    // unitOverrides / deletedUnits
+    if (st.unitOverrides) Object.assign(unitOverrides, st.unitOverrides);
+    if (st.deletedUnits)  { deletedUnits.clear(); st.deletedUnits.forEach(id => deletedUnits.add(id)); }
+
+    // special service assignments
+    if (st.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);  Object.assign(unitSpecialServices,  st.unitSpecialServices); }
+    if (st.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, st.panelSpecialServices); }
+
+    // ── Call the canonical calculation — guaranteed identical to Quote tab ────
+    const t = computeQuoteTotals();
+
+    return {
+      costingTotal:   t.unitsTotal,       // raw material cost before markup
+      unitsTotal:     t.unitsTotal,
+      quoteGrand:     t.grand,
+      quoteMarkupAmt: t.unitsTotal * t.markup,
+      topsTotal:      t.topsTotal,
+      consult:        t.consultTotal,
+      diesel:         t.dieselTotal,
+      extras:         t.extrasTotal,
+      markup:         t.markup,
+    };
+
+  } finally {
+    // ── Restore ALL globals ───────────────────────────────────────────────────
+    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+    Object.assign(quantities, snap.quantities);
+
+    Object.keys(quoteState).forEach(k => delete quoteState[k]);
+    Object.assign(quoteState, snap.quoteState);
+
+    panelsState.items = snap.panelsState.items || [];
+    panelsState.label = snap.panelsState.label || '';
+
+    Object.assign(materialConfig, snap.materialConfig);
+
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    Object.assign(unitMatOverrides, snap.unitMatOverrides);
+
+    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+    Object.assign(sectionHardware, snap.sectionHardware);
+
+    Object.keys(snap.bedroomAddons).forEach(sec => { bedroomAddons[sec] = snap.bedroomAddons[sec]; });
+
+    Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]);
+    Object.assign(costingPrices.mat, snap.costingPrices.mat);
+    Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]);
+    Object.assign(costingPrices.edge, snap.costingPrices.edge);
+    Object.assign(costingPrices.extras,   snap.costingPrices.extras);
+    Object.assign(costingPrices.hardware, snap.costingPrices.hardware);
+    costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
+    costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
+    costingPrices.matFullSheet    = snap.costingPrices.matFullSheet    || {};
+    costingPrices.specialServices = snap.costingPrices.specialServices || [];
+
+    userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
+    customUnits.length = 0;  snap.customUnits.forEach(u => customUnits.push(u));
+    userRooms.length = 0;    snap.userRooms.forEach(r => userRooms.push(r));
+
+    Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
+    Object.assign(unitOverrides, snap.unitOverrides);
+    deletedUnits.clear(); snap.deletedUnits.forEach(id => deletedUnits.add(id));
+
+    Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);
+    Object.assign(unitSpecialServices,  snap.unitSpecialServices);
+    Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]);
+    Object.assign(panelSpecialServices, snap.panelSpecialServices);
+  }
+}
+// ── Invoice category list — built from supplier prices + standard categories ──
+function plInvoiceCategories() {
+  const cats = ['Boards', 'Edging', 'Cut & Label', 'Hinge Drilling'];
+  // Add any special services from costingPrices as their own categories
+  (costingPrices.specialServices || []).forEach(svc => {
+    const label = svc.name + (svc.category && svc.category !== 'Other' ? ' (' + svc.category + ')' : '');
+    if (!cats.includes(label)) cats.push(label);
+  });
+  cats.push('Hardware – Hinges', 'Hardware – Runners', 'Hardware – Handles',
+            'Hardware – Other', 'Labour', 'Transport', 'Tops', 'Other');
+  return cats;
+}
+
+// ── PDF Invoice Import via Anthropic API ───────────────────────────────────────
+function plOpenPDFImport(jobId) {
+  const overlay = document.createElement('div');
+  overlay.id = 'pl-pdf-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">📄 IMPORT INVOICE PDF</div>
+        <button onclick="document.getElementById('pl-pdf-overlay').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.7">
+          Upload a supplier invoice PDF — Claude will read it and extract the line items automatically. You can review and edit them before adding to the job.
+        </p>
+        <div id="pl-pdf-drop" onclick="document.getElementById('pl-pdf-file').click()"
+          style="border:2px dashed var(--border);padding:32px;text-align:center;cursor:pointer;transition:border-color 0.15s"
+          ondragover="event.preventDefault();this.style.borderColor='var(--amber)'"
+          ondragleave="this.style.borderColor=''"
+          ondrop="event.preventDefault();this.style.borderColor='';plHandlePDFDrop(event,'${jobId}')">
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px;color:var(--text-muted)">Click or drag a PDF here</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Supplier invoices, delivery notes, hardware quotes — or a JPG/PNG image</div>
+        </div>
+        <input type="file" id="pl-pdf-file" accept=".pdf,image/*" style="display:none"
+          onchange="plHandlePDFFile(this,'${jobId}')">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:10px 12px;background:rgba(212,145,58,0.07);border:1px solid var(--amber-dim)">
+          <span style="font-size:14px;flex-shrink:0">💡</span>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.7">
+            <strong style="color:var(--text)">Digital PDFs only.</strong>
+            This works with PDFs that have selectable text — the kind you receive by email or download from a supplier portal.
+            If your invoice is a <strong style="color:var(--text)">scanned or photographed document</strong>,
+            upload it as a <strong style="color:var(--text)">JPG or PNG image</strong> instead — the picker above accepts both.
+          </div>
+        </div>
+        <div id="pl-pdf-status" style="margin-top:16px;font-size:12px;color:var(--text-muted);min-height:20px"></div>
+        <div id="pl-pdf-results" style="margin-top:12px"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function plHandlePDFDrop(event, jobId) {
+  const file = event.dataTransfer.files[0];
+  if (file) plProcessPDFFile(file, jobId);
+}
+
+function plHandlePDFFile(input, jobId) {
+  const file = input.files[0];
+  if (file) plProcessPDFFile(file, jobId);
+}
+
+async function plProcessPDFFile(file, jobId) {
+  const status  = document.getElementById('pl-pdf-status');
+  const results = document.getElementById('pl-pdf-results');
+  if (!status || !results) return;
+
+  status.innerHTML = '<span style="color:var(--amber)">↻ Reading invoice…</span>';
+  results.innerHTML = '';
+
+  const cats = plInvoiceCategories().join(', ');
+  const systemPrompt = `You are reading a supplier invoice or delivery note for a cabinet-making business.
+Extract every line item that represents a cost. Return ONLY a valid JSON array (no markdown, no explanation):
+[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "amount": 123.45 }]
+
+Use these categories where possible: ${cats}
+
+Rules:
+- amount must be a plain number (no currency symbols, no commas)
+- If VAT is a separate line include it as category "VAT"
+- If a subtotal or total line exists include it as category "Total" so the user can verify
+- Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
+- Return ONLY a JSON array, nothing else`;
+
+  try {
+    let rawText = '';
+
+    if (file.type === 'application/pdf') {
+      // ── PDF: extract text with PDF.js ──────────────────────────────────────
+      status.innerHTML = '<span style="color:var(--amber)">↻ Extracting text from PDF…</span>';
+
+      // Set worker path for PDF.js 3.x
+      if (!window.pdfjsLib) {
+        throw new Error('PDF reader not loaded yet — please wait a moment and try again, or upload the invoice as a JPG/PNG image.');
+      }
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pageTexts = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page    = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pageTexts.push(content.items.map(item => item.str).join(' '));
+      }
+      rawText = pageTexts.join('\n\n');
+
+      if (!rawText.trim()) {
+        throw new Error('No text found in PDF — this may be a scanned image. Try uploading the invoice as a JPG or PNG instead.');
+      }
+
+    } else {
+      // ── Image: read as base64 and send to vision model ──────────────────────
+      status.innerHTML = '<span style="color:var(--amber)">↻ Reading image…</span>';
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload  = () => res(reader.result.split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const mediaType = file.type || 'image/jpeg';
+
+      status.innerHTML = '<span style="color:var(--amber)">↻ Analysing with AI…</span>';
+
+      // Send to edge function with image flag — edge fn uses vision model
+      const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SB_KEY}`,
+        },
+        body: JSON.stringify({ base64, mediaType, systemPrompt, isImage: true })
+      });
+
+      if (!response.ok) {
+        const txt = await response.text();
+        let msg = `Error ${response.status}`;
+        try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
+        throw new Error(msg);
+      }
+      const imgData = await response.json();
+      if (imgData.error) throw new Error(imgData.error.message || imgData.error);
+      const imgText = (imgData.content || []).map(b => b.text || '').join('');
+      let items;
+      try {
+        const clean = imgText.replace(/```json|```/g,'').trim();
+        const parsed = JSON.parse(clean);
+        items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.line_items || Object.values(parsed)[0] || []);
+      } catch(e) {
+        throw new Error('Could not parse AI response — try a clearer photo');
+      }
+      if (!items.length) {
+        status.innerHTML = '<span style="color:var(--text-muted)">No line items found in this image.</span>';
+        return;
+      }
+      status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
+      renderPLPDFResults(items, jobId);
+      return;
+    }
+
+    status.innerHTML = '<span style="color:var(--amber)">↻ Analysing with AI…</span>';
+
+    // ── Call edge function for text PDFs ────────────────────────────────────
+    const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SB_KEY}`,
+      },
+      body: JSON.stringify({ rawText, systemPrompt })
+    });
+
+    if (!response.ok) {
+      const txt = await response.text();
+      let msg = `Error ${response.status}`;
+      try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
+      throw new Error(msg);
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || data.error);
+
+    const text = (data.content || []).map(b => b.text || '').join('');
+    let items;
+    try {
+      const clean = text.replace(/```json|```/g,'').trim();
+      // Groq returns JSON object with json_object mode — handle both array and wrapped
+      const parsed = JSON.parse(clean);
+      items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.line_items || Object.values(parsed)[0] || []);
+    } catch(e) {
+      throw new Error('Could not parse AI response — try a clearer document');
+    }
+
+    if (!items.length) {
+      status.innerHTML = '<span style="color:var(--text-muted)">No line items found in this document.</span>';
+      return;
+    }
+
+    status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
+    renderPLPDFResults(items, jobId);
+
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--red)">✕ Error: ${e.message}</span>`;
   }
 }
 
+// Shared results renderer used by both PDF and image paths
+function renderPLPDFResults(items, jobId) {
+  const results = document.getElementById('pl-pdf-results');
+  if (!results) return;
+  results.innerHTML = `
+    <div style="border:1px solid var(--border);margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
+        <span style="width:20px"></span>
+        <span style="flex:2">DESCRIPTION</span>
+        <span style="width:140px">CATEGORY</span>
+        <span style="width:100px;text-align:right">AMOUNT</span>
+      </div>
+      ${items.map((item, i) => {
+        const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
+          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
+          <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
+            id="pl-pdf-desc-${i}"
+            style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <select id="pl-pdf-cat-${i}" style="width:140px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
+            ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
+            style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('pl-pdf-overlay').remove()"
+        style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 18px;cursor:pointer">
+        CANCEL
+      </button>
+      <button onclick="plImportSelectedLines('${jobId}',${items.length})"
+        style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 22px;cursor:pointer">
+        ＋ IMPORT SELECTED
+      </button>
+    </div>`;
+}
+
+function plImportSelectedLines(jobId, count) {
+  if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
+  let added = 0;
+  for (let i = 0; i < count; i++) {
+    const chk = document.getElementById('pl-pdf-chk-' + i);
+    if (!chk || !chk.checked) continue;
+    const desc   = document.getElementById('pl-pdf-desc-' + i)?.value.trim() || '';
+    const cat    = document.getElementById('pl-pdf-cat-'  + i)?.value || 'Other';
+    const amount = parseFloat(document.getElementById('pl-pdf-amt-' + i)?.value) || 0;
+    if (!desc && !amount) continue;
+    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier:'', category:cat, amount });
+    added++;
+  }
+  plSave();
+  document.getElementById('pl-pdf-overlay')?.remove();
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+
 // ── Render ─────────────────────────────────────────────────────────────────────
-function renderPLView() {
+function renderPLView() { withScrollLock(_renderPLView); }
+function _renderPLView() {
   const view = document.getElementById('pl-view');
   if (!view) return;
 
@@ -14134,22 +15725,41 @@ function renderPLView() {
   const invs = pd ? pd.invoices : [];
 
   // Calc snapshot totals
+  // IMPORTANT: check currentJobId FIRST — if this is the live job, always use
+  // computeQuoteTotals() directly so it matches the Quote tab exactly.
+  // Only fall back to the Supabase snapshot for jobs other than the current one.
   let snap = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0 };
-  if (selJob && selJob._state) {
-    try { snap = plCalcFromState(selJob._state); } catch(e) {}
-  } else if (selJobId) {
-    // Try loading from current loaded state if this is the active job
-    if (selJobId === currentJobId) {
-      try { snap = plCalcFromState({ quantities, quoteState, panelsState }); } catch(e) {}
-    }
+  if (selJobId && selJobId === currentJobId) {
+    // Live job — guaranteed match with Quote tab
+    try {
+      const t = computeQuoteTotals();
+      snap = {
+        costingTotal:   t.unitsTotal,
+        unitsTotal:     t.unitsTotal,
+        quoteGrand:     t.grand,
+        quoteMarkupAmt: t.unitsTotal * t.markup,
+        topsTotal:      t.topsTotal,
+        consult:        t.consultTotal,
+        diesel:         t.dieselTotal,
+        extras:         t.extrasTotal,
+        markup:         t.markup,
+      };
+    } catch(e) { console.warn('PL live calc error:', e); }
+  } else if (selJob && selJob._state) {
+    // Different job — use saved state snapshot
+    try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
 
-  // Invoice totals
-  const invoiceTotal  = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
-  const profitVsQuote = snap.quoteGrand - invoiceTotal;
-  const profitVsCost  = snap.costingTotal - invoiceTotal;
-  const variance      = snap.costingTotal - invoiceTotal;
-  const profitMargin  = snap.quoteGrand > 0 ? ((profitVsQuote / snap.quoteGrand) * 100) : 0;
+  // Invoice totals — VAT-aware
+  const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
+  const invoiceTotal      = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
+  const invoiceVAT        = invoiceTotal * 15 / 115;           // input VAT claimable
+  const invoiceExclVAT    = invoiceTotal / 1.15;               // true material cost excl VAT
+  const totalCostExclVAT  = invoiceExclVAT + labourCost;       // full cost: materials excl VAT + labour
+  const quoteExclVAT      = snap.quoteGrand;                   // quote is already excl VAT
+  const realProfit        = quoteExclVAT - totalCostExclVAT;   // apples vs apples
+  const realProfitMargin  = quoteExclVAT > 0 ? (realProfit / quoteExclVAT) * 100 : 0;
+  const costingVariance   = snap.costingTotal - invoiceExclVAT; // how far costing estimate was off (materials only)
 
   const profitColor  = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
@@ -14162,21 +15772,25 @@ function renderPLView() {
         <input type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
           style="flex:2;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)">
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
         <input type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)">
-        <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:110px"
-          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)">
-          ${['Boards','Edging','Hardware','Labour','Transport','Other'].map(c =>
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+        <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+          ${plInvoiceCategories().map(c =>
             `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
           style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)">
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
         <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')"
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>
       </div>`).join('');
@@ -14231,8 +15845,10 @@ function renderPLView() {
 
       <!-- Card 1: Quoted to client -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--amber);padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--amber-dim);margin-bottom:12px">QUOTED TO CLIENT</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--amber-dim);margin-bottom:4px">QUOTED TO CLIENT</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">excl. VAT</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:var(--amber);font-weight:700;margin-bottom:4px">${R(snap.quoteGrand)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">+ VAT ${R(snap.quoteGrand * 0.15)} = ${R(snap.quoteGrand * 1.15)} incl.</div>
         <div style="font-size:11px;color:var(--text-muted);line-height:1.8;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
           <div style="display:flex;justify-content:space-between"><span>Base cost (excl. markup)</span><span style="font-family:'JetBrains Mono',monospace">${R(snap.costingTotal)}</span></div>
           <div style="display:flex;justify-content:space-between"><span>Markup (${Math.round((snap.markup||0)*100)}%)</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.quoteMarkupAmt)}</span></div>
@@ -14245,10 +15861,11 @@ function renderPLView() {
 
       <!-- Card 2: Costing sheet estimate -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid #4a8abf;padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:#4a8abf;margin-bottom:12px">COSTING SHEET ESTIMATE</div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:#4a8abf;margin-bottom:4px">COSTING SHEET ESTIMATE</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">excl. VAT</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:#6aaad4;font-weight:700;margin-bottom:4px">${R(snap.costingTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
-          Raw material + labour cost estimated by the costing sheet — before markup is applied.
+          Raw material + labour cost estimated by the costing sheet — before markup.
         </div>
         ${snap.costingTotal > 0 ? `
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
@@ -14259,50 +15876,123 @@ function renderPLView() {
         </div>` : ''}
       </div>
 
-      <!-- Card 3: Actual paid -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid ${profitColor(profitVsQuote)};padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--text-muted);margin-bottom:12px">ACTUAL INVOICES PAID</div>
+      <!-- Card 3: Actual paid — VAT breakdown -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid ${invs.length > 0 ? profitColor(realProfit) : 'var(--border)'};padding:20px">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--text-muted);margin-bottom:4px">ACTUAL INVOICES PAID</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">incl. VAT as entered</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:var(--text);font-weight:700;margin-bottom:4px">${R(invoiceTotal)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
-          Sum of all invoices entered below across ${invs.length} line${invs.length===1?'':'s'}.
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.8;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+          <div style="display:flex;justify-content:space-between">
+            <span>VAT portion (15/115)</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:#4caf82">− ${R(invoiceVAT)} <span style="font-size:10px">(claimable)</span></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08))">
+            <span><strong style="color:var(--text)">Effective cost excl. VAT</strong></span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--text);font-weight:600">${R(invoiceExclVAT)}</span>
+          </div>
         </div>
         ${invs.length > 0 && catHtml ? `
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
           ${catHtml}
         </div>` : ''}
       </div>
     </div>
 
-    <!-- Result banner -->
+    <!-- Result banners -->
     ${invs.length > 0 ? `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-      <div style="background:var(--bg2);border:1px solid ${profitColor(profitVsQuote)};padding:16px 20px;display:flex;align-items:center;gap:16px">
-        <div style="font-size:28px">${profitVsQuote >= 0 ? '✅' : '🔴'}</div>
-        <div>
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px">PROFIT / LOSS VS QUOTE</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${profitColor(profitVsQuote)}">${profitArrow(profitVsQuote)} ${R(Math.abs(profitVsQuote))}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-            ${profitVsQuote >= 0 ? 'You made a profit of' : 'You lost'} ${Math.abs(profitMargin).toFixed(1)}% on this job
+
+      <!-- Real profit: quote excl VAT vs effective cost excl VAT -->
+      <div style="background:var(--bg2);border:1px solid ${profitColor(realProfit)};padding:16px 20px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="font-size:28px">${realProfit >= 0 ? '✅' : '🔴'}</div>
+          <div style="flex:1">
+            <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px">REAL PROFIT / LOSS</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">Quote excl. VAT − Effective cost excl. VAT</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${profitColor(realProfit)}">${profitArrow(realProfit)} ${R(Math.abs(realProfit))}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+              ${realProfit >= 0 ? 'Profit margin' : 'Loss'} of ${Math.abs(realProfitMargin).toFixed(1)}% on this job
+            </div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08));font-size:11px;color:var(--text-muted);line-height:1.8">
+              <div style="display:flex;justify-content:space-between"><span>Quote (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">${R(quoteExclVAT)}</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Materials (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(invoiceExclVAT)}</span></div>
+              ${labourCost > 0 ? `<div style="display:flex;justify-content:space-between"><span>Labour (no VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(labourCost)}</span></div>` : ''}
+              <div style="display:flex;justify-content:space-between;color:#4caf82"><span>VAT claimable on materials</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(invoiceVAT)}</span></div>
+            </div>
           </div>
         </div>
       </div>
-      <div style="background:var(--bg2);border:1px solid ${profitColor(variance)};padding:16px 20px;display:flex;align-items:center;gap:16px">
-        <div style="font-size:28px">${variance >= 0 ? '📉' : '📈'}</div>
-        <div>
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px">ACTUAL vs COSTING ESTIMATE</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-            ${variance >= 0 ? 'Costing over-estimated by' : 'Costing under-estimated by'} ${snap.costingTotal > 0 ? Math.abs(((snap.costingTotal - invoiceTotal)/snap.costingTotal)*100).toFixed(1) : '0'}%
+
+      <!-- Costing accuracy + VAT summary -->
+      <div style="background:var(--bg2);border:1px solid var(--border);padding:16px 20px">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:12px">COSTING ACCURACY & VAT SUMMARY</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:2;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between">
+            <span>Costing estimate</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(snap.costingTotal)}</span>
           </div>
+          <div style="display:flex;justify-content:space-between">
+            <span>Actual cost (excl. VAT)</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(invoiceExclVAT)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span>Variance</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:${profitColor(costingVariance)}">${profitArrow(costingVariance)} ${R(Math.abs(costingVariance))}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted)">
+            ${costingVariance >= 0 ? 'Costing over-estimated' : 'Costing under-estimated'} by ${snap.costingTotal > 0 ? Math.abs((costingVariance/snap.costingTotal)*100).toFixed(1) : '0'}%
+          </div>
+        </div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:#4caf82;margin-bottom:8px">VAT RETURN</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:2">
+          <div style="display:flex;justify-content:space-between">
+            <span>Output VAT (charged to client)</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(snap.quoteGrand * 0.15)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span>Input VAT (claimable on invoices)</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:#4caf82">− ${R(invoiceVAT)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08))">
+            <span><strong style="color:var(--text)">Net VAT payable to SARS</strong></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text)">${R(snap.quoteGrand * 0.15 - invoiceVAT)}</span>
+          </div>
+          ${labourCost > 0 ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.06));font-size:10px;color:var(--text-muted)">
+            Labour (R ${R(labourCost)}) has no VAT — not claimable, not payable.
+          </div>` : ''}
         </div>
       </div>
     </div>` : ''}
 
+    <!-- Labour costs section -->
+    <div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">LABOUR COSTS</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">What you paid workers to complete this job — no VAT, deducted directly from profit</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Total labour paid</span>
+        <span style="font-size:13px;color:var(--text-muted)">R</span>
+        <input type="number" min="0" step="0.01" placeholder="0.00"
+          value="${labourCost > 0 ? labourCost : ''}"
+          style="width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:14px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+          oninput="plUpdateLabour('${selJobId}', this.value)"
+          onblur="plUpdateLabourDone('${selJobId}')">
+        ${labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted)">No VAT — full amount deducted from profit</span>` : ''}
+      </div>
+    </div>
+
     <!-- Invoice entry section -->
     <div style="margin-bottom:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0;flex-wrap:wrap;gap:8px">
         <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">ACTUAL COSTS — INVOICE LINES</div>
-        <div style="font-size:11px;color:var(--text-muted)">Add every invoice or cost you paid for this job</div>
+        <button onclick="plOpenPDFImport('${selJobId}')"
+          style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer;white-space:nowrap">
+          📄 IMPORT PDF INVOICE
+        </button>
       </div>
       <div style="border:1px solid var(--border);border-top:none;margin-bottom:8px">
         ${invRowsHtml}
@@ -14319,8 +16009,8 @@ function renderPLView() {
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <select id="pl-new-cat"
-          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:110px">
-          ${['Boards','Edging','Hardware','Labour','Transport','Other'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px">
+          ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01"
@@ -14357,15 +16047,38 @@ function plSelectJob(jobId) {
   if (!view) return;
 
   if (jobId && !plData[jobId]) {
-    plData[jobId] = { invoices: [], notes: '' };
+    plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
     plSave();
   }
 
-  // Load full job state for snapshot calculation
+  // If currentJobId is null but this job's client/house matches the job bar,
+  // treat it as the current job so we use computeQuoteTotals() directly.
+  if (jobId && !currentJobId) {
+    const barClient  = document.getElementById('job-client')?.value.trim()  || '';
+    const barHouse   = document.getElementById('job-house')?.value.trim()   || '';
+    const candidate  = sbJobs.find(j => j.id === jobId);
+    if (candidate) {
+      const candClient = (candidate.client || '').trim();
+      const candHouse  = (candidate.house  || '').trim();
+      // Match on client+house, or if both are blank treat as same blank job
+      if (candClient === barClient && candHouse === barHouse) {
+        currentJobId = jobId;
+      }
+    }
+  }
+
+  // If this is the current live job, skip the Supabase fetch — we'll use
+  // computeQuoteTotals() directly in renderPLView for a guaranteed match.
+  if (jobId && jobId === currentJobId) {
+    view._selectedJobId = jobId;
+    renderPLView();
+    return;
+  }
+
+  // Load full job state from Supabase for snapshot calculation of other jobs
   if (jobId) {
     const existing = sbJobs.find(j => j.id === jobId);
     if (existing && !existing._state) {
-      // Fetch full job state from Supabase
       fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() })
         .then(r => r.json())
         .then(rows => {
@@ -14428,11 +16141,13 @@ function plUpdateInvoice(jobId, invId, field, value) {
   if (!inv) return;
   inv[field] = field === 'amount' ? (parseFloat(value)||0) : value;
   plSave();
-  // Only re-render totals for amount changes (avoid cursor jump on text fields)
-  if (field === 'amount') {
-    const view = document.getElementById('pl-view');
-    if (view) { const jid = view._selectedJobId; renderPLView(); view._selectedJobId = jid; renderPLView(); }
-  }
+  // Never re-render while typing — update is saved, re-render deferred to blur
+}
+
+function plInvoiceBlur(jobId) {
+  // Re-render totals once the user leaves any invoice field
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
 
 function plRemoveInvoice(jobId, invId) {
@@ -14440,6 +16155,18 @@ function plRemoveInvoice(jobId, invId) {
   if (!pd) return;
   pd.invoices = pd.invoices.filter(i => i.id !== invId);
   plSave();
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+function plUpdateLabour(jobId, value) {
+  if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
+  plData[jobId].labourCost = parseFloat(value) || 0;
+  plSave();
+}
+
+function plUpdateLabourDone(jobId) {
+  // Only re-render once the user finishes typing (on blur)
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
