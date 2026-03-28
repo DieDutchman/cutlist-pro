@@ -8532,9 +8532,9 @@ function applyRoleRestrictions() {
 
   // My Costs: visible to all
 
-  // P&L tab: superuser only
+  // P&L tab: superuser + regular users (not admin-only, not supplier)
   const plTab = document.getElementById('pl-tab');
-  if (plTab) plTab.style.display = isSuperuser() ? '' : 'none';
+  if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
 
   // User rooms nav
   if (!isAdmin()) {
@@ -14966,8 +14966,17 @@ function renderDrawerBuilderHTML() {
 
   const matOpts  = (sel) => MATS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
   const edgeOpts = (sel) => ['',...EDGES].map(e=>`<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
-  const secOpts  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}]
-    .map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
+  // Build section list — standard rooms + any user-created rooms
+  const _stdSecs = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
+  const _userSecs = userRooms.filter(r => !_stdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
+  const _allSecs  = !isAdmin() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
+  const secOpts   = _allSecs.map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
+
+  // For regular users, ensure drawerState.section is one of their actual rooms
+  if (!isAdmin() && userRooms.length > 0) {
+    const validIds = _allSecs.map(s => s.id);
+    if (!validIds.includes(ds.section)) drawerState.section = _allSecs[0]?.id || ds.section;
+  }
 
   const typeBtn = (val, label, title) =>
     `<button onclick="drawerState.drawerType='${val}';drawerState.customHeights=[];drawerRedraw()" title="${title}"
@@ -15251,15 +15260,26 @@ function drawerCalcParts() {
 function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
-  const id    = 'drw_' + Date.now();
-  customUnits.push({ id, name, section: drawerState.section, parts, price: 0 });
-  saveCustomUnits();
+  const id    = (!isAdmin() ? 'uu_drw_' : 'drw_') + Date.now();
+  const unit  = { id, name, section: drawerState.section, parts, price: 0 };
+  if (!isAdmin() && userRooms.length > 0) {
+    // Regular user — save to their own units list
+    userUnits.push(unit);
+    scheduleAutoSave();
+  } else {
+    // Admin / superuser — save to shared custom units
+    customUnits.push(unit);
+    saveCustomUnits();
+  }
+  if (!(id in quantities)) quantities[id] = 0;
   updateCounts();
+  renderPanel();
   alert(`✓ "${name}" added to ${drawerState.section} unit list!`);
 }
 
 // ═══════════════════════════════════════════════════════════
-// JOB P&L — PROFIT & LOSS RECONCILER (Superuser only)
+// JOB P&L — PROFIT & LOSS RECONCILER
+// Available to: superuser, admin, regular users
 // ═══════════════════════════════════════════════════════════
 
 // In-memory store: { [jobId]: { invoices: [{id,desc,supplier,amount}], notes:'' } }
