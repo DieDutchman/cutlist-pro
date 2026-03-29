@@ -7202,6 +7202,8 @@ function setMatMinSheets(mat, value) {
     costingPrices.matMinSheets[mat] = parseFloat(value);
   }
   saveCostingPrices();
+  // Push so min-sheet override reaches all users via Supabase meta
+  pushSupplierPrice('board', mat, costingPrices.mat[mat] || 0);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7218,6 +7220,9 @@ function setMatSpecialOrder(mat, isSpecial) {
     delete costingPrices.matSpecialOrder[mat];
   }
   saveCostingPrices();
+  // Push to Supabase so billing mode reaches all users
+  const price = costingPrices.mat[mat] || 0;
+  pushSupplierPrice('board', mat, price);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7234,6 +7239,9 @@ function setMatFullSheet(mat, isFullSheet) {
     delete costingPrices.matFullSheet[mat];
   }
   saveCostingPrices();
+  // Push to Supabase so billing mode reaches all users
+  const price = costingPrices.mat[mat] || 0;
+  pushSupplierPrice('board', mat, price);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7287,6 +7295,7 @@ const costingPrices = {
   matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
+  matPriceDates: {},   // { [matName]: ISO string } — when price was last updated by supplier
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -7307,6 +7316,7 @@ try {
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
   if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
+  if (saved.matPriceDates)   Object.assign(costingPrices.matPriceDates,   saved.matPriceDates);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
@@ -8923,8 +8933,29 @@ async function loadSupplierPrices() {
     });
 
     loadSpecialServicesFromSupabase(rows);
+
+    // Reset billing mode flags — they'll be rebuilt from Supabase meta
+    costingPrices.matFullSheet    = {};
+    costingPrices.matSpecialOrder = {};
+    costingPrices.matMinSheets    = {};
+    costingPrices.matPriceDates   = {};
+
     rows.forEach(row => {
-      if (row.category === 'board')   costingPrices.mat[row.name]  = Number(row.price);
+      if (row.category === 'board') {
+        costingPrices.mat[row.name] = Number(row.price);
+        // Parse billing mode flags and price timestamp from meta
+        if (row.meta) {
+          let m = {};
+          try { m = JSON.parse(row.meta); } catch(e) {}
+          if (m.fullSheet)              costingPrices.matFullSheet[row.name]    = true;
+          if (m.specialOrder)           costingPrices.matSpecialOrder[row.name] = true;
+          if (m.minSheets != null)      costingPrices.matMinSheets[row.name]    = m.minSheets;
+          if (m.priceUpdatedAt)         costingPrices.matPriceDates[row.name]   = m.priceUpdatedAt;
+          else if (row.updated_at)      costingPrices.matPriceDates[row.name]   = row.updated_at;
+        } else if (row.updated_at) {
+          costingPrices.matPriceDates[row.name] = row.updated_at;
+        }
+      }
       if (row.category === 'service') {
         const map = {
           'Cut & Label - Boards':   'cutLabel',
@@ -9098,8 +9129,25 @@ async function pushSupplierPrice(category, name, price, meta) {
     return;
   }
   try {
-    const payload = { category, name, price: Number(price), updated_at: new Date().toISOString() };
-    if (meta) payload.meta = JSON.stringify(meta);
+    const now = new Date().toISOString();
+    const payload = { category, name, price: Number(price), updated_at: now };
+    // For boards, embed billing mode flags + price date in meta so all users pick them up
+    if (category === 'board') {
+      const boardMeta = meta ? { ...meta } : {};
+      if (costingPrices.matFullSheet?.[name])    boardMeta.fullSheet    = true;
+      else                                        delete boardMeta.fullSheet;
+      if (costingPrices.matSpecialOrder?.[name]) boardMeta.specialOrder = true;
+      else                                        delete boardMeta.specialOrder;
+      if (costingPrices.matMinSheets?.[name] != null) boardMeta.minSheets = costingPrices.matMinSheets[name];
+      else                                             delete boardMeta.minSheets;
+      boardMeta.priceUpdatedAt = now;
+      payload.meta = JSON.stringify(boardMeta);
+      // Also record locally so the timestamp shows without waiting for a reload
+      costingPrices.matPriceDates[name] = now;
+      try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+    } else if (meta) {
+      payload.meta = JSON.stringify(meta);
+    }
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
@@ -10008,6 +10056,14 @@ function _renderPricesView() {
           ${mat}${badge}
           ${costingPrices.matFullSheet?.[mat]    ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 5px;margin-left:6px;vertical-align:middle">FULL SHEET</span>` : ''}
           ${costingPrices.matSpecialOrder?.[mat] ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 5px;margin-left:6px;letter-spacing:0.5px;vertical-align:middle">SPECIAL ORDER</span>` : ''}
+          ${(() => {
+            const _pd = costingPrices.matPriceDates?.[mat];
+            if (!_pd) return '';
+            const _ds = new Date(_pd).toLocaleDateString('en-ZA', {day:'2-digit',month:'short',year:'2-digit'});
+            const _age = Date.now() - new Date(_pd).getTime();
+            const _col = _age < 30*24*60*60*1000 ? '#4caf82' : _age < 90*24*60*60*1000 ? 'var(--amber-dim)' : 'var(--red)';
+            return `<span title="Price last updated ${_ds}" style="font-size:9px;color:${_col};font-family:'JetBrains Mono',monospace;margin-left:6px;vertical-align:middle">↻ ${_ds}</span>`;
+          })()}
         </span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
@@ -10160,14 +10216,29 @@ function _renderPricesView() {
              oninput="setMatMinSheets('${safeMatJS}',this.value)"> sh
          </span>` : '';
 
+    // ── Price timestamp ──────────────────────────────────────────────────────
+    const priceDate = costingPrices.matPriceDates?.[mat];
+    const priceDateStr = priceDate
+      ? new Date(priceDate).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' })
+      : null;
+    const priceAgeMs  = priceDate ? (Date.now() - new Date(priceDate).getTime()) : null;
+    const priceAgeColor = priceAgeMs === null ? 'var(--text-muted)'
+      : priceAgeMs < 30  * 24*60*60*1000 ? '#4caf82'   // < 30 days — green
+      : priceAgeMs < 90  * 24*60*60*1000 ? 'var(--amber-dim)' // 30–90 days — amber
+      : 'var(--red)';                                    // > 90 days — stale
+    const timestampHtml = priceDateStr
+      ? `<span title="Price last updated ${priceDateStr}" style="font-size:9px;color:${priceAgeColor};font-family:'JetBrains Mono',monospace;white-space:nowrap">↻ ${priceDateStr}</span>`
+      : '';
+
     // ── Board cell (left) ────────────────────────────────────────────────────
     const boardCell = `
       <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${mat}</span>
           ${!admin ? stockBadge : ''}
+          ${timestampHtml}
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
             onchange="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
             onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
@@ -10177,8 +10248,8 @@ function _renderPricesView() {
           ${minHtml}
         </div>
         ${admin ? stockPill : ''}
-        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">Full sheet billed</div>` : ''}
-        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
+        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">🟦 Full sheet billed — offcuts included</div>` : ''}
+        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">🛒 Special order — minimum 1 full sheet</div>` : ''}
       </div>`;
 
     // ── Edging cell (right) ──────────────────────────────────────────────────
@@ -11694,6 +11765,7 @@ function applyState(state) {
     if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
     if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
     if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
+    if (state.costingPrices.matPriceDates)   Object.assign(costingPrices.matPriceDates,   state.costingPrices.matPriceDates);
     // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
@@ -13151,7 +13223,7 @@ function _renderPanelsView() {
 
       ${panelsState.items.length > 0 ? `
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;padding:4px 10px;margin-bottom:2px">
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">NAME / DESCRIPTION</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">QTY</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">LENGTH mm</div>
@@ -15466,6 +15538,7 @@ function plCalcFromState(state) {
     costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
     costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
     costingPrices.matFullSheet    = snap.costingPrices.matFullSheet    || {};
+    costingPrices.matPriceDates   = snap.costingPrices.matPriceDates   || {};
     costingPrices.specialServices = snap.costingPrices.specialServices || [];
 
     userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
