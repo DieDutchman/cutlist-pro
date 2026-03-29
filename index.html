@@ -13174,7 +13174,7 @@ function _renderPanelsView() {
   };
 
   const rowsHtml = panelsState.items.map(p => `
-    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
@@ -13223,7 +13223,7 @@ function _renderPanelsView() {
 
       ${panelsState.items.length > 0 ? `
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">NAME / DESCRIPTION</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">QTY</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">LENGTH mm</div>
