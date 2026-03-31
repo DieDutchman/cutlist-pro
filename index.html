@@ -6799,7 +6799,7 @@ function buildExtraRow(e, i) {
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
         <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
-          oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').textContent=fmt(quoteState.extras[${i}].amount)">
+          oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
       <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
@@ -6823,7 +6823,7 @@ function buildExtraRow(e, i) {
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
         <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
-          oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').textContent=fmt(quoteState.extras[${i}].amount)">
+          oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
       <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
@@ -7435,22 +7435,30 @@ async function doLogout() {
   document.getElementById('login-error').style.display = 'none';
 }
 
+let sbCanEditPrices = false; // true when this user has been granted price-edit access
+
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
+    // Supplier always edits prices (their job). Admin always edits prices.
+    // Superuser only edits prices when can_edit_prices = true (toggleable).
+    sbCanEditPrices = sbRole === 'supplier'
+      || sbRole === 'admin'
+      || rows[0]?.can_edit_prices === true;
   } catch(e) {
     sbRole = 'user'; // safe default
+    sbCanEditPrices = false;
     console.warn('[Supabase] Could not fetch role:', e.message);
   }
 }
 
 function isSuperuser()   { return sbRole === 'superuser'; }
-function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; } // superuser inherits all admin rights
+function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; }
 function isSupplier()    { return sbRole === 'supplier'; }
-function canEditPrices() { return sbRole === 'admin' || sbRole === 'superuser' || sbRole === 'supplier'; }
+function canEditPrices() { return sbCanEditPrices; }
 function canManageUsers(){ return sbRole === 'superuser'; }
 
 
@@ -8068,7 +8076,7 @@ async function loadUsersModal() {
   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
   status.textContent = '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,trial_expires_at&order=email.asc`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at&order=email.asc`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const users = await res.json();
     if (!users.length) {
@@ -8093,6 +8101,19 @@ function renderUserRow(u) {
     : !trialDate ? '<span style="font-size:10px;color:var(--text-muted)">No expiry</span>'
     : isExpired  ? '<span style="font-size:10px;color:#e07070;font-weight:600">⚠ Expired ' + trialDate + '</span>'
     : '<span style="font-size:10px;color:#4caf82">Active until ' + trialDate + '</span>';
+
+  // Price-edit toggle: only meaningful for superuser (admin/supplier always have it, users never)
+  const canEdit = u.can_edit_prices === true;
+  const priceEditToggle = u.role === 'superuser' ? `
+    <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+      <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;white-space:nowrap">PRICE EDITOR</label>
+      <button onclick="toggleCanEditPrices('${u.id}', ${!canEdit}, this)"
+        style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid;white-space:nowrap;
+               ${canEdit ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+        ${canEdit ? '🔓 Enabled' : '🔒 Disabled'}
+      </button>
+    </div>` : '';
+
   return `
   <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">
     <div style="flex:1;min-width:160px">
@@ -8108,6 +8129,7 @@ function renderUserRow(u) {
       <option value="admin"     ${u.role === 'admin'     ? 'selected' : ''}>Admin</option>
       <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
+    ${priceEditToggle}
     ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
       <div style="display:flex;align-items:center;gap:5px">
@@ -8138,6 +8160,39 @@ async function updateTrialExpiry(userId, dateVal) {
     setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
   } catch(e) {
     if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+  }
+}
+
+// Toggle price-editing permission for a superuser
+// Stored in profiles.can_edit_prices (boolean). Must add this column to your
+// Supabase profiles table:  ALTER TABLE profiles ADD COLUMN can_edit_prices boolean DEFAULT false;
+async function toggleCanEditPrices(userId, enable, btn) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ can_edit_prices: enable }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Update button appearance immediately
+    btn.textContent     = enable ? '🔓 Enabled' : '🔒 Disabled';
+    btn.style.background   = enable ? 'rgba(212,145,58,0.18)' : 'var(--bg4)';
+    btn.style.borderColor  = enable ? 'var(--amber)' : 'var(--border)';
+    btn.style.color        = enable ? 'var(--amber)' : 'var(--text-muted)';
+    btn.style.fontWeight   = enable ? '600' : 'normal';
+    btn.setAttribute('onclick', `toggleCanEditPrices('${userId}', ${!enable}, this)`);
+    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    // If toggling for ourselves, update local flag immediately
+    if (userId === sbUser?.id) {
+      sbCanEditPrices = enable;
+      applyRoleRestrictions();
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+    console.warn('[Supabase] toggleCanEditPrices failed:', e.message);
   }
 }
 
