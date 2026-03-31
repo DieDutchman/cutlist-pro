@@ -2019,6 +2019,14 @@
   </div>
 </div>
 
+<!-- ═══ STALE PRICES NOTIFICATION ══════════════════════════════════════════ -->
+<div id="price-stale-banner" style="display:none;background:rgba(212,145,58,0.12);border-bottom:2px solid var(--amber);padding:8px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-size:13px;color:var(--amber)">📢</span>
+  <span id="price-stale-msg" style="font-size:12px;color:var(--text);flex:1">Supplier has updated prices since you last loaded — reload prices for accurate quotes.</span>
+  <button onclick="reloadSupplierPrices()" style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer">↻ RELOAD PRICES</button>
+  <button onclick="document.getElementById('price-stale-banner').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px">×</button>
+</div>
+
 <!-- ═══ USERS MODAL ══════════════════════════════════════════════════════════ -->
 <div id="users-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
@@ -9088,6 +9096,7 @@ async function loadSupplierPrices() {
     sbSyncStatus = 'ok';
     sbLastSyncTime = new Date();
     sbLastSyncError = null;
+    _recordPriceLoadTime();   // stamp when we last loaded prices
     console.log(`[Supabase] Loaded ${rows.length} supplier prices`);
   } catch(e) {
     sbSyncStatus = 'error';
@@ -9099,6 +9108,7 @@ async function loadSupplierPrices() {
   refreshCostingResults();
   checkStaleMaterials();
   loadPriceTicker(rows);
+  _startStalePricePoll();   // begin polling for supplier price changes
 }
 
 // After a sync, check if any stored material selections reference boards that no longer exist
@@ -9234,6 +9244,63 @@ function loadPriceTicker(rows) {
     const duration = Math.max(10, fullWidth / speed);
     track.style.animation = `ticker-scroll ${duration}s linear infinite`;
   });
+}
+
+// ── Stale price detection ─────────────────────────────────────────────────────
+// After initial load, poll every 5 minutes. If any price was updated since the
+// user last loaded, show the stale-prices banner.
+let _priceLoadedAt = null;  // ISO string — when we last loaded prices from Supabase
+let _stalePollTimer = null;
+
+function _recordPriceLoadTime() {
+  _priceLoadedAt = new Date().toISOString();
+  try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
+}
+
+function _startStalePricePoll() {
+  if (_stalePollTimer) clearInterval(_stalePollTimer);
+  // Poll every 5 minutes
+  _stalePollTimer = setInterval(_checkStalePrices, 5 * 60 * 1000);
+}
+
+async function _checkStalePrices() {
+  if (!sbUser || isSupplier() || canEditPrices()) return; // supplier/admin see changes live
+  if (!_priceLoadedAt) return;
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/supplier_prices?select=updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    if (rows.length > 0) {
+      const banner = document.getElementById('price-stale-banner');
+      if (banner && banner.style.display === 'none') {
+        banner.style.display = 'flex';
+      }
+    }
+  } catch(e) { /* silently ignore poll errors */ }
+}
+
+async function reloadSupplierPrices() {
+  document.getElementById('price-stale-banner').style.display = 'none';
+  await loadSupplierPrices();
+  _recordPriceLoadTime();
+  // Brief confirmation
+  const banner = document.getElementById('price-stale-banner');
+  if (banner) {
+    const msg = document.getElementById('price-stale-msg');
+    if (msg) msg.textContent = '✓ Prices reloaded — your quotes are now up to date.';
+    banner.style.background = 'rgba(106,170,100,0.12)';
+    banner.style.borderBottomColor = '#4caf82';
+    banner.style.display = 'flex';
+    setTimeout(() => {
+      banner.style.display = 'none';
+      banner.style.background = 'rgba(212,145,58,0.12)';
+      banner.style.borderBottomColor = 'var(--amber)';
+      if (msg) msg.textContent = 'Supplier has updated prices since you last loaded — reload prices for accurate quotes.';
+    }, 3000);
+  }
 }
 
 async function pushSupplierPrice(category, name, price, meta) {
@@ -9478,8 +9545,13 @@ function refreshMatDropdowns() {
 function addCustomBoard() {
   const nameEl      = document.getElementById('cv-new-board-name');
   const priceEl     = document.getElementById('cv-new-board-price');
-  const edgeNameEl  = document.getElementById('cv-new-edge-name');
+  // Support both form styles:
+  //   grid-style (admin view): cv-new-edge-size (dropdown) + cv-new-edge-price
+  //   card-style (supplier view): cv-new-edge-name (text) + cv-new-edge-price
+  const edgeSizeEl  = document.getElementById('cv-new-edge-size');  // dropdown — may be null
+  const edgeNameEl  = document.getElementById('cv-new-edge-name');   // text — may be null
   const edgePriceEl = document.getElementById('cv-new-edge-price');
+
   const name  = (nameEl?.value || '').trim();
   const price = parseFloat(priceEl?.value) || 0;
   if (!name) { if(nameEl){ nameEl.focus(); nameEl.style.borderColor='#e05252'; } return; }
@@ -9487,24 +9559,71 @@ function addCustomBoard() {
   if (MATS.includes(name)) { alert(`"${name}" already exists.`); return; }
 
   const id = 'cb_' + Date.now();
-  const edgeName  = (edgeNameEl?.value.trim())  || (name + ' Edging 1mm');
   const edgePrice = parseFloat(edgePriceEl?.value) || 0;
 
-  costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName, edgePrice });
+  // Build the canonical edge name — always "BoardName Edging Xmm"
+  // Priority: size dropdown → parse text input → default 1mm
+  const edgePrefix = name === 'White Melamine' ? 'White Edging' : name + ' Edging';
+  let edgeSize = '';
+  if (edgeSizeEl && edgeSizeEl.value && edgeSizeEl.value !== '') {
+    edgeSize = edgeSizeEl.value.trim();  // e.g. "1mm", "2mm"
+  } else if (edgeNameEl && edgeNameEl.value.trim()) {
+    // Card-style: user typed something — try to extract a size suffix
+    const typed = edgeNameEl.value.trim();
+    // If they typed just a size like "1mm" or "2mm" use it directly
+    // Otherwise treat the whole input as the full edge name (legacy behaviour)
+    const sizeOnly = /^\d+(\.\d+)?mm$/i.test(typed);
+    edgeSize = sizeOnly ? typed : '';
+    if (!sizeOnly && typed) {
+      // They typed a full edge name — use it as-is but warn if it won't match the prefix
+      const fullEdgeName = typed.startsWith(edgePrefix) ? typed : edgePrefix + ' ' + typed;
+      const finalEdgeName = fullEdgeName;
+      costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName: finalEdgeName, edgePrice });
+      costingPrices.mat[name] = price;
+      if (!MATS.includes(name)) MATS.push(name);
+      if (!COLORS.includes(name)) COLORS.push(name);
+      if (edgePrice > 0 || finalEdgeName) {
+        costingPrices.edge[finalEdgeName] = edgePrice;
+        if (!EDGES.includes(finalEdgeName)) EDGES.push(finalEdgeName);
+        const edgeColor = name;
+        if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+      }
+      saveCostingPrices();
+      pushSupplierPrice('board', name, price);
+      if (finalEdgeName) pushSupplierPrice('edge', finalEdgeName, edgePrice);
+      if (nameEl)      nameEl.value      = '';
+      if (priceEl)     priceEl.value     = '';
+      if (edgeNameEl)  edgeNameEl.value  = '';
+      if (edgePriceEl) edgePriceEl.value = '';
+      refreshMatDropdowns();
+      refreshPriceViews();
+      return;
+    }
+  }
+
+  // Default to 1mm if no size given
+  if (!edgeSize) edgeSize = '1mm';
+  const edgeName = edgePrice > 0 ? (edgePrefix + ' ' + edgeSize) : '';
+
+  costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName: edgeName || (edgePrefix + ' 1mm'), edgePrice });
   costingPrices.mat[name] = price;
-  costingPrices.edge[edgeName] = edgePrice;
   if (!MATS.includes(name)) MATS.push(name);
-  if (!EDGES.includes(edgeName)) EDGES.push(edgeName);
   if (!COLORS.includes(name)) COLORS.push(name);
-  const edgeColor = edgeName ? edgeName.replace(' Edging 1mm','') : name;
-  if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+
+  if (edgeName) {
+    costingPrices.edge[edgeName] = edgePrice;
+    if (!EDGES.includes(edgeName)) EDGES.push(edgeName);
+    const edgeColor = name;
+    if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+  }
 
   saveCostingPrices();
-  // Push both board and edging to Supabase so all users see them
   pushSupplierPrice('board', name, price);
   if (edgeName) pushSupplierPrice('edge', edgeName, edgePrice);
+
   if (nameEl)      nameEl.value      = '';
   if (priceEl)     priceEl.value     = '';
+  if (edgeSizeEl)  edgeSizeEl.value  = '1mm';
   if (edgeNameEl)  edgeNameEl.value  = '';
   if (edgePriceEl) edgePriceEl.value = '';
   refreshMatDropdowns();
@@ -10248,21 +10367,28 @@ function _renderPricesView() {
   const addBoardForm = admin ? `
     <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg4);border:1px solid rgba(212,145,58,0.25);padding:10px;margin-top:10px">
       <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1.5px;text-transform:uppercase">Add Custom Board</div>
-      <div style="display:flex;gap:6px">
-        <input id="cv-new-board-name" type="text" placeholder="Board name"
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="cv-new-board-name" type="text" placeholder="Board name (e.g. Graphite Oak)"
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
         <input id="cv-new-board-price" type="number" min="0" placeholder="R/sheet"
           style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
       </div>
-      <div style="display:flex;gap:6px">
-        <input id="cv-new-edge-name" type="text" placeholder="Edging name (e.g. Graphite Edging 1mm)"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <div style="font-size:10px;color:var(--text-muted);margin:0">Edging (edge name is auto-generated from board name)</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="cv-new-edge-size"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;cursor:pointer">
+          <option value="">— No edging —</option>
+          <option value="0.4mm">0.4mm</option>
+          <option value="1mm" selected>1mm</option>
+          <option value="2mm">2mm</option>
+          <option value="3mm">3mm</option>
+        </select>
         <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
           style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap">0 = no edging price</span>
       </div>
       <button onclick="addCustomBoard()"
         style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:6px;cursor:pointer;width:100%">
@@ -10480,12 +10606,19 @@ function _renderPricesView() {
           <input id="cv-new-board-price" type="number" min="0" placeholder="R/sheet"
             style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-          <input id="cv-new-edge-name" type="text" placeholder="Edging name (optional)"
-            style="flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <select id="cv-new-edge-size"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;cursor:pointer">
+            <option value="">— No edging —</option>
+            <option value="0.4mm">0.4mm</option>
+            <option value="1mm" selected>1mm</option>
+            <option value="2mm">2mm</option>
+            <option value="3mm">3mm</option>
+          </select>
           <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
             style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            title="Leave at 0 to skip edging"
+            onkeydown="if(event.key==='Enter')addCustomBoard()">
           <button onclick="addCustomBoard()"
             style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:6px 16px;cursor:pointer">
             + ADD
