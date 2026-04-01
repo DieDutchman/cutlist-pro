@@ -8981,10 +8981,11 @@ function applyStoredTheme() {
 async function loadSupplierPrices() {
   sbSyncStatus = 'loading';
   renderSyncBadge();
+  let rows = [];
   try {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
+    rows = await res.json();
 
     // ── Rebuild board & edge lists from Supabase so all users see the same boards ──
     const sbBoards = rows.filter(r => r.category === 'board');
@@ -9096,8 +9097,16 @@ async function loadSupplierPrices() {
     sbSyncStatus = 'ok';
     sbLastSyncTime = new Date();
     sbLastSyncError = null;
-    _recordPriceLoadTime();   // stamp when we last loaded prices
-    console.log(`[Supabase] Loaded ${rows.length} supplier prices`);
+    // Record the latest updated_at from actual loaded rows as the watermark.
+    // Using server timestamps avoids client/server clock skew.
+    const latestTs = rows
+      .map(r => r.updated_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    _priceLoadedAt = latestTs || new Date().toISOString();
+    try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
+    console.log(`[Supabase] Loaded ${rows.length} supplier prices (watermark: ${_priceLoadedAt})`);
   } catch(e) {
     sbSyncStatus = 'error';
     sbLastSyncError = e.message;
@@ -9253,6 +9262,7 @@ let _priceLoadedAt = null;  // ISO string — when we last loaded prices from Su
 let _stalePollTimer = null;
 
 function _recordPriceLoadTime() {
+  // Called by reloadSupplierPrices after a manual reload
   _priceLoadedAt = new Date().toISOString();
   try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
 }
@@ -9275,20 +9285,22 @@ function _onVisibilityChange() {
 }
 
 async function _checkStalePrices() {
-  // Show banner for all non-supplier roles — only suppliers are making the changes
+  // Show banner for all non-supplier roles
   if (!sbUser || isSupplier()) return;
   if (!_priceLoadedAt) return;
   try {
-    // PostgREST filter: column=operator.value
-    const url = `${SB_URL}/rest/v1/supplier_prices?select=updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`;
-    const res = await fetch(url, { headers: authHeaders() });
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`;
+    const res = await fetchWithAuth(url);
     if (!res.ok) return;
     const rows = await res.json();
+    console.log(`[PriceCheck] watermark=${_priceLoadedAt}, changed=${rows.length}`);
     if (rows.length > 0) {
       const banner = document.getElementById('price-stale-banner');
       if (banner) banner.style.display = 'flex';
     }
-  } catch(e) { /* silently ignore poll errors */ }
+  } catch(e) {
+    console.warn('[PriceCheck] poll error:', e.message);
+  }
 }
 
 async function reloadSupplierPrices() {
