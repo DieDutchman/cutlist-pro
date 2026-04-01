@@ -9972,8 +9972,10 @@ function promptAddEdge(mat) {
 }
 
 function addBoardEdging(mat) {
-  const sizeEl  = document.getElementById('new-edge-size-' + CSS.escape(mat));
-  const priceEl = document.getElementById('new-edge-price-' + CSS.escape(mat));
+  // IDs are generated with mat.replace(/[^a-zA-Z0-9]/g, '_') — must match that here
+  const safeId   = mat.replace(/[^a-zA-Z0-9]/g, '_');
+  const sizeEl   = document.getElementById('new-edge-size-'  + safeId);
+  const priceEl  = document.getElementById('new-edge-price-' + safeId);
   const size  = (sizeEl?.value || '').trim();
   const price = parseFloat(priceEl?.value) || 0;
   if (!size) { if (sizeEl) { sizeEl.focus(); sizeEl.style.borderColor='#e05252'; } return; }
@@ -10547,13 +10549,13 @@ function _renderPricesView() {
           <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
             style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border-inner, rgba(255,255,255,0.18));color:var(--text);padding:3px 6px;font-size:11px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
           <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
             style="width:80px;font-size:11px;padding:3px 6px"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
-          <button onclick="addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')\"
+          <button onclick="addBoardEdging('${mat.replace(/'/g, "\\'")}')"
             style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 8px;cursor:pointer">+</button>
         </div>` : '';
       edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
