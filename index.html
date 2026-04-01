@@ -2020,7 +2020,7 @@
 </div>
 
 <!-- ═══ STALE PRICES NOTIFICATION ══════════════════════════════════════════ -->
-<div id="price-stale-banner" style="display:none;background:rgba(212,145,58,0.12);border-bottom:2px solid var(--amber);padding:8px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap">
+<div id="price-stale-banner" style="display:none;background:rgba(212,145,58,0.12);border-bottom:2px solid var(--amber);padding:8px 20px;align-items:center;gap:12px;flex-wrap:wrap">
   <span style="font-size:13px;color:var(--amber)">📢</span>
   <span id="price-stale-msg" style="font-size:12px;color:var(--text);flex:1">Supplier has updated prices since you last loaded — reload prices for accurate quotes.</span>
   <button onclick="reloadSupplierPrices()" style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer">↻ RELOAD PRICES</button>
@@ -9259,25 +9259,34 @@ function _recordPriceLoadTime() {
 
 function _startStalePricePoll() {
   if (_stalePollTimer) clearInterval(_stalePollTimer);
-  // Poll every 5 minutes
-  _stalePollTimer = setInterval(_checkStalePrices, 5 * 60 * 1000);
+  // Check immediately (prices may have changed since last session)
+  _checkStalePrices();
+  // Poll every 2 minutes
+  _stalePollTimer = setInterval(_checkStalePrices, 2 * 60 * 1000);
+  // Also check whenever the user switches back to this tab
+  document.removeEventListener('visibilitychange', _onVisibilityChange);
+  document.addEventListener('visibilitychange', _onVisibilityChange);
+}
+
+function _onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    _checkStalePrices();
+  }
 }
 
 async function _checkStalePrices() {
-  if (!sbUser || isSupplier() || canEditPrices()) return; // supplier/admin see changes live
+  // Show banner for all non-supplier roles — only suppliers are making the changes
+  if (!sbUser || isSupplier()) return;
   if (!_priceLoadedAt) return;
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/supplier_prices?select=updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`,
-      { headers: authHeaders() }
-    );
+    // PostgREST filter: column=operator.value
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`;
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) return;
     const rows = await res.json();
     if (rows.length > 0) {
       const banner = document.getElementById('price-stale-banner');
-      if (banner && banner.style.display === 'none') {
-        banner.style.display = 'flex';
-      }
+      if (banner) banner.style.display = 'flex';
     }
   } catch(e) { /* silently ignore poll errors */ }
 }
