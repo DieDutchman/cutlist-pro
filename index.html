@@ -9206,17 +9206,17 @@ function applyStaleRemap(names) {
 }
 
 function loadPriceTicker(rows) {
-  // Show items updated in the last 30 days; fall back to all priced items if none have updated_at
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  let recent = rows
-    .filter(r => r.updated_at && r.updated_at > cutoff)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-  if (!recent.length) {
-    recent = rows.filter(r => ['board','edge','special_service'].includes(r.category) && Number(r.price) > 0);
-  }
+  // Only show items updated since we last loaded prices — i.e. the changes that triggered the banner.
+  // Fall back to last 30 days if no watermark exists (e.g. very first load).
+  const cutoff = _priceLoadedAt
+    || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const ticker  = document.getElementById('price-ticker');
-  const track   = document.getElementById('ticker-track');
+  const recent = rows
+    .filter(r => r.updated_at && r.updated_at > cutoff && ['board','edge','special_service','service'].includes(r.category))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+  const ticker = document.getElementById('price-ticker');
+  const track  = document.getElementById('ticker-track');
   if (!ticker || !track) return;
 
   if (!recent.length) {
@@ -9225,28 +9225,26 @@ function loadPriceTicker(rows) {
   }
 
   const items = recent.map(r => {
-    const date  = new Date(r.updated_at).toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
-    const price = r.category === 'board'
+    const date   = new Date(r.updated_at).toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
+    const price  = r.category === 'board'
       ? `R ${Number(r.price).toFixed(2)}/sheet`
       : r.category === 'edge'
         ? `R ${Number(r.price).toFixed(2)}/m`
         : `R ${Number(r.price).toFixed(2)}`;
-    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : r.category === 'special_service' ? '⚙ Special Service' : '🔧 Service';
+    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : r.category === 'special_service' ? '⚙ Service' : '🔧 Service';
+    const label  = r.name.replace(/ Edging.*$/, '');
     return `<span style="font-size:11px;color:var(--amber);padding:0 28px;display:inline-flex;align-items:center;gap:6px">
       <span style="color:var(--text-muted);font-size:10px">${action}</span>
-      <span style="color:var(--text)">${r.name.replace(/ Edging.*$/,'')}</span>
+      <span style="color:var(--text)">${label}</span>
       <span style="color:var(--amber);font-family:'JetBrains Mono',monospace">${price}</span>
       <span style="color:var(--text-muted);font-size:10px">${date}</span>
       <span style="color:rgba(212,145,58,0.3);margin-left:8px">◆</span>
     </span>`;
   }).join('');
 
-  // Duplicate content for seamless loop
   track.innerHTML = items + items;
   ticker.style.display = 'block';
 
-  // Calculate animation duration based on content width
-  // Use rAF to get actual width after render
   requestAnimationFrame(() => {
     const fullWidth = track.scrollWidth / 2;
     const speed = 60; // px per second
@@ -9289,14 +9287,17 @@ async function _checkStalePrices() {
   if (!sbUser || isSupplier()) return;
   if (!_priceLoadedAt) return;
   try {
-    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}&limit=1`;
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}`;
     const res = await fetchWithAuth(url);
     if (!res.ok) return;
-    const rows = await res.json();
-    console.log(`[PriceCheck] watermark=${_priceLoadedAt}, changed=${rows.length}`);
-    if (rows.length > 0) {
+    const changedRows = await res.json();
+    console.log(`[PriceCheck] watermark=${_priceLoadedAt}, changed=${changedRows.length}`);
+    if (changedRows.length > 0) {
+      // Show banner
       const banner = document.getElementById('price-stale-banner');
       if (banner) banner.style.display = 'flex';
+      // Update ticker to show only the changed items
+      loadPriceTicker(changedRows);
     }
   } catch(e) {
     console.warn('[PriceCheck] poll error:', e.message);
