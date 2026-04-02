@@ -54,6 +54,12 @@
   body.supplier-theme .cv-unit-card, body.user-light-theme .cv-unit-card { background: #f5f2ee; }
   body.supplier-theme #price-ticker, body.user-light-theme #price-ticker { background: #f5e8d0; border-bottom-color: var(--amber-dim); }
   body.supplier-theme #price-ticker .ticker-label, body.user-light-theme #price-ticker .ticker-label { background: var(--amber); }
+  /* Ticker item text — force dark on light backgrounds */
+  body.supplier-theme #ticker-track span, body.user-light-theme #ticker-track span { color: #1a1612 !important; }
+  /* Stale prices banner — light theme */
+  body.supplier-theme #price-stale-banner, body.user-light-theme #price-stale-banner { background: rgba(212,145,58,0.15); border-bottom-color: var(--amber); }
+  body.supplier-theme #price-stale-msg, body.user-light-theme #price-stale-msg { color: #1a1612; }
+  body.supplier-theme #price-stale-banner button, body.user-light-theme #price-stale-banner button { color: #1a1612; }
 
   @keyframes ticker-scroll {
     0%   { transform: translateX(0); }
@@ -13575,6 +13581,8 @@ const drawerState = {
   drawerCount:   4,
   potTopHeight: 192,  // face height of the small top drawer in pot mode
   customHeights: [],  // used when drawerType === 'custom'
+  boxHeight:    null, // manual box height override (null = auto: largestFace - 16)
+  topBoxHeight: null, // manual box height for pot top drawer (null = auto: topFace - 16)
   topType:     'solid', // 'solid' | 'nailers'
   hasBacking: true,
   materials: {
@@ -15066,6 +15074,26 @@ function drawerFaceHeights() {
   return Array(n).fill(Math.floor(available / n));
 }
 
+// ── Box height helpers ────────────────────────────────────────────────────────
+// Returns the effective box height for main/pot drawers.
+// Uses manual override if set, otherwise auto-calculates from face heights.
+function drawerEffectiveBoxH() {
+  const ds  = drawerState;
+  if (ds.boxHeight != null && ds.boxHeight > 0) return ds.boxHeight;
+  const fh = drawerFaceHeights();
+  // For pot: use the large drawer face; for equal/custom: tallest face
+  const refH = ds.drawerType === 'pot' ? fh[0] : Math.max(...fh);
+  return Math.max(10, refH - 16);
+}
+
+function drawerEffectiveTopBoxH() {
+  const ds  = drawerState;
+  if (ds.topBoxHeight != null && ds.topBoxHeight > 0) return ds.topBoxHeight;
+  const fh  = drawerFaceHeights();
+  const topH = fh[fh.length - 1]; // top face height
+  return Math.max(10, topH - 16);
+}
+
 function drawerGapCheck() {
   const ds = drawerState;
   const n  = ds.drawerCount;
@@ -15196,32 +15224,37 @@ function drawerSideSVG() {
   let boxesSVG  = '';
   let runnerSVG = '';
 
+  // Effective box heights (manual override or auto)
+  const effBoxH    = drawerEffectiveBoxH();
+  const effTopBoxH = drawerEffectiveTopBoxH();
+  const isPot      = ds.drawerType === 'pot';
+
   // Box parameters
-  const boxStartX = Math.max(backW + 2, sd - ddPx);  // box left edge
-  const boxEndX   = sd;                                // box right edge (flush with carcass front)
+  const boxStartX = Math.max(backW + 2, sd - ddPx);
+  const boxEndX   = sd;
   const boxInnerW = boxEndX - boxStartX;
 
   let yCur = sh;
   fh.forEach((h, i) => {
     const hPx      = Math.round(h * SCALE);
-    yCur          -= hPx;                        // face top y (matches front view)
+    yCur          -= hPx;
 
     const faceTop  = yCur;
     const faceBot  = yCur + hPx;
 
     // ── Drawer face (solid amber slab at the front) ───────────────────────
-    // In side view the face is seen edge-on: height=hPx, width=faceThPx
-    // It sits flush with the bottom of its slot and protrudes past the carcass front
     facesSVG += `
       <rect x="${sd}" y="${faceTop}" width="${faceThPx}" height="${hPx}"
         fill="rgba(212,145,58,0.35)" stroke="var(--amber)" stroke-width="1.5"/>`;
 
-    // ── Drawer box (dashed outline inside carcass) ────────────────────────
-    // Box height = face height - 16mm total clearance (8mm top and bottom)
-    const clearPx = Math.round(8 * SCALE);
-    const boxH    = Math.round((h - 16) * SCALE);
-    const boxTop  = faceTop + clearPx;
-    const boxBot  = boxTop + boxH;
+    // ── Drawer box (dashed outline) — use effective box height ────────────
+    // For pot drawers: last face in array (index = fh.length-1) is the top drawer
+    const isTopDrawer = isPot && i === fh.length - 1;
+    const actualBoxH  = isTopDrawer ? effTopBoxH : effBoxH;
+    const boxHpx      = Math.round(actualBoxH * SCALE);
+    const clearPx     = Math.round(((h - actualBoxH) / 2) * SCALE); // centre vertically in face slot
+    const boxTop      = faceTop + clearPx;
+    const boxBot      = boxTop + boxHpx;
 
     // Clamp to inner space
     const clTop = Math.max(innerTop, boxTop);
@@ -15466,6 +15499,48 @@ function renderDrawerBuilderHTML() {
       </div>
 
       <div class="bldr-section">
+        <div class="bldr-section-head">📦 Box Sizes</div>
+        <div class="bldr-section-body">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.6">
+            Height of drawer box sides, fronts &amp; backs.<br>
+            Leave blank to auto-calculate (face height − 16mm).
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="${ds.drawerType === 'pot' ? 'Pot drawers (large)' : 'All drawers'}">${ds.drawerType === 'pot' ? 'Pot box H' : 'Box height'}</span>
+            <input class="bldr-input" type="number"
+              value="${ds.boxHeight != null ? ds.boxHeight : ''}"
+              min="30" max="600"
+              placeholder="${drawerEffectiveBoxH()}"
+              oninput="drawerState.boxHeight=this.value===''?null:parseFloat(this.value)||null;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px">
+            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ' (face − 16mm)' : ' — overridden'}
+          </div>
+          ${ds.drawerType === 'pot' ? `
+          <div class="bldr-row">
+            <span class="bldr-label" title="Top (small) drawer box height">Top box H</span>
+            <input class="bldr-input" type="number"
+              value="${ds.topBoxHeight != null ? ds.topBoxHeight : ''}"
+              min="30" max="400"
+              placeholder="${drawerEffectiveTopBoxH()}"
+              oninput="drawerState.topBoxHeight=this.value===''?null:parseFloat(this.value)||null;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
+            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 16mm)' : ' — overridden'}
+          </div>` : ''}
+          ${ds.boxHeight != null || ds.topBoxHeight != null ? `
+          <button onclick="drawerState.boxHeight=null;drawerState.topBoxHeight=null;drawerRedraw()"
+            style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Oswald',sans-serif;letter-spacing:1px">
+            ↺ RESET TO AUTO
+          </button>` : ''}
+        </div>
+      </div>
+
+      <div class="bldr-section">
         <div class="bldr-section-head">🎨 Materials</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Carcass</span>
@@ -15510,6 +15585,10 @@ function renderDrawerBuilderHTML() {
       <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
         <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
         <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
+        ${ds.drawerType === 'pot'
+          ? `<div>Pot box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>
+             <div>Top box height: <strong style="color:var(--amber)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight==null?' (auto)':' ✏'}</div>`
+          : `<div>Box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>`}
         ${fh.map((h,i)=>`<div>Drawer ${i+1}${i===0?' (bottom)':i===fh.length-1?' (top)':''}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
       </div>
     </div>
@@ -15598,12 +15677,10 @@ function drawerCalcParts() {
   }
 
   // ── Drawer boxes ──────────────────────────────────────────────────────────
-  // Box side height: face height minus ~16mm clearance (runner hardware)
+  // Box side height: manual override or auto (face height − 16mm runner clearance)
   if (ds.drawerType === 'pot') {
-    const topH   = fh[fh.length - 1];
-    const largeH = fh[0];
-    const topBoxH   = topH   - 16;
-    const largeBoxH = largeH - 16;
+    const largeBoxH = drawerEffectiveBoxH();
+    const topBoxH   = drawerEffectiveTopBoxH();
 
     parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
     parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), boxW, largeBoxH, cm, ce));
@@ -15612,17 +15689,18 @@ function drawerCalcParts() {
     parts.push(p('Top Drawer Fronts & Backs', 2,       boxW, topBoxH, cm, ce));
     parts.push(p('Top Drawer Bottom',         1,       fullBoxW - 4, DD - 50, cm));
   } else {
-    // Equal or custom — use tallest face height for box height (conservative)
-    const maxFaceH = Math.max(...fh);
-    const boxH = maxFaceH - 16;
+    const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
       parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
       parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
     } else {
-      // Custom different heights — list each separately
+      // Custom different heights — list each separately using per-drawer auto calc
+      // but still honour a global boxHeight override if set
       fh.forEach((h, i) => {
-        const bh = h - 16;
+        const bh = ds.boxHeight != null && ds.boxHeight > 0
+          ? ds.boxHeight
+          : Math.max(10, h - 16);
         parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, boxW, bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Bottom`,        1, fullBoxW-4, DD-50, cm));
