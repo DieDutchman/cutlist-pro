@@ -12399,18 +12399,48 @@ function fuzzyMatchMat(val) {
   return 'White Melamine';
 }
 
-function fuzzyMatchEdge(val) {
+function fuzzyMatchEdge(val, matName) {
   if (!val || val.trim() === '') return '';
   const v = val.trim();
+
+  // 1. Exact match
   if (EDGES.includes(v)) return v;
   const lower = v.toLowerCase();
+
+  // 2. Case-insensitive exact
   const exact = EDGES.find(e => e && e.toLowerCase() === lower);
   if (exact) return exact;
-  const starts = EDGES.find(e => e && (e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())));
-  if (starts) return starts;
+
+  // 3. Try extracting a size suffix (e.g. "1mm", "2mm") from the value
+  //    and match against the material's edging prefix
+  const sizeMatch = v.match(/(\d+(\.\d+)?mm)/i);
+  if (sizeMatch && matName) {
+    const size = sizeMatch[1].toLowerCase();
+    const prefix = matName === 'White Melamine' ? 'white edging' : matName.toLowerCase() + ' edging';
+    const sizedEdge = EDGES.find(e => e && e.toLowerCase().startsWith(prefix) && e.toLowerCase().includes(size));
+    if (sizedEdge) return sizedEdge;
+  }
+
+  // 4. Starts-with / prefix match — prefer longer matches
+  const prefixMatches = EDGES.filter(e => e && (
+    e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())
+  )).sort((a, b) => b.length - a.length);
+  if (prefixMatches.length) return prefixMatches[0];
+
+  // 5. Contains match
   const contains = EDGES.find(e => e && (e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase())));
   if (contains) return contains;
-  // Return empty if nothing matches — safer than a wrong edge
+
+  // 6. If the caller provided a material name and the AI returned SOMETHING (meaning
+  //    edging was intended), fall back to the default edge for that material.
+  //    This prevents silently dropping edging when the name is slightly off.
+  if (matName) {
+    const prefix2 = matName === 'White Melamine' ? 'White Edging' : matName + ' Edging';
+    const defaultEdge = EDGES.find(e => e && e.startsWith(prefix2));
+    if (defaultEdge) return defaultEdge;
+  }
+
+  // 7. Nothing matched — safer to return empty than guess wrong
   return '';
 }
 
@@ -12675,11 +12705,12 @@ async function runImportParse() {
     return `  "${m}" → aliases: ${unique.slice(1).join(', ') || 'none'}`;
   }).join('\n');
 
-  // Build material → default edging map
+  // Build material → ALL available edging options map (not just first match)
   const matEdgeMap = MATS.map(m => {
     const prefix = m === 'White Melamine' ? 'White Edging' : m + ' Edging';
-    const match = EDGES.find(e => e && e.startsWith(prefix)) || '';
-    return match ? `  "${m}" → default edging: "${match}"` : null;
+    const allEdges = EDGES.filter(e => e && e.startsWith(prefix));
+    if (!allEdges.length) return null;
+    return `  "${m}" → available edging: ${allEdges.map(e => `"${e}"`).join(', ')}`;
   }).filter(Boolean).join('\n');
 
   const systemPrompt = `You are a woodworking cutlist parser for a South African cabinet maker. Convert raw spreadsheet data into structured cut parts.
@@ -12693,9 +12724,9 @@ ${matAliasLines}
 AVAILABLE EDGING OPTIONS (use EXACT names in output):
 ${edgeList}
 
-MATERIAL → DEFAULT EDGING PAIRS:
+MATERIAL → EDGING OPTIONS (choose the best match for the thickness specified, or use the first if unspecified):
 ${matEdgeMap}
-  Note: "3MM White Masonite" and "Shutterply" typically have NO edging.
+  Note: "3MM White Masonite" and "Shutterply" have NO edging — always use "".
 
 ${labelHint}
 
@@ -12721,9 +12752,12 @@ MATERIAL MATCHING RULES:
 3. If still unsure → use "White Melamine"
 
 EDGING MATCHING RULES:
-1. When edging is needed, use the default edging for the matched material (see pairs above)
-2. If the spreadsheet specifies a different edging colour, match it to the closest available edging
-3. Never invent edging names — only use names from the available edging list
+1. When edging is present, use the exact edging name from the "MATERIAL → EDGING OPTIONS" list above
+2. If a specific thickness (1mm, 2mm etc.) is shown in the data, pick the matching size
+3. If edging is indicated but size is unclear, use the FIRST option in the list for that material
+4. CRITICAL: Only use "" (empty string) when the spreadsheet explicitly shows NO edging (dash, blank, N)
+5. CRITICAL: If a part clearly has edging in the source data, always output a matching edging name — never silently drop it
+6. Never invent edging names — only use names from the available edging list
 
 OUTPUT: Return ONLY valid JSON — no markdown, no explanation, no preamble:
 {
@@ -12781,10 +12815,11 @@ Rules:
     // JS-side fuzzy material + edging correction
     parsed.parts = parsed.parts.map(p => {
       p.mat  = fuzzyMatchMat(p.mat);
-      p.el1  = fuzzyMatchEdge(p.el1);
-      p.el2  = fuzzyMatchEdge(p.el2);
-      p.ew1  = fuzzyMatchEdge(p.ew1);
-      p.ew2  = fuzzyMatchEdge(p.ew2);
+      // Pass the resolved material name so fuzzyMatchEdge can fall back to its default edging
+      p.el1  = fuzzyMatchEdge(p.el1, p.mat);
+      p.el2  = fuzzyMatchEdge(p.el2, p.mat);
+      p.ew1  = fuzzyMatchEdge(p.ew1, p.mat);
+      p.ew2  = fuzzyMatchEdge(p.ew2, p.mat);
       return p;
     });
 
