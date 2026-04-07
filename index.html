@@ -2787,21 +2787,28 @@ let _templatePushTimer = null;
 function pushTemplatesToCloud() {
   clearTimeout(_templatePushTimer);
   _templatePushTimer = setTimeout(async () => {
+    if (!sbUser) return;
     try {
-      await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+      const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({
           templates: {
             customUnits,
             unitOverrides,
-            deletedUnits:     [...deletedUnits],
-            customHardware:   costingPrices.customHardware,
+            deletedUnits:   [...deletedUnits],
+            customHardware: costingPrices.customHardware,
           }
         }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(()=>'');
+        console.warn('[Templates] Cloud push failed:', res.status, body);
+      } else {
+        console.log('[Templates] Pushed customHardware:', costingPrices.customHardware.length, 'items');
+      }
     } catch(e) { console.warn('[Templates] Cloud sync failed:', e.message); }
-  }, 1500);
+  }, 1000);
 }
 const saveDeletedUnits = saveCustomUnits;
 
@@ -7550,9 +7557,8 @@ async function onLoginSuccess() {
 async function loadTemplatesFromCloud() {
   if (!sbUser) return;
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`,
-      { headers: authHeaders() }
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`
     );
     if (!res.ok) return;
     const rows = await res.json();
@@ -7573,6 +7579,7 @@ async function loadTemplatesFromCloud() {
     }
     if (Array.isArray(t.customHardware)) {
       costingPrices.customHardware = t.customHardware;
+      console.log('[Templates] Loaded customHardware:', t.customHardware.length, 'items');
     }
     // Sync back to localStorage
     try {
@@ -11100,7 +11107,14 @@ function loadSpecialServicesFromSupabase(rows) {
 }
 
 
-function renderMaterialsView() { withScrollLock(_renderMaterialsView); }
+function renderMaterialsView() {
+  // Always pull latest items from cloud before rendering so cross-device changes show up
+  if (sbUser) {
+    loadTemplatesFromCloud().then(() => withScrollLock(_renderMaterialsView));
+  } else {
+    withScrollLock(_renderMaterialsView);
+  }
+}
 function _renderMaterialsView() {
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
@@ -11213,8 +11227,9 @@ function _renderMaterialsView() {
 
       <div>
         ${section('Other / Miscellaneous')}
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.6">
-          Price reference items — add manually to a quote line when needed.
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>Price reference items — add manually to a quote line when needed.</span>
+          <span style="font-size:10px;color:#4caf82;font-family:'JetBrains Mono',monospace;white-space:nowrap">☁ Saved to your account</span>
         </div>
         ${suggestions('other', ['Plinth Clip', 'SS Leg', 'Cabinet Lock', 'Magnetic Catch', 'Door Damper', 'Lazy Susan Fitting', 'Waste Bin', 'Drawer Divider', 'Shelf Pin', 'Back Panel Clip'])}
         ${otherItems.length > 0 ? otherItems.map(h => `
