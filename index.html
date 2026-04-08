@@ -3273,7 +3273,10 @@ function switchTab(btn, section) {
     document.getElementById('costing-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'block';
+    // Pull fresh items from cloud when the tab is opened (cross-device sync)
+    // but render immediately from local state first so there's no blank flash
     renderMaterialsView();
+    if (sbUser) loadTemplatesFromCloud().then(() => renderMaterialsView());
     return;
   }
 
@@ -11107,14 +11110,7 @@ function loadSpecialServicesFromSupabase(rows) {
 }
 
 
-function renderMaterialsView() {
-  // Always pull latest items from cloud before rendering so cross-device changes show up
-  if (sbUser) {
-    loadTemplatesFromCloud().then(() => withScrollLock(_renderMaterialsView));
-  } else {
-    withScrollLock(_renderMaterialsView);
-  }
-}
+function renderMaterialsView() { withScrollLock(_renderMaterialsView); }
 function _renderMaterialsView() {
   const section = (title) =>
     `<div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${title}</div>`;
