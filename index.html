@@ -10080,7 +10080,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
         if (isBedroom) hw_counts.handle240Count += totalQty;
         else           hw_counts.handle160Count += totalQty;
       }
-      if (n.includes('drawer bottom')) hw_counts.runnerCount += totalQty;
+      if (n.includes('drawer bottom') || n.includes('drawer box bottom')) hw_counts.runnerCount += totalQty;
     });
   });
 
@@ -10185,8 +10185,8 @@ function calcUnitCost(u, unitQty) {
       else           handle160Count += totalQty;
     }
 
-    // Runners — one set per drawer bottom
-    if (nameLower.includes('drawer bottom')) {
+    // Runners — one set per drawer bottom (cover all naming variants)
+    if (nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom')) {
       runnerCount += totalQty;
     }
   });
@@ -11610,13 +11610,20 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const totalMaterials = totalMat + totalEdgeCostCalc + totalCutLabel + totalDrilling;
   // Custom hardware totals — computed here so grandTotalAll can include them
 
-  // Bases & Skirting/Plinth extras from Quote tab
+  // ── All other quote extras (skirting, base, other/misc items, hardware) ────
   const _quoteBaseExtras = (quoteState.extras||[]).filter(e => e.baseMode !== undefined);
   const _quoteSkExtras   = (quoteState.extras||[]).filter(e => e.skirtingMode !== undefined);
   const _quoteBaseTotal  = _quoteBaseExtras.reduce((s,e) => s + (_calcBaseExtraCost(e)||0), 0);
   const _quoteSkTotal    = _quoteSkExtras.reduce((s,e)  => s + (_calcSkirtingExtraCost(e)||0), 0);
 
-  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal;
+  // "Other" items (custom misc + My Costs items) — anything with an amount that isn't
+  // hardware type or base/skirting (those are already included above separately)
+  const _quoteOtherExtras = (quoteState.extras||[]).filter(e =>
+    e.otherType !== undefined || (e.desc !== undefined && e.baseMode === undefined && e.skirtingMode === undefined && e.hwType === undefined)
+  );
+  const _quoteOtherTotal = _quoteOtherExtras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+
+  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal + _quoteOtherTotal;
 
   const R   = n => 'R ' + Math.round(n).toLocaleString('en-ZA');
   const pct = n => grandTotalAll > 0 ? `<span style="color:var(--text-muted);font-size:10px"> (${Math.round(n/grandTotalAll*100)}%)</span>` : '';
@@ -11776,6 +11783,22 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
           }
           const lm = ((e.skirtingLength||0)/1000).toFixed(2);
           return `<tr><td>Skirting ${e.skirtingHeight||''}mm – ${e.skirtingMat||''} (${lm}m)</td><td class="num">${lm} m</td><td class="num">R${(costingPrices.extras.skirtingPerM||0).toFixed(0)}/m</td><td class="num cost">${R(cost)}</td></tr>`;
+        }).join('')}
+        ` : ''}
+
+        ${_quoteOtherTotal > 0 ? `
+        ${secHead('OTHER EXTRAS', _quoteOtherTotal)}
+        ${_quoteOtherExtras.map(e => {
+          const amt = parseFloat(e.amount) || 0;
+          if (!amt) return '';
+          if (e.otherType) {
+            const opt = _otherOptions().find(o => o.key === e.otherType);
+            const label = opt ? opt.label : e.otherType;
+            const qty = e.otherQty || 1;
+            return `<tr><td>${label} <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></td><td class="num">${qty}</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
+          }
+          const desc = e.desc || 'Miscellaneous';
+          return `<tr><td>${desc}</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
         }).join('')}
         ` : ''}
 
@@ -12397,7 +12420,9 @@ function fuzzyMatchMat(val) {
 
 function fuzzyMatchEdge(val, matName) {
   if (!val || val.trim() === '') return '';
-  const v = val.trim();
+  // Strip verbose size annotations like "(1,0 mm x 16,0 mm)" that come from some CAD exports
+  const v = val.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (!v) return '';
 
   // 1. Exact match
   if (EDGES.includes(v)) return v;
@@ -12407,37 +12432,46 @@ function fuzzyMatchEdge(val, matName) {
   const exact = EDGES.find(e => e && e.toLowerCase() === lower);
   if (exact) return exact;
 
-  // 3. Try extracting a size suffix (e.g. "1mm", "2mm") from the value
-  //    and match against the material's edging prefix
+  // 3. Colour-aware match — extract colour word and size from the string
+  //    e.g. "Black Cherry Edging 1mm" → look for an edge containing "black cherry" + "1mm"
   const sizeMatch = v.match(/(\d+(\.\d+)?mm)/i);
-  if (sizeMatch && matName) {
-    const size = sizeMatch[1].toLowerCase();
+  const size = sizeMatch ? sizeMatch[1].toLowerCase() : null;
+  // Find edges that contain all the significant words from the value
+  const words = lower.split(/\s+/).filter(w => w.length > 2 && !/^(edging|edge|mm|x)$/i.test(w));
+  if (words.length) {
+    const wordMatch = EDGES.find(e => {
+      const el = e.toLowerCase();
+      return words.every(w => el.includes(w)) && (!size || el.includes(size));
+    });
+    if (wordMatch) return wordMatch;
+    // Try without size constraint
+    const wordMatchNoSize = EDGES.find(e => {
+      const el = e.toLowerCase();
+      return words.every(w => el.includes(w));
+    });
+    if (wordMatchNoSize) return wordMatchNoSize;
+  }
+
+  // 4. Size + material prefix match (only when the colour matches the material)
+  if (size && matName) {
     const prefix = matName === 'White Melamine' ? 'white edging' : matName.toLowerCase() + ' edging';
     const sizedEdge = EDGES.find(e => e && e.toLowerCase().startsWith(prefix) && e.toLowerCase().includes(size));
     if (sizedEdge) return sizedEdge;
   }
 
-  // 4. Starts-with / prefix match — prefer longer matches
+  // 5. Starts-with / prefix match
   const prefixMatches = EDGES.filter(e => e && (
     e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())
   )).sort((a, b) => b.length - a.length);
   if (prefixMatches.length) return prefixMatches[0];
 
-  // 5. Contains match
+  // 6. Contains match
   const contains = EDGES.find(e => e && (e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase())));
   if (contains) return contains;
 
-  // 6. If the caller provided a material name and the AI returned SOMETHING (meaning
-  //    edging was intended), fall back to the default edge for that material.
-  //    This prevents silently dropping edging when the name is slightly off.
-  if (matName) {
-    const prefix2 = matName === 'White Melamine' ? 'White Edging' : matName + ' Edging';
-    const defaultEdge = EDGES.find(e => e && e.startsWith(prefix2));
-    if (defaultEdge) return defaultEdge;
-  }
-
-  // 7. Nothing matched — safer to return empty than guess wrong
-  return '';
+  // 7. No match — return a sentinel so the preview can highlight it for the user
+  //    Prefix with "?" so the imported cutlist view can flag it as needing review
+  return '?' + v;
 }
 
 function renderImportView() { withScrollLock(_renderImportView); }
@@ -12726,6 +12760,12 @@ ${matEdgeMap}
 
 ${labelHint}
 
+EDGE NAME PARSING — some exports include verbose names with size info in brackets:
+  e.g. "Black Cherry Edging 1mm (1,0 mm x 16,0 mm)" → output just the clean name: "Black Cherry Edging 1mm"
+  e.g. "White Edging 1mm (1,0 mm x 16,0 mm)" → output: "White Edging 1mm"
+  Always strip the bracketed part and output only the base name matching the available edging list.
+  If the colour in the edge name does NOT match the board material, output it exactly as-is (do not substitute).
+
 EDGE ABBREVIATION GUIDE — interpret these in ANY column that describes edging:
 - EAR = Edge All Round → all four edges (el1, el2, ew1, ew2) get the matching edging
 - 1L / L1 / EL1 / LONG1 = el1 (first length edge)
@@ -12865,6 +12905,30 @@ function renderImportedCutlistView() {
        ${opts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
      </select>`;
 
+  // Edge select — highlights unrecognised edges (those with '?' prefix from fuzzyMatchEdge)
+  const edgeSel = (val, onchange, w) => {
+    const isUnknown = val && val.startsWith('?');
+    const displayVal = isUnknown ? '' : (val || '');
+    const unknownLabel = isUnknown ? val.slice(1) : null;
+    return `<div style="display:flex;flex-direction:column;gap:1px">
+      <select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'90px'};max-width:${w||'90px'}"
+         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='${isUnknown?'#e05252':''}'" >
+         ${edgeOpts.map(o => `<option value="${escHtml(o)}" ${o===displayVal?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
+      </select>
+      ${isUnknown ? `<span title="'${escHtml(unknownLabel)}' not in your edging list — select the correct one" style="font-size:9px;color:#e05252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">⚠ ${escHtml(unknownLabel)}</span>` : ''}
+    </div>`;
+  };
+
+  // Material select — highlights materials not in MATS list
+  const matSel = (val, onchange, w) => {
+    const isUnknown = val && !matOpts.includes(val);
+    return `<select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'140px'};max-width:${w||'140px'}"
+       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+       ${matOpts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${escHtml(o)}</option>`).join('')}
+       ${isUnknown ? `<option value="${escHtml(val)}" selected style="color:#e05252">⚠ ${escHtml(val)}</option>` : ''}
+     </select>`;
+  };
+
   const inp = (val, type, onchange, w, align) =>
     `<input type="${type}" value="${escHtml(String(val??''))}"
        onchange="${onchange}"
@@ -12887,11 +12951,11 @@ function renderImportedCutlistView() {
         <td style="padding:3px 4px;text-align:center">${inp(p.qty||1, 'number', `updateImportedPart(${i},'qty',this.value)`, '44px', 'center')}</td>
         <td style="padding:3px 4px;text-align:right">${inp(p.l||0, 'number', `updateImportedPart(${i},'l',this.value)`, '64px', 'right')}</td>
         <td style="padding:3px 4px;text-align:right">${inp(p.w||0, 'number', `updateImportedPart(${i},'w',this.value)`, '64px', 'right')}</td>
-        <td style="padding:3px 4px">${sel(p.mat||'', matOpts, `updateImportedPart(${i},'mat',this.value)`, '140px')}</td>
-        <td style="padding:3px 4px">${sel(p.el1||'', edgeOpts, `updateImportedPart(${i},'el1',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.el2||'', edgeOpts, `updateImportedPart(${i},'el2',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.ew1||'', edgeOpts, `updateImportedPart(${i},'ew1',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.ew2||'', edgeOpts, `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${matSel(p.mat||'', `updateImportedPart(${i},'mat',this.value)`, '140px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.el1||'', `updateImportedPart(${i},'el1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.el2||'', `updateImportedPart(${i},'el2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.ew1||'', `updateImportedPart(${i},'ew1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.ew2||'', `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
         <td style="padding:3px 4px">${inp(p.holes||'', 'text', `updateImportedPart(${i},'holes',this.value)`, '90px')}</td>
         <td style="padding:3px 6px;text-align:center">
           <button onclick="deleteImportedPart(${i})" title="Delete row"
@@ -12931,9 +12995,31 @@ function renderImportedCutlistView() {
     </div>`;
   }
 
+  // Count unrecognised edges (marked with ? prefix by fuzzyMatchEdge)
+  const unknownEdges = new Set();
+  parts.forEach(p => {
+    ['el1','el2','ew1','ew2'].forEach(k => {
+      if (p[k] && p[k].startsWith('?')) unknownEdges.add(p[k].slice(1));
+    });
+  });
+  const unknownBanner = unknownEdges.size > 0 ? `
+    <div style="background:rgba(224,82,82,0.1);border:1px solid #e05252;padding:10px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;border-radius:2px">
+      <span style="font-size:16px;flex-shrink:0">⚠</span>
+      <div>
+        <div style="font-size:12px;color:#e05252;font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:4px">UNRECOGNISED EDGING</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.6">
+          The following edging names from your file aren't in your edging list — select the correct edging from the red-highlighted dropdowns before saving:
+          <strong style="color:#e05252"> ${[...unknownEdges].join(', ')}</strong>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          Tip: Add these to the Supplier Prices tab first if they are valid for your stock.
+        </div>
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
   <div style="max-width:1200px;margin:0 auto;padding:24px 20px;font-family:'Barlow',sans-serif">
-
+    ${unknownBanner}
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
       <div>
@@ -13376,16 +13462,19 @@ function saveImportAsUnit(groupNames, groups) {
     const gparts  = groups[grp];
 
     // Convert imported part format → unit part format
+    // Strip any '?' sentinel from unrecognised edge fields (they would have been
+    // fixed by the user in the preview, or we clear them to '' on save)
+    const cleanEdge = v => (v && v.startsWith('?')) ? '' : (v || '');
     const parts = gparts.map(p => ({
       name:  p.name  || 'Part',
       qty:   parseInt(p.qty)  || 1,
       l:     parseInt(p.l)    || 0,
       w:     parseInt(p.w)    || 0,
       mat:   p.mat   || (MATS[0] || ''),
-      el1:   p.el1   || '',
-      el2:   p.el2   || '',
-      ew1:   p.ew1   || '',
-      ew2:   p.ew2   || '',
+      el1:   cleanEdge(p.el1),
+      el2:   cleanEdge(p.el2),
+      ew1:   cleanEdge(p.ew1),
+      ew2:   cleanEdge(p.ew2),
       holes: p.holes || '',
     }));
 
