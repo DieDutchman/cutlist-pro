@@ -4587,7 +4587,7 @@ function generateSummary() {
       }
 
       // Runners — 1 set per drawer bottom
-      if (nameLower.includes('drawer bottom')) {
+      if (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom')) {
         totalRunners += p.qty * unitQty;
       }
     });
@@ -10080,7 +10080,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
         if (isBedroom) hw_counts.handle240Count += totalQty;
         else           hw_counts.handle160Count += totalQty;
       }
-      if (n.includes('drawer bottom') || n.includes('drawer box bottom')) hw_counts.runnerCount += totalQty;
+      if (n.includes('drawer bottom') || n.includes('drawer box bottom') || n.includes('drawers bottom')) hw_counts.runnerCount += totalQty;
     });
   });
 
@@ -10186,7 +10186,7 @@ function calcUnitCost(u, unitQty) {
     }
 
     // Runners — one set per drawer bottom (cover all naming variants)
-    if (nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom')) {
+    if (nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom') || nameLower.includes('drawers bottom')) {
       runnerCount += totalQty;
     }
   });
