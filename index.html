@@ -7206,6 +7206,31 @@ const SHEET_AREA = 2.750 * 1.830;  // m² per board (2750 x 1830mm)
 const WASTE_FACTOR = 1.20;          // 20% cutting waste
 const HW_HANDLING = 0.15;           // 15% handling fee on hardware
 
+// Standard drawer runner lengths (mm) — always round UP to the next size
+const RUNNER_STANDARD_SIZES = [300, 350, 400, 450, 500];
+
+// Return the smallest standard runner size that fits the given drawer depth (mm)
+// e.g. 480mm depth → 500mm runner, 350mm depth → 350mm runner, 290mm depth → 300mm
+function runnerSizeForDepth(depthMm) {
+  const d = Math.round(depthMm);
+  for (const size of RUNNER_STANDARD_SIZES) {
+    if (d <= size) return size;
+  }
+  return RUNNER_STANDARD_SIZES[RUNNER_STANDARD_SIZES.length - 1]; // cap at 500mm
+}
+
+// Merge runner sets maps: add counts from src into dst
+function mergeRunnerSets(dst, src) {
+  Object.entries(src).forEach(([size, count]) => {
+    dst[size] = (dst[size] || 0) + count;
+  });
+}
+
+// Total runner count across all sizes
+function totalRunnerCount(runnerSets) {
+  return Object.values(runnerSets).reduce((s, n) => s + n, 0);
+}
+
 // Supplier bills in 0.05-sheet increments, always rounding up
 // e.g. 0.114 sheets → billed as 0.15 sheets
 function billSheets(m2withWaste, sheetArea) {
@@ -10046,7 +10071,7 @@ function updateCustomBoardPrice(id, field, val) {
 function calcSectionCost(secId, sectionUnits, quantities) {
   const matM2    = {};
   const edgeM    = {};
-  const hw_counts = { hingeCount:0, runnerCount:0, handle160Count:0, handle240Count:0, drillingCount:0 };
+  const hw_counts = { hingeCount:0, runnerCount:0, runnerSets:{}, handle160Count:0, handle240Count:0, drillingCount:0 };
   const bedroomSecs = new Set(['mainbedroom','sparebedroom','linnekast']);
   const isBedroom   = bedroomSecs.has(secId);
 
@@ -10081,6 +10106,13 @@ function calcSectionCost(secId, sectionUnits, quantities) {
         else           hw_counts.handle160Count += totalQty;
       }
       if (n.includes('drawer bottom') || n.includes('drawer box bottom') || n.includes('drawers bottom')) hw_counts.runnerCount += totalQty;
+      // Sized runners from drawer sides (pairs → sets)
+      if ((n.includes('drawer side') || n.includes('drawer box side')) && rp.l > 0) {
+        const depth = Math.max(rp.l, rp.w);
+        const stdSize = runnerSizeForDepth(depth);
+        if (!hw_counts.runnerSets) hw_counts.runnerSets = {};
+        hw_counts.runnerSets[stdSize] = (hw_counts.runnerSets[stdSize] || 0) + totalQty / 2;
+      }
     });
   });
 
@@ -10139,7 +10171,8 @@ function calcUnitCost(u, unitQty) {
   const matM2   = {};   // mat -> total m²
   const edgeM   = {};   // edgeKey -> total m
   let partCount = 0, doorCount = 0;
-  let hingeCount = 0, handle160Count = 0, handle240Count = 0, runnerCount = 0;
+  let hingeCount = 0, handle160Count = 0, handle240Count = 0;
+  const runnerSets = {};  // { standardSizeMm: count } — sized runner sets
   const bedroomSecs = new Set(['mainbedroom','sparebedroom','linnekast']);
   const isBedroom   = bedroomSecs.has(u.section);
 
@@ -10185,9 +10218,21 @@ function calcUnitCost(u, unitQty) {
       else           handle160Count += totalQty;
     }
 
-    // Runners — one set per drawer bottom (cover all naming variants)
-    if (nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom') || nameLower.includes('drawers bottom')) {
-      runnerCount += totalQty;
+    // Runners — sized by drawer sides (the longer dimension = runner length needed)
+    // Drawer sides come in pairs (qty=2 per drawer) so sets = totalQty / 2
+    const isDrawerSide = nameLower.includes('drawer side') || nameLower.includes('drawer box side');
+    if (isDrawerSide && rp.l > 0) {
+      // l is the depth of the drawer box (runner length), w is the height
+      const depth   = Math.max(rp.l, rp.w); // use the longer dimension as depth
+      const stdSize = runnerSizeForDepth(depth);
+      const sets    = totalQty / 2; // pair of sides = one runner set
+      runnerSets[stdSize] = (runnerSets[stdSize] || 0) + sets;
+    }
+    // Fallback: if only drawer bottoms are present (no sides), count them as unknown-size runners
+    const isDrawerBottom = nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom') || nameLower.includes('drawers bottom');
+    if (isDrawerBottom && !Object.keys(runnerSets).length) {
+      // We don't know the size — record as 0 (unknown) to still count the sets
+      runnerSets[0] = (runnerSets[0] || 0) + totalQty;
     }
   });
 
@@ -10225,6 +10270,7 @@ function calcUnitCost(u, unitQty) {
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
   const hingeCost     = includeHardware ? hingeCount    * hingePrice : 0;
+  const runnerCount   = totalRunnerCount(runnerSets);
   const runnerCost    = includeHardware ? runnerCount   * runnerPrice : 0;
   const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
@@ -10234,7 +10280,7 @@ function calcUnitCost(u, unitQty) {
   const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost + svcCost;
 
   return { matM2, edgeM, partCount, doorCount, matCost, edgeCost, cutLabelCost, drillingCost,
-           hingeCount, runnerCount, handle160Count, handle240Count,
+           hingeCount, runnerCount, runnerSets, handle160Count, handle240Count,
            hingeCost, runnerCost, handle160Cost, handle240Cost, hardwareCost, hwHandlingCost,
            hPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
@@ -10253,8 +10299,25 @@ function hardwareRows(c) {
     rows += `<tr><td>Handles 160mm (${c.handle160Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle160}×${c.handle160Count}</td><td class="num cost">R ${Math.round(c.handle160Cost).toLocaleString('en-ZA')}</td></tr>`;
   if (c.handle240Count > 0)
     rows += `<tr><td>Handles 240mm (${c.handle240Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle240}×${c.handle240Count}</td><td class="num cost">R ${Math.round(c.handle240Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.runnerCount > 0)
-    rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} sets)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
+  if (c.runnerCount > 0) {
+    const runnerSets = c.runnerSets || {};
+    if (Object.keys(runnerSets).length > 0) {
+      // Show each size group separately
+      RUNNER_STANDARD_SIZES.forEach(size => {
+        const count = runnerSets[size];
+        if (!count) return;
+        const sizeLabel = size === 0 ? '' : ` ${size}mm`;
+        rows += `<tr><td>Runners${sizeLabel} – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${count}</td><td class="num cost">R ${Math.round(count * runnerPrice).toLocaleString('en-ZA')}</td></tr>`;
+      });
+      // Unknown size (fallback)
+      if (runnerSets[0]) {
+        const count = runnerSets[0];
+        rows += `<tr><td>Runners – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${count}</td><td class="num cost">R ${Math.round(count * runnerPrice).toLocaleString('en-ZA')}</td></tr>`;
+      }
+    } else {
+      rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} set${c.runnerCount!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
+    }
+  }
   if (rows) {
     const hwHandling = c.hwHandlingCost || 0;
     rows = `<tr class="cv-subtotal"><td>Hardware (subtotal)</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.hardwareCost).toLocaleString('en-ZA')}</td></tr>` + rows;
@@ -11525,7 +11588,8 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const allMatM2  = {};
   const allEdgeM  = {};
   let totalMat = 0, totalEdge = 0, totalCutLabel = 0, totalDrilling = 0;
-  let totalHinges = 0, totalRunners = 0, totalHandle160 = 0, totalHandle240 = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  const allRunnerSets = {};  // merged { stdSize: count } across all units
   let grandTotal  = 0;
 
   selectedUnits.forEach(u => {
@@ -11536,12 +11600,13 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalCutLabel  += c.cutLabelCost;
     totalDrilling  += c.drillingCost;
     totalHinges    += c.hingeCount;
-    totalRunners   += c.runnerCount;
     totalHandle160 += c.handle160Count;
     totalHandle240 += c.handle240Count;
+    if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     Object.entries(c.matM2).forEach(([mat, m2]) => { allMatM2[mat] = (allMatM2[mat]||0) + m2; });
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
+  const totalRunners = totalRunnerCount(allRunnerSets);
 
   // Fold panel items into the combined totals — pool by material first
   if (panelItems.length > 0) {
@@ -11686,7 +11751,11 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalHinges    > 0 ? `<tr><td>Hinges – ${hingeLabel} (${totalHinges})</td><td class="num">—</td><td class="num">R${hingePrice} × ${totalHinges}</td><td class="num cost">${R(totalHingeCost)}</td></tr>` : '',
     totalHandle160 > 0 ? `<tr><td>Handles 160mm (${totalHandle160})</td><td class="num">—</td><td class="num">R${hw.handle160} × ${totalHandle160}</td><td class="num cost">${R(total160Cost)}</td></tr>` : '',
     totalHandle240 > 0 ? `<tr><td>Handles 240mm (${totalHandle240})</td><td class="num">—</td><td class="num">R${hw.handle240} × ${totalHandle240}</td><td class="num cost">${R(total240Cost)}</td></tr>` : '',
-    totalRunners   > 0 ? `<tr><td>Runners – ${runnerLabel} (${totalRunners} sets)</td><td class="num">—</td><td class="num">R${runnerPrice} × ${totalRunners}</td><td class="num cost">${R(totalRunnerCost)}</td></tr>` : '',
+    totalRunners   > 0 ? RUNNER_STANDARD_SIZES.filter(s => allRunnerSets[s]).map(size => {
+        const count = allRunnerSets[size];
+        const cost  = count * runnerPrice;
+        return `<tr><td>Runners ${size}mm – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${count}</td><td class="num cost">${R(cost)}</td></tr>`;
+      }).join('') + (allRunnerSets[0] ? `<tr><td>Runners – ${runnerLabel} (${allRunnerSets[0]} set${allRunnerSets[0]!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${allRunnerSets[0]}</td><td class="num cost">${R(allRunnerSets[0]*runnerPrice)}</td></tr>` : '') : '',
   ].join('');
 
   // Section header helper — no percentage, just clean label + total
