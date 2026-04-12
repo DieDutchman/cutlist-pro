@@ -6650,6 +6650,29 @@ function _findFeetHwItem() {
   ) || null;
 }
 
+// Find a custom runner hardware item matching the given size (mm) and type ('soft'/'normal')
+// Matches "Soft Close, 500mm" / "Normal, 400mm" / "500mm Soft" etc.
+function _findRunnerHwItem(sizeMm, type) {
+  const runners = costingPrices.customHardware.filter(h => h.category === 'runner');
+  const sizeStr = String(sizeMm);
+  const isSoft  = type === 'soft';
+  // Try to find an exact match: correct size + correct type
+  const exact = runners.find(h => {
+    const n = h.name.toLowerCase();
+    const hasSize = n.includes(sizeStr + 'mm') || n.includes(sizeStr + ' mm');
+    const hasType = isSoft
+      ? (n.includes('soft') || n.includes('soft close'))
+      : (n.includes('normal') || n.includes('standard') || (!n.includes('soft')));
+    return hasSize && hasType;
+  });
+  if (exact) return exact;
+  // Fall back: any runner with the right size (ignore type)
+  return runners.find(h => {
+    const n = h.name.toLowerCase();
+    return n.includes(sizeStr + 'mm') || n.includes(sizeStr + ' mm');
+  }) || null;
+}
+
 function _calcBaseExtraCost(e) {
   if (e.baseMode === 'feet') {
     const hw = _findFeetHwItem();
@@ -10269,9 +10292,16 @@ function calcUnitCost(u, unitQty) {
   const hw            = costingPrices.hardware;
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hingeCost     = includeHardware ? hingeCount    * hingePrice : 0;
+  const hingeCost     = includeHardware ? hingeCount * hingePrice : 0;
   const runnerCount   = totalRunnerCount(runnerSets);
-  const runnerCost    = includeHardware ? runnerCount   * runnerPrice : 0;
+  // Runner cost: use custom My Costs prices per size where available
+  const runnerCost    = includeHardware
+    ? Object.entries(runnerSets).reduce((sum, [size, count]) => {
+        const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
+        const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        return sum + count * price;
+      }, 0)
+    : 0;
   const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
@@ -10300,18 +10330,20 @@ function hardwareRows(c) {
   if (c.handle240Count > 0)
     rows += `<tr><td>Handles 240mm (${c.handle240Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle240}×${c.handle240Count}</td><td class="num cost">R ${Math.round(c.handle240Cost).toLocaleString('en-ZA')}</td></tr>`;
   if (c.runnerCount > 0) {
-    const runnerSets = c.runnerSets || {};
-    if (Object.keys(runnerSets).length > 0) {
-      // Show each size group separately
+    const _rSets    = c.runnerSets || {};
+    const _rType    = quoteState.runnerType || 'soft';
+    const _hasSized = Object.keys(_rSets).some(k => Number(k) > 0);
+    if (_hasSized) {
       RUNNER_STANDARD_SIZES.forEach(size => {
-        const count = runnerSets[size];
+        const count = _rSets[size];
         if (!count) return;
-        const sizeLabel = size === 0 ? '' : ` ${size}mm`;
-        rows += `<tr><td>Runners${sizeLabel} – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${count}</td><td class="num cost">R ${Math.round(count * runnerPrice).toLocaleString('en-ZA')}</td></tr>`;
+        const hwItem = _findRunnerHwItem(size, _rType);
+        const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        const label  = hwItem ? hwItem.name : (runnerLabel + ' ' + size + 'mm');
+        rows += `<tr><td>${label} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${price}×${count}</td><td class="num cost">R ${Math.round(count * price).toLocaleString('en-ZA')}</td></tr>`;
       });
-      // Unknown size (fallback)
-      if (runnerSets[0]) {
-        const count = runnerSets[0];
+      if (_rSets[0]) {
+        const count = _rSets[0];
         rows += `<tr><td>Runners – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${count}</td><td class="num cost">R ${Math.round(count * runnerPrice).toLocaleString('en-ZA')}</td></tr>`;
       }
     } else {
@@ -11640,7 +11672,11 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const hingeLabel = quoteState.hingeType  === 'soft' ? 'Soft Close'  : 'Normal';
   const runnerLabel= quoteState.runnerType === 'soft' ? 'Soft Close'  : 'Normal';
   const totalHingeCost  = totalHinges    * hingePrice;
-  const totalRunnerCost = totalRunners   * runnerPrice;
+  const totalRunnerCost = Object.entries(allRunnerSets).reduce((sum, [size, count]) => {
+    const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
+    const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+    return sum + count * price;
+  }, 0);
   const total160Cost    = totalHandle160 * hw.handle160;
   const total240Cost    = totalHandle240 * hw.handle240;
   const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost;
@@ -11752,9 +11788,11 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalHandle160 > 0 ? `<tr><td>Handles 160mm (${totalHandle160})</td><td class="num">—</td><td class="num">R${hw.handle160} × ${totalHandle160}</td><td class="num cost">${R(total160Cost)}</td></tr>` : '',
     totalHandle240 > 0 ? `<tr><td>Handles 240mm (${totalHandle240})</td><td class="num">—</td><td class="num">R${hw.handle240} × ${totalHandle240}</td><td class="num cost">${R(total240Cost)}</td></tr>` : '',
     totalRunners   > 0 ? RUNNER_STANDARD_SIZES.filter(s => allRunnerSets[s]).map(size => {
-        const count = allRunnerSets[size];
-        const cost  = count * runnerPrice;
-        return `<tr><td>Runners ${size}mm – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${count}</td><td class="num cost">${R(cost)}</td></tr>`;
+        const count   = allRunnerSets[size];
+        const hwItem  = _findRunnerHwItem(size, quoteState.runnerType || 'soft');
+        const price   = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        const label   = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
+        return `<tr><td>${label} (${count} set${count!==1?'s':''})</td><td class="num">—</td><td class="num">R${price} × ${count}</td><td class="num cost">${R(count * price)}</td></tr>`;
       }).join('') + (allRunnerSets[0] ? `<tr><td>Runners – ${runnerLabel} (${allRunnerSets[0]} set${allRunnerSets[0]!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${allRunnerSets[0]}</td><td class="num cost">${R(allRunnerSets[0]*runnerPrice)}</td></tr>` : '') : '',
   ].join('');
 
