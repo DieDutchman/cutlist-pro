@@ -11175,10 +11175,24 @@ function openSpecialServicesPopup(targetId, targetType, anchorEl) {
     </div>
     <div id="svc-popup-body">${renderSpecialServicesWidget(targetId, targetType)}</div>`;
   document.body.appendChild(popup);
-  // Position near anchor
-  const rect = anchorEl.getBoundingClientRect();
-  const top = Math.min(rect.bottom + 6, window.innerHeight - 280);
-  const left = Math.min(rect.left, window.innerWidth - 430);
+  // Position popup near anchor, staying fully within the viewport
+  // Measure actual popup size after inserting into DOM
+  const rect     = anchorEl.getBoundingClientRect();
+  const popupH   = popup.offsetHeight || 320;
+  const popupW   = popup.offsetWidth  || 420;
+  const margin   = 8; // px from viewport edges
+
+  // Prefer opening below the anchor; flip upward if it would clip the bottom
+  let top = rect.bottom + 6;
+  if (top + popupH > window.innerHeight - margin) {
+    top = rect.top - popupH - 6;           // open above
+  }
+  // Clamp: never go above the top or below the bottom
+  top = Math.max(margin, Math.min(top, window.innerHeight - popupH - margin));
+
+  let left = rect.left;
+  left = Math.max(margin, Math.min(left, window.innerWidth - popupW - margin));
+
   popup.style.top  = top  + 'px';
   popup.style.left = left + 'px';
   // Close on outside click
@@ -11393,6 +11407,11 @@ function _renderCostingView() {
     const c = calcUnitCost(u, unitQty);
     const perUnit = c.total / unitQty;
     grandTotal += c.total;
+
+    // Largest part dimensions — used for cut-out special service hole display
+    const _bParts = u.parts ? u.parts.filter(p=>p.l&&p.w) : [];
+    _bParts.sort((a,b)=>(b.l*b.w)-(a.l*a.w));
+    const _unitDims = _bParts.length ? (()=>{const rp=applyMaterials(_bParts[0],u);return{l:rp.l,w:rp.w};})() : null;
 
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
