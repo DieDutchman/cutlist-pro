@@ -54,6 +54,12 @@
   body.supplier-theme .cv-unit-card, body.user-light-theme .cv-unit-card { background: #f5f2ee; }
   body.supplier-theme #price-ticker, body.user-light-theme #price-ticker { background: #f5e8d0; border-bottom-color: var(--amber-dim); }
   body.supplier-theme #price-ticker .ticker-label, body.user-light-theme #price-ticker .ticker-label { background: var(--amber); }
+  /* Ticker item text — force dark on light backgrounds */
+  body.supplier-theme #ticker-track span, body.user-light-theme #ticker-track span { color: #1a1612 !important; }
+  /* Stale prices banner — light theme */
+  body.supplier-theme #price-stale-banner, body.user-light-theme #price-stale-banner { background: rgba(212,145,58,0.15); border-bottom-color: var(--amber); }
+  body.supplier-theme #price-stale-msg, body.user-light-theme #price-stale-msg { color: #1a1612; }
+  body.supplier-theme #price-stale-banner button, body.user-light-theme #price-stale-banner button { color: #1a1612; }
 
   @keyframes ticker-scroll {
     0%   { transform: translateX(0); }
@@ -2019,6 +2025,14 @@
   </div>
 </div>
 
+<!-- ═══ STALE PRICES NOTIFICATION ══════════════════════════════════════════ -->
+<div id="price-stale-banner" style="display:none;background:rgba(212,145,58,0.12);border-bottom:2px solid var(--amber);padding:8px 20px;align-items:center;gap:12px;flex-wrap:wrap">
+  <span style="font-size:13px;color:var(--amber)">📢</span>
+  <span id="price-stale-msg" style="font-size:12px;color:var(--text);flex:1">Supplier has updated prices since you last loaded — reload prices for accurate quotes.</span>
+  <button onclick="reloadSupplierPrices()" style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer">↻ RELOAD PRICES</button>
+  <button onclick="document.getElementById('price-stale-banner').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px">×</button>
+</div>
+
 <!-- ═══ USERS MODAL ══════════════════════════════════════════════════════════ -->
 <div id="users-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
@@ -2228,6 +2242,7 @@
   </div>
   <div id="wb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="hb-overlay" class="wb-overlay" style="display:none"></div>
+  <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
     <img id="img-lightbox-img" src="" alt="">
@@ -2773,21 +2788,28 @@ let _templatePushTimer = null;
 function pushTemplatesToCloud() {
   clearTimeout(_templatePushTimer);
   _templatePushTimer = setTimeout(async () => {
+    if (!sbUser) return;
     try {
-      await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+      const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({
           templates: {
             customUnits,
             unitOverrides,
-            deletedUnits:     [...deletedUnits],
-            customHardware:   costingPrices.customHardware,
+            deletedUnits:   [...deletedUnits],
+            customHardware: costingPrices.customHardware,
           }
         }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(()=>'');
+        console.warn('[Templates] Cloud push failed:', res.status, body);
+      } else {
+        console.log('[Templates] Pushed customHardware:', costingPrices.customHardware.length, 'items');
+      }
     } catch(e) { console.warn('[Templates] Cloud sync failed:', e.message); }
-  }, 1500);
+  }, 1000);
 }
 const saveDeletedUnits = saveCustomUnits;
 
@@ -2998,6 +3020,11 @@ function setMaterial(groupId, type, val) {
     const edgeSelect = document.getElementById(`select_${groupId}_edging`);
     if (edgeSelect) edgeSelect.value = val;
   }
+
+  // Refresh costing cache and quote totals so cutlist/summary/quote reflects the change
+  refreshQuoteTotals();
+  const cv = document.getElementById('costing-view');
+  if (cv && cv.style.display !== 'none') refreshCostingResults();
 }
 
 function getUnitMaterialGroup(unit) {
@@ -3247,7 +3274,10 @@ function switchTab(btn, section) {
     document.getElementById('costing-view').style.display = 'none';
     document.getElementById('prices-view').style.display = 'none';
     document.getElementById('materials-view').style.display = 'block';
+    // Pull fresh items from cloud when the tab is opened (cross-device sync)
+    // but render immediately from local state first so there's no blank flash
     renderMaterialsView();
+    if (sbUser) loadTemplatesFromCloud().then(() => renderMaterialsView());
     return;
   }
 
@@ -3369,8 +3399,11 @@ function switchTab(btn, section) {
 
 function renderPanel() { withScrollLock(_renderPanel); }
 function _renderPanel() {
-  // Non-admin with no rooms yet — welcome screen is shown by applyRoleRestrictions
-  if (!isAdmin() && userRooms.length === 0) return;
+  // Non-admin with no rooms yet — show welcome screen and ensure nav button is visible
+  if (!isAdmin() && userRooms.length === 0) {
+    applyRoleRestrictions();
+    return;
+  }
 
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
   const isUserMode = !isAdmin() && userRooms.length > 0;
@@ -3389,14 +3422,11 @@ function _renderPanel() {
 
   // Width Builder button for Custom section (admin only)
   if (!isUserMode && currentSection === 'custom') {
-    html += `<div style="padding:14px 0 0">
-      <button class="btn btn-primary" style="font-size:13px;padding:10px 20px" onclick="openWidthBuilder()">
-        ⚡ Build Custom Width Unit
+    html += `<div style="padding:14px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="font-size:13px;padding:10px 24px" onclick="openCustomBuilder()">
+        ⚡ Build Custom Unit
       </button>
-      <button class="btn btn-primary" style="font-size:13px;padding:10px 20px;margin-left:10px" onclick="openHeightBuilder()">
-        ↕ Build Custom Height Unit
-      </button>
-      <span style="font-size:12px;color:var(--text-muted);margin-left:12px">Create a unit at a non-standard width based on an existing unit type</span>
+      <span style="font-size:12px;color:var(--text-muted)">Scale any unit to a custom width and height in one step</span>
     </div>`;
   }
 
@@ -3455,7 +3485,7 @@ function _renderPanel() {
     const svcBtnStyle = hasSvcOverride
       ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
       : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
-    const svcBtn = costingPrices.specialServices.length > 0 && canEditPrices()
+    const svcBtn = costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user')
       ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
            style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
       : '';
@@ -3493,10 +3523,15 @@ function _renderPanel() {
       </td>
     </tr>` : '';
 
-    const userBtns = isUserMode ? `
+    // Edit/Parts/Remove buttons — shown on all units for all users
+    // For user mode: routes to userUnits. For admin/superuser: routes to customUnits
+    // Standard template units (no id prefix match) still get Edit/Parts for dimension tweaks
+    const isCustomUnit = u.id && (u.id.startsWith('uu_') || u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_'));
+    const canRemoveUnit = isUserMode || (isAdmin() && isCustomUnit);
+    const userBtns = `
       <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
       <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
-      <button onclick="deleteUserUnit('${u.id}')" title="Remove unit" style="background:none;border:1px solid #3a1a1a;color:#5a3030;font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='#e05252';this.style.color='#e05252'" onmouseout="this.style.borderColor='#3a1a1a';this.style.color='#5a3030'">× Remove</button>` : '';
+      ${canRemoveUnit ? `<button onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit" style="background:none;border:1px solid #3a1a1a;color:#5a3030;font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='#e05252';this.style.color='#e05252'" onmouseout="this.style.borderColor='#3a1a1a';this.style.color='#5a3030'">× Remove</button>` : ''}`;
     const isExpanded = expandedUnits.has(u.id);
     const hasParts   = u.parts && u.parts.length > 0;
     const expandBtn  = hasParts
@@ -4550,7 +4585,7 @@ function generateSummary() {
       }
 
       // Runners — 1 set per drawer bottom
-      if (nameLower.includes('drawer bottom')) {
+      if (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom')) {
         totalRunners += p.qty * unitQty;
       }
     });
@@ -5860,6 +5895,243 @@ function createWidthBuilderUnit() {
 // ═══════════════════════════════════════════════════════════
 let hbState = { catId: 'floor', baseUnitId: null, height: 2400 };
 
+// ── Combined Custom Unit Builder ─────────────────────────────────────────────
+// Merges width + height scaling into one modal, with an "All Units" category
+// that includes custom/imported/drawer units — not just room sections.
+const CB_CATEGORIES = [
+  { id:'all',      label:'All Units',           test: u => u.parts && u.parts.length > 0 },
+  { id:'floor',    label:'Floor (F*)',           test: u => /^F\d/.test(u.name) && u.section === 'kitchen' },
+  { id:'wall',     label:'Wall (W*)',            test: u => /^W\d/.test(u.name) && u.section === 'kitchen' },
+  { id:'bedroom',  label:'Bedroom',             test: u => u.section === 'mainbedroom' || u.section === 'sparebedroom' },
+  { id:'linnekast',label:'Linne Kas',           test: u => u.section === 'linnekast' },
+  { id:'bathroom', label:'Bathroom',            test: u => u.section === 'bathroom' },
+  { id:'custom',   label:'Custom / Imported',   test: u => !!(u.id && (u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_') || u.id.startsWith('uu_'))) },
+];
+
+let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined };
+
+function openCustomBuilder() {
+  const all = getEffectiveUnits().filter(u => u.parts && u.parts.length > 0);
+  if (!cbState.baseUnitId || !all.find(u => u.id === cbState.baseUnitId)) {
+    cbState.baseUnitId = all[0]?.id || null;
+  }
+  const base = all.find(u => u.id === cbState.baseUnitId);
+  if (base) {
+    if (!cbState.width)  cbState.width  = parseBaseWidth(base);
+    if (!cbState.height) cbState.height = parseBaseHeight(base);
+  }
+  renderCustomBuilder();
+  document.getElementById('cb-overlay').style.display = 'flex';
+}
+
+function closeCustomBuilder() {
+  document.getElementById('cb-overlay').style.display = 'none';
+}
+
+function renderCustomBuilder() {
+  const all = getEffectiveUnits();
+
+  // Category tabs
+  const catTabs = CB_CATEGORIES.map(c => {
+    const hasUnits = all.filter(c.test).some(u => u.parts && u.parts.length > 0);
+    if (!hasUnits && c.id !== 'all') return '';
+    return `<button onclick="cbState.catId='${c.id}';cbState.baseUnitId=null;renderCustomBuilder()"
+      style="padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+      text-transform:uppercase;border:1px solid var(--border);cursor:pointer;white-space:nowrap;
+      background:${c.id===cbState.catId?'var(--amber)':'var(--bg3)'};
+      color:${c.id===cbState.catId?'#000':'var(--text-muted)'}">
+      ${c.label}
+    </button>`;
+  }).join('');
+
+  const cat   = CB_CATEGORIES.find(c => c.id === cbState.catId) || CB_CATEGORIES[0];
+  const units = all.filter(cat.test).filter(u => u.parts && u.parts.length > 0);
+
+  if (!cbState.baseUnitId && units.length) cbState.baseUnitId = units[0].id;
+  const base = units.find(u => u.id === cbState.baseUnitId);
+
+  const unitOpts = units.map(u =>
+    `<option value="${u.id}" ${u.id===cbState.baseUnitId?'selected':''}>${u.name}</option>`).join('');
+
+  const baseW = base ? parseBaseWidth(base)  : 600;
+  const baseH = base ? parseBaseHeight(base) : 720;
+  const newW  = cbState.width  ?? baseW;
+  const newH  = cbState.height ?? baseH;
+  const minW  = 150, maxW = 2400;
+  const minH  = 150, maxH = 2800;
+
+  // Scale parts: width first then height
+  let previewRows = '';
+  let unitName = '';
+  if (base) {
+    const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
+    const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
+    unitName = cbState.customName !== undefined
+      ? cbState.customName
+      : `${base.name.replace(/\d{3,4}/, '')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
+    previewRows = scaled.map(p => {
+      const lC = p._lMode !== null, wC = p._wMode !== null;
+      const lHtml = `<span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span>`;
+      const wHtml = `<span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span>`;
+      return `<tr>
+        <td>${p.name}</td>
+        <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
+        <td>${lHtml}</td><td>${wHtml}</td>
+        <td style="color:var(--text-muted);font-size:11px">${p.mat}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const wDelta = newW - baseW;
+  const hDelta = newH - baseH;
+  const wLabel = wDelta === 0 ? '' : `${wDelta > 0?'+':''}${wDelta}mm`;
+  const hLabel = hDelta === 0 ? '' : `${hDelta > 0?'+':''}${hDelta}mm`;
+
+  document.getElementById('cb-overlay').innerHTML = `
+    <div class="wb-modal" style="max-width:900px;width:95vw">
+      <div class="wb-header">
+        <div class="wb-title">⚡ Build Custom Unit</div>
+        <button onclick="closeCustomBuilder()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div class="wb-body">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${catTabs}</div>
+
+        <div class="wb-controls" style="margin-bottom:14px">
+          <div class="wb-field">
+            <label>Base Unit</label>
+            <select class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
+              ${unitOpts}
+            </select>
+          </div>
+          <div class="wb-field">
+            <label>Base dimensions</label>
+            <div style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:12px">
+              ${baseW}W × ${baseH}H mm
+            </div>
+          </div>
+        </div>
+
+        <!-- Width row -->
+        <div class="wb-width-row" style="margin-bottom:10px">
+          <span class="wb-width-label">Width</span>
+          <input type="range" class="wb-slider" id="cb-w-slider" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            oninput="cbState.width=parseInt(this.value);cbState.customName=undefined;
+              document.getElementById('cb-w-num').value=this.value;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <input id="cb-w-num" type="number" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
+            oninput="const v=Math.max(${minW},Math.min(${maxW},parseInt(this.value)||${minW}));
+              cbState.width=v;cbState.customName=undefined;
+              document.getElementById('cb-w-slider').value=v;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(v,${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <span class="wb-width-unit">mm</span>
+          <span id="cb-w-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${wLabel}</span>
+        </div>
+
+        <!-- Height row -->
+        <div class="wb-width-row" style="margin-bottom:16px">
+          <span class="wb-width-label">Height</span>
+          <input type="range" class="wb-slider" id="cb-h-slider" min="${minH}" max="${maxH}" step="10" value="${newH}"
+            oninput="cbState.height=parseInt(this.value);cbState.customName=undefined;
+              document.getElementById('cb-h-num').value=this.value;
+              document.getElementById('cb-h-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseH});
+              renderCbPreview(${baseW},${baseH})">
+          <input id="cb-h-num" type="number" min="${minH}" max="${maxH}" step="10" value="${newH}"
+            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
+            oninput="const v=Math.max(${minH},Math.min(${maxH},parseInt(this.value)||${minH}));
+              cbState.height=v;cbState.customName=undefined;
+              document.getElementById('cb-h-slider').value=v;
+              document.getElementById('cb-h-delta').textContent=wbUpdateDelta(v,${baseH});
+              renderCbPreview(${baseW},${baseH})">
+          <span class="wb-width-unit">mm</span>
+          <span id="cb-h-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${hLabel}</span>
+        </div>
+
+        <div class="wb-preview-head">Parts Preview
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal;letter-spacing:0;text-transform:none">
+            — <span style="color:var(--amber)">amber</span> = scaled dimension
+          </span>
+        </div>
+        <table class="wb-preview-table">
+          <thead><tr><th>Part</th><th>Qty</th><th>Length</th><th>Width</th><th>Material</th></tr></thead>
+          <tbody id="cb-preview-body">${previewRows}</tbody>
+        </table>
+      </div>
+      <div class="wb-footer">
+        <input class="wb-name-input" id="cb-unit-name" value="${unitName.replace(/"/g,'&quot;')}"
+          placeholder="Unit name…" oninput="cbState.customName=this.value">
+        <button class="btn btn-primary" style="white-space:nowrap" onclick="createCustomBuilderUnit()">
+          ✚ Create Unit
+        </button>
+        <button class="btn btn-ghost" onclick="closeCustomBuilder()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function renderCbPreview(baseW, baseH) {
+  const base = getEffectiveUnits().find(u => u.id === cbState.baseUnitId);
+  if (!base) return;
+  const newW = cbState.width ?? baseW;
+  const newH = cbState.height ?? baseH;
+  const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
+  const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
+  const tbody = document.getElementById('cb-preview-body');
+  if (!tbody) return;
+  tbody.innerHTML = scaled.map(p => {
+    const lC = p._lMode !== null, wC = p._wMode !== null;
+    return `<tr>
+      <td>${p.name}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
+      <td><span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span></td>
+      <td><span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${p.mat}</td>
+    </tr>`;
+  }).join('');
+  const nameEl = document.getElementById('cb-unit-name');
+  if (nameEl && cbState.customName === undefined) {
+    nameEl.value = `${base.name.replace(/\d{3,4}/,'')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
+  }
+}
+
+function createCustomBuilderUnit() {
+  const base = getEffectiveUnits().find(u => u.id === cbState.baseUnitId);
+  if (!base) return;
+  const baseW = parseBaseWidth(base);
+  const baseH = parseBaseHeight(base);
+  const newW  = cbState.width  ?? baseW;
+  const newH  = cbState.height ?? baseH;
+  const nameEl = document.getElementById('cb-unit-name');
+  const unitName = nameEl?.value.trim() || `${base.name} ${newW}×${newH}`;
+
+  const scaledParts = base.parts.map(p => {
+    const sw = scalePart(p, baseW, newW);
+    const sh = scalePartHeight(sw, baseH, newH);
+    const { _lMode, _wMode, ...clean } = sh;
+    return clean;
+  });
+
+  const id = (!isAdmin() ? 'uu_cb_' : 'custom_cb_') + Date.now();
+  const section = currentSection;
+  if (!isAdmin() && userRooms.length > 0) {
+    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    if (!(id in quantities)) quantities[id] = 0;
+    scheduleAutoSave();
+  } else {
+    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    if (!(id in quantities)) quantities[id] = 0;
+    saveCustomUnits();
+  }
+  updateCounts();
+  renderPanel();
+  closeCustomBuilder();
+  // Flash confirmation
+  setTimeout(() => alert(`✓ "${unitName}" added to ${section} unit list!`), 50);
+}
+
 function openHeightBuilder() {
   const allUnits = getEffectiveUnits();
   const cat = WB_CATEGORIES.find(c => c.id === hbState.catId) || WB_CATEGORIES[0];
@@ -6613,6 +6885,29 @@ function _findFeetHwItem() {
   ) || null;
 }
 
+// Find a custom runner hardware item matching the given size (mm) and type ('soft'/'normal')
+// Matches "Soft Close, 500mm" / "Normal, 400mm" / "500mm Soft" etc.
+function _findRunnerHwItem(sizeMm, type) {
+  const runners = costingPrices.customHardware.filter(h => h.category === 'runner');
+  const sizeStr = String(sizeMm);
+  const isSoft  = type === 'soft';
+  // Try to find an exact match: correct size + correct type
+  const exact = runners.find(h => {
+    const n = h.name.toLowerCase();
+    const hasSize = n.includes(sizeStr + 'mm') || n.includes(sizeStr + ' mm');
+    const hasType = isSoft
+      ? (n.includes('soft') || n.includes('soft close'))
+      : (n.includes('normal') || n.includes('standard') || (!n.includes('soft')));
+    return hasSize && hasType;
+  });
+  if (exact) return exact;
+  // Fall back: any runner with the right size (ignore type)
+  return runners.find(h => {
+    const n = h.name.toLowerCase();
+    return n.includes(sizeStr + 'mm') || n.includes(sizeStr + ' mm');
+  }) || null;
+}
+
 function _calcBaseExtraCost(e) {
   if (e.baseMode === 'feet') {
     const hw = _findFeetHwItem();
@@ -6786,7 +7081,7 @@ function buildExtraRow(e, i) {
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
         <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
-          oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').textContent=fmt(quoteState.extras[${i}].amount)">
+          oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
       <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
@@ -6810,7 +7105,7 @@ function buildExtraRow(e, i) {
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
         <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
-          oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').textContent=fmt(quoteState.extras[${i}].amount)">
+          oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
       <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
@@ -7169,6 +7464,31 @@ const SHEET_AREA = 2.750 * 1.830;  // m² per board (2750 x 1830mm)
 const WASTE_FACTOR = 1.20;          // 20% cutting waste
 const HW_HANDLING = 0.15;           // 15% handling fee on hardware
 
+// Standard drawer runner lengths (mm) — always round UP to the next size
+const RUNNER_STANDARD_SIZES = [300, 350, 400, 450, 500];
+
+// Return the smallest standard runner size that fits the given drawer depth (mm)
+// e.g. 480mm depth → 500mm runner, 350mm depth → 350mm runner, 290mm depth → 300mm
+function runnerSizeForDepth(depthMm) {
+  const d = Math.round(depthMm);
+  for (const size of RUNNER_STANDARD_SIZES) {
+    if (d <= size) return size;
+  }
+  return RUNNER_STANDARD_SIZES[RUNNER_STANDARD_SIZES.length - 1]; // cap at 500mm
+}
+
+// Merge runner sets maps: add counts from src into dst
+function mergeRunnerSets(dst, src) {
+  Object.entries(src).forEach(([size, count]) => {
+    dst[size] = (dst[size] || 0) + count;
+  });
+}
+
+// Total runner count across all sizes
+function totalRunnerCount(runnerSets) {
+  return Object.values(runnerSets).reduce((s, n) => s + n, 0);
+}
+
 // Supplier bills in 0.05-sheet increments, always rounding up
 // e.g. 0.114 sheets → billed as 0.15 sheets
 function billSheets(m2withWaste, sheetArea) {
@@ -7199,6 +7519,8 @@ function setMatMinSheets(mat, value) {
     costingPrices.matMinSheets[mat] = parseFloat(value);
   }
   saveCostingPrices();
+  // Push so min-sheet override reaches all users via Supabase meta
+  pushSupplierPrice('board', mat, costingPrices.mat[mat] || 0);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7215,6 +7537,9 @@ function setMatSpecialOrder(mat, isSpecial) {
     delete costingPrices.matSpecialOrder[mat];
   }
   saveCostingPrices();
+  // Push to Supabase so billing mode reaches all users
+  const price = costingPrices.mat[mat] || 0;
+  pushSupplierPrice('board', mat, price);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7231,6 +7556,9 @@ function setMatFullSheet(mat, isFullSheet) {
     delete costingPrices.matFullSheet[mat];
   }
   saveCostingPrices();
+  // Push to Supabase so billing mode reaches all users
+  const price = costingPrices.mat[mat] || 0;
+  pushSupplierPrice('board', mat, price);
   refreshCostingResults();
   renderPricesView();
 }
@@ -7284,6 +7612,7 @@ const costingPrices = {
   matMinSheets: {}, // { [matName]: number } — override per-board minimum (0.25 default for all)
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
+  matPriceDates: {},   // { [matName]: ISO string } — when price was last updated by supplier
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -7304,6 +7633,7 @@ try {
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
   if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
+  if (saved.matPriceDates)   Object.assign(costingPrices.matPriceDates,   saved.matPriceDates);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
@@ -7412,22 +7742,30 @@ async function doLogout() {
   document.getElementById('login-error').style.display = 'none';
 }
 
+let sbCanEditPrices = false; // true when this user has been granted price-edit access
+
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
+    // Supplier always edits prices (their job). Admin always edits prices.
+    // Superuser only edits prices when can_edit_prices = true (toggleable).
+    sbCanEditPrices = sbRole === 'supplier'
+      || sbRole === 'admin'
+      || rows[0]?.can_edit_prices === true;
   } catch(e) {
     sbRole = 'user'; // safe default
+    sbCanEditPrices = false;
     console.warn('[Supabase] Could not fetch role:', e.message);
   }
 }
 
 function isSuperuser()   { return sbRole === 'superuser'; }
-function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; } // superuser inherits all admin rights
+function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; }
 function isSupplier()    { return sbRole === 'supplier'; }
-function canEditPrices() { return sbRole === 'admin' || sbRole === 'superuser' || sbRole === 'supplier'; }
+function canEditPrices() { return sbCanEditPrices; }
 function canManageUsers(){ return sbRole === 'superuser'; }
 
 
@@ -7505,9 +7843,8 @@ async function onLoginSuccess() {
 async function loadTemplatesFromCloud() {
   if (!sbUser) return;
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`,
-      { headers: authHeaders() }
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`
     );
     if (!res.ok) return;
     const rows = await res.json();
@@ -7528,6 +7865,7 @@ async function loadTemplatesFromCloud() {
     }
     if (Array.isArray(t.customHardware)) {
       costingPrices.customHardware = t.customHardware;
+      console.log('[Templates] Loaded customHardware:', t.customHardware.length, 'items');
     }
     // Sync back to localStorage
     try {
@@ -7678,15 +8016,15 @@ async function saveJobToCloud() {
     const body = { user_id: sbUser.id, client, house, address, notes, state, updated_at: new Date().toISOString() };
     let res;
     if (currentJobId) {
-      res = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${currentJobId}`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${currentJobId}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(body)
       });
     } else {
-      res = await fetch(`${SB_URL}/rest/v1/jobs`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs`, {
         method: 'POST',
-        headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(body)
       });
     }
@@ -8045,7 +8383,7 @@ async function loadUsersModal() {
   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
   status.textContent = '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,trial_expires_at&order=email.asc`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at&order=email.asc`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const users = await res.json();
     if (!users.length) {
@@ -8070,6 +8408,19 @@ function renderUserRow(u) {
     : !trialDate ? '<span style="font-size:10px;color:var(--text-muted)">No expiry</span>'
     : isExpired  ? '<span style="font-size:10px;color:#e07070;font-weight:600">⚠ Expired ' + trialDate + '</span>'
     : '<span style="font-size:10px;color:#4caf82">Active until ' + trialDate + '</span>';
+
+  // Price-edit toggle: only meaningful for superuser (admin/supplier always have it, users never)
+  const canEdit = u.can_edit_prices === true;
+  const priceEditToggle = u.role === 'superuser' ? `
+    <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+      <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;white-space:nowrap">PRICE EDITOR</label>
+      <button onclick="toggleCanEditPrices('${u.id}', ${!canEdit}, this)"
+        style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid;white-space:nowrap;
+               ${canEdit ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
+        ${canEdit ? '🔓 Enabled' : '🔒 Disabled'}
+      </button>
+    </div>` : '';
+
   return `
   <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">
     <div style="flex:1;min-width:160px">
@@ -8085,6 +8436,7 @@ function renderUserRow(u) {
       <option value="admin"     ${u.role === 'admin'     ? 'selected' : ''}>Admin</option>
       <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
+    ${priceEditToggle}
     ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
       <div style="display:flex;align-items:center;gap:5px">
@@ -8115,6 +8467,39 @@ async function updateTrialExpiry(userId, dateVal) {
     setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
   } catch(e) {
     if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+  }
+}
+
+// Toggle price-editing permission for a superuser
+// Stored in profiles.can_edit_prices (boolean). Must add this column to your
+// Supabase profiles table:  ALTER TABLE profiles ADD COLUMN can_edit_prices boolean DEFAULT false;
+async function toggleCanEditPrices(userId, enable, btn) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ can_edit_prices: enable }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Update button appearance immediately
+    btn.textContent     = enable ? '🔓 Enabled' : '🔒 Disabled';
+    btn.style.background   = enable ? 'rgba(212,145,58,0.18)' : 'var(--bg4)';
+    btn.style.borderColor  = enable ? 'var(--amber)' : 'var(--border)';
+    btn.style.color        = enable ? 'var(--amber)' : 'var(--text-muted)';
+    btn.style.fontWeight   = enable ? '600' : 'normal';
+    btn.setAttribute('onclick', `toggleCanEditPrices('${userId}', ${!enable}, this)`);
+    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    // If toggling for ourselves, update local flag immediately
+    if (userId === sbUser?.id) {
+      sbCanEditPrices = enable;
+      applyRoleRestrictions();
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+    console.warn('[Supabase] toggleCanEditPrices failed:', e.message);
   }
 }
 
@@ -8249,6 +8634,20 @@ function renderUserRoomsNav() {
 
 // ── Add Room Modal ────────────────────────────────────────────────────────────
 function openAddRoomModal() {
+  // If user has no rooms and is on a tool view, navigate back to quote-view first
+  // so after the modal closes the welcome screen is visible
+  if (!isAdmin() && userRooms.length === 0) {
+    const qv = document.getElementById('quote-view');
+    if (qv && qv.style.display === 'none') {
+      ['cutlist-view','summary-view','editor-view','quote-price-view','costing-view',
+       'materials-view','prices-view','builder-view','panels-view','import-view',
+       'imported-cutlist-view','pl-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      qv.style.display = 'block';
+    }
+  }
   const icons = ROOM_ICONS.map((ic,i) =>
     `<button onclick="selectRoomIcon('${ic}',this)"
       style="font-size:22px;background:var(--bg3);border:1px solid var(--border);padding:6px 10px;cursor:pointer;border-radius:3px"
@@ -8354,6 +8753,18 @@ function deleteUserUnit(unitId) {
   delete quantities[unitId];
   renderPanel();
   scheduleAutoSave();
+}
+
+function deleteCustomUnit(unitId) {
+  const unit = customUnits.find(u => u.id === unitId);
+  if (!unit) return;
+  if (!confirm(`Remove unit "${unit.name}"?`)) return;
+  const idx = customUnits.findIndex(u => u.id === unitId);
+  if (idx >= 0) customUnits.splice(idx, 1);
+  delete quantities[unitId];
+  saveCustomUnits();
+  updateCounts();
+  renderPanel();
 }
 
 // ── New Unit Modal ────────────────────────────────────────────────────────────
@@ -8532,25 +8943,36 @@ function applyRoleRestrictions() {
 
   // My Costs: visible to all
 
-  // P&L tab: superuser only
+  // P&L tab: superuser + regular users (not admin-only, not supplier)
   const plTab = document.getElementById('pl-tab');
-  if (plTab) plTab.style.display = isSuperuser() ? '' : 'none';
+  if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
 
   // User rooms nav
   if (!isAdmin()) {
     if (userRooms.length > 0) {
       renderUserRoomsNav();
     } else {
-      // New user — hide static rooms row, show welcome
+      // New user / no rooms — hide static rooms row, show welcome nav button
       setTimeout(() => {
         const navTabs = document.getElementById('navTabs');
         if (!navTabs) return;
-        const rows = navTabs.querySelectorAll('.nav-row');
-        if (rows[0]) rows[0].style.display = 'none';
-        const dividers = navTabs.querySelectorAll('.nav-divider');
-        if (dividers[0]) dividers[0].style.display = 'none';
-        if (!document.getElementById('user-rooms-row')) {
-          const row = document.createElement('div');
+        // ── Hide ONLY the static admin rooms row and its divider ─────────────
+        // Don't use rows[0] — user-rooms-row may have been inserted before it
+        const staticRow = navTabs.querySelector('.nav-row:not(#user-rooms-row)');
+        if (staticRow) staticRow.style.display = 'none';
+        const staticDivider = navTabs.querySelector('.nav-divider:not(#user-rooms-divider)');
+        if (staticDivider) staticDivider.style.display = 'none';
+
+        // ── Ensure the Add Your First Room nav row is visible ────────────────
+        let row = document.getElementById('user-rooms-row');
+        if (row) {
+          // Row exists — make sure it's visible (may have been hidden by a bad rows[0] call)
+          row.style.display = '';
+          const divider = document.getElementById('user-rooms-divider');
+          if (divider) divider.style.display = '';
+        } else {
+          // Create it fresh
+          row = document.createElement('div');
           row.className = 'nav-row';
           row.id = 'user-rooms-row';
           const label = document.createElement('span');
@@ -8569,17 +8991,21 @@ function applyRoleRestrictions() {
           div.className = 'nav-divider';
           div.id = 'user-rooms-divider';
           row.after(div);
-          document.getElementById('quote-view').style.display = 'block';
-          document.getElementById('unit-panel').innerHTML = `
-            <div style="padding:60px 20px;text-align:center">
-              <div style="font-size:40px;margin-bottom:16px">🏠</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
-              <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
-                Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
-              </div>
-              <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
-            </div>`;
         }
+
+        // ── Show the welcome screen ──────────────────────────────────────────
+        // Always restore quote-view + welcome content so it shows correctly
+        // regardless of which tool tab the user may have navigated to first
+        document.getElementById('quote-view').style.display = 'block';
+        document.getElementById('unit-panel').innerHTML = `
+          <div style="padding:60px 20px;text-align:center">
+            <div style="font-size:40px;margin-bottom:16px">🏠</div>
+            <div style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:3px;color:var(--text);margin-bottom:10px">WELCOME TO CUTLIST PRO</div>
+            <div style="font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 24px;line-height:1.8">
+              Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
+            </div>
+            <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+          </div>`;
       }, 0);
     }
   }
@@ -8592,7 +9018,10 @@ function applyRoleRestrictions() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function openUnitEditModal(unitId) {
-  const unit = userUnits.find(u => u.id === unitId);
+  // Find unit across all sources
+  const unit = userUnits.find(u => u.id === unitId)
+            || customUnits.find(u => u.id === unitId)
+            || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
   const baseWidth  = parseBaseWidth(unit);
@@ -8655,22 +9084,34 @@ function openUnitEditModal(unitId) {
 }
 
 function confirmUnitEdit(unitId, origWidth, origHeight) {
-  const unit = userUnits.find(u => u.id === unitId);
-  if (!unit) return;
+  // Find unit across all sources and track which list it lives in
+  let unit = userUnits.find(u => u.id === unitId);
+  let source = unit ? 'user' : null;
+  if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  if (!unit) {
+    // Standard template unit — create a copy in customUnits so the edit persists
+    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    if (!tmpl) return;
+    unit = JSON.parse(JSON.stringify(tmpl)); // deep copy
+    unit.id = 'custom_edit_' + Date.now();
+    customUnits.push(unit);
+    // Remap the quantity to the new id so the count carries over
+    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
+    source = 'custom';
+  }
+
   const newName   = document.getElementById('uem-name')?.value.trim() || unit.name;
   const newWidth  = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
   const newHeight = parseInt(document.getElementById('uem-height')?.value) || origHeight;
 
   unit.name = newName;
 
-  // Scale width if changed
   if (newWidth !== origWidth && unit.parts?.length) {
     unit.parts = unit.parts.map(p => {
       const s = scalePart(p, origWidth, newWidth);
       return { ...s, _lMode: undefined, _wMode: undefined };
     });
   }
-  // Scale height if changed
   if (newHeight !== origHeight && unit.parts?.length) {
     unit.parts = unit.parts.map(p => {
       const s = scalePartHeight(p, origHeight, newHeight);
@@ -8679,8 +9120,10 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
   }
 
   document.getElementById('uem-modal').remove();
+  if (source === 'user') { scheduleAutoSave(); }
+  else { saveCustomUnits(); }
   renderPanel();
-  scheduleAutoSave();
+  updateCounts();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -8688,7 +9131,10 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function openUnitPartsModal(unitId) {
-  const unit = userUnits.find(u => u.id === unitId);
+  // Find unit across all sources
+  const unit = userUnits.find(u => u.id === unitId)
+            || customUnits.find(u => u.id === unitId)
+            || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
   document.getElementById('upm-modal')?.remove();
@@ -8752,9 +9198,21 @@ function upmAddPartRow() {
 }
 
 function saveUnitParts(unitId) {
-  const unit = userUnits.find(u => u.id === unitId);
-  if (!unit) return;
-  // Read parts from upm table (re-use same field logic as readPartsFromTable but from upm-parts-tbody)
+  // Find unit across all sources
+  let unit = userUnits.find(u => u.id === unitId);
+  let source = unit ? 'user' : null;
+  if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  if (!unit) {
+    // Standard template unit — promote to a customUnit copy so the edit persists
+    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    if (!tmpl) return;
+    unit = JSON.parse(JSON.stringify(tmpl));
+    unit.id = 'custom_edit_' + Date.now();
+    customUnits.push(unit);
+    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
+    source = 'custom';
+  }
+
   const rows = document.querySelectorAll('#upm-parts-tbody tr');
   const parts = [];
   rows.forEach(row => {
@@ -8776,8 +9234,10 @@ function saveUnitParts(unitId) {
   });
   unit.parts = parts;
   document.getElementById('upm-modal').remove();
+  if (source === 'user') { scheduleAutoSave(); }
+  else { saveCustomUnits(); }
   renderPanel();
-  scheduleAutoSave();
+  updateCounts();
 }
 
 function scheduleAutoSave() {
@@ -8820,10 +9280,11 @@ function applyStoredTheme() {
 async function loadSupplierPrices() {
   sbSyncStatus = 'loading';
   renderSyncBadge();
+  let rows = [];
   try {
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
+    rows = await res.json();
 
     // ── Rebuild board & edge lists from Supabase so all users see the same boards ──
     const sbBoards = rows.filter(r => r.category === 'board');
@@ -8891,8 +9352,29 @@ async function loadSupplierPrices() {
     });
 
     loadSpecialServicesFromSupabase(rows);
+
+    // Reset billing mode flags — they'll be rebuilt from Supabase meta
+    costingPrices.matFullSheet    = {};
+    costingPrices.matSpecialOrder = {};
+    costingPrices.matMinSheets    = {};
+    costingPrices.matPriceDates   = {};
+
     rows.forEach(row => {
-      if (row.category === 'board')   costingPrices.mat[row.name]  = Number(row.price);
+      if (row.category === 'board') {
+        costingPrices.mat[row.name] = Number(row.price);
+        // Parse billing mode flags and price timestamp from meta
+        if (row.meta) {
+          let m = {};
+          try { m = JSON.parse(row.meta); } catch(e) {}
+          if (m.fullSheet)              costingPrices.matFullSheet[row.name]    = true;
+          if (m.specialOrder)           costingPrices.matSpecialOrder[row.name] = true;
+          if (m.minSheets != null)      costingPrices.matMinSheets[row.name]    = m.minSheets;
+          if (m.priceUpdatedAt)         costingPrices.matPriceDates[row.name]   = m.priceUpdatedAt;
+          else if (row.updated_at)      costingPrices.matPriceDates[row.name]   = row.updated_at;
+        } else if (row.updated_at) {
+          costingPrices.matPriceDates[row.name] = row.updated_at;
+        }
+      }
       if (row.category === 'service') {
         const map = {
           'Cut & Label - Boards':   'cutLabel',
@@ -8902,6 +9384,10 @@ async function loadSupplierPrices() {
         };
         const key = map[row.name];
         if (key) costingPrices.extras[key] = Number(row.price);
+        // Edge rounding mode: stored as price=1 (per panel) or price=0 (per job)
+        if (row.name === 'Edge Rounding Mode') {
+          costingPrices.extras.edgeRoundPerPart = Number(row.price) === 1;
+        }
       }
     });
 
@@ -8910,7 +9396,16 @@ async function loadSupplierPrices() {
     sbSyncStatus = 'ok';
     sbLastSyncTime = new Date();
     sbLastSyncError = null;
-    console.log(`[Supabase] Loaded ${rows.length} supplier prices`);
+    // Record the latest updated_at from actual loaded rows as the watermark.
+    // Using server timestamps avoids client/server clock skew.
+    const latestTs = rows
+      .map(r => r.updated_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    _priceLoadedAt = latestTs || new Date().toISOString();
+    try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
+    console.log(`[Supabase] Loaded ${rows.length} supplier prices (watermark: ${_priceLoadedAt})`);
   } catch(e) {
     sbSyncStatus = 'error';
     sbLastSyncError = e.message;
@@ -8921,6 +9416,7 @@ async function loadSupplierPrices() {
   refreshCostingResults();
   checkStaleMaterials();
   loadPriceTicker(rows);
+  _startStalePricePoll();   // begin polling for supplier price changes
 }
 
 // After a sync, check if any stored material selections reference boards that no longer exist
@@ -9009,17 +9505,17 @@ function applyStaleRemap(names) {
 }
 
 function loadPriceTicker(rows) {
-  // Show items updated in the last 30 days; fall back to all priced items if none have updated_at
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  let recent = rows
-    .filter(r => r.updated_at && r.updated_at > cutoff)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-  if (!recent.length) {
-    recent = rows.filter(r => ['board','edge','special_service'].includes(r.category) && Number(r.price) > 0);
-  }
+  // Only show items updated since we last loaded prices — i.e. the changes that triggered the banner.
+  // Fall back to last 30 days if no watermark exists (e.g. very first load).
+  const cutoff = _priceLoadedAt
+    || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const ticker  = document.getElementById('price-ticker');
-  const track   = document.getElementById('ticker-track');
+  const recent = rows
+    .filter(r => r.updated_at && r.updated_at > cutoff && ['board','edge','special_service','service'].includes(r.category))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+  const ticker = document.getElementById('price-ticker');
+  const track  = document.getElementById('ticker-track');
   if (!ticker || !track) return;
 
   if (!recent.length) {
@@ -9028,34 +9524,104 @@ function loadPriceTicker(rows) {
   }
 
   const items = recent.map(r => {
-    const date  = new Date(r.updated_at).toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
-    const price = r.category === 'board'
+    const date   = new Date(r.updated_at).toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
+    const price  = r.category === 'board'
       ? `R ${Number(r.price).toFixed(2)}/sheet`
       : r.category === 'edge'
         ? `R ${Number(r.price).toFixed(2)}/m`
         : `R ${Number(r.price).toFixed(2)}`;
-    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : r.category === 'special_service' ? '⚙ Special Service' : '🔧 Service';
+    const action = r.category === 'board' ? '🪵 Board' : r.category === 'edge' ? '✂ Edging' : r.category === 'special_service' ? '⚙ Service' : '🔧 Service';
+    const label  = r.name.replace(/ Edging.*$/, '');
     return `<span style="font-size:11px;color:var(--amber);padding:0 28px;display:inline-flex;align-items:center;gap:6px">
       <span style="color:var(--text-muted);font-size:10px">${action}</span>
-      <span style="color:var(--text)">${r.name.replace(/ Edging.*$/,'')}</span>
+      <span style="color:var(--text)">${label}</span>
       <span style="color:var(--amber);font-family:'JetBrains Mono',monospace">${price}</span>
       <span style="color:var(--text-muted);font-size:10px">${date}</span>
       <span style="color:rgba(212,145,58,0.3);margin-left:8px">◆</span>
     </span>`;
   }).join('');
 
-  // Duplicate content for seamless loop
   track.innerHTML = items + items;
   ticker.style.display = 'block';
 
-  // Calculate animation duration based on content width
-  // Use rAF to get actual width after render
   requestAnimationFrame(() => {
     const fullWidth = track.scrollWidth / 2;
     const speed = 60; // px per second
     const duration = Math.max(10, fullWidth / speed);
     track.style.animation = `ticker-scroll ${duration}s linear infinite`;
   });
+}
+
+// ── Stale price detection ─────────────────────────────────────────────────────
+// After initial load, poll every 5 minutes. If any price was updated since the
+// user last loaded, show the stale-prices banner.
+let _priceLoadedAt = null;  // ISO string — when we last loaded prices from Supabase
+let _stalePollTimer = null;
+
+function _recordPriceLoadTime() {
+  // Called by reloadSupplierPrices after a manual reload
+  _priceLoadedAt = new Date().toISOString();
+  try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
+}
+
+function _startStalePricePoll() {
+  if (_stalePollTimer) clearInterval(_stalePollTimer);
+  // Check immediately (prices may have changed since last session)
+  _checkStalePrices();
+  // Poll every 2 minutes
+  _stalePollTimer = setInterval(_checkStalePrices, 2 * 60 * 1000);
+  // Also check whenever the user switches back to this tab
+  document.removeEventListener('visibilitychange', _onVisibilityChange);
+  document.addEventListener('visibilitychange', _onVisibilityChange);
+}
+
+function _onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    _checkStalePrices();
+  }
+}
+
+async function _checkStalePrices() {
+  // Show banner for all non-supplier roles
+  if (!sbUser || isSupplier()) return;
+  if (!_priceLoadedAt) return;
+  try {
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) return;
+    const changedRows = await res.json();
+    console.log(`[PriceCheck] watermark=${_priceLoadedAt}, changed=${changedRows.length}`);
+    if (changedRows.length > 0) {
+      // Show banner
+      const banner = document.getElementById('price-stale-banner');
+      if (banner) banner.style.display = 'flex';
+      // Update ticker to show only the changed items
+      loadPriceTicker(changedRows);
+    }
+  } catch(e) {
+    console.warn('[PriceCheck] poll error:', e.message);
+  }
+}
+
+async function reloadSupplierPrices() {
+  document.getElementById('price-stale-banner').style.display = 'none';
+  await loadSupplierPrices();
+  _recordPriceLoadTime();
+  // Brief confirmation
+  const banner = document.getElementById('price-stale-banner');
+  if (banner) {
+    const msg = document.getElementById('price-stale-msg');
+    if (msg) msg.textContent = '✓ Prices reloaded — your quotes are now up to date.';
+    banner.style.background = 'rgba(106,170,100,0.12)';
+    banner.style.borderBottomColor = '#4caf82';
+    banner.style.display = 'flex';
+    setTimeout(() => {
+      banner.style.display = 'none';
+      banner.style.background = 'rgba(212,145,58,0.12)';
+      banner.style.borderBottomColor = 'var(--amber)';
+      if (msg) msg.textContent = 'Supplier has updated prices since you last loaded — reload prices for accurate quotes.';
+    }, 3000);
+  }
 }
 
 async function pushSupplierPrice(category, name, price, meta) {
@@ -9066,8 +9632,25 @@ async function pushSupplierPrice(category, name, price, meta) {
     return;
   }
   try {
-    const payload = { category, name, price: Number(price), updated_at: new Date().toISOString() };
-    if (meta) payload.meta = JSON.stringify(meta);
+    const now = new Date().toISOString();
+    const payload = { category, name, price: Number(price), updated_at: now };
+    // For boards, embed billing mode flags + price date in meta so all users pick them up
+    if (category === 'board') {
+      const boardMeta = meta ? { ...meta } : {};
+      if (costingPrices.matFullSheet?.[name])    boardMeta.fullSheet    = true;
+      else                                        delete boardMeta.fullSheet;
+      if (costingPrices.matSpecialOrder?.[name]) boardMeta.specialOrder = true;
+      else                                        delete boardMeta.specialOrder;
+      if (costingPrices.matMinSheets?.[name] != null) boardMeta.minSheets = costingPrices.matMinSheets[name];
+      else                                             delete boardMeta.minSheets;
+      boardMeta.priceUpdatedAt = now;
+      payload.meta = JSON.stringify(boardMeta);
+      // Also record locally so the timestamp shows without waiting for a reload
+      costingPrices.matPriceDates[name] = now;
+      try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+    } else if (meta) {
+      payload.meta = JSON.stringify(meta);
+    }
     const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
@@ -9143,7 +9726,7 @@ function calcPanelCost(p) {
   const matCost    = billedSh * (costingPrices.mat[p.mat] || 0);
   const cutCost    = wholeSh  * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
   const hPrice     = costingPrices.extras.hPrice || 0;
-  let hPriceCost   = (billedSh + wholeSh) * hPrice;
+  let hPriceCost   = Math.max(billedSh, wholeSh) * hPrice;
   const edgeMap = {};
   [[p.edgeL1,lM],[p.edgeL2,lM],[p.edgeW1,wM],[p.edgeW2,wM]].forEach(([k,l]) => {
     if (k) edgeMap[k] = (edgeMap[k]||0) + calcEdgeMeters(l, p.qty);
@@ -9283,8 +9866,13 @@ function refreshMatDropdowns() {
 function addCustomBoard() {
   const nameEl      = document.getElementById('cv-new-board-name');
   const priceEl     = document.getElementById('cv-new-board-price');
-  const edgeNameEl  = document.getElementById('cv-new-edge-name');
+  // Support both form styles:
+  //   grid-style (admin view): cv-new-edge-size (dropdown) + cv-new-edge-price
+  //   card-style (supplier view): cv-new-edge-name (text) + cv-new-edge-price
+  const edgeSizeEl  = document.getElementById('cv-new-edge-size');  // dropdown — may be null
+  const edgeNameEl  = document.getElementById('cv-new-edge-name');   // text — may be null
   const edgePriceEl = document.getElementById('cv-new-edge-price');
+
   const name  = (nameEl?.value || '').trim();
   const price = parseFloat(priceEl?.value) || 0;
   if (!name) { if(nameEl){ nameEl.focus(); nameEl.style.borderColor='#e05252'; } return; }
@@ -9292,24 +9880,71 @@ function addCustomBoard() {
   if (MATS.includes(name)) { alert(`"${name}" already exists.`); return; }
 
   const id = 'cb_' + Date.now();
-  const edgeName  = (edgeNameEl?.value.trim())  || (name + ' Edging 1mm');
   const edgePrice = parseFloat(edgePriceEl?.value) || 0;
 
-  costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName, edgePrice });
+  // Build the canonical edge name — always "BoardName Edging Xmm"
+  // Priority: size dropdown → parse text input → default 1mm
+  const edgePrefix = name === 'White Melamine' ? 'White Edging' : name + ' Edging';
+  let edgeSize = '';
+  if (edgeSizeEl && edgeSizeEl.value && edgeSizeEl.value !== '') {
+    edgeSize = edgeSizeEl.value.trim();  // e.g. "1mm", "2mm"
+  } else if (edgeNameEl && edgeNameEl.value.trim()) {
+    // Card-style: user typed something — try to extract a size suffix
+    const typed = edgeNameEl.value.trim();
+    // If they typed just a size like "1mm" or "2mm" use it directly
+    // Otherwise treat the whole input as the full edge name (legacy behaviour)
+    const sizeOnly = /^\d+(\.\d+)?mm$/i.test(typed);
+    edgeSize = sizeOnly ? typed : '';
+    if (!sizeOnly && typed) {
+      // They typed a full edge name — use it as-is but warn if it won't match the prefix
+      const fullEdgeName = typed.startsWith(edgePrefix) ? typed : edgePrefix + ' ' + typed;
+      const finalEdgeName = fullEdgeName;
+      costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName: finalEdgeName, edgePrice });
+      costingPrices.mat[name] = price;
+      if (!MATS.includes(name)) MATS.push(name);
+      if (!COLORS.includes(name)) COLORS.push(name);
+      if (edgePrice > 0 || finalEdgeName) {
+        costingPrices.edge[finalEdgeName] = edgePrice;
+        if (!EDGES.includes(finalEdgeName)) EDGES.push(finalEdgeName);
+        const edgeColor = name;
+        if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+      }
+      saveCostingPrices();
+      pushSupplierPrice('board', name, price);
+      if (finalEdgeName) pushSupplierPrice('edge', finalEdgeName, edgePrice);
+      if (nameEl)      nameEl.value      = '';
+      if (priceEl)     priceEl.value     = '';
+      if (edgeNameEl)  edgeNameEl.value  = '';
+      if (edgePriceEl) edgePriceEl.value = '';
+      refreshMatDropdowns();
+      refreshPriceViews();
+      return;
+    }
+  }
+
+  // Default to 1mm if no size given
+  if (!edgeSize) edgeSize = '1mm';
+  const edgeName = edgePrice > 0 ? (edgePrefix + ' ' + edgeSize) : '';
+
+  costingPrices.customBoards.push({ id, boardName: name, boardPrice: price, edgeName: edgeName || (edgePrefix + ' 1mm'), edgePrice });
   costingPrices.mat[name] = price;
-  costingPrices.edge[edgeName] = edgePrice;
   if (!MATS.includes(name)) MATS.push(name);
-  if (!EDGES.includes(edgeName)) EDGES.push(edgeName);
   if (!COLORS.includes(name)) COLORS.push(name);
-  const edgeColor = edgeName ? edgeName.replace(' Edging 1mm','') : name;
-  if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+
+  if (edgeName) {
+    costingPrices.edge[edgeName] = edgePrice;
+    if (!EDGES.includes(edgeName)) EDGES.push(edgeName);
+    const edgeColor = name;
+    if (!EDGE_COLORS.includes(edgeColor)) EDGE_COLORS.push(edgeColor);
+  }
 
   saveCostingPrices();
-  // Push both board and edging to Supabase so all users see them
   pushSupplierPrice('board', name, price);
   if (edgeName) pushSupplierPrice('edge', edgeName, edgePrice);
+
   if (nameEl)      nameEl.value      = '';
   if (priceEl)     priceEl.value     = '';
+  if (edgeSizeEl)  edgeSizeEl.value  = '1mm';
   if (edgeNameEl)  edgeNameEl.value  = '';
   if (edgePriceEl) edgePriceEl.value = '';
   refreshMatDropdowns();
@@ -9636,8 +10271,10 @@ function promptAddEdge(mat) {
 }
 
 function addBoardEdging(mat) {
-  const sizeEl  = document.getElementById('new-edge-size-' + CSS.escape(mat));
-  const priceEl = document.getElementById('new-edge-price-' + CSS.escape(mat));
+  // IDs are generated with mat.replace(/[^a-zA-Z0-9]/g, '_') — must match that here
+  const safeId   = mat.replace(/[^a-zA-Z0-9]/g, '_');
+  const sizeEl   = document.getElementById('new-edge-size-'  + safeId);
+  const priceEl  = document.getElementById('new-edge-price-' + safeId);
   const size  = (sizeEl?.value || '').trim();
   const price = parseFloat(priceEl?.value) || 0;
   if (!size) { if (sizeEl) { sizeEl.focus(); sizeEl.style.borderColor='#e05252'; } return; }
@@ -9692,7 +10329,7 @@ function updateCustomBoardPrice(id, field, val) {
 function calcSectionCost(secId, sectionUnits, quantities) {
   const matM2    = {};
   const edgeM    = {};
-  const hw_counts = { hingeCount:0, runnerCount:0, handle160Count:0, handle240Count:0, drillingCount:0 };
+  const hw_counts = { hingeCount:0, runnerCount:0, runnerSets:{}, handle160Count:0, handle240Count:0, drillingCount:0 };
   const bedroomSecs = new Set(['mainbedroom','sparebedroom','linnekast']);
   const isBedroom   = bedroomSecs.has(secId);
 
@@ -9726,7 +10363,14 @@ function calcSectionCost(secId, sectionUnits, quantities) {
         if (isBedroom) hw_counts.handle240Count += totalQty;
         else           hw_counts.handle160Count += totalQty;
       }
-      if (n.includes('drawer bottom')) hw_counts.runnerCount += totalQty;
+      if (n.includes('drawer bottom') || n.includes('drawer box bottom') || n.includes('drawers bottom')) hw_counts.runnerCount += totalQty;
+      // Sized runners from drawer sides (pairs → sets)
+      if ((n.includes('drawer side') || n.includes('drawer box side')) && rp.l > 0) {
+        const depth = Math.max(rp.l, rp.w);
+        const stdSize = runnerSizeForDepth(depth);
+        if (!hw_counts.runnerSets) hw_counts.runnerSets = {};
+        hw_counts.runnerSets[stdSize] = (hw_counts.runnerSets[stdSize] || 0) + totalQty / 2;
+      }
     });
   });
 
@@ -9785,7 +10429,8 @@ function calcUnitCost(u, unitQty) {
   const matM2   = {};   // mat -> total m²
   const edgeM   = {};   // edgeKey -> total m
   let partCount = 0, doorCount = 0;
-  let hingeCount = 0, handle160Count = 0, handle240Count = 0, runnerCount = 0;
+  let hingeCount = 0, handle160Count = 0, handle240Count = 0;
+  const runnerSets = {};  // { standardSizeMm: count } — sized runner sets
   const bedroomSecs = new Set(['mainbedroom','sparebedroom','linnekast']);
   const isBedroom   = bedroomSecs.has(u.section);
 
@@ -9831,9 +10476,21 @@ function calcUnitCost(u, unitQty) {
       else           handle160Count += totalQty;
     }
 
-    // Runners — one set per drawer bottom
-    if (nameLower.includes('drawer bottom')) {
-      runnerCount += totalQty;
+    // Runners — sized by drawer sides (the longer dimension = runner length needed)
+    // Drawer sides come in pairs (qty=2 per drawer) so sets = totalQty / 2
+    const isDrawerSide = nameLower.includes('drawer side') || nameLower.includes('drawer box side');
+    if (isDrawerSide && rp.l > 0) {
+      // l is the depth of the drawer box (runner length), w is the height
+      const depth   = Math.max(rp.l, rp.w); // use the longer dimension as depth
+      const stdSize = runnerSizeForDepth(depth);
+      const sets    = totalQty / 2; // pair of sides = one runner set
+      runnerSets[stdSize] = (runnerSets[stdSize] || 0) + sets;
+    }
+    // Fallback: if only drawer bottoms are present (no sides), count them as unknown-size runners
+    const isDrawerBottom = nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom') || nameLower.includes('drawers bottom');
+    if (isDrawerBottom && !Object.keys(runnerSets).length) {
+      // We don't know the size — record as 0 (unknown) to still count the sets
+      runnerSets[0] = (runnerSets[0] || 0) + totalQty;
     }
   });
 
@@ -9844,19 +10501,19 @@ function calcUnitCost(u, unitQty) {
   const hPrice = costingPrices.extras.hPrice || 0;
   Object.entries(matM2).forEach(([mat, m2]) => {
     const pricePerSheet = costingPrices.mat[mat] || 0;
-    const pricePerM2    = pricePerSheet / SHEET_AREA;
     const withWaste     = m2 * WASTE_FACTOR;
     const billed        = billedSheetsForMat(mat, withWaste, SHEET_AREA);
     matCost    += billed * pricePerSheet;
-    hPriceCost += billed * hPrice;
 
-    // Cut & Label per sheet (whole sheets — use max of ceil and minimum)
+    // Cut & Label per whole sheet (ceiling — you can't cut half a physical sheet)
     const sheets = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billed));
     totalSheets += sheets;
     const isMasonite = mat === '3MM White Masonite';
     const rate = isMasonite ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
     cutLabelCost += sheets * rate;
-    hPriceCost   += sheets * hPrice;
+    // hPrice: charged once per billed sheet (material line) + once per cut sheet
+    // Use the higher of the two to avoid double-counting
+    hPriceCost += Math.max(billed, sheets) * hPrice;
     if (isMasonite) masoniteSheets += sheets; else boardSheets += sheets;
   });
   Object.entries(edgeM).forEach(([comboKey, m]) => {
@@ -9870,8 +10527,16 @@ function calcUnitCost(u, unitQty) {
   const hw            = costingPrices.hardware;
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hingeCost     = includeHardware ? hingeCount    * hingePrice : 0;
-  const runnerCost    = includeHardware ? runnerCount   * runnerPrice : 0;
+  const hingeCost     = includeHardware ? hingeCount * hingePrice : 0;
+  const runnerCount   = totalRunnerCount(runnerSets);
+  // Runner cost: use custom My Costs prices per size where available
+  const runnerCost    = includeHardware
+    ? Object.entries(runnerSets).reduce((sum, [size, count]) => {
+        const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
+        const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        return sum + count * price;
+      }, 0)
+    : 0;
   const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
@@ -9880,7 +10545,7 @@ function calcUnitCost(u, unitQty) {
   const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost + svcCost;
 
   return { matM2, edgeM, partCount, doorCount, matCost, edgeCost, cutLabelCost, drillingCost,
-           hingeCount, runnerCount, handle160Count, handle240Count,
+           hingeCount, runnerCount, runnerSets, handle160Count, handle240Count,
            hingeCost, runnerCost, handle160Cost, handle240Cost, hardwareCost, hwHandlingCost,
            hPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
@@ -9899,8 +10564,27 @@ function hardwareRows(c) {
     rows += `<tr><td>Handles 160mm (${c.handle160Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle160}×${c.handle160Count}</td><td class="num cost">R ${Math.round(c.handle160Cost).toLocaleString('en-ZA')}</td></tr>`;
   if (c.handle240Count > 0)
     rows += `<tr><td>Handles 240mm (${c.handle240Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle240}×${c.handle240Count}</td><td class="num cost">R ${Math.round(c.handle240Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.runnerCount > 0)
-    rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} sets)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
+  if (c.runnerCount > 0) {
+    const _rSets    = c.runnerSets || {};
+    const _rType    = quoteState.runnerType || 'soft';
+    const _hasSized = Object.keys(_rSets).some(k => Number(k) > 0);
+    if (_hasSized) {
+      RUNNER_STANDARD_SIZES.forEach(size => {
+        const count = _rSets[size];
+        if (!count) return;
+        const hwItem = _findRunnerHwItem(size, _rType);
+        const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        const label  = hwItem ? hwItem.name : (runnerLabel + ' ' + size + 'mm');
+        rows += `<tr><td>${label} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${price}×${count}</td><td class="num cost">R ${Math.round(count * price).toLocaleString('en-ZA')}</td></tr>`;
+      });
+      if (_rSets[0]) {
+        const count = _rSets[0];
+        rows += `<tr><td>Runners – ${runnerLabel} (${count} set${count!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${count}</td><td class="num cost">R ${Math.round(count * runnerPrice).toLocaleString('en-ZA')}</td></tr>`;
+      }
+    } else {
+      rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} set${c.runnerCount!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
+    }
+  }
   if (rows) {
     const hwHandling = c.hwHandlingCost || 0;
     rows = `<tr class="cv-subtotal"><td>Hardware (subtotal)</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.hardwareCost).toLocaleString('en-ZA')}</td></tr>` + rows;
@@ -9976,6 +10660,14 @@ function _renderPricesView() {
           ${mat}${badge}
           ${costingPrices.matFullSheet?.[mat]    ? `<span style="font-size:9px;background:rgba(100,160,255,0.15);border:1px solid #5090e0;color:#7ab0ff;padding:1px 5px;margin-left:6px;vertical-align:middle">FULL SHEET</span>` : ''}
           ${costingPrices.matSpecialOrder?.[mat] ? `<span style="font-size:9px;background:rgba(212,145,58,0.18);border:1px solid var(--amber-dim);color:var(--amber);padding:1px 5px;margin-left:6px;letter-spacing:0.5px;vertical-align:middle">SPECIAL ORDER</span>` : ''}
+          ${(() => {
+            const _pd = costingPrices.matPriceDates?.[mat];
+            if (!_pd) return '';
+            const _ds = new Date(_pd).toLocaleDateString('en-ZA', {day:'2-digit',month:'short',year:'2-digit'});
+            const _age = Date.now() - new Date(_pd).getTime();
+            const _col = _age < 30*24*60*60*1000 ? '#4caf82' : _age < 90*24*60*60*1000 ? 'var(--amber-dim)' : 'var(--red)';
+            return `<span title="Price last updated ${_ds}" style="font-size:9px;color:${_col};font-family:'JetBrains Mono',monospace;margin-left:6px;vertical-align:middle">↻ ${_ds}</span>`;
+          })()}
         </span>
         <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
@@ -10045,21 +10737,28 @@ function _renderPricesView() {
   const addBoardForm = admin ? `
     <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg4);border:1px solid rgba(212,145,58,0.25);padding:10px;margin-top:10px">
       <div style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1.5px;text-transform:uppercase">Add Custom Board</div>
-      <div style="display:flex;gap:6px">
-        <input id="cv-new-board-name" type="text" placeholder="Board name"
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="cv-new-board-name" type="text" placeholder="Board name (e.g. Graphite Oak)"
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
         <input id="cv-new-board-price" type="number" min="0" placeholder="R/sheet"
           style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
       </div>
-      <div style="display:flex;gap:6px">
-        <input id="cv-new-edge-name" type="text" placeholder="Edging name (e.g. Graphite Edging 1mm)"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <div style="font-size:10px;color:var(--text-muted);margin:0">Edging (edge name is auto-generated from board name)</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="cv-new-edge-size"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;cursor:pointer">
+          <option value="">— No edging —</option>
+          <option value="0.4mm">0.4mm</option>
+          <option value="1mm" selected>1mm</option>
+          <option value="2mm">2mm</option>
+          <option value="3mm">3mm</option>
+        </select>
         <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
           style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap">0 = no edging price</span>
       </div>
       <button onclick="addCustomBoard()"
         style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:6px;cursor:pointer;width:100%">
@@ -10128,14 +10827,29 @@ function _renderPricesView() {
              oninput="setMatMinSheets('${safeMatJS}',this.value)"> sh
          </span>` : '';
 
+    // ── Price timestamp ──────────────────────────────────────────────────────
+    const priceDate = costingPrices.matPriceDates?.[mat];
+    const priceDateStr = priceDate
+      ? new Date(priceDate).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' })
+      : null;
+    const priceAgeMs  = priceDate ? (Date.now() - new Date(priceDate).getTime()) : null;
+    const priceAgeColor = priceAgeMs === null ? 'var(--text-muted)'
+      : priceAgeMs < 30  * 24*60*60*1000 ? '#4caf82'   // < 30 days — green
+      : priceAgeMs < 90  * 24*60*60*1000 ? 'var(--amber-dim)' // 30–90 days — amber
+      : 'var(--red)';                                    // > 90 days — stale
+    const timestampHtml = priceDateStr
+      ? `<span title="Price last updated ${priceDateStr}" style="font-size:9px;color:${priceAgeColor};font-family:'JetBrains Mono',monospace;white-space:nowrap">↻ ${priceDateStr}</span>`
+      : '';
+
     // ── Board cell (left) ────────────────────────────────────────────────────
     const boardCell = `
       <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${mat}</span>
           ${!admin ? stockBadge : ''}
+          ${timestampHtml}
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
             onchange="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
             onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
@@ -10145,8 +10859,8 @@ function _renderPricesView() {
           ${minHtml}
         </div>
         ${admin ? stockPill : ''}
-        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">Full sheet billed</div>` : ''}
-        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">Full sheet billed</div>` : ''}
+        ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">🟦 Full sheet billed — offcuts included</div>` : ''}
+        ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">🛒 Special order — minimum 1 full sheet</div>` : ''}
       </div>`;
 
     // ── Edging cell (right) ──────────────────────────────────────────────────
@@ -10181,13 +10895,13 @@ function _renderPricesView() {
           <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
             style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border-inner, rgba(255,255,255,0.18));color:var(--text);padding:3px 6px;font-size:11px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
           <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
             style="width:80px;font-size:11px;padding:3px 6px"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')">>
+            onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
-          <button onclick="addBoardEdging('${mat.replace(/'/g,"\\\\\\'")}')\"
+          <button onclick="addBoardEdging('${mat.replace(/'/g, "\\'")}')"
             style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 8px;cursor:pointer">+</button>
         </div>` : '';
       edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
@@ -10262,12 +10976,19 @@ function _renderPricesView() {
           <input id="cv-new-board-price" type="number" min="0" placeholder="R/sheet"
             style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-          <input id="cv-new-edge-name" type="text" placeholder="Edging name (optional)"
-            style="flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <select id="cv-new-edge-size"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;cursor:pointer">
+            <option value="">— No edging —</option>
+            <option value="0.4mm">0.4mm</option>
+            <option value="1mm" selected>1mm</option>
+            <option value="2mm">2mm</option>
+            <option value="3mm">3mm</option>
+          </select>
           <input id="cv-new-edge-price" type="number" min="0" placeholder="R/m"
             style="width:90px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            title="Leave at 0 to skip edging"
+            onkeydown="if(event.key==='Enter')addCustomBoard()">
           <button onclick="addCustomBoard()"
             style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:6px 16px;cursor:pointer">
             + ADD
@@ -10281,11 +11002,11 @@ function _renderPricesView() {
           <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Cutting &amp; Services</div>
           ${admin ? `<div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:11px;color:var(--text-muted)">Edging billing:</span>
-            <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();renderPricesView()"
+            <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',costingPrices.extras.edgeRoundPerPart?1:0);renderPricesView()"
               style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${!costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
               Per job total
             </button>
-            <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();renderPricesView()"
+            <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',1);renderPricesView()"
               style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
               Per panel
             </button>
@@ -10689,10 +11410,24 @@ function openSpecialServicesPopup(targetId, targetType, anchorEl) {
     </div>
     <div id="svc-popup-body">${renderSpecialServicesWidget(targetId, targetType)}</div>`;
   document.body.appendChild(popup);
-  // Position near anchor
-  const rect = anchorEl.getBoundingClientRect();
-  const top = Math.min(rect.bottom + 6, window.innerHeight - 280);
-  const left = Math.min(rect.left, window.innerWidth - 430);
+  // Position popup near anchor, staying fully within the viewport
+  // Measure actual popup size after inserting into DOM
+  const rect     = anchorEl.getBoundingClientRect();
+  const popupH   = popup.offsetHeight || 320;
+  const popupW   = popup.offsetWidth  || 420;
+  const margin   = 8; // px from viewport edges
+
+  // Prefer opening below the anchor; flip upward if it would clip the bottom
+  let top = rect.bottom + 6;
+  if (top + popupH > window.innerHeight - margin) {
+    top = rect.top - popupH - 6;           // open above
+  }
+  // Clamp: never go above the top or below the bottom
+  top = Math.max(margin, Math.min(top, window.innerHeight - popupH - margin));
+
+  let left = rect.left;
+  left = Math.max(margin, Math.min(left, window.innerWidth - popupW - margin));
+
   popup.style.top  = top  + 'px';
   popup.style.left = left + 'px';
   // Close on outside click
@@ -10832,8 +11567,9 @@ function _renderMaterialsView() {
 
       <div>
         ${section('Other / Miscellaneous')}
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.6">
-          Price reference items — add manually to a quote line when needed.
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>Price reference items — add manually to a quote line when needed.</span>
+          <span style="font-size:10px;color:#4caf82;font-family:'JetBrains Mono',monospace;white-space:nowrap">☁ Saved to your account</span>
         </div>
         ${suggestions('other', ['Plinth Clip', 'SS Leg', 'Cabinet Lock', 'Magnetic Catch', 'Door Damper', 'Lazy Susan Fitting', 'Waste Bin', 'Drawer Divider', 'Shelf Pin', 'Back Panel Clip'])}
         ${otherItems.length > 0 ? otherItems.map(h => `
@@ -10906,6 +11642,11 @@ function _renderCostingView() {
     const c = calcUnitCost(u, unitQty);
     const perUnit = c.total / unitQty;
     grandTotal += c.total;
+
+    // Largest part dimensions — used for cut-out special service hole display
+    const _bParts = u.parts ? u.parts.filter(p=>p.l&&p.w) : [];
+    _bParts.sort((a,b)=>(b.l*b.w)-(a.l*a.w));
+    const _unitDims = _bParts.length ? (()=>{const rp=applyMaterials(_bParts[0],u);return{l:rp.l,w:rp.w};})() : null;
 
     let matRowsHtml = Object.entries(c.matM2).map(([mat, m2]) => {
       const withWaste = m2 * WASTE_FACTOR;
@@ -11133,7 +11874,8 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const allMatM2  = {};
   const allEdgeM  = {};
   let totalMat = 0, totalEdge = 0, totalCutLabel = 0, totalDrilling = 0;
-  let totalHinges = 0, totalRunners = 0, totalHandle160 = 0, totalHandle240 = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  const allRunnerSets = {};  // merged { stdSize: count } across all units
   let grandTotal  = 0;
 
   selectedUnits.forEach(u => {
@@ -11144,12 +11886,13 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalCutLabel  += c.cutLabelCost;
     totalDrilling  += c.drillingCost;
     totalHinges    += c.hingeCount;
-    totalRunners   += c.runnerCount;
     totalHandle160 += c.handle160Count;
     totalHandle240 += c.handle240Count;
+    if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     Object.entries(c.matM2).forEach(([mat, m2]) => { allMatM2[mat] = (allMatM2[mat]||0) + m2; });
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
+  const totalRunners = totalRunnerCount(allRunnerSets);
 
   // Fold panel items into the combined totals — pool by material first
   if (panelItems.length > 0) {
@@ -11183,7 +11926,11 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const hingeLabel = quoteState.hingeType  === 'soft' ? 'Soft Close'  : 'Normal';
   const runnerLabel= quoteState.runnerType === 'soft' ? 'Soft Close'  : 'Normal';
   const totalHingeCost  = totalHinges    * hingePrice;
-  const totalRunnerCost = totalRunners   * runnerPrice;
+  const totalRunnerCost = Object.entries(allRunnerSets).reduce((sum, [size, count]) => {
+    const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
+    const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+    return sum + count * price;
+  }, 0);
   const total160Cost    = totalHandle160 * hw.handle160;
   const total240Cost    = totalHandle240 * hw.handle240;
   const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost;
@@ -11218,13 +11965,20 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const totalMaterials = totalMat + totalEdgeCostCalc + totalCutLabel + totalDrilling;
   // Custom hardware totals — computed here so grandTotalAll can include them
 
-  // Bases & Skirting/Plinth extras from Quote tab
+  // ── All other quote extras (skirting, base, other/misc items, hardware) ────
   const _quoteBaseExtras = (quoteState.extras||[]).filter(e => e.baseMode !== undefined);
   const _quoteSkExtras   = (quoteState.extras||[]).filter(e => e.skirtingMode !== undefined);
   const _quoteBaseTotal  = _quoteBaseExtras.reduce((s,e) => s + (_calcBaseExtraCost(e)||0), 0);
   const _quoteSkTotal    = _quoteSkExtras.reduce((s,e)  => s + (_calcSkirtingExtraCost(e)||0), 0);
 
-  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal;
+  // "Other" items (custom misc + My Costs items) — anything with an amount that isn't
+  // hardware type or base/skirting (those are already included above separately)
+  const _quoteOtherExtras = (quoteState.extras||[]).filter(e =>
+    e.otherType !== undefined || (e.desc !== undefined && e.baseMode === undefined && e.skirtingMode === undefined && e.hwType === undefined)
+  );
+  const _quoteOtherTotal = _quoteOtherExtras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+
+  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal + _quoteOtherTotal;
 
   const R   = n => 'R ' + Math.round(n).toLocaleString('en-ZA');
   const pct = n => grandTotalAll > 0 ? `<span style="color:var(--text-muted);font-size:10px"> (${Math.round(n/grandTotalAll*100)}%)</span>` : '';
@@ -11287,7 +12041,13 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalHinges    > 0 ? `<tr><td>Hinges – ${hingeLabel} (${totalHinges})</td><td class="num">—</td><td class="num">R${hingePrice} × ${totalHinges}</td><td class="num cost">${R(totalHingeCost)}</td></tr>` : '',
     totalHandle160 > 0 ? `<tr><td>Handles 160mm (${totalHandle160})</td><td class="num">—</td><td class="num">R${hw.handle160} × ${totalHandle160}</td><td class="num cost">${R(total160Cost)}</td></tr>` : '',
     totalHandle240 > 0 ? `<tr><td>Handles 240mm (${totalHandle240})</td><td class="num">—</td><td class="num">R${hw.handle240} × ${totalHandle240}</td><td class="num cost">${R(total240Cost)}</td></tr>` : '',
-    totalRunners   > 0 ? `<tr><td>Runners – ${runnerLabel} (${totalRunners} sets)</td><td class="num">—</td><td class="num">R${runnerPrice} × ${totalRunners}</td><td class="num cost">${R(totalRunnerCost)}</td></tr>` : '',
+    totalRunners   > 0 ? RUNNER_STANDARD_SIZES.filter(s => allRunnerSets[s]).map(size => {
+        const count   = allRunnerSets[size];
+        const hwItem  = _findRunnerHwItem(size, quoteState.runnerType || 'soft');
+        const price   = hwItem ? hwItem.pricePerUnit : runnerPrice;
+        const label   = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
+        return `<tr><td>${label} (${count} set${count!==1?'s':''})</td><td class="num">—</td><td class="num">R${price} × ${count}</td><td class="num cost">${R(count * price)}</td></tr>`;
+      }).join('') + (allRunnerSets[0] ? `<tr><td>Runners – ${runnerLabel} (${allRunnerSets[0]} set${allRunnerSets[0]!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${allRunnerSets[0]}</td><td class="num cost">${R(allRunnerSets[0]*runnerPrice)}</td></tr>` : '') : '',
   ].join('');
 
   // Section header helper — no percentage, just clean label + total
@@ -11384,6 +12144,22 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
           }
           const lm = ((e.skirtingLength||0)/1000).toFixed(2);
           return `<tr><td>Skirting ${e.skirtingHeight||''}mm – ${e.skirtingMat||''} (${lm}m)</td><td class="num">${lm} m</td><td class="num">R${(costingPrices.extras.skirtingPerM||0).toFixed(0)}/m</td><td class="num cost">${R(cost)}</td></tr>`;
+        }).join('')}
+        ` : ''}
+
+        ${_quoteOtherTotal > 0 ? `
+        ${secHead('OTHER EXTRAS', _quoteOtherTotal)}
+        ${_quoteOtherExtras.map(e => {
+          const amt = parseFloat(e.amount) || 0;
+          if (!amt) return '';
+          if (e.otherType) {
+            const opt = _otherOptions().find(o => o.key === e.otherType);
+            const label = opt ? opt.label : e.otherType;
+            const qty = e.otherQty || 1;
+            return `<tr><td>${label} <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></td><td class="num">${qty}</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
+          }
+          const desc = e.desc || 'Miscellaneous';
+          return `<tr><td>${desc}</td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
         }).join('')}
         ` : ''}
 
@@ -11662,6 +12438,7 @@ function applyState(state) {
     if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
     if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
     if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
+    if (state.costingPrices.matPriceDates)   Object.assign(costingPrices.matPriceDates,   state.costingPrices.matPriceDates);
     // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
@@ -12002,19 +12779,60 @@ function fuzzyMatchMat(val) {
   return 'White Melamine';
 }
 
-function fuzzyMatchEdge(val) {
+function fuzzyMatchEdge(val, matName) {
   if (!val || val.trim() === '') return '';
-  const v = val.trim();
+  // Strip verbose size annotations like "(1,0 mm x 16,0 mm)" that come from some CAD exports
+  const v = val.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (!v) return '';
+
+  // 1. Exact match
   if (EDGES.includes(v)) return v;
   const lower = v.toLowerCase();
+
+  // 2. Case-insensitive exact
   const exact = EDGES.find(e => e && e.toLowerCase() === lower);
   if (exact) return exact;
-  const starts = EDGES.find(e => e && (e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())));
-  if (starts) return starts;
+
+  // 3. Colour-aware match — extract colour word and size from the string
+  //    e.g. "Black Cherry Edging 1mm" → look for an edge containing "black cherry" + "1mm"
+  const sizeMatch = v.match(/(\d+(\.\d+)?mm)/i);
+  const size = sizeMatch ? sizeMatch[1].toLowerCase() : null;
+  // Find edges that contain all the significant words from the value
+  const words = lower.split(/\s+/).filter(w => w.length > 2 && !/^(edging|edge|mm|x)$/i.test(w));
+  if (words.length) {
+    const wordMatch = EDGES.find(e => {
+      const el = e.toLowerCase();
+      return words.every(w => el.includes(w)) && (!size || el.includes(size));
+    });
+    if (wordMatch) return wordMatch;
+    // Try without size constraint
+    const wordMatchNoSize = EDGES.find(e => {
+      const el = e.toLowerCase();
+      return words.every(w => el.includes(w));
+    });
+    if (wordMatchNoSize) return wordMatchNoSize;
+  }
+
+  // 4. Size + material prefix match (only when the colour matches the material)
+  if (size && matName) {
+    const prefix = matName === 'White Melamine' ? 'white edging' : matName.toLowerCase() + ' edging';
+    const sizedEdge = EDGES.find(e => e && e.toLowerCase().startsWith(prefix) && e.toLowerCase().includes(size));
+    if (sizedEdge) return sizedEdge;
+  }
+
+  // 5. Starts-with / prefix match
+  const prefixMatches = EDGES.filter(e => e && (
+    e.toLowerCase().startsWith(lower) || lower.startsWith(e.toLowerCase())
+  )).sort((a, b) => b.length - a.length);
+  if (prefixMatches.length) return prefixMatches[0];
+
+  // 6. Contains match
   const contains = EDGES.find(e => e && (e.toLowerCase().includes(lower) || lower.includes(e.toLowerCase())));
   if (contains) return contains;
-  // Return empty if nothing matches — safer than a wrong edge
-  return '';
+
+  // 7. No match — return a sentinel so the preview can highlight it for the user
+  //    Prefix with "?" so the imported cutlist view can flag it as needing review
+  return '?' + v;
 }
 
 function renderImportView() { withScrollLock(_renderImportView); }
@@ -12278,11 +13096,12 @@ async function runImportParse() {
     return `  "${m}" → aliases: ${unique.slice(1).join(', ') || 'none'}`;
   }).join('\n');
 
-  // Build material → default edging map
+  // Build material → ALL available edging options map (not just first match)
   const matEdgeMap = MATS.map(m => {
     const prefix = m === 'White Melamine' ? 'White Edging' : m + ' Edging';
-    const match = EDGES.find(e => e && e.startsWith(prefix)) || '';
-    return match ? `  "${m}" → default edging: "${match}"` : null;
+    const allEdges = EDGES.filter(e => e && e.startsWith(prefix));
+    if (!allEdges.length) return null;
+    return `  "${m}" → available edging: ${allEdges.map(e => `"${e}"`).join(', ')}`;
   }).filter(Boolean).join('\n');
 
   const systemPrompt = `You are a woodworking cutlist parser for a South African cabinet maker. Convert raw spreadsheet data into structured cut parts.
@@ -12296,11 +13115,17 @@ ${matAliasLines}
 AVAILABLE EDGING OPTIONS (use EXACT names in output):
 ${edgeList}
 
-MATERIAL → DEFAULT EDGING PAIRS:
+MATERIAL → EDGING OPTIONS (choose the best match for the thickness specified, or use the first if unspecified):
 ${matEdgeMap}
-  Note: "3MM White Masonite" and "Shutterply" typically have NO edging.
+  Note: "3MM White Masonite" and "Shutterply" have NO edging — always use "".
 
 ${labelHint}
+
+EDGE NAME PARSING — some exports include verbose names with size info in brackets:
+  e.g. "Black Cherry Edging 1mm (1,0 mm x 16,0 mm)" → output just the clean name: "Black Cherry Edging 1mm"
+  e.g. "White Edging 1mm (1,0 mm x 16,0 mm)" → output: "White Edging 1mm"
+  Always strip the bracketed part and output only the base name matching the available edging list.
+  If the colour in the edge name does NOT match the board material, output it exactly as-is (do not substitute).
 
 EDGE ABBREVIATION GUIDE — interpret these in ANY column that describes edging:
 - EAR = Edge All Round → all four edges (el1, el2, ew1, ew2) get the matching edging
@@ -12324,9 +13149,12 @@ MATERIAL MATCHING RULES:
 3. If still unsure → use "White Melamine"
 
 EDGING MATCHING RULES:
-1. When edging is needed, use the default edging for the matched material (see pairs above)
-2. If the spreadsheet specifies a different edging colour, match it to the closest available edging
-3. Never invent edging names — only use names from the available edging list
+1. When edging is present, use the exact edging name from the "MATERIAL → EDGING OPTIONS" list above
+2. If a specific thickness (1mm, 2mm etc.) is shown in the data, pick the matching size
+3. If edging is indicated but size is unclear, use the FIRST option in the list for that material
+4. CRITICAL: Only use "" (empty string) when the spreadsheet explicitly shows NO edging (dash, blank, N)
+5. CRITICAL: If a part clearly has edging in the source data, always output a matching edging name — never silently drop it
+6. Never invent edging names — only use names from the available edging list
 
 OUTPUT: Return ONLY valid JSON — no markdown, no explanation, no preamble:
 {
@@ -12384,10 +13212,11 @@ Rules:
     // JS-side fuzzy material + edging correction
     parsed.parts = parsed.parts.map(p => {
       p.mat  = fuzzyMatchMat(p.mat);
-      p.el1  = fuzzyMatchEdge(p.el1);
-      p.el2  = fuzzyMatchEdge(p.el2);
-      p.ew1  = fuzzyMatchEdge(p.ew1);
-      p.ew2  = fuzzyMatchEdge(p.ew2);
+      // Pass the resolved material name so fuzzyMatchEdge can fall back to its default edging
+      p.el1  = fuzzyMatchEdge(p.el1, p.mat);
+      p.el2  = fuzzyMatchEdge(p.el2, p.mat);
+      p.ew1  = fuzzyMatchEdge(p.ew1, p.mat);
+      p.ew2  = fuzzyMatchEdge(p.ew2, p.mat);
       return p;
     });
 
@@ -12437,6 +13266,30 @@ function renderImportedCutlistView() {
        ${opts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
      </select>`;
 
+  // Edge select — highlights unrecognised edges (those with '?' prefix from fuzzyMatchEdge)
+  const edgeSel = (val, onchange, w) => {
+    const isUnknown = val && val.startsWith('?');
+    const displayVal = isUnknown ? '' : (val || '');
+    const unknownLabel = isUnknown ? val.slice(1) : null;
+    return `<div style="display:flex;flex-direction:column;gap:1px">
+      <select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'90px'};max-width:${w||'90px'}"
+         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='${isUnknown?'#e05252':''}'" >
+         ${edgeOpts.map(o => `<option value="${escHtml(o)}" ${o===displayVal?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
+      </select>
+      ${isUnknown ? `<span title="'${escHtml(unknownLabel)}' not in your edging list — select the correct one" style="font-size:9px;color:#e05252;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px">⚠ ${escHtml(unknownLabel)}</span>` : ''}
+    </div>`;
+  };
+
+  // Material select — highlights materials not in MATS list
+  const matSel = (val, onchange, w) => {
+    const isUnknown = val && !matOpts.includes(val);
+    return `<select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'140px'};max-width:${w||'140px'}"
+       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+       ${matOpts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${escHtml(o)}</option>`).join('')}
+       ${isUnknown ? `<option value="${escHtml(val)}" selected style="color:#e05252">⚠ ${escHtml(val)}</option>` : ''}
+     </select>`;
+  };
+
   const inp = (val, type, onchange, w, align) =>
     `<input type="${type}" value="${escHtml(String(val??''))}"
        onchange="${onchange}"
@@ -12459,11 +13312,11 @@ function renderImportedCutlistView() {
         <td style="padding:3px 4px;text-align:center">${inp(p.qty||1, 'number', `updateImportedPart(${i},'qty',this.value)`, '44px', 'center')}</td>
         <td style="padding:3px 4px;text-align:right">${inp(p.l||0, 'number', `updateImportedPart(${i},'l',this.value)`, '64px', 'right')}</td>
         <td style="padding:3px 4px;text-align:right">${inp(p.w||0, 'number', `updateImportedPart(${i},'w',this.value)`, '64px', 'right')}</td>
-        <td style="padding:3px 4px">${sel(p.mat||'', matOpts, `updateImportedPart(${i},'mat',this.value)`, '140px')}</td>
-        <td style="padding:3px 4px">${sel(p.el1||'', edgeOpts, `updateImportedPart(${i},'el1',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.el2||'', edgeOpts, `updateImportedPart(${i},'el2',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.ew1||'', edgeOpts, `updateImportedPart(${i},'ew1',this.value)`, '90px')}</td>
-        <td style="padding:3px 4px">${sel(p.ew2||'', edgeOpts, `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${matSel(p.mat||'', `updateImportedPart(${i},'mat',this.value)`, '140px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.el1||'', `updateImportedPart(${i},'el1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.el2||'', `updateImportedPart(${i},'el2',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.ew1||'', `updateImportedPart(${i},'ew1',this.value)`, '90px')}</td>
+        <td style="padding:3px 4px">${edgeSel(p.ew2||'', `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
         <td style="padding:3px 4px">${inp(p.holes||'', 'text', `updateImportedPart(${i},'holes',this.value)`, '90px')}</td>
         <td style="padding:3px 6px;text-align:center">
           <button onclick="deleteImportedPart(${i})" title="Delete row"
@@ -12503,9 +13356,31 @@ function renderImportedCutlistView() {
     </div>`;
   }
 
+  // Count unrecognised edges (marked with ? prefix by fuzzyMatchEdge)
+  const unknownEdges = new Set();
+  parts.forEach(p => {
+    ['el1','el2','ew1','ew2'].forEach(k => {
+      if (p[k] && p[k].startsWith('?')) unknownEdges.add(p[k].slice(1));
+    });
+  });
+  const unknownBanner = unknownEdges.size > 0 ? `
+    <div style="background:rgba(224,82,82,0.1);border:1px solid #e05252;padding:10px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;border-radius:2px">
+      <span style="font-size:16px;flex-shrink:0">⚠</span>
+      <div>
+        <div style="font-size:12px;color:#e05252;font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:4px">UNRECOGNISED EDGING</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.6">
+          The following edging names from your file aren't in your edging list — select the correct edging from the red-highlighted dropdowns before saving:
+          <strong style="color:#e05252"> ${[...unknownEdges].join(', ')}</strong>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          Tip: Add these to the Supplier Prices tab first if they are valid for your stock.
+        </div>
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
   <div style="max-width:1200px;margin:0 auto;padding:24px 20px;font-family:'Barlow',sans-serif">
-
+    ${unknownBanner}
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
       <div>
@@ -12948,16 +13823,19 @@ function saveImportAsUnit(groupNames, groups) {
     const gparts  = groups[grp];
 
     // Convert imported part format → unit part format
+    // Strip any '?' sentinel from unrecognised edge fields (they would have been
+    // fixed by the user in the preview, or we clear them to '' on save)
+    const cleanEdge = v => (v && v.startsWith('?')) ? '' : (v || '');
     const parts = gparts.map(p => ({
       name:  p.name  || 'Part',
       qty:   parseInt(p.qty)  || 1,
       l:     parseInt(p.l)    || 0,
       w:     parseInt(p.w)    || 0,
       mat:   p.mat   || (MATS[0] || ''),
-      el1:   p.el1   || '',
-      el2:   p.el2   || '',
-      ew1:   p.ew1   || '',
-      ew2:   p.ew2   || '',
+      el1:   cleanEdge(p.el1),
+      el2:   cleanEdge(p.el2),
+      ew1:   cleanEdge(p.ew1),
+      ew2:   cleanEdge(p.ew2),
       holes: p.holes || '',
     }));
 
@@ -13070,7 +13948,7 @@ function _renderPanelsView() {
   };
 
   const rowsHtml = panelsState.items.map(p => `
-    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
@@ -13081,7 +13959,7 @@ function _renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:4px;flex-wrap:nowrap">
-        ${costingPrices.specialServices.length > 0 && canEditPrices() ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
@@ -13119,7 +13997,7 @@ function _renderPanelsView() {
 
       ${panelsState.items.length > 0 ? `
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px auto;gap:6px;padding:4px 10px;margin-bottom:2px">
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">NAME / DESCRIPTION</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">QTY</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">LENGTH mm</div>
@@ -13199,6 +14077,8 @@ const drawerState = {
   drawerCount:   4,
   potTopHeight: 192,  // face height of the small top drawer in pot mode
   customHeights: [],  // used when drawerType === 'custom'
+  boxHeight:    null, // manual box height override (null = auto: largestFace - 16)
+  topBoxHeight: null, // manual box height for pot top drawer (null = auto: topFace - 16)
   topType:     'solid', // 'solid' | 'nailers'
   hasBacking: true,
   materials: {
@@ -14690,6 +15570,26 @@ function drawerFaceHeights() {
   return Array(n).fill(Math.floor(available / n));
 }
 
+// ── Box height helpers ────────────────────────────────────────────────────────
+// Returns the effective box height for main/pot drawers.
+// Uses manual override if set, otherwise auto-calculates from face heights.
+function drawerEffectiveBoxH() {
+  const ds  = drawerState;
+  if (ds.boxHeight != null && ds.boxHeight > 0) return ds.boxHeight;
+  const fh = drawerFaceHeights();
+  // For pot: use the large drawer face; for equal/custom: tallest face
+  const refH = ds.drawerType === 'pot' ? fh[0] : Math.max(...fh);
+  return Math.max(10, refH - 16);
+}
+
+function drawerEffectiveTopBoxH() {
+  const ds  = drawerState;
+  if (ds.topBoxHeight != null && ds.topBoxHeight > 0) return ds.topBoxHeight;
+  const fh  = drawerFaceHeights();
+  const topH = fh[fh.length - 1]; // top face height
+  return Math.max(10, topH - 16);
+}
+
 function drawerGapCheck() {
   const ds = drawerState;
   const n  = ds.drawerCount;
@@ -14820,32 +15720,37 @@ function drawerSideSVG() {
   let boxesSVG  = '';
   let runnerSVG = '';
 
+  // Effective box heights (manual override or auto)
+  const effBoxH    = drawerEffectiveBoxH();
+  const effTopBoxH = drawerEffectiveTopBoxH();
+  const isPot      = ds.drawerType === 'pot';
+
   // Box parameters
-  const boxStartX = Math.max(backW + 2, sd - ddPx);  // box left edge
-  const boxEndX   = sd;                                // box right edge (flush with carcass front)
+  const boxStartX = Math.max(backW + 2, sd - ddPx);
+  const boxEndX   = sd;
   const boxInnerW = boxEndX - boxStartX;
 
   let yCur = sh;
   fh.forEach((h, i) => {
     const hPx      = Math.round(h * SCALE);
-    yCur          -= hPx;                        // face top y (matches front view)
+    yCur          -= hPx;
 
     const faceTop  = yCur;
     const faceBot  = yCur + hPx;
 
     // ── Drawer face (solid amber slab at the front) ───────────────────────
-    // In side view the face is seen edge-on: height=hPx, width=faceThPx
-    // It sits flush with the bottom of its slot and protrudes past the carcass front
     facesSVG += `
       <rect x="${sd}" y="${faceTop}" width="${faceThPx}" height="${hPx}"
         fill="rgba(212,145,58,0.35)" stroke="var(--amber)" stroke-width="1.5"/>`;
 
-    // ── Drawer box (dashed outline inside carcass) ────────────────────────
-    // Box height = face height - 16mm total clearance (8mm top and bottom)
-    const clearPx = Math.round(8 * SCALE);
-    const boxH    = Math.round((h - 16) * SCALE);
-    const boxTop  = faceTop + clearPx;
-    const boxBot  = boxTop + boxH;
+    // ── Drawer box (dashed outline) — use effective box height ────────────
+    // For pot drawers: last face in array (index = fh.length-1) is the top drawer
+    const isTopDrawer = isPot && i === fh.length - 1;
+    const actualBoxH  = isTopDrawer ? effTopBoxH : effBoxH;
+    const boxHpx      = Math.round(actualBoxH * SCALE);
+    const clearPx     = Math.round(((h - actualBoxH) / 2) * SCALE); // centre vertically in face slot
+    const boxTop      = faceTop + clearPx;
+    const boxBot      = boxTop + boxHpx;
 
     // Clamp to inner space
     const clTop = Math.max(innerTop, boxTop);
@@ -14966,8 +15871,17 @@ function renderDrawerBuilderHTML() {
 
   const matOpts  = (sel) => MATS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
   const edgeOpts = (sel) => ['',...EDGES].map(e=>`<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
-  const secOpts  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}]
-    .map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
+  // Build section list — standard rooms + any user-created rooms
+  const _stdSecs = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
+  const _userSecs = userRooms.filter(r => !_stdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
+  const _allSecs  = !isAdmin() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
+  const secOpts   = _allSecs.map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
+
+  // For regular users, ensure drawerState.section is one of their actual rooms
+  if (!isAdmin() && userRooms.length > 0) {
+    const validIds = _allSecs.map(s => s.id);
+    if (!validIds.includes(ds.section)) drawerState.section = _allSecs[0]?.id || ds.section;
+  }
 
   const typeBtn = (val, label, title) =>
     `<button onclick="drawerState.drawerType='${val}';drawerState.customHeights=[];drawerRedraw()" title="${title}"
@@ -15081,6 +15995,48 @@ function renderDrawerBuilderHTML() {
       </div>
 
       <div class="bldr-section">
+        <div class="bldr-section-head">📦 Box Sizes</div>
+        <div class="bldr-section-body">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.6">
+            Height of drawer box sides, fronts &amp; backs.<br>
+            Leave blank to auto-calculate (face height − 16mm).
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="${ds.drawerType === 'pot' ? 'Pot drawers (large)' : 'All drawers'}">${ds.drawerType === 'pot' ? 'Pot box H' : 'Box height'}</span>
+            <input class="bldr-input" type="number"
+              value="${ds.boxHeight != null ? ds.boxHeight : ''}"
+              min="30" max="600"
+              placeholder="${drawerEffectiveBoxH()}"
+              oninput="drawerState.boxHeight=this.value===''?null:parseFloat(this.value)||null;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px">
+            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ' (face − 16mm)' : ' — overridden'}
+          </div>
+          ${ds.drawerType === 'pot' ? `
+          <div class="bldr-row">
+            <span class="bldr-label" title="Top (small) drawer box height">Top box H</span>
+            <input class="bldr-input" type="number"
+              value="${ds.topBoxHeight != null ? ds.topBoxHeight : ''}"
+              min="30" max="400"
+              placeholder="${drawerEffectiveTopBoxH()}"
+              oninput="drawerState.topBoxHeight=this.value===''?null:parseFloat(this.value)||null;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
+            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 16mm)' : ' — overridden'}
+          </div>` : ''}
+          ${ds.boxHeight != null || ds.topBoxHeight != null ? `
+          <button onclick="drawerState.boxHeight=null;drawerState.topBoxHeight=null;drawerRedraw()"
+            style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Oswald',sans-serif;letter-spacing:1px">
+            ↺ RESET TO AUTO
+          </button>` : ''}
+        </div>
+      </div>
+
+      <div class="bldr-section">
         <div class="bldr-section-head">🎨 Materials</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Carcass</span>
@@ -15125,6 +16081,10 @@ function renderDrawerBuilderHTML() {
       <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
         <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
         <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
+        ${ds.drawerType === 'pot'
+          ? `<div>Pot box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>
+             <div>Top box height: <strong style="color:var(--amber)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight==null?' (auto)':' ✏'}</div>`
+          : `<div>Box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>`}
         ${fh.map((h,i)=>`<div>Drawer ${i+1}${i===0?' (bottom)':i===fh.length-1?' (top)':''}: <strong style="color:var(--amber)">${h}mm</strong></div>`).join('')}
       </div>
     </div>
@@ -15213,12 +16173,10 @@ function drawerCalcParts() {
   }
 
   // ── Drawer boxes ──────────────────────────────────────────────────────────
-  // Box side height: face height minus ~16mm clearance (runner hardware)
+  // Box side height: manual override or auto (face height − 16mm runner clearance)
   if (ds.drawerType === 'pot') {
-    const topH   = fh[fh.length - 1];
-    const largeH = fh[0];
-    const topBoxH   = topH   - 16;
-    const largeBoxH = largeH - 16;
+    const largeBoxH = drawerEffectiveBoxH();
+    const topBoxH   = drawerEffectiveTopBoxH();
 
     parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
     parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), boxW, largeBoxH, cm, ce));
@@ -15227,17 +16185,18 @@ function drawerCalcParts() {
     parts.push(p('Top Drawer Fronts & Backs', 2,       boxW, topBoxH, cm, ce));
     parts.push(p('Top Drawer Bottom',         1,       fullBoxW - 4, DD - 50, cm));
   } else {
-    // Equal or custom — use tallest face height for box height (conservative)
-    const maxFaceH = Math.max(...fh);
-    const boxH = maxFaceH - 16;
+    const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
       parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
       parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
     } else {
-      // Custom different heights — list each separately
+      // Custom different heights — list each separately using per-drawer auto calc
+      // but still honour a global boxHeight override if set
       fh.forEach((h, i) => {
-        const bh = h - 16;
+        const bh = ds.boxHeight != null && ds.boxHeight > 0
+          ? ds.boxHeight
+          : Math.max(10, h - 16);
         parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, boxW, bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Bottom`,        1, fullBoxW-4, DD-50, cm));
@@ -15251,15 +16210,26 @@ function drawerCalcParts() {
 function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
-  const id    = 'drw_' + Date.now();
-  customUnits.push({ id, name, section: drawerState.section, parts, price: 0 });
-  saveCustomUnits();
+  const id    = (!isAdmin() ? 'uu_drw_' : 'drw_') + Date.now();
+  const unit  = { id, name, section: drawerState.section, parts, price: 0 };
+  if (!isAdmin() && userRooms.length > 0) {
+    // Regular user — save to their own units list
+    userUnits.push(unit);
+    scheduleAutoSave();
+  } else {
+    // Admin / superuser — save to shared custom units
+    customUnits.push(unit);
+    saveCustomUnits();
+  }
+  if (!(id in quantities)) quantities[id] = 0;
   updateCounts();
+  renderPanel();
   alert(`✓ "${name}" added to ${drawerState.section} unit list!`);
 }
 
 // ═══════════════════════════════════════════════════════════
-// JOB P&L — PROFIT & LOSS RECONCILER (Superuser only)
+// JOB P&L — PROFIT & LOSS RECONCILER
+// Available to: superuser, admin, regular users
 // ═══════════════════════════════════════════════════════════
 
 // In-memory store: { [jobId]: { invoices: [{id,desc,supplier,amount}], notes:'' } }
@@ -15414,6 +16384,7 @@ function plCalcFromState(state) {
     costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
     costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
     costingPrices.matFullSheet    = snap.costingPrices.matFullSheet    || {};
+    costingPrices.matPriceDates   = snap.costingPrices.matPriceDates   || {};
     costingPrices.specialServices = snap.costingPrices.specialServices || [];
 
     userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
