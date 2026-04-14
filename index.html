@@ -2242,6 +2242,7 @@
   </div>
   <div id="wb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="hb-overlay" class="wb-overlay" style="display:none"></div>
+  <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
     <img id="img-lightbox-img" src="" alt="">
@@ -3421,14 +3422,11 @@ function _renderPanel() {
 
   // Width Builder button for Custom section (admin only)
   if (!isUserMode && currentSection === 'custom') {
-    html += `<div style="padding:14px 0 0">
-      <button class="btn btn-primary" style="font-size:13px;padding:10px 20px" onclick="openWidthBuilder()">
-        ⚡ Build Custom Width Unit
+    html += `<div style="padding:14px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" style="font-size:13px;padding:10px 24px" onclick="openCustomBuilder()">
+        ⚡ Build Custom Unit
       </button>
-      <button class="btn btn-primary" style="font-size:13px;padding:10px 20px;margin-left:10px" onclick="openHeightBuilder()">
-        ↕ Build Custom Height Unit
-      </button>
-      <span style="font-size:12px;color:var(--text-muted);margin-left:12px">Create a unit at a non-standard width based on an existing unit type</span>
+      <span style="font-size:12px;color:var(--text-muted)">Scale any unit to a custom width and height in one step</span>
     </div>`;
   }
 
@@ -5896,6 +5894,243 @@ function createWidthBuilderUnit() {
 // HEIGHT BUILDER
 // ═══════════════════════════════════════════════════════════
 let hbState = { catId: 'floor', baseUnitId: null, height: 2400 };
+
+// ── Combined Custom Unit Builder ─────────────────────────────────────────────
+// Merges width + height scaling into one modal, with an "All Units" category
+// that includes custom/imported/drawer units — not just room sections.
+const CB_CATEGORIES = [
+  { id:'all',      label:'All Units',           test: u => u.parts && u.parts.length > 0 },
+  { id:'floor',    label:'Floor (F*)',           test: u => /^F\d/.test(u.name) && u.section === 'kitchen' },
+  { id:'wall',     label:'Wall (W*)',            test: u => /^W\d/.test(u.name) && u.section === 'kitchen' },
+  { id:'bedroom',  label:'Bedroom',             test: u => u.section === 'mainbedroom' || u.section === 'sparebedroom' },
+  { id:'linnekast',label:'Linne Kas',           test: u => u.section === 'linnekast' },
+  { id:'bathroom', label:'Bathroom',            test: u => u.section === 'bathroom' },
+  { id:'custom',   label:'Custom / Imported',   test: u => !!(u.id && (u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_') || u.id.startsWith('uu_'))) },
+];
+
+let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined };
+
+function openCustomBuilder() {
+  const all = getEffectiveUnits().filter(u => u.parts && u.parts.length > 0);
+  if (!cbState.baseUnitId || !all.find(u => u.id === cbState.baseUnitId)) {
+    cbState.baseUnitId = all[0]?.id || null;
+  }
+  const base = all.find(u => u.id === cbState.baseUnitId);
+  if (base) {
+    if (!cbState.width)  cbState.width  = parseBaseWidth(base);
+    if (!cbState.height) cbState.height = parseBaseHeight(base);
+  }
+  renderCustomBuilder();
+  document.getElementById('cb-overlay').style.display = 'flex';
+}
+
+function closeCustomBuilder() {
+  document.getElementById('cb-overlay').style.display = 'none';
+}
+
+function renderCustomBuilder() {
+  const all = getEffectiveUnits();
+
+  // Category tabs
+  const catTabs = CB_CATEGORIES.map(c => {
+    const hasUnits = all.filter(c.test).some(u => u.parts && u.parts.length > 0);
+    if (!hasUnits && c.id !== 'all') return '';
+    return `<button onclick="cbState.catId='${c.id}';cbState.baseUnitId=null;renderCustomBuilder()"
+      style="padding:5px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;
+      text-transform:uppercase;border:1px solid var(--border);cursor:pointer;white-space:nowrap;
+      background:${c.id===cbState.catId?'var(--amber)':'var(--bg3)'};
+      color:${c.id===cbState.catId?'#000':'var(--text-muted)'}">
+      ${c.label}
+    </button>`;
+  }).join('');
+
+  const cat   = CB_CATEGORIES.find(c => c.id === cbState.catId) || CB_CATEGORIES[0];
+  const units = all.filter(cat.test).filter(u => u.parts && u.parts.length > 0);
+
+  if (!cbState.baseUnitId && units.length) cbState.baseUnitId = units[0].id;
+  const base = units.find(u => u.id === cbState.baseUnitId);
+
+  const unitOpts = units.map(u =>
+    `<option value="${u.id}" ${u.id===cbState.baseUnitId?'selected':''}>${u.name}</option>`).join('');
+
+  const baseW = base ? parseBaseWidth(base)  : 600;
+  const baseH = base ? parseBaseHeight(base) : 720;
+  const newW  = cbState.width  ?? baseW;
+  const newH  = cbState.height ?? baseH;
+  const minW  = 150, maxW = 2400;
+  const minH  = 150, maxH = 2800;
+
+  // Scale parts: width first then height
+  let previewRows = '';
+  let unitName = '';
+  if (base) {
+    const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
+    const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
+    unitName = cbState.customName !== undefined
+      ? cbState.customName
+      : `${base.name.replace(/\d{3,4}/, '')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
+    previewRows = scaled.map(p => {
+      const lC = p._lMode !== null, wC = p._wMode !== null;
+      const lHtml = `<span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span>`;
+      const wHtml = `<span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span>`;
+      return `<tr>
+        <td>${p.name}</td>
+        <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
+        <td>${lHtml}</td><td>${wHtml}</td>
+        <td style="color:var(--text-muted);font-size:11px">${p.mat}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const wDelta = newW - baseW;
+  const hDelta = newH - baseH;
+  const wLabel = wDelta === 0 ? '' : `${wDelta > 0?'+':''}${wDelta}mm`;
+  const hLabel = hDelta === 0 ? '' : `${hDelta > 0?'+':''}${hDelta}mm`;
+
+  document.getElementById('cb-overlay').innerHTML = `
+    <div class="wb-modal" style="max-width:900px;width:95vw">
+      <div class="wb-header">
+        <div class="wb-title">⚡ Build Custom Unit</div>
+        <button onclick="closeCustomBuilder()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div class="wb-body">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${catTabs}</div>
+
+        <div class="wb-controls" style="margin-bottom:14px">
+          <div class="wb-field">
+            <label>Base Unit</label>
+            <select class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
+              ${unitOpts}
+            </select>
+          </div>
+          <div class="wb-field">
+            <label>Base dimensions</label>
+            <div style="padding:7px 10px;background:var(--bg3);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:12px">
+              ${baseW}W × ${baseH}H mm
+            </div>
+          </div>
+        </div>
+
+        <!-- Width row -->
+        <div class="wb-width-row" style="margin-bottom:10px">
+          <span class="wb-width-label">Width</span>
+          <input type="range" class="wb-slider" id="cb-w-slider" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            oninput="cbState.width=parseInt(this.value);cbState.customName=undefined;
+              document.getElementById('cb-w-num').value=this.value;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <input id="cb-w-num" type="number" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
+            oninput="const v=Math.max(${minW},Math.min(${maxW},parseInt(this.value)||${minW}));
+              cbState.width=v;cbState.customName=undefined;
+              document.getElementById('cb-w-slider').value=v;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(v,${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <span class="wb-width-unit">mm</span>
+          <span id="cb-w-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${wLabel}</span>
+        </div>
+
+        <!-- Height row -->
+        <div class="wb-width-row" style="margin-bottom:16px">
+          <span class="wb-width-label">Height</span>
+          <input type="range" class="wb-slider" id="cb-h-slider" min="${minH}" max="${maxH}" step="10" value="${newH}"
+            oninput="cbState.height=parseInt(this.value);cbState.customName=undefined;
+              document.getElementById('cb-h-num').value=this.value;
+              document.getElementById('cb-h-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseH});
+              renderCbPreview(${baseW},${baseH})">
+          <input id="cb-h-num" type="number" min="${minH}" max="${maxH}" step="10" value="${newH}"
+            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
+            oninput="const v=Math.max(${minH},Math.min(${maxH},parseInt(this.value)||${minH}));
+              cbState.height=v;cbState.customName=undefined;
+              document.getElementById('cb-h-slider').value=v;
+              document.getElementById('cb-h-delta').textContent=wbUpdateDelta(v,${baseH});
+              renderCbPreview(${baseW},${baseH})">
+          <span class="wb-width-unit">mm</span>
+          <span id="cb-h-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${hLabel}</span>
+        </div>
+
+        <div class="wb-preview-head">Parts Preview
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal;letter-spacing:0;text-transform:none">
+            — <span style="color:var(--amber)">amber</span> = scaled dimension
+          </span>
+        </div>
+        <table class="wb-preview-table">
+          <thead><tr><th>Part</th><th>Qty</th><th>Length</th><th>Width</th><th>Material</th></tr></thead>
+          <tbody id="cb-preview-body">${previewRows}</tbody>
+        </table>
+      </div>
+      <div class="wb-footer">
+        <input class="wb-name-input" id="cb-unit-name" value="${unitName.replace(/"/g,'&quot;')}"
+          placeholder="Unit name…" oninput="cbState.customName=this.value">
+        <button class="btn btn-primary" style="white-space:nowrap" onclick="createCustomBuilderUnit()">
+          ✚ Create Unit
+        </button>
+        <button class="btn btn-ghost" onclick="closeCustomBuilder()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function renderCbPreview(baseW, baseH) {
+  const base = getEffectiveUnits().find(u => u.id === cbState.baseUnitId);
+  if (!base) return;
+  const newW = cbState.width ?? baseW;
+  const newH = cbState.height ?? baseH;
+  const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
+  const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
+  const tbody = document.getElementById('cb-preview-body');
+  if (!tbody) return;
+  tbody.innerHTML = scaled.map(p => {
+    const lC = p._lMode !== null, wC = p._wMode !== null;
+    return `<tr>
+      <td>${p.name}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
+      <td><span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span></td>
+      <td><span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${p.mat}</td>
+    </tr>`;
+  }).join('');
+  const nameEl = document.getElementById('cb-unit-name');
+  if (nameEl && cbState.customName === undefined) {
+    nameEl.value = `${base.name.replace(/\d{3,4}/,'')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
+  }
+}
+
+function createCustomBuilderUnit() {
+  const base = getEffectiveUnits().find(u => u.id === cbState.baseUnitId);
+  if (!base) return;
+  const baseW = parseBaseWidth(base);
+  const baseH = parseBaseHeight(base);
+  const newW  = cbState.width  ?? baseW;
+  const newH  = cbState.height ?? baseH;
+  const nameEl = document.getElementById('cb-unit-name');
+  const unitName = nameEl?.value.trim() || `${base.name} ${newW}×${newH}`;
+
+  const scaledParts = base.parts.map(p => {
+    const sw = scalePart(p, baseW, newW);
+    const sh = scalePartHeight(sw, baseH, newH);
+    const { _lMode, _wMode, ...clean } = sh;
+    return clean;
+  });
+
+  const id = (!isAdmin() ? 'uu_cb_' : 'custom_cb_') + Date.now();
+  const section = currentSection;
+  if (!isAdmin() && userRooms.length > 0) {
+    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    if (!(id in quantities)) quantities[id] = 0;
+    scheduleAutoSave();
+  } else {
+    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    if (!(id in quantities)) quantities[id] = 0;
+    saveCustomUnits();
+  }
+  updateCounts();
+  renderPanel();
+  closeCustomBuilder();
+  // Flash confirmation
+  setTimeout(() => alert(`✓ "${unitName}" added to ${section} unit list!`), 50);
+}
 
 function openHeightBuilder() {
   const allUnits = getEffectiveUnits();
