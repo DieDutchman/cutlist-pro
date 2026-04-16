@@ -5364,36 +5364,71 @@ function autoUnitNameHeight(baseUnit, newHeight) {
 
 function parseBaseHeight(unit) {
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
-  // Common standard heights — try to match exactly (±5mm)
-  const knownH = [2400, 2100, 2000, 1800, 1584, 2399, 2101, 2099, 1999, 1801, 1799];
-  for (const h of knownH) {
+
+  // 1. Known wardrobe / linnekast heights (exact match ±5mm)
+  const knownTall = [2400, 2100, 2000, 1800, 1584, 2399, 2101, 2099, 1999, 1801, 1799];
+  for (const h of knownTall) {
     if (dims.some(d => Math.abs(d - h) <= 5)) return h;
   }
-  // Fallback: tallest dimension ≥ 1500mm that appears most often
+
+  // 2. Any dimension ≥ 1500mm (non-standard tall units)
   const tall = dims.filter(d => d >= 1500);
-  if (!tall.length) return 2400;
-  const freq = {};
-  tall.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
-  return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  if (tall.length) {
+    const freq = {};
+    tall.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
+    return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+
+  // 3. Short units (floor ~720-800mm, wall ~600-720mm, bathroom ~850mm):
+  //    Find the Sides part — its longest dimension IS the unit height.
+  const sidesPart = unit.parts.find(p => /\bsides?\b/i.test(p.name));
+  if (sidesPart) {
+    // The height is the vertical dimension — for carcass sides it's the 'l' (length) dimension
+    // which is typically the larger of l and w unless the unit is very shallow
+    const longer  = Math.max(sidesPart.l, sidesPart.w);
+    const shorter = Math.min(sidesPart.l, sidesPart.w);
+    // Height is the longer axis unless depth (shorter) > height (unlikely for carcass sides)
+    return longer > 200 ? longer : shorter;
+  }
+
+  // 4. Fallback: most common mid-range dimension ≥ 300mm (covers doors, backing, etc.)
+  const med = dims.filter(d => d >= 300 && d < 1500);
+  if (med.length) {
+    const freq = {};
+    med.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
+    return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+
+  return 720; // sensible default for kitchen floor units
 }
 
 function scalePartHeight(part, baseHeight, newHeight) {
   const delta = newHeight - baseHeight;
-  const FULL_THR = 120; // within 120mm of unit height → height-derived
+  if (delta === 0) return { ...part, _lMode: null, _wMode: null };
+
+  // Threshold: 15% of unit height, clamped 60–200mm.
+  // This makes the function work for both short kitchen units (~720mm)
+  // and full-height wardrobes (2400mm) without hard-coded magic numbers.
+  const FULL_THR = Math.min(200, Math.max(60, Math.round(baseHeight * 0.15)));
+
   const n = part.name.toLowerCase();
 
-  // These parts are width/depth pieces — their long dimension is NOT the unit height
+  // These parts never scale with unit height — they are horizontal/depth pieces
   const neverScaleH = /\b(top|bottom|shelf|shelve|base|nailer|kick|back|rail|drawer[\s-]?(front|back|side|bottom|box)|support)\b/.test(n);
   if (neverScaleH) return { ...part, _lMode: null, _wMode: null };
+
+  // Minimum part dimension to consider as height-derived:
+  // at least 30% of the base height to avoid matching small structural pieces
+  const minDim = Math.max(80, Math.round(baseHeight * 0.30));
 
   let lMode = null, wMode = null;
   const dl = Math.abs(part.l - baseHeight);
   const dw = Math.abs(part.w - baseHeight);
 
-  if (part.l >= 500 && dl <= FULL_THR) lMode = 'full';
-  if (part.w >= 500 && dw <= FULL_THR) wMode = 'full';
+  if (part.l >= minDim && dl <= FULL_THR) lMode = 'full';
+  if (part.w >= minDim && dw <= FULL_THR) wMode = 'full';
 
-  // Keep only the closer match
+  // Keep only the closer match if both qualify
   if (lMode && wMode) { if (dl <= dw) wMode = null; else lMode = null; }
 
   const newL = lMode ? Math.max(1, part.l + delta) : part.l;
@@ -5960,19 +5995,29 @@ function renderCustomBuilder() {
   const minW  = 150, maxW = 2400;
   const minH  = 150, maxH = 2800;
 
-  // Scale parts: width first then height
+  // Scale parts: width first then height — track which dims each step changed separately
   let previewRows = '';
   let unitName = '';
   if (base) {
-    const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
-    const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
     unitName = cbState.customName !== undefined
       ? cbState.customName
       : `${base.name.replace(/\d{3,4}/, '')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
-    previewRows = scaled.map(p => {
-      const lC = p._lMode !== null, wC = p._wMode !== null;
-      const lHtml = `<span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span>`;
-      const wHtml = `<span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span>`;
+    previewRows = base.parts.map(p => {
+      const afterW    = scalePart(p, baseW, newW);
+      const wLchg     = afterW._lMode !== null;
+      const wWchg     = afterW._wMode !== null;
+      const afterWH   = scalePartHeight(afterW, baseH, newH);
+      const hLchg     = afterWH._lMode !== null;
+      const hWchg     = afterWH._wMode !== null;
+      const lAmber    = wLchg || hLchg;
+      const wAmber    = wWchg || hWchg;
+      const mkBadge   = (byW, byH) =>
+        byW && !byH ? `<span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 3px;margin-left:2px;border-radius:2px">W</span>`
+        : !byW && byH ? `<span style="font-size:8px;background:rgba(93,186,110,0.3);color:#5dba6e;padding:1px 3px;margin-left:2px;border-radius:2px">H</span>`
+        : byW && byH  ? `<span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 3px;margin-left:2px;border-radius:2px">W+H</span>`
+        : '';
+      const lHtml = `<span class="wb-dim${lAmber?' wb-changed':''}">${afterWH.l}mm${mkBadge(wLchg,hLchg)}</span>`;
+      const wHtml = `<span class="wb-dim${wAmber?' wb-changed':''}">${afterWH.w}mm${mkBadge(wWchg,hWchg)}</span>`;
       return `<tr>
         <td>${p.name}</td>
         <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
@@ -6011,28 +6056,8 @@ function renderCustomBuilder() {
           </div>
         </div>
 
-        <!-- Width row -->
+        <!-- Height row — first -->
         <div class="wb-width-row" style="margin-bottom:10px">
-          <span class="wb-width-label">Width</span>
-          <input type="range" class="wb-slider" id="cb-w-slider" min="${minW}" max="${maxW}" step="10" value="${newW}"
-            oninput="cbState.width=parseInt(this.value);cbState.customName=undefined;
-              document.getElementById('cb-w-num').value=this.value;
-              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseW});
-              renderCbPreview(${baseW},${baseH})">
-          <input id="cb-w-num" type="number" min="${minW}" max="${maxW}" step="10" value="${newW}"
-            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
-            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
-            oninput="const v=Math.max(${minW},Math.min(${maxW},parseInt(this.value)||${minW}));
-              cbState.width=v;cbState.customName=undefined;
-              document.getElementById('cb-w-slider').value=v;
-              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(v,${baseW});
-              renderCbPreview(${baseW},${baseH})">
-          <span class="wb-width-unit">mm</span>
-          <span id="cb-w-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${wLabel}</span>
-        </div>
-
-        <!-- Height row -->
-        <div class="wb-width-row" style="margin-bottom:16px">
           <span class="wb-width-label">Height</span>
           <input type="range" class="wb-slider" id="cb-h-slider" min="${minH}" max="${maxH}" step="10" value="${newH}"
             oninput="cbState.height=parseInt(this.value);cbState.customName=undefined;
@@ -6051,9 +6076,32 @@ function renderCustomBuilder() {
           <span id="cb-h-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${hLabel}</span>
         </div>
 
+        <!-- Width row — second -->
+        <div class="wb-width-row" style="margin-bottom:16px">
+          <span class="wb-width-label">Width</span>
+          <input type="range" class="wb-slider" id="cb-w-slider" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            oninput="cbState.width=parseInt(this.value);cbState.customName=undefined;
+              document.getElementById('cb-w-num').value=this.value;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(parseInt(this.value),${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <input id="cb-w-num" type="number" min="${minW}" max="${maxW}" step="10" value="${newW}"
+            style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+            font-family:'JetBrains Mono',monospace;font-size:15px;padding:6px 8px;outline:none;text-align:center"
+            oninput="const v=Math.max(${minW},Math.min(${maxW},parseInt(this.value)||${minW}));
+              cbState.width=v;cbState.customName=undefined;
+              document.getElementById('cb-w-slider').value=v;
+              document.getElementById('cb-w-delta').textContent=wbUpdateDelta(v,${baseW});
+              renderCbPreview(${baseW},${baseH})">
+          <span class="wb-width-unit">mm</span>
+          <span id="cb-w-delta" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right">${wLabel}</span>
+        </div>
+
         <div class="wb-preview-head">Parts Preview
           <span style="font-size:11px;color:var(--text-muted);font-weight:normal;letter-spacing:0;text-transform:none">
-            — <span style="color:var(--amber)">amber</span> = scaled dimension
+            — <span style="color:var(--amber)">amber</span> = changed &nbsp;|&nbsp;
+            <span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 4px;border-radius:2px">W</span> width &nbsp;
+            <span style="font-size:8px;background:rgba(93,186,110,0.3);color:#5dba6e;padding:1px 4px;border-radius:2px">H</span> height &nbsp;
+            <span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 4px;border-radius:2px">W+H</span> both
           </span>
         </div>
         <table class="wb-preview-table">
@@ -6075,22 +6123,38 @@ function renderCustomBuilder() {
 function renderCbPreview(baseW, baseH) {
   const base = getEffectiveUnits().find(u => u.id === cbState.baseUnitId);
   if (!base) return;
-  const newW = cbState.width ?? baseW;
+  const newW = cbState.width  ?? baseW;
   const newH = cbState.height ?? baseH;
-  const scaledW = base.parts.map(p => scalePart(p, baseW, newW));
-  const scaled  = scaledW.map(p => scalePartHeight(p, baseH, newH));
-  const tbody = document.getElementById('cb-preview-body');
-  if (!tbody) return;
-  tbody.innerHTML = scaled.map(p => {
-    const lC = p._lMode !== null, wC = p._wMode !== null;
+
+  const mkBadge = (byW, byH) =>
+    byW && !byH ? `<span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 3px;margin-left:2px;border-radius:2px;vertical-align:middle">W</span>`
+    : !byW && byH ? `<span style="font-size:8px;background:rgba(93,186,110,0.3);color:#5dba6e;padding:1px 3px;margin-left:2px;border-radius:2px;vertical-align:middle">H</span>`
+    : byW && byH  ? `<span style="font-size:8px;background:rgba(212,145,58,0.3);color:var(--amber);padding:1px 3px;margin-left:2px;border-radius:2px;vertical-align:middle">W+H</span>`
+    : '';
+
+  const rows = base.parts.map(p => {
+    // Apply width first, snapshot flags, then apply height and snapshot its flags
+    const afterW  = scalePart(p, baseW, newW);
+    const wLchg   = afterW._lMode !== null;
+    const wWchg   = afterW._wMode !== null;
+    const afterWH = scalePartHeight(afterW, baseH, newH);
+    const hLchg   = afterWH._lMode !== null;
+    const hWchg   = afterWH._wMode !== null;
+
+    const lHtml = `<span class="wb-dim${(wLchg||hLchg)?' wb-changed':''}">${afterWH.l}mm${mkBadge(wLchg,hLchg)}</span>`;
+    const wHtml = `<span class="wb-dim${(wWchg||hWchg)?' wb-changed':''}">${afterWH.w}mm${mkBadge(wWchg,hWchg)}</span>`;
+
     return `<tr>
       <td>${p.name}</td>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace">${p.qty}</td>
-      <td><span class="wb-dim ${lC?'wb-changed':''}">${p.l}mm</span></td>
-      <td><span class="wb-dim ${wC?'wb-changed':''}">${p.w}mm</span></td>
+      <td>${lHtml}</td>
+      <td>${wHtml}</td>
       <td style="color:var(--text-muted);font-size:11px">${p.mat}</td>
     </tr>`;
-  }).join('');
+  });
+
+  const tbody = document.getElementById('cb-preview-body');
+  if (tbody) tbody.innerHTML = rows.join('');
   const nameEl = document.getElementById('cb-unit-name');
   if (nameEl && cbState.customName === undefined) {
     nameEl.value = `${base.name.replace(/\d{3,4}/,'')}${newW}×${newH}`.replace(/\s+/g,' ').trim();
