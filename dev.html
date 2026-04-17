@@ -3674,8 +3674,10 @@ function clearAll() {
     quoteState.tops       = { m2: 0, type: 'Platinum', pricePerM2: 2900 };
     quoteState.consultFee    = false;
     quoteState.dieselFee     = false;
+    quoteState.deliveryFee   = false;
     quoteState.consultFeeAmt = 500;
     quoteState.dieselFeeAmt  = 1800;
+    quoteState.deliveryFeeAmt= 0;
     quoteState.markup     = 0.40;
     quoteState.hingeType  = 'soft';
     quoteState.runnerType = 'soft';
@@ -5364,36 +5366,71 @@ function autoUnitNameHeight(baseUnit, newHeight) {
 
 function parseBaseHeight(unit) {
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
-  // Common standard heights — try to match exactly (±5mm)
-  const knownH = [2400, 2100, 2000, 1800, 1584, 2399, 2101, 2099, 1999, 1801, 1799];
-  for (const h of knownH) {
+
+  // 1. Known wardrobe / linnekast heights (exact match ±5mm)
+  const knownTall = [2400, 2100, 2000, 1800, 1584, 2399, 2101, 2099, 1999, 1801, 1799];
+  for (const h of knownTall) {
     if (dims.some(d => Math.abs(d - h) <= 5)) return h;
   }
-  // Fallback: tallest dimension ≥ 1500mm that appears most often
+
+  // 2. Any dimension ≥ 1500mm (non-standard tall units)
   const tall = dims.filter(d => d >= 1500);
-  if (!tall.length) return 2400;
-  const freq = {};
-  tall.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
-  return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  if (tall.length) {
+    const freq = {};
+    tall.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
+    return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+
+  // 3. Short units (floor ~720-800mm, wall ~600-720mm, bathroom ~850mm):
+  //    Find the Sides part — its longest dimension IS the unit height.
+  const sidesPart = unit.parts.find(p => /\bsides?\b/i.test(p.name));
+  if (sidesPart) {
+    // The height is the vertical dimension — for carcass sides it's the 'l' (length) dimension
+    // which is typically the larger of l and w unless the unit is very shallow
+    const longer  = Math.max(sidesPart.l, sidesPart.w);
+    const shorter = Math.min(sidesPart.l, sidesPart.w);
+    // Height is the longer axis unless depth (shorter) > height (unlikely for carcass sides)
+    return longer > 200 ? longer : shorter;
+  }
+
+  // 4. Fallback: most common mid-range dimension ≥ 300mm (covers doors, backing, etc.)
+  const med = dims.filter(d => d >= 300 && d < 1500);
+  if (med.length) {
+    const freq = {};
+    med.forEach(d => { const r = Math.round(d / 10) * 10; freq[r] = (freq[r] || 0) + 1; });
+    return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+
+  return 720; // sensible default for kitchen floor units
 }
 
 function scalePartHeight(part, baseHeight, newHeight) {
   const delta = newHeight - baseHeight;
-  const FULL_THR = 120; // within 120mm of unit height → height-derived
+  if (delta === 0) return { ...part, _lMode: null, _wMode: null };
+
+  // Threshold: 15% of unit height, clamped 60–200mm.
+  // This makes the function work for both short kitchen units (~720mm)
+  // and full-height wardrobes (2400mm) without hard-coded magic numbers.
+  const FULL_THR = Math.min(200, Math.max(60, Math.round(baseHeight * 0.15)));
+
   const n = part.name.toLowerCase();
 
-  // These parts are width/depth pieces — their long dimension is NOT the unit height
+  // These parts never scale with unit height — they are horizontal/depth pieces
   const neverScaleH = /\b(top|bottom|shelf|shelve|base|nailer|kick|back|rail|drawer[\s-]?(front|back|side|bottom|box)|support)\b/.test(n);
   if (neverScaleH) return { ...part, _lMode: null, _wMode: null };
+
+  // Minimum part dimension to consider as height-derived:
+  // at least 30% of the base height to avoid matching small structural pieces
+  const minDim = Math.max(80, Math.round(baseHeight * 0.30));
 
   let lMode = null, wMode = null;
   const dl = Math.abs(part.l - baseHeight);
   const dw = Math.abs(part.w - baseHeight);
 
-  if (part.l >= 500 && dl <= FULL_THR) lMode = 'full';
-  if (part.w >= 500 && dw <= FULL_THR) wMode = 'full';
+  if (part.l >= minDim && dl <= FULL_THR) lMode = 'full';
+  if (part.w >= minDim && dw <= FULL_THR) wMode = 'full';
 
-  // Keep only the closer match
+  // Keep only the closer match if both qualify
   if (lMode && wMode) { if (dl <= dw) wMode = null; else lMode = null; }
 
   const newL = lMode ? Math.max(1, part.l + delta) : part.l;
@@ -5463,6 +5500,94 @@ try {
 
 function saveBedroomAddons() {
   try { localStorage.setItem('cutlist_bedroom_addons', JSON.stringify(bedroomAddons)); } catch(e) {}
+}
+
+// ── Addon Presets — save/load sets of plant-ons, fillers, spacers ─────────────
+let addonPresets = [];
+try {
+  addonPresets = JSON.parse(localStorage.getItem('cutlist_addon_presets') || '[]');
+} catch(e) {}
+
+function saveAddonPresetsLocal() {
+  try { localStorage.setItem('cutlist_addon_presets', JSON.stringify(addonPresets)); } catch(e) {}
+}
+
+function saveAddonPreset(secId) {
+  const name = prompt('Name this preset (e.g. "Bedroom A plant-ons"):');
+  if (!name || !name.trim()) return;
+  const section = bedroomAddons[secId];
+  const preset = {
+    id: 'preset_' + Date.now(),
+    name: name.trim(),
+    secId,
+    plantOn: JSON.parse(JSON.stringify(section.plantOn)),
+    spacers:  JSON.parse(JSON.stringify(section.spacers)),
+    savedAt: new Date().toLocaleDateString('en-ZA'),
+  };
+  addonPresets.push(preset);
+  saveAddonPresetsLocal();
+  pushAddonPresetsToCloud();
+  renderPanel();
+  alert('✓ Preset "' + preset.name + '" saved!');
+}
+
+function deleteAddonPreset(id) {
+  if (!confirm('Delete this preset?')) return;
+  addonPresets = addonPresets.filter(p => p.id !== id);
+  saveAddonPresetsLocal();
+  pushAddonPresetsToCloud();
+  renderPanel();
+}
+
+function applyAddonPreset(presetId, targetSecId) {
+  const preset = addonPresets.find(p => p.id === presetId);
+  if (!preset) return;
+  if (!confirm(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons and spacers.`)) return;
+  bedroomAddons[targetSecId].plantOn = JSON.parse(JSON.stringify(preset.plantOn));
+  bedroomAddons[targetSecId].spacers  = JSON.parse(JSON.stringify(preset.spacers));
+  saveBedroomAddons();
+  renderPanel();
+}
+
+function pushAddonPresetsToCloud() {
+  if (!sbUser) return;
+  clearTimeout(pushAddonPresetsToCloud._timer);
+  pushAddonPresetsToCloud._timer = setTimeout(async () => {
+    try {
+      await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ templates: Object.assign({}, await _getCloudTemplates(), { addonPresets }) }),
+      });
+    } catch(e) { console.warn('[AddonPresets] Cloud push failed:', e); }
+  }, 1500);
+}
+
+async function _getCloudTemplates() {
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=templates`);
+    if (!res.ok) return {};
+    const rows = await res.json();
+    return rows[0]?.templates || {};
+  } catch(e) { return {}; }
+}
+
+function buildAddonPresetsBar(secId) {
+  if (!addonPresets.length) return `
+    <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+      No presets yet — configure your plant-ons and spacers then click <strong style="color:var(--amber)">Save as Preset</strong> to reuse them on future jobs.
+    </div>`;
+  return addonPresets.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg3);border:1px solid var(--border);margin-bottom:4px;border-radius:2px">
+      <span style="flex:1;font-size:12px;color:var(--text)">${p.name}</span>
+      <span style="font-size:10px;color:var(--text-muted)">${p.savedAt||''}</span>
+      <button onclick="applyAddonPreset('${p.id}','${secId}')"
+        style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;padding:3px 10px;cursor:pointer">
+        APPLY
+      </button>
+      <button onclick="deleteAddonPreset('${p.id}')"
+        style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 6px;cursor:pointer">×</button>
+    </div>`).join('');
 }
 
 function _calcItemCost(item) {
@@ -5552,13 +5677,25 @@ function buildPlantOnCard(secId) {
   const body = po.enabled ? `
     <div class="addon-body">
       ${itemsHtml}
-      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap">
         <button onclick="bedroomAddons['${secId}'].plantOn.items.push(defaultAddon());${save}"
           style="background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:6px 16px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px">
           + ADD PANEL
         </button>
         ${totalCost > 0 ? `<span style="font-size:12px;color:var(--text-muted)">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>` : ''}
+        <button onclick="saveAddonPreset('${secId}')"
+          style="background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.4);color:#4caf82;padding:5px 12px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;margin-left:auto">
+          💾 SAVE AS PRESET
+        </button>
       </div>
+      ${addonPresets.length > 0 ? `
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;margin-bottom:6px">PRESETS</div>
+        ${buildAddonPresetsBar(secId)}
+      </div>` : `
+      <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+        💡 Save as preset to reuse these panels on future jobs.
+      </div>`}
     </div>` : '';
 
   return `<div class="addon-card ${po.enabled ? 'active' : ''}">
@@ -6438,8 +6575,10 @@ let quoteState = {
   tops: { m2: 0, type: 'Platinum', pricePerM2: 2900 },
   consultFee: false,
   dieselFee: false,
+  deliveryFee: false,
   consultFeeAmt: 500,
   dieselFeeAmt: 1800,
+  deliveryFeeAmt: 0,
   hingeType:  'soft',
   runnerType: 'soft',
   topsOpen: false,
@@ -6452,8 +6591,10 @@ try {
   if (qs.tops)                     quoteState.tops       = {...quoteState.tops, ...qs.tops};
   if (qs.consultFee    !== undefined) quoteState.consultFee    = qs.consultFee;
   if (qs.dieselFee     !== undefined) quoteState.dieselFee     = qs.dieselFee;
+  if (qs.deliveryFee   !== undefined) quoteState.deliveryFee   = qs.deliveryFee;
   if (qs.consultFeeAmt !== undefined) quoteState.consultFeeAmt = qs.consultFeeAmt;
   if (qs.dieselFeeAmt  !== undefined) quoteState.dieselFeeAmt  = qs.dieselFeeAmt;
+  if (qs.deliveryFeeAmt!== undefined) quoteState.deliveryFeeAmt= qs.deliveryFeeAmt;
   if (qs.hingeType  !== undefined) quoteState.hingeType  = qs.hingeType;
   if (qs.runnerType !== undefined) quoteState.runnerType = qs.runnerType;
   if (qs.topsOpen   !== undefined) quoteState.topsOpen   = qs.topsOpen;
@@ -6532,12 +6673,13 @@ function _renderQuoteView() {
   const topsVAT     = (topsExcl + topsDelivery) * 0.15;
   const topsHandling= (topsExcl + topsDelivery) * 0.10;   // handling excl. VAT
   const topsTotal   = topsExcl + topsDelivery + topsHandling; // excl. VAT
-  const consultTotal  = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
-  const dieselTotal   = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
-  const extrasTotal   = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const consultTotal   = quoteState.consultFee  ? (quoteState.consultFeeAmt||500)  : 0; // excl. VAT
+  const dieselTotal    = quoteState.dieselFee   ? (quoteState.dieselFeeAmt||1800)  : 0;
+  const deliveryTotal  = quoteState.deliveryFee ? (quoteState.deliveryFeeAmt||0)   : 0;
+  const extrasTotal    = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const unitsWithMarkup = unitsTotal * (1 + quoteState.markup);
-  const subtotal      = unitsTotal + topsTotal + consultTotal + dieselTotal + extrasTotal;
-  const withMarkup    = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
 
   // ── Main area: unit breakdown ──
   let mainHtml = `<div class="qv-title">
@@ -6700,7 +6842,7 @@ function _renderQuoteView() {
       <span>Handling (10%): ${fmt(topsHandling)}</span>
     </div>` : ''}` : ''}`;
 
-  const feesTotal = consultTotal + dieselTotal;
+  const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
     onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()">
     <span>Fees ${feesTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(feesTotal)}</span>` : ''}</span>
@@ -6732,6 +6874,20 @@ function _renderQuoteView() {
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.dieselFeeAmt=parseFloat(this.value)||1800;saveQuoteState();refreshQuoteTotals()">
+      </span>
+    </label>
+    <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none">
+      <input type="checkbox" ${quoteState.deliveryFee ? 'checked' : ''}
+        onchange="quoteState.deliveryFee=this.checked;saveQuoteState();refreshQuoteTotals()"
+        style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
+      <span style="font-size:13px;color:var(--text-dim);flex:1">Delivery <span style="font-size:11px;color:var(--text-muted)">(material delivery fee)</span></span>
+      <span style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;color:var(--text-muted)">R</span>
+        <input type="number" min="0" value="${quoteState.deliveryFeeAmt||0}"
+          placeholder="0"
+          style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+          onchange="quoteState.deliveryFeeAmt=parseFloat(this.value)||0;saveQuoteState();refreshQuoteTotals()">
       </span>
     </label>
   </div>` : ''}`;
@@ -6827,6 +6983,10 @@ function _renderQuoteView() {
       ${dieselTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Diesel</span>
         <span class="val" id="qv-val-diesel">${fmt(dieselTotal)}</span>
+      </div>` : ''}
+      ${deliveryTotal > 0 ? `<div class="qv-total-row">
+        <span class="label">Delivery <span style="font-size:10px;color:var(--text-muted)">(material delivery)</span></span>
+        <span class="val" id="qv-val-delivery">${fmt(deliveryTotal)}</span>
       </div>` : ''}
       ${extrasTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Extras</span>
@@ -7281,18 +7441,19 @@ function computeQuoteTotals() {
   const topsDelivery = topsExcl > 0 ? 500 : 0;
   const topsHandling = (topsExcl + topsDelivery) * 0.10;
   const topsTotal    = topsExcl + topsDelivery + topsHandling; // matches renderQuoteView exactly
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500)  : 0;
-  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800)  : 0;
+  const consultTotal = quoteState.consultFee  ? (quoteState.consultFeeAmt||500)  : 0;
+  const dieselTotal  = quoteState.dieselFee   ? (quoteState.dieselFeeAmt||1800)  : 0;
+  const deliveryTotal= quoteState.deliveryFee ? (quoteState.deliveryFeeAmt||0)   : 0;
   // Recalculate dynamic extra amounts
   quoteState.extras.forEach((e, i) => {
     if (e.baseMode !== undefined)          quoteState.extras[i].amount = _calcBaseExtraCost(e);
     else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
-  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + extrasTotal;
+  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
   const markup       = quoteState.markup || 0;
-  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + extrasTotal;
-  return { unitsTotal, topsTotal, consultTotal, dieselTotal, extrasTotal, subtotal, grand, markup };
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  return { unitsTotal, topsTotal, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
 }
 
 function refreshQuoteTotals() {
@@ -7303,6 +7464,7 @@ function refreshQuoteTotals() {
   set('qv-val-tops',      fmt(t.topsTotal));
   set('qv-val-consult',   fmt(t.consultTotal));
   set('qv-val-diesel',    fmt(t.dieselTotal));
+  set('qv-val-delivery',  fmt(t.deliveryTotal));
   set('qv-val-extras',    fmt(t.extrasTotal));
   set('qv-val-sub',       fmt(t.subtotal));
   set('qv-val-grand',     fmt(t.grand));
@@ -7391,8 +7553,9 @@ function downloadQuoteXLSX() {
   const topsVAT     = (topsExcl + topsDelivery) * 0.15;
   const topsHandling= (topsExcl + topsDelivery) * 0.10; // excl. VAT
   const topsTotal   = topsExcl + topsDelivery + topsHandling; // excl. VAT
-  const consultTotal = quoteState.consultFee ? (quoteState.consultFeeAmt||500) : 0; // excl. VAT
-  const dieselTotal  = quoteState.dieselFee  ? (quoteState.dieselFeeAmt||1800) : 0;
+  const consultTotal = quoteState.consultFee  ? (quoteState.consultFeeAmt||500)  : 0; // excl. VAT
+  const dieselTotal  = quoteState.dieselFee   ? (quoteState.dieselFeeAmt||1800)  : 0;
+  const deliveryTotal= quoteState.deliveryFee ? (quoteState.deliveryFeeAmt||0)   : 0;
   if (topsTotal > 0) {
     rows.push(['TOPS', '', '', '', '']);
     rows.push([quoteState.tops.m2 + ' m²', (quoteState.tops.type||'Tops') + ' @ R' + quoteState.tops.pricePerM2 + '/m²', '', quoteState.tops.pricePerM2, topsExcl]);
@@ -7402,18 +7565,21 @@ function downloadQuoteXLSX() {
     grandSub += topsTotal;
     rows.push([]);
   }
+  const hasFees = consultTotal || dieselTotal || deliveryTotal;
+  if (hasFees) rows.push(['FEES', '', '', '', '']);
   if (consultTotal) {
-    rows.push(['FEES', '', '', '', '']);
     rows.push(['', 'Consultation Fee (excl. VAT)', '', '', consultTotal]);
     grandSub += consultTotal;
-    rows.push([]);
   }
   if (dieselTotal) {
-    if (!consultTotal) rows.push(['FEES', '', '', '', '']);
     rows.push(['', 'Diesel (no VAT)', '', '', dieselTotal]);
     grandSub += dieselTotal;
-    rows.push([]);
   }
+  if (deliveryTotal) {
+    rows.push(['', 'Material Delivery Fee', '', '', deliveryTotal]);
+    grandSub += deliveryTotal;
+  }
+  if (hasFees) rows.push([]);
 
   // Extras
   const validExtras = quoteState.extras.filter(e => e.desc || e.amount);
@@ -7896,6 +8062,12 @@ async function loadTemplatesFromCloud() {
       costingPrices.customHardware = t.customHardware;
       console.log('[Templates] Loaded customHardware:', t.customHardware.length, 'items');
     }
+    if (Array.isArray(t.addonPresets)) {
+      addonPresets.length = 0;
+      t.addonPresets.forEach(p => addonPresets.push(p));
+      saveAddonPresetsLocal();
+      console.log('[Templates] Loaded addonPresets:', t.addonPresets.length, 'presets');
+    }
     // Sync back to localStorage
     try {
       localStorage.setItem('cutlist_custom_units',    JSON.stringify(customUnits));
@@ -8129,7 +8301,16 @@ function newJob() {
   panelsState.items = []; panelsState.label = '';
   Object.keys(quoteState).forEach(k => delete quoteState[k]);
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
-  quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800;
+  quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
+  quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+  // Clear plant-on panels, fillers, spacers — reset to blank defaults for each section
+  ADDON_SECTIONS.forEach(sec => {
+    bedroomAddons[sec] = {
+      plantOn: { enabled: false, items: [defaultAddon()] },
+      spacers:  { enabled: false, items: [defaultSpacer()] },
+    };
+  });
+  try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
   renderPanel(); updateCounts();
   setJobSyncStatus('New job', 'var(--text-muted)');
   setTimeout(() => setJobSyncStatus(''), 2000);
