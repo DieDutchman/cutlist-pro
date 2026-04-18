@@ -1,25 +1,27 @@
 name: 🚀 Promote DEV → LIVE
 
-# This workflow ONLY runs when you manually trigger it from the GitHub Actions tab.
-# It copies dev.html → index.html and deploys the live site.
-# The live site is NOT touched until you explicitly run this.
+# ONLY runs when you manually trigger it from the GitHub Actions tab.
+# Copies dev.html → index.html and deploys the live site.
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type PROMOTE to confirm you want to go live'
+        description: 'Type PROMOTE to confirm going live'
         required: true
         default: ''
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
-  contents: write      # needed to commit index.html
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false   # don't cancel — this is a deliberate release
+  cancel-in-progress: false
 
 jobs:
   promote:
@@ -28,13 +30,13 @@ jobs:
       - name: Check confirmation
         run: |
           if [ "${{ github.event.inputs.confirm }}" != "PROMOTE" ]; then
-            echo "❌ Confirmation not received. Type PROMOTE in the input box."
+            echo "❌ Type PROMOTE in the input box to confirm."
             exit 1
           fi
           echo "✓ Confirmed — promoting dev.html to live"
 
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -53,7 +55,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --cached --quiet; then
-            echo "ℹ index.html is already identical to dev.html — nothing to commit"
+            echo "ℹ index.html already matches dev.html — nothing to commit"
           else
             TIMESTAMP=$(date '+%Y-%m-%d %H:%M UTC')
             git commit -m "🚀 Promote dev.html → index.html [$TIMESTAMP]"
@@ -62,21 +64,19 @@ jobs:
           fi
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Done
         run: |
           echo ""
           echo "✅ LIVE SITE UPDATED"
           echo "   https://diedutchman.github.io/cutlist-pro/"
-          echo ""
-          echo "   dev.html is still available for next round of changes."
