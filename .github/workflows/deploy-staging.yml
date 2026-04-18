@@ -1,16 +1,18 @@
 name: 🔧 Deploy DEV (Staging)
 
 # Runs automatically whenever dev.html is uploaded/committed.
-# Serves the staging site from the /dev/ subfolder on GitHub Pages.
-# Live URL: https://diedutchman.github.io/cutlist-pro/dev/
+# Staging URL: https://diedutchman.github.io/cutlist-pro/dev.html
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'dev.html'       # only triggers when dev.html changes
-  workflow_dispatch:     # also triggerable manually from Actions tab
+      - 'dev.html'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: read
@@ -26,35 +28,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Build staging folder
-        run: |
-          mkdir -p _staging
-          # Serve dev.html as index.html inside the /dev/ subfolder
-          cp dev.html _staging/index.html
-          # Also copy the real index.html so the root still works
-          cp index.html _staging/../index.html 2>/dev/null || true
-          echo "✓ Staging build ready"
-          echo "  dev.html  → /_staging/index.html"
+        uses: actions/checkout@v5
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
-      - name: Upload Pages artifact (includes both root + staging)
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'          # serve the whole repo so both URLs work
+          path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
-      - name: Print staging URL
+      - name: Print URLs
         run: |
           echo ""
           echo "🔧 STAGING: https://diedutchman.github.io/cutlist-pro/dev.html"
           echo "🌐 LIVE:    https://diedutchman.github.io/cutlist-pro/"
           echo ""
-          echo "Test your changes at the staging URL above."
-          echo "When ready, run the '🚀 Promote DEV → LIVE' workflow to go live."
+          echo "When ready to go live, run the '🚀 Promote DEV → LIVE' workflow."
