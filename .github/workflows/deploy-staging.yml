@@ -1,0 +1,60 @@
+name: 🔧 Deploy DEV (Staging)
+
+# Runs automatically whenever dev.html is uploaded/committed.
+# Serves the staging site from the /dev/ subfolder on GitHub Pages.
+# Live URL: https://diedutchman.github.io/cutlist-pro/dev/
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dev.html'       # only triggers when dev.html changes
+  workflow_dispatch:     # also triggerable manually from Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-dev"
+  cancel-in-progress: true
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build staging folder
+        run: |
+          mkdir -p _staging
+          # Serve dev.html as index.html inside the /dev/ subfolder
+          cp dev.html _staging/index.html
+          # Also copy the real index.html so the root still works
+          cp index.html _staging/../index.html 2>/dev/null || true
+          echo "✓ Staging build ready"
+          echo "  dev.html  → /_staging/index.html"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact (includes both root + staging)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'          # serve the whole repo so both URLs work
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Print staging URL
+        run: |
+          echo ""
+          echo "🔧 STAGING: https://diedutchman.github.io/cutlist-pro/dev.html"
+          echo "🌐 LIVE:    https://diedutchman.github.io/cutlist-pro/"
+          echo ""
+          echo "Test your changes at the staging URL above."
+          echo "When ready, run the '🚀 Promote DEV → LIVE' workflow to go live."
