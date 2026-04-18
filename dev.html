@@ -6584,6 +6584,7 @@ let quoteState = {
   runnerType: 'soft',
   topsOpen: false,
   feesOpen: false,
+  hwOpen:   false,
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -6600,6 +6601,7 @@ try {
   if (qs.runnerType !== undefined) quoteState.runnerType = qs.runnerType;
   if (qs.topsOpen   !== undefined) quoteState.topsOpen   = qs.topsOpen;
   if (qs.feesOpen   !== undefined) quoteState.feesOpen   = qs.feesOpen;
+  if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
 } catch(e) {}
 
 function saveQuoteState() {
@@ -6843,6 +6845,128 @@ function _renderQuoteView() {
       <span>Handling (10%): ${fmt(topsHandling)}</span>
     </div>` : ''}` : ''}`;
 
+  // ── Hardware summary — computed from all selected units ──────────────────
+  // Mirrors the costing tab logic so the user can see hardware counts without
+  // switching tabs. Uses RUNNER_STANDARD_SIZES for sized runner display.
+  const hw = costingPrices.hardware;
+  const hingeLabel  = quoteState.hingeType  === 'soft' ? 'Soft Close' : 'Normal';
+  const runnerLabel = quoteState.runnerType === 'soft' ? 'Soft Close' : 'Normal';
+  const hingePrice  = quoteState.hingeType  === 'soft' ? hw.hingeSoft  : hw.hingeNormal;
+  const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
+
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  const allRunnerSets = {};
+
+  sectionData.forEach(({ units }) => {
+    units.forEach(u => {
+      const qty = quantities[u.id] || 0;
+      if (!qty || !u.parts || u.parts.length === 0) return;
+      const c = calcUnitCost(u, qty);
+      totalHinges    += c.hingeCount    || 0;
+      totalHandle160 += c.handle160Count || 0;
+      totalHandle240 += c.handle240Count || 0;
+      if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
+    });
+  });
+  const totalRunners = totalRunnerCount(allRunnerSets);
+
+  // Sized runner cost using custom My Costs prices
+  const calcRunnerCost = () => Object.entries(allRunnerSets).reduce((sum, [size, count]) => {
+    const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType||'soft') : null;
+    return sum + count * (hwItem ? hwItem.pricePerUnit : runnerPrice);
+  }, 0);
+
+  const hingeCostTotal   = totalHinges    * hingePrice;
+  const runnerCostTotal  = calcRunnerCost();
+  const handle160Total   = totalHandle160 * hw.handle160;
+  const handle240Total   = totalHandle240 * hw.handle240;
+  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total;
+  const autoHwHandling   = autoHwTotal * HW_HANDLING;
+  const autoHwGrand      = autoHwTotal + autoHwHandling;
+  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
+
+  if (hasAutoHw) {
+    // Build rows for each hardware type
+    let hwRows = '';
+    if (totalHinges > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Hinges – ${hingeLabel}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHinges} × R${hingePrice.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(hingeCostTotal)}</span>
+          </div>
+        </div>`;
+    }
+    // Runners — grouped by size
+    RUNNER_STANDARD_SIZES.forEach(size => {
+      const count = allRunnerSets[size];
+      if (!count) return;
+      const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
+      const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+      const label  = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">${label}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${price.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * price)}</span>
+          </div>
+        </div>`;
+    });
+    if (allRunnerSets[0]) {
+      const count = allRunnerSets[0];
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Runners – ${runnerLabel}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${runnerPrice.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * runnerPrice)}</span>
+          </div>
+        </div>`;
+    }
+    if (totalHandle160 > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Handles 160mm</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle160} × R${hw.handle160.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle160Total)}</span>
+          </div>
+        </div>`;
+    }
+    if (totalHandle240 > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Handles 240mm</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle240} × R${hw.handle240.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle240Total)}</span>
+          </div>
+        </div>`;
+    }
+    // Handling + total
+    hwRows += `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:11px;color:var(--text-muted)">Handling (${Math.round(HW_HANDLING*100)}%)</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${fmt(autoHwHandling)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px">
+        <span style="font-size:12px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">HARDWARE TOTAL</span>
+        <span style="font-size:14px;color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600">${fmt(autoHwGrand)}</span>
+      </div>`;
+
+    mainHtml += `
+    <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
+      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()">
+      <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
+      </span>
+      <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.hwOpen?'90':'0'}deg)">▶</span>
+    </div>
+    ${quoteState.hwOpen ? `<div style="padding:4px 0 12px">${hwRows}</div>` : ''}`;
+  }
+
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
     onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()">
@@ -6988,6 +7112,10 @@ function _renderQuoteView() {
       ${deliveryTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Delivery <span style="font-size:10px;color:var(--text-muted)">(material delivery)</span></span>
         <span class="val" id="qv-val-delivery">${fmt(deliveryTotal)}</span>
+      </div>` : ''}
+      ${hasAutoHw ? `<div class="qv-total-row">
+        <span class="label">🔩 Hardware <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></span>
+        <span class="val" id="qv-val-hw">${fmt(autoHwGrand)}</span>
       </div>` : ''}
       ${extrasTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Extras</span>
