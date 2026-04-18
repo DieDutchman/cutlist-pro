@@ -1992,6 +1992,7 @@
   </button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
     <span id="job-sync-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
+    <span id="trial-countdown-badge" style="display:none"></span>
     <span id="user-email-badge" style="font-size:11px;color:var(--text-muted)"></span>
     <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;font-size:13px;cursor:pointer;line-height:1">
@@ -8031,6 +8032,8 @@ async function onLoginSuccess() {
   await loadUserJobs();
   await loadSupplierPrices();
   checkFeedbackUnread();
+  // Start trial countdown badge for users with a trial expiry
+  initTrialCountdown();
   // Re-render panel now that real role is known (clears admin units for regular users)
   renderPanel();
 }
@@ -8749,6 +8752,83 @@ function showTrialExpiredScreen(email) {
       </button>
     </div>`;
   document.body.appendChild(el);
+}
+
+// ── Trial Countdown Badge ─────────────────────────────────────────────────────
+// Shows a live timer in the nav bar for users on a trial period.
+// Called after login — stores the expiry date and ticks every second.
+let _trialExpiresAt = null;
+let _trialCountdownInterval = null;
+
+async function initTrialCountdown() {
+  // Only for regular 'user' role — admins/superusers/suppliers don't expire
+  if (['superuser','admin','supplier'].includes(sbRole)) return;
+  try {
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=trial_expires_at`
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const exp  = rows[0]?.trial_expires_at;
+    if (!exp) return; // no expiry set — permanent access, no badge needed
+    // Parse expiry: treat as end-of-day in local time (23:59:59)
+    _trialExpiresAt = new Date(exp + 'T23:59:59');
+    _renderTrialBadge();
+    // Tick every second
+    clearInterval(_trialCountdownInterval);
+    _trialCountdownInterval = setInterval(_renderTrialBadge, 1000);
+  } catch(e) { console.warn('[Trial] countdown init failed:', e); }
+}
+
+function _renderTrialBadge() {
+  const badge = document.getElementById('trial-countdown-badge');
+  if (!badge || !_trialExpiresAt) return;
+
+  const now  = new Date();
+  const diff = _trialExpiresAt - now; // ms remaining
+
+  if (diff <= 0) {
+    // Just expired — stop ticking and show expired state
+    clearInterval(_trialCountdownInterval);
+    badge.style.display = 'inline-flex';
+    badge.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(224,82,82,0.15);
+        border:1px solid #e05252;padding:3px 10px;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#e05252">
+        ⏰ Trial expired
+      </span>`;
+    return;
+  }
+
+  // Calculate days, hours, minutes, seconds
+  const totalSec = Math.floor(diff / 1000);
+  const days  = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins  = Math.floor((totalSec % 3600) / 60);
+  const secs  = totalSec % 60;
+
+  // Colour: green > 7 days, amber 1-7 days, red < 1 day
+  const urgent  = days < 1;
+  const warning = days < 7;
+  const bg    = urgent  ? 'rgba(224,82,82,0.15)'    : warning ? 'rgba(212,145,58,0.15)' : 'rgba(76,175,130,0.12)';
+  const border= urgent  ? '#e05252'                 : warning ? 'var(--amber)'          : 'rgba(76,175,130,0.5)';
+  const color = urgent  ? '#e05252'                 : warning ? 'var(--amber)'          : '#4caf82';
+
+  // Format: "12d 03h 45m" when > 1 day, "03:45:22" when < 1 day
+  const timeStr = days >= 1
+    ? `${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m`
+    : `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+  const label = days >= 1 ? 'Trial' : urgent ? '⚠ Trial ends in' : 'Trial';
+
+  badge.style.display = 'inline-flex';
+  badge.innerHTML = `
+    <span title="Trial expires ${_trialExpiresAt.toLocaleDateString('en-ZA')}"
+      style="display:inline-flex;align-items:center;gap:5px;background:${bg};
+        border:1px solid ${border};padding:3px 10px;border-radius:2px;
+        font-family:'JetBrains Mono',monospace;font-size:11px;color:${color};
+        cursor:default;white-space:nowrap">
+      ⏱ ${label}: <strong>${timeStr}</strong>
+    </span>`;
 }
 
 async function updateUserRole(userId, newRole, selectEl) {
@@ -12618,10 +12698,36 @@ function captureState() {
 
 function applyState(state) {
   if (!state) return;
+
+  // ── Zero everything first so no old job's data bleeds into the new one ────
+  // Quantities — set ALL known units to 0, then overwrite with saved values
+  Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+  // Clear job-specific overrides and services
+  Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+  Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
+  Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
+  Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+  // Clear addons — reset every section to blank defaults
+  ADDON_SECTIONS.forEach(sec => {
+    bedroomAddons[sec] = {
+      plantOn: { enabled: false, items: [defaultAddon()] },
+      spacers:  { enabled: false, items: [defaultSpacer()] },
+    };
+  });
+  // Clear panels
+  panelsState.items = []; panelsState.label = '';
+  // Clear quoteState extras / fees (keep markup/tops structure)
+  quoteState.extras       = [];
+  quoteState.tops         = { m2: 0, type: 'Platinum', pricePerM2: 2900 };
+  quoteState.consultFee   = false; quoteState.consultFeeAmt = 500;
+  quoteState.dieselFee    = false; quoteState.dieselFeeAmt  = 1800;
+  quoteState.deliveryFee  = false; quoteState.deliveryFeeAmt = 0;
+
+  // ── Now apply the saved job state ─────────────────────────────────────────
   if (state.quantities)     Object.assign(quantities,     state.quantities);
   if (state.holesOverrides) Object.assign(holesOverrides, state.holesOverrides);
   if (state.materialConfig) Object.assign(materialConfig, state.materialConfig);
-  if (state.unitMatOverrides) { Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]); Object.assign(unitMatOverrides, state.unitMatOverrides); saveUnitMatOverrides(); }
+  if (state.unitMatOverrides) { Object.assign(unitMatOverrides, state.unitMatOverrides); saveUnitMatOverrides(); }
   if (state.unitHardware)    { Object.keys(unitHardware).forEach(k => delete unitHardware[k]); Object.assign(sectionHardware, state.unitHardware); saveUnitHardware(); }
   if (state.quoteState)     Object.assign(quoteState,     state.quoteState);
   if (state.bedroomAddons) {
