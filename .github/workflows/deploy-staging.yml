@@ -1,7 +1,9 @@
 name: 🔧 Deploy DEV (Staging)
 
-# Runs automatically whenever dev.html is uploaded/committed.
-# Staging URL: https://diedutchman.github.io/cutlist-pro/dev.html
+# Triggers when dev.html is uploaded to the repo.
+# GitHub Pages serves the whole repo — so dev.html is immediately
+# available at: https://diedutchman.github.io/cutlist-pro/dev.html
+# No action needed — Pages serves whatever is committed to the branch.
 
 on:
   push:
@@ -9,43 +11,19 @@ on:
       - main
     paths:
       - 'dev.html'
-  workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages-dev"
-  cancel-in-progress: true
 
 jobs:
-  deploy-dev:
+  confirm:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v5
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: '.'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-      - name: Print URLs
+      - name: Staging URL
         run: |
+          echo "✅ dev.html uploaded successfully."
           echo ""
-          echo "🔧 STAGING: https://diedutchman.github.io/cutlist-pro/dev.html"
-          echo "🌐 LIVE:    https://diedutchman.github.io/cutlist-pro/"
+          echo "🔧 Test it here (may take 30s to refresh):"
+          echo "   https://diedutchman.github.io/cutlist-pro/dev.html"
           echo ""
-          echo "When ready to go live, run the '🚀 Promote DEV → LIVE' workflow."
+          echo "🌐 Live site unchanged:"
+          echo "   https://diedutchman.github.io/cutlist-pro/"
+          echo ""
+          echo "When happy, run '🚀 Promote DEV → LIVE' from the Actions tab."
