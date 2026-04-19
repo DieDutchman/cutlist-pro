@@ -6584,6 +6584,7 @@ let quoteState = {
   runnerType: 'soft',
   topsOpen: false,
   feesOpen: false,
+  hwOpen:   false,
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -6600,6 +6601,7 @@ try {
   if (qs.runnerType !== undefined) quoteState.runnerType = qs.runnerType;
   if (qs.topsOpen   !== undefined) quoteState.topsOpen   = qs.topsOpen;
   if (qs.feesOpen   !== undefined) quoteState.feesOpen   = qs.feesOpen;
+  if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
 } catch(e) {}
 
 function saveQuoteState() {
@@ -6843,6 +6845,128 @@ function _renderQuoteView() {
       <span>Handling (10%): ${fmt(topsHandling)}</span>
     </div>` : ''}` : ''}`;
 
+  // ── Hardware summary — computed from all selected units ──────────────────
+  // Mirrors the costing tab logic so the user can see hardware counts without
+  // switching tabs. Uses RUNNER_STANDARD_SIZES for sized runner display.
+  const hw = costingPrices.hardware;
+  const hingeLabel  = quoteState.hingeType  === 'soft' ? 'Soft Close' : 'Normal';
+  const runnerLabel = quoteState.runnerType === 'soft' ? 'Soft Close' : 'Normal';
+  const hingePrice  = quoteState.hingeType  === 'soft' ? hw.hingeSoft  : hw.hingeNormal;
+  const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
+
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  const allRunnerSets = {};
+
+  sectionData.forEach(({ units }) => {
+    units.forEach(u => {
+      const qty = quantities[u.id] || 0;
+      if (!qty || !u.parts || u.parts.length === 0) return;
+      const c = calcUnitCost(u, qty);
+      totalHinges    += c.hingeCount    || 0;
+      totalHandle160 += c.handle160Count || 0;
+      totalHandle240 += c.handle240Count || 0;
+      if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
+    });
+  });
+  const totalRunners = totalRunnerCount(allRunnerSets);
+
+  // Sized runner cost using custom My Costs prices
+  const calcRunnerCost = () => Object.entries(allRunnerSets).reduce((sum, [size, count]) => {
+    const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType||'soft') : null;
+    return sum + count * (hwItem ? hwItem.pricePerUnit : runnerPrice);
+  }, 0);
+
+  const hingeCostTotal   = totalHinges    * hingePrice;
+  const runnerCostTotal  = calcRunnerCost();
+  const handle160Total   = totalHandle160 * hw.handle160;
+  const handle240Total   = totalHandle240 * hw.handle240;
+  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total;
+  const autoHwHandling   = autoHwTotal * HW_HANDLING;
+  const autoHwGrand      = autoHwTotal + autoHwHandling;
+  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
+
+  if (hasAutoHw) {
+    // Build rows for each hardware type
+    let hwRows = '';
+    if (totalHinges > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Hinges – ${hingeLabel}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHinges} × R${hingePrice.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(hingeCostTotal)}</span>
+          </div>
+        </div>`;
+    }
+    // Runners — grouped by size
+    RUNNER_STANDARD_SIZES.forEach(size => {
+      const count = allRunnerSets[size];
+      if (!count) return;
+      const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
+      const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
+      const label  = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">${label}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${price.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * price)}</span>
+          </div>
+        </div>`;
+    });
+    if (allRunnerSets[0]) {
+      const count = allRunnerSets[0];
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Runners – ${runnerLabel}</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${runnerPrice.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * runnerPrice)}</span>
+          </div>
+        </div>`;
+    }
+    if (totalHandle160 > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Handles 160mm</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle160} × R${hw.handle160.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle160Total)}</span>
+          </div>
+        </div>`;
+    }
+    if (totalHandle240 > 0) {
+      hwRows += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:13px;color:var(--text)">Handles 240mm</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle240} × R${hw.handle240.toFixed(0)}</span>
+            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle240Total)}</span>
+          </div>
+        </div>`;
+    }
+    // Handling + total
+    hwRows += `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:11px;color:var(--text-muted)">Handling (${Math.round(HW_HANDLING*100)}%)</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${fmt(autoHwHandling)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px">
+        <span style="font-size:12px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">HARDWARE TOTAL</span>
+        <span style="font-size:14px;color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600">${fmt(autoHwGrand)}</span>
+      </div>`;
+
+    mainHtml += `
+    <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
+      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()">
+      <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
+      </span>
+      <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.hwOpen?'90':'0'}deg)">▶</span>
+    </div>
+    ${quoteState.hwOpen ? `<div style="padding:4px 0 12px">${hwRows}</div>` : ''}`;
+  }
+
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
     onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()">
@@ -6988,6 +7112,10 @@ function _renderQuoteView() {
       ${deliveryTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Delivery <span style="font-size:10px;color:var(--text-muted)">(material delivery)</span></span>
         <span class="val" id="qv-val-delivery">${fmt(deliveryTotal)}</span>
+      </div>` : ''}
+      ${hasAutoHw ? `<div class="qv-total-row">
+        <span class="label">🔩 Hardware <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></span>
+        <span class="val" id="qv-val-hw">${fmt(autoHwGrand)}</span>
       </div>` : ''}
       ${extrasTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Extras</span>
@@ -8788,47 +8916,247 @@ function _renderTrialBadge() {
   const diff = _trialExpiresAt - now; // ms remaining
 
   if (diff <= 0) {
-    // Just expired — stop ticking and show expired state
     clearInterval(_trialCountdownInterval);
     badge.style.display = 'inline-flex';
     badge.innerHTML = `
-      <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(224,82,82,0.15);
-        border:1px solid #e05252;padding:3px 10px;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#e05252">
-        ⏰ Trial expired
+      <span onclick="openTrialContactModal('expired')"
+        style="display:inline-flex;align-items:center;gap:5px;background:rgba(224,82,82,0.15);
+          border:1px solid #e05252;padding:3px 10px;border-radius:2px;font-family:'JetBrains Mono',monospace;
+          font-size:11px;color:#e05252;cursor:pointer;white-space:nowrap"
+        title="Click to contact us about your trial">
+        ⏰ Trial expired — click to contact us
       </span>`;
+    // Auto-show the modal when trial just expired (once per session)
+    if (!_trialExpiredModalShown) {
+      _trialExpiredModalShown = true;
+      setTimeout(() => openTrialContactModal('expired'), 800);
+    }
     return;
   }
 
-  // Calculate days, hours, minutes, seconds
   const totalSec = Math.floor(diff / 1000);
   const days  = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
   const mins  = Math.floor((totalSec % 3600) / 60);
   const secs  = totalSec % 60;
 
-  // Colour: green > 7 days, amber 1-7 days, red < 1 day
   const urgent  = days < 1;
   const warning = days < 7;
   const bg    = urgent  ? 'rgba(224,82,82,0.15)'    : warning ? 'rgba(212,145,58,0.15)' : 'rgba(76,175,130,0.12)';
   const border= urgent  ? '#e05252'                 : warning ? 'var(--amber)'          : 'rgba(76,175,130,0.5)';
   const color = urgent  ? '#e05252'                 : warning ? 'var(--amber)'          : '#4caf82';
 
-  // Format: "12d 03h 45m" when > 1 day, "03:45:22" when < 1 day
   const timeStr = days >= 1
     ? `${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m`
     : `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
 
-  const label = days >= 1 ? 'Trial' : urgent ? '⚠ Trial ends in' : 'Trial';
+  const label = urgent ? '⚠ Trial ends in' : 'Trial';
 
   badge.style.display = 'inline-flex';
   badge.innerHTML = `
-    <span title="Trial expires ${_trialExpiresAt.toLocaleDateString('en-ZA')}"
+    <span onclick="openTrialContactModal('active')"
+      title="Click to extend your trial or subscribe — expires ${_trialExpiresAt.toLocaleDateString('en-ZA')}"
       style="display:inline-flex;align-items:center;gap:5px;background:${bg};
         border:1px solid ${border};padding:3px 10px;border-radius:2px;
         font-family:'JetBrains Mono',monospace;font-size:11px;color:${color};
-        cursor:default;white-space:nowrap">
+        cursor:pointer;white-space:nowrap">
       ⏱ ${label}: <strong>${timeStr}</strong>
     </span>`;
+}
+
+let _trialExpiredModalShown = false;
+let _superuserEmail = null; // cached after first fetch
+
+async function _fetchSuperuserEmail() {
+  if (_superuserEmail) return _superuserEmail;
+  try {
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/profiles?role=eq.superuser&select=email&limit=1`
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    _superuserEmail = rows[0]?.email || null;
+    return _superuserEmail;
+  } catch(e) { return null; }
+}
+
+async function openTrialContactModal(state) {
+  // Remove any existing modal
+  document.getElementById('trial-contact-modal')?.remove();
+
+  const superEmail = await _fetchSuperuserEmail();
+  const userEmail  = sbUser?.email || '';
+  const expDate    = _trialExpiresAt ? _trialExpiresAt.toLocaleDateString('en-ZA') : 'unknown';
+  const isExpired  = state === 'expired';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'trial-contact-modal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99990;
+    display:flex;align-items:center;justify-content:center;font-family:'Barlow',sans-serif`;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;
+      max-height:90vh;overflow-y:auto;display:flex;flex-direction:column">
+
+      <!-- Header -->
+      <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);
+        display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:2px;color:var(--amber)">
+            ${isExpired ? '⏰ TRIAL EXPIRED' : '⏱ YOUR TRIAL'}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+            ${isExpired
+              ? 'Your trial has ended — contact us to continue using Cutlist Pro'
+              : `Trial expires: <strong style="color:var(--text)">${expDate}</strong>`}
+          </div>
+        </div>
+        <button onclick="document.getElementById('trial-contact-modal').remove()"
+          style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:20px 24px;flex:1">
+
+        <!-- Option buttons -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <button id="tcm-btn-extend"
+            onclick="document.getElementById('tcm-btn-extend').classList.add('tcm-active');
+                     document.getElementById('tcm-btn-subscribe').classList.remove('tcm-active');
+                     _setTrialRequestType('extend')"
+            class="tcm-option-btn tcm-active"
+            style="padding:14px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
+              color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <span style="font-size:24px">📅</span>
+            <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">EXTEND TRIAL</span>
+            <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Ask for more time</span>
+          </button>
+          <button id="tcm-btn-subscribe"
+            onclick="document.getElementById('tcm-btn-subscribe').classList.add('tcm-active');
+                     document.getElementById('tcm-btn-extend').classList.remove('tcm-active');
+                     _setTrialRequestType('subscribe')"
+            class="tcm-option-btn"
+            style="padding:14px;border:2px solid var(--border);background:var(--bg3);
+              color:var(--text-muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <span style="font-size:24px">🚀</span>
+            <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">SUBSCRIBE</span>
+            <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Get full access</span>
+          </button>
+        </div>
+
+        <!-- Message area -->
+        <div style="margin-bottom:16px">
+          <label style="font-size:11px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;display:block;margin-bottom:6px">
+            MESSAGE (optional)
+          </label>
+          <textarea id="tcm-message" rows="4"
+            placeholder="Any additional info — e.g. how long you need the extension, your business name, etc."
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+              padding:10px 12px;font-size:13px;outline:none;resize:vertical;
+              font-family:'Barlow',sans-serif;box-sizing:border-box"
+            onfocus="this.style.borderColor='var(--amber)'"
+            onblur="this.style.borderColor=''"></textarea>
+        </div>
+
+        <!-- Email preview -->
+        ${superEmail ? `
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;
+          background:var(--bg3);border:1px solid var(--border);padding:8px 12px;border-radius:2px">
+          📧 Will be sent to: <strong style="color:var(--text)">${superEmail}</strong><br>
+          <span style="font-size:10px">Reply will come to your registered email: ${userEmail}</span>
+        </div>` : ''}
+
+        <div id="tcm-status" style="font-size:12px;min-height:18px;margin-bottom:12px"></div>
+
+        <button id="tcm-send-btn" onclick="sendTrialRequest()"
+          style="width:100%;background:var(--amber);color:#111;border:none;
+            font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;
+            padding:12px;cursor:pointer">
+          ✉ SEND REQUEST
+        </button>
+      </div>
+    </div>`;
+
+  // Store request type on the overlay element
+  overlay._requestType = 'extend';
+  document.body.appendChild(overlay);
+
+  // Close on backdrop click
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+function _setTrialRequestType(type) {
+  const overlay = document.getElementById('trial-contact-modal');
+  if (overlay) overlay._requestType = type;
+  // Update button styles
+  const extendBtn    = document.getElementById('tcm-btn-extend');
+  const subscribeBtn = document.getElementById('tcm-btn-subscribe');
+  if (extendBtn && subscribeBtn) {
+    if (type === 'extend') {
+      extendBtn.style.border    = '2px solid var(--amber)';
+      extendBtn.style.background = 'rgba(212,145,58,0.15)';
+      extendBtn.style.color     = 'var(--amber)';
+      subscribeBtn.style.border    = '2px solid var(--border)';
+      subscribeBtn.style.background = 'var(--bg3)';
+      subscribeBtn.style.color     = 'var(--text-muted)';
+    } else {
+      subscribeBtn.style.border    = '2px solid var(--amber)';
+      subscribeBtn.style.background = 'rgba(212,145,58,0.15)';
+      subscribeBtn.style.color     = 'var(--amber)';
+      extendBtn.style.border    = '2px solid var(--border)';
+      extendBtn.style.background = 'var(--bg3)';
+      extendBtn.style.color     = 'var(--text-muted)';
+    }
+  }
+}
+
+async function sendTrialRequest() {
+  const overlay  = document.getElementById('trial-contact-modal');
+  const type     = overlay?._requestType || 'extend';
+  const message  = document.getElementById('tcm-message')?.value.trim() || '';
+  const statusEl = document.getElementById('tcm-status');
+  const sendBtn  = document.getElementById('tcm-send-btn');
+
+  if (!statusEl || !sendBtn) return;
+
+  const typeLabel = type === 'subscribe' ? 'Subscription Request' : 'Trial Extension Request';
+  const expDate   = _trialExpiresAt ? _trialExpiresAt.toLocaleDateString('en-ZA') : 'unknown';
+
+  const fullMessage = `[${typeLabel}]
+User: ${sbUser?.email || 'unknown'}
+Trial expiry: ${expDate}
+Request type: ${type === 'subscribe' ? 'Subscribe to full access' : 'Extend trial period'}
+${message ? '\nMessage:\n' + message : ''}`.trim();
+
+  sendBtn.disabled = true;
+  statusEl.style.color = 'var(--amber-dim)';
+  statusEl.textContent = 'Sending…';
+
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/feedback`, {
+      method: 'POST',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        user_email: sbUser?.email || 'unknown',
+        category:   typeLabel,
+        tab:        'Trial',
+        message:    fullMessage,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    statusEl.style.color = '#5dba6e';
+    statusEl.textContent = '✓ Request sent! We will get back to you shortly.';
+    sendBtn.textContent  = '✓ Sent';
+    // Close after 2.5 seconds
+    setTimeout(() => overlay?.remove(), 2500);
+  } catch(e) {
+    statusEl.style.color = '#e05252';
+    statusEl.textContent = 'Failed to send: ' + e.message;
+    sendBtn.disabled = false;
+  }
 }
 
 async function updateUserRole(userId, newRole, selectEl) {
