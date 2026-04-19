@@ -4611,14 +4611,14 @@ function generateSummary() {
     const _extraLines = _extrasForSummary.map(e => {
       if (e.hwType) {
         const opt = _hwOptions().find(o => o.key === e.hwType);
-        const label = opt ? opt.label : e.hwType;
+        const label = opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
         const qty   = e.hwQty || 1;
         const unit  = opt ? opt.price : 0;
         return { icon:'🔩', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
       }
       if (e.otherType !== undefined) {
-        const opt = _otherOptions().find(o => o.key === e.otherType);
-        const label = opt ? opt.label : (e.otherType || 'Other item');
+        const label = _resolveExtraLabel(e);
+        const opt   = _otherOptions().find(o => o.key === e.otherType);
         const qty   = e.otherQty || 1;
         const unit  = opt ? opt.price : 0;
         return { icon:'🛒', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
@@ -4865,12 +4865,12 @@ async function downloadSummaryXLSX() {
       extrasTotal += amount;
       if (e.hwType) {
         const opt = _hwOptions().find(o => o.key === e.hwType);
-        label = opt ? opt.label : e.hwType;
+        label = opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
         qty = e.hwQty || 1;
         unitPrice = opt ? opt.price : 0;
       } else if (e.otherType !== undefined) {
+        label = _resolveExtraLabel(e);
         const opt = _otherOptions().find(o => o.key === e.otherType);
-        label = opt ? opt.label : 'Other item';
         qty = e.otherQty || 1;
         unitPrice = opt ? opt.price : 0;
       } else if (e.skirtingMode !== undefined) {
@@ -7183,6 +7183,38 @@ function _otherUnitPrice(key) {
   return opt ? opt.price : 0;
 }
 
+// Resolves a human-readable label for any quoteState.extras entry.
+// Checks hardware options, My Costs custom items, and special services by ID.
+// Never returns a raw svc_/chw_ ID.
+function _resolveExtraLabel(e) {
+  if (e.hwType) {
+    const opt = _hwOptions().find(o => o.key === e.hwType);
+    return opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
+  }
+  if (e.otherType !== undefined) {
+    // 1. My Costs custom hardware
+    const opt = _otherOptions().find(o => o.key === e.otherType);
+    if (opt) return opt.label;
+    // 2. Direct name lookup in customHardware (handles deleted items whose name may still exist)
+    const hw = costingPrices.customHardware.find(h => h.id === e.otherType);
+    if (hw) return hw.name;
+    // 3. Special services (svc_ IDs sometimes end up in otherType)
+    const svc = costingPrices.specialServices.find(s => s.id === e.otherType);
+    if (svc) return `⚙ ${svc.name}`;
+    // 4. Clean fallback — never show raw ID
+    return e.desc || _cleanIdFallback(e.otherType, 'Custom item');
+  }
+  return e.desc || 'Item';
+}
+
+function _cleanIdFallback(id, defaultLabel) {
+  // Strip the svc_/chw_ prefix and timestamp, return something readable
+  if (!id || typeof id !== 'string') return defaultLabel;
+  if (id.startsWith('svc_')) return 'Special service';
+  if (id.startsWith('chw_')) return 'My Costs item';
+  return defaultLabel;
+}
+
 // ── Quote Extras: Bases & Skirting/Plinth helpers ────────────────────────────
 
 const PLINTH_SIZES = [
@@ -7384,16 +7416,22 @@ function buildExtraRow(e, i) {
     const opts = _otherOptions();
     if (!opts.length) return `<tr><td colspan="3" style="color:var(--text-muted);font-size:11px;padding:6px">No items in My Costs yet — add them in the My Costs tab.</td></tr>`;
     const currentKey = e.otherType || opts[0]?.key || '';
+    const keyExists  = opts.some(o => o.key === currentKey);
+    // If the stored key is stale (deleted item or svc_ ID), resolve a label for display
+    // and show an amber warning so the user knows to re-select
+    const staleName  = keyExists ? null : _resolveExtraLabel(e);
     const selectOpts = opts.map(o =>
-      `<option value="${o.key}" ${currentKey===o.key?'selected':''}>${escHtml(o.label)} — R${o.price.toFixed(2)}/unit</option>`
+      `<option value="${o.key}" ${(keyExists && currentKey===o.key)?'selected':''}>${escHtml(o.label)} — R${o.price.toFixed(2)}/unit</option>`
     ).join('');
-    const unitPrice = _otherUnitPrice(currentKey);
+    const unitPrice = keyExists ? _otherUnitPrice(currentKey) : 0;
     const qty = e.otherQty || 1;
     const total = qty * unitPrice * (1 + HW_HANDLING);
     return `<tr>
       <td>
-        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer"
+        ${staleName ? `<div style="font-size:10px;color:var(--amber);margin-bottom:3px">⚠ "${escHtml(staleName)}" not found — please re-select:</div>` : ''}
+        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid ${staleName?'var(--amber)':'var(--border)'};color:var(--text);cursor:pointer"
           onchange="quoteState.extras[${i}].otherType=this.value;quoteState.extras[${i}].amount=(quoteState.extras[${i}].otherQty||1)*_otherUnitPrice(this.value)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
+          ${staleName ? `<option value="" disabled selected>— select item —</option>` : ''}
           ${selectOpts}
         </select>
       </td>
@@ -12771,8 +12809,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
           const amt = parseFloat(e.amount) || 0;
           if (!amt) return '';
           if (e.otherType) {
-            const opt = _otherOptions().find(o => o.key === e.otherType);
-            const label = opt ? opt.label : e.otherType;
+            const label = _resolveExtraLabel(e);
             const qty = e.otherQty || 1;
             return `<tr><td>${label} <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></td><td class="num">${qty}</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
           }
