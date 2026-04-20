@@ -1,0 +1,54 @@
+name: 🚀 Promote DEV → LIVE
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type PROMOTE to go live'
+        required: true
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "PROMOTE" ]; then
+            echo "❌ Type PROMOTE to confirm."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy and stamp
+        run: |
+          if [ ! -f "dev.html" ]; then
+            echo "❌ dev.html not found"
+            exit 1
+          fi
+          cp dev.html index.html
+          STAMP="LIVE $(date -u '+%Y-%m-%d %H:%M UTC')"
+          sed -i "s|BUILD_TIMESTAMP|${STAMP}|g" index.html
+          echo "✓ Stamped: ${STAMP}"
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "ℹ No changes"
+          else
+            git commit -m "🚀 Promote dev → live [skip ci]"
+            git push
+            echo "✅ LIVE: https://diedutchman.github.io/cutlist-pro/"
+          fi
