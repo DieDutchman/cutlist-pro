@@ -3968,7 +3968,7 @@ function generateCutlist() {
       <div id="${secId}" class="cutlist-section-body">
       <table class="cutlist-table">
         <thead><tr>
-          <th>Qty</th><th>Length</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th>
+          <th>Qty</th><th>Height</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th>
         </tr></thead><tbody>`;
 
     parts.forEach(p => {
@@ -4045,7 +4045,7 @@ async function downloadXLSX() {
   if (typeof ExcelJS === 'undefined') {
     // CSV fallback
     const { byCat, catOrder, jobClient, jobHouse } = data;
-    const rows = [['Part','Qty','Length (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Notes']];
+    const rows = [['Part','Qty','Height (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Notes']];
     catOrder.forEach(cat => {
       (byCat[cat]||[]).forEach(p => {
         rows.push([p.name||'', p.qty, p.l, p.w, p.mat||'', p.el1||'', p.el2||'', p.ew1||'', p.ew2||'', p.holes||'']);
@@ -4124,7 +4124,7 @@ async function downloadXLSX() {
   ws.addRow([]);
 
   // ── Column headers ──
-  const ch = ws.addRow(['Category','Qty','Length (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Holes / Notes']);
+  const ch = ws.addRow(['Category','Qty','Height (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Holes / Notes']);
   ch.height = 22;
   for (let c=1;c<=10;c++) {
     styleCell(ch.getCell(c), { bold:true, color:'FFFFFF', bg:'1E3A5F', border:aM('1E3A5F'), align:{ horizontal:'center', vertical:'middle' } });
@@ -4153,7 +4153,7 @@ async function downloadXLSX() {
     }
 
     // Column sub-header under each category
-    const sh = ws.addRow(['Part / Description','Qty','Length (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Holes / Notes']);
+    const sh = ws.addRow(['Part / Description','Qty','Height (mm)','Width (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Holes / Notes']);
     sh.height = 16;
     for (let c=1;c<=10;c++) {
       sh.getCell(c).fill      = { type:'pattern', pattern:'solid', fgColor: hex(pal.hBg) };
@@ -4325,7 +4325,7 @@ function generateSummary() {
           <th>Part</th>
           <th class="num">Total Qty</th>
           <th class="num">Per Unit</th>
-          <th>Length</th>
+          <th>Height</th>
           <th>Width</th>
           <th>Material</th>
           <th>Edges</th>
@@ -4397,7 +4397,7 @@ function generateSummary() {
         <thead><tr>
           <th>Part</th>
           <th class="num">Qty</th>
-          <th>Length</th>
+          <th>Height</th>
           <th>Width</th>
           <th>Material</th>
           <th>Edges</th>
@@ -4471,7 +4471,7 @@ function generateSummary() {
       <div id="${addonBlockId}" style="display:none;overflow:hidden">
       <table class="summary-table">
         <thead><tr>
-          <th>Part</th><th class="num">Qty</th><th>Length</th><th>Width</th>
+          <th>Part</th><th class="num">Qty</th><th>Height</th><th>Width</th>
           <th>Material</th><th>Edges</th><th>Section</th>
         </tr></thead><tbody>`;
     addonParts.forEach(p => {
@@ -4516,7 +4516,7 @@ function generateSummary() {
       <table class="summary-table">
         <thead><tr>
           <th>Part</th><th class="num">Total Qty</th><th class="num">Per Unit</th>
-          <th>Length</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th>
+          <th>Height</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th>
         </tr></thead><tbody>`;
     fillerUnits.forEach(u => {
       const unitQty = quantities[u.id] || 0;
@@ -4611,14 +4611,14 @@ function generateSummary() {
     const _extraLines = _extrasForSummary.map(e => {
       if (e.hwType) {
         const opt = _hwOptions().find(o => o.key === e.hwType);
-        const label = opt ? opt.label : e.hwType;
+        const label = opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
         const qty   = e.hwQty || 1;
         const unit  = opt ? opt.price : 0;
         return { icon:'🔩', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
       }
       if (e.otherType !== undefined) {
-        const opt = _otherOptions().find(o => o.key === e.otherType);
-        const label = opt ? opt.label : (e.otherType || 'Other item');
+        const label = _resolveExtraLabel(e);
+        const opt   = _otherOptions().find(o => o.key === e.otherType);
         const qty   = e.otherQty || 1;
         const unit  = opt ? opt.price : 0;
         return { icon:'🛒', label, qty, unit, amount: e.amount, note: 'incl. 15% handling' };
@@ -4708,7 +4708,7 @@ async function downloadSummaryXLSX() {
 
   if (typeof ExcelJS === 'undefined') {
     const { summaryData, jobClient } = data;
-    const rows = [['Unit','Unit Qty','Part','Per Unit','Total Qty','L (mm)','W (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Notes']];
+    const rows = [['Unit','Unit Qty','Part','Per Unit','Total Qty','H (mm)','W (mm)','Material','Edge L1','Edge L2','Edge W1','Edge W2','Notes']];
     (summaryData||[]).forEach(u => {
       (u.parts||[]).forEach(p => {
         rows.push([u.unitName, u.qty, p.name, p.perUnit, p.totalQty, p.l, p.w, p.mat, p.el1||'', p.el2||'', p.ew1||'', p.ew2||'', p.holes||'']);
@@ -4772,7 +4772,7 @@ async function downloadSummaryXLSX() {
     return                                { bg:'F9FAFB', qty:'374151' };
   };
 
-  const colHeaders = ['Part','Total Qty','Per Unit','Length (mm)','Width (mm)','Material',
+  const colHeaders = ['Part','Total Qty','Per Unit','Height (mm)','Width (mm)','Material',
                       'Edge L1','Edge L2','Edge W1','Edge W2','Holes / Notes','Category'];
 
   summaryData.forEach(u => {
@@ -4865,12 +4865,12 @@ async function downloadSummaryXLSX() {
       extrasTotal += amount;
       if (e.hwType) {
         const opt = _hwOptions().find(o => o.key === e.hwType);
-        label = opt ? opt.label : e.hwType;
+        label = opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
         qty = e.hwQty || 1;
         unitPrice = opt ? opt.price : 0;
       } else if (e.otherType !== undefined) {
+        label = _resolveExtraLabel(e);
         const opt = _otherOptions().find(o => o.key === e.otherType);
-        label = opt ? opt.label : 'Other item';
         qty = e.otherQty || 1;
         unitPrice = opt ? opt.price : 0;
       } else if (e.skirtingMode !== undefined) {
@@ -5038,7 +5038,7 @@ function buildUnitForm(id) {
         <th style="width:24px">#</th>
         <th style="min-width:130px">Part Name</th>
         <th style="width:50px">Qty</th>
-        <th style="width:70px">Length</th>
+        <th style="width:70px">Height</th>
         <th style="width:70px">Width</th>
         <th style="min-width:140px">Material</th>
         <th style="min-width:140px">Edge L1</th>
@@ -5934,7 +5934,7 @@ function renderWidthBuilder() {
         </div>
         <table class="wb-preview-table">
           <thead><tr>
-            <th>Part</th><th>Qty</th><th>Length</th><th>Width</th><th>Material</th>
+            <th>Part</th><th>Qty</th><th>Height</th><th>Width</th><th>Material</th>
           </tr></thead>
           <tbody id="wb-preview-body">${previewRows}</tbody>
         </table>
@@ -6208,7 +6208,7 @@ function renderCustomBuilder() {
           </span>
         </div>
         <table class="wb-preview-table">
-          <thead><tr><th>Part</th><th>Qty</th><th>Length</th><th>Width</th><th>Material</th></tr></thead>
+          <thead><tr><th>Part</th><th>Qty</th><th>Height</th><th>Width</th><th>Material</th></tr></thead>
           <tbody id="cb-preview-body">${previewRows}</tbody>
         </table>
       </div>
@@ -6413,7 +6413,7 @@ function renderHeightBuilder() {
           </span>
         </div>
         <table class="wb-preview-table">
-          <thead><tr><th>Part</th><th>Qty</th><th>Length</th><th>Width</th><th>Material</th></tr></thead>
+          <thead><tr><th>Part</th><th>Qty</th><th>Height</th><th>Width</th><th>Material</th></tr></thead>
           <tbody id="hb-preview-body">${previewRows}</tbody>
         </table>
       </div>
@@ -6584,7 +6584,7 @@ let quoteState = {
   runnerType: 'soft',
   topsOpen: false,
   feesOpen: false,
-  hwOpen:   false,
+  hwOpen:   true,
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -6816,7 +6816,7 @@ function _renderQuoteView() {
   ).join('');
 
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()">
+    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()" id="qv-head-tops">
     <span>Tops ${topsTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(topsTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.topsOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -6958,7 +6958,7 @@ function _renderQuoteView() {
 
     mainHtml += `
     <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()">
+      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()" id="qv-head-hw">
       <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
         <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
       </span>
@@ -6969,7 +6969,7 @@ function _renderQuoteView() {
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()">
+    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()" id="qv-head-fees">
     <span>Fees ${feesTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(feesTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.feesOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -7150,6 +7150,15 @@ function _renderQuoteView() {
       <div class="qv-sidebar">${sideHtml}</div>
     </div>`;
 
+  // Wire section toggle heads via addEventListener (CSP-safe — onclick in innerHTML is blocked)
+  const _wireToggle = (id, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
+  };
+  _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
+  _wireToggle('qv-head-hw',      () => { quoteState.hwOpen   = !quoteState.hwOpen;   saveQuoteState(); renderQuoteView(); });
+  _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
+
   // Always sync totals via the single source of truth, regardless of what was baked into the HTML
   refreshQuoteTotals();
 }
@@ -7181,6 +7190,38 @@ function _otherOptions() {
 function _otherUnitPrice(key) {
   const opt = _otherOptions().find(o => o.key === key);
   return opt ? opt.price : 0;
+}
+
+// Resolves a human-readable label for any quoteState.extras entry.
+// Checks hardware options, My Costs custom items, and special services by ID.
+// Never returns a raw svc_/chw_ ID.
+function _resolveExtraLabel(e) {
+  if (e.hwType) {
+    const opt = _hwOptions().find(o => o.key === e.hwType);
+    return opt ? opt.label : _cleanIdFallback(e.hwType, 'Hardware item');
+  }
+  if (e.otherType !== undefined) {
+    // 1. My Costs custom hardware
+    const opt = _otherOptions().find(o => o.key === e.otherType);
+    if (opt) return opt.label;
+    // 2. Direct name lookup in customHardware (handles deleted items whose name may still exist)
+    const hw = costingPrices.customHardware.find(h => h.id === e.otherType);
+    if (hw) return hw.name;
+    // 3. Special services (svc_ IDs sometimes end up in otherType)
+    const svc = costingPrices.specialServices.find(s => s.id === e.otherType);
+    if (svc) return `⚙ ${svc.name}`;
+    // 4. Clean fallback — never show raw ID
+    return e.desc || _cleanIdFallback(e.otherType, 'Custom item');
+  }
+  return e.desc || 'Item';
+}
+
+function _cleanIdFallback(id, defaultLabel) {
+  // Strip the svc_/chw_ prefix and timestamp, return something readable
+  if (!id || typeof id !== 'string') return defaultLabel;
+  if (id.startsWith('svc_')) return 'Special service';
+  if (id.startsWith('chw_')) return 'My Costs item';
+  return defaultLabel;
 }
 
 // ── Quote Extras: Bases & Skirting/Plinth helpers ────────────────────────────
@@ -7384,16 +7425,22 @@ function buildExtraRow(e, i) {
     const opts = _otherOptions();
     if (!opts.length) return `<tr><td colspan="3" style="color:var(--text-muted);font-size:11px;padding:6px">No items in My Costs yet — add them in the My Costs tab.</td></tr>`;
     const currentKey = e.otherType || opts[0]?.key || '';
+    const keyExists  = opts.some(o => o.key === currentKey);
+    // If the stored key is stale (deleted item or svc_ ID), resolve a label for display
+    // and show an amber warning so the user knows to re-select
+    const staleName  = keyExists ? null : _resolveExtraLabel(e);
     const selectOpts = opts.map(o =>
-      `<option value="${o.key}" ${currentKey===o.key?'selected':''}>${escHtml(o.label)} — R${o.price.toFixed(2)}/unit</option>`
+      `<option value="${o.key}" ${(keyExists && currentKey===o.key)?'selected':''}>${escHtml(o.label)} — R${o.price.toFixed(2)}/unit</option>`
     ).join('');
-    const unitPrice = _otherUnitPrice(currentKey);
+    const unitPrice = keyExists ? _otherUnitPrice(currentKey) : 0;
     const qty = e.otherQty || 1;
     const total = qty * unitPrice * (1 + HW_HANDLING);
     return `<tr>
       <td>
-        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer"
+        ${staleName ? `<div style="font-size:10px;color:var(--amber);margin-bottom:3px">⚠ "${escHtml(staleName)}" not found — please re-select:</div>` : ''}
+        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid ${staleName?'var(--amber)':'var(--border)'};color:var(--text);cursor:pointer"
           onchange="quoteState.extras[${i}].otherType=this.value;quoteState.extras[${i}].amount=(quoteState.extras[${i}].otherQty||1)*_otherUnitPrice(this.value)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
+          ${staleName ? `<option value="" disabled selected>— select item —</option>` : ''}
           ${selectOpts}
         </select>
       </td>
@@ -8913,23 +8960,24 @@ function _renderTrialBadge() {
   if (!badge || !_trialExpiresAt) return;
 
   const now  = new Date();
-  const diff = _trialExpiresAt - now; // ms remaining
+  const diff = _trialExpiresAt - now;
 
   if (diff <= 0) {
     clearInterval(_trialCountdownInterval);
     badge.style.display = 'inline-flex';
     badge.innerHTML = `
-      <span onclick="openTrialContactModal('expired')"
+      <span id="trial-badge-btn"
         style="display:inline-flex;align-items:center;gap:5px;background:rgba(224,82,82,0.15);
           border:1px solid #e05252;padding:3px 10px;border-radius:2px;font-family:'JetBrains Mono',monospace;
           font-size:11px;color:#e05252;cursor:pointer;white-space:nowrap"
         title="Click to contact us about your trial">
         ⏰ Trial expired — click to contact us
       </span>`;
-    // Auto-show the modal when trial just expired (once per session)
+    const expBtn = document.getElementById('trial-badge-btn');
+    if (expBtn) expBtn.addEventListener('click', function() { openTrialContactModal('expired'); });
     if (!_trialExpiredModalShown) {
       _trialExpiredModalShown = true;
-      setTimeout(() => openTrialContactModal('expired'), 800);
+      setTimeout(function() { openTrialContactModal('expired'); }, 800);
     }
     return;
   }
@@ -8947,21 +8995,24 @@ function _renderTrialBadge() {
   const color = urgent  ? '#e05252'                 : warning ? 'var(--amber)'          : '#4caf82';
 
   const timeStr = days >= 1
-    ? `${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m`
-    : `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    ? (days + 'd ' + String(hours).padStart(2,'0') + 'h ' + String(mins).padStart(2,'0') + 'm')
+    : (String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'));
 
-  const label = urgent ? '⚠ Trial ends in' : 'Trial';
+  const label = urgent ? '\u26a0 Trial ends in' : 'Trial';
+  const expiry = _trialExpiresAt.toLocaleDateString('en-ZA');
 
   badge.style.display = 'inline-flex';
   badge.innerHTML = `
-    <span onclick="openTrialContactModal('active')"
-      title="Click to extend your trial or subscribe — expires ${_trialExpiresAt.toLocaleDateString('en-ZA')}"
+    <span id="trial-badge-btn"
+      title="Click to extend your trial or subscribe \u2014 expires ${expiry}"
       style="display:inline-flex;align-items:center;gap:5px;background:${bg};
         border:1px solid ${border};padding:3px 10px;border-radius:2px;
         font-family:'JetBrains Mono',monospace;font-size:11px;color:${color};
         cursor:pointer;white-space:nowrap">
-      ⏱ ${label}: <strong>${timeStr}</strong>
+      \u23f1 ${label}: <strong>${timeStr}</strong>
     </span>`;
+  const activeBtn = document.getElementById('trial-badge-btn');
+  if (activeBtn) activeBtn.addEventListener('click', function() { openTrialContactModal('active'); });
 }
 
 let _trialExpiredModalShown = false;
@@ -8981,7 +9032,6 @@ async function _fetchSuperuserEmail() {
 }
 
 async function openTrialContactModal(state) {
-  // Remove any existing modal
   document.getElementById('trial-contact-modal')?.remove();
 
   const superEmail = await _fetchSuperuserEmail();
@@ -8991,15 +9041,11 @@ async function openTrialContactModal(state) {
 
   const overlay = document.createElement('div');
   overlay.id = 'trial-contact-modal';
-  overlay.style.cssText = `
-    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99990;
-    display:flex;align-items:center;justify-content:center;font-family:'Barlow',sans-serif`;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
 
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;
       max-height:90vh;overflow-y:auto;display:flex;flex-direction:column">
-
-      <!-- Header -->
       <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);
         display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <div>
@@ -9009,23 +9055,16 @@ async function openTrialContactModal(state) {
           <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
             ${isExpired
               ? 'Your trial has ended — contact us to continue using Cutlist Pro'
-              : `Trial expires: <strong style="color:var(--text)">${expDate}</strong>`}
+              : 'Trial expires: <strong style="color:var(--text)">' + expDate + '</strong>'}
           </div>
         </div>
-        <button onclick="document.getElementById('trial-contact-modal').remove()"
+        <button id="tcm-close-btn"
           style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px">×</button>
       </div>
 
-      <!-- Body -->
       <div style="padding:20px 24px;flex:1">
-
-        <!-- Option buttons -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
           <button id="tcm-btn-extend"
-            onclick="document.getElementById('tcm-btn-extend').classList.add('tcm-active');
-                     document.getElementById('tcm-btn-subscribe').classList.remove('tcm-active');
-                     _setTrialRequestType('extend')"
-            class="tcm-option-btn tcm-active"
             style="padding:14px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
               color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
             <span style="font-size:24px">📅</span>
@@ -9033,10 +9072,6 @@ async function openTrialContactModal(state) {
             <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Ask for more time</span>
           </button>
           <button id="tcm-btn-subscribe"
-            onclick="document.getElementById('tcm-btn-subscribe').classList.add('tcm-active');
-                     document.getElementById('tcm-btn-extend').classList.remove('tcm-active');
-                     _setTrialRequestType('subscribe')"
-            class="tcm-option-btn"
             style="padding:14px;border:2px solid var(--border);background:var(--bg3);
               color:var(--text-muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
             <span style="font-size:24px">🚀</span>
@@ -9045,31 +9080,20 @@ async function openTrialContactModal(state) {
           </button>
         </div>
 
-        <!-- Message area -->
         <div style="margin-bottom:16px">
-          <label style="font-size:11px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;display:block;margin-bottom:6px">
-            MESSAGE (optional)
-          </label>
+          <label style="font-size:11px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;display:block;margin-bottom:6px">MESSAGE (optional)</label>
           <textarea id="tcm-message" rows="4"
             placeholder="Any additional info — e.g. how long you need the extension, your business name, etc."
             style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
               padding:10px 12px;font-size:13px;outline:none;resize:vertical;
-              font-family:'Barlow',sans-serif;box-sizing:border-box"
-            onfocus="this.style.borderColor='var(--amber)'"
-            onblur="this.style.borderColor=''"></textarea>
+              font-family:'Barlow',sans-serif;box-sizing:border-box"></textarea>
         </div>
 
-        <!-- Email preview -->
-        ${superEmail ? `
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;
-          background:var(--bg3);border:1px solid var(--border);padding:8px 12px;border-radius:2px">
-          📧 Will be sent to: <strong style="color:var(--text)">${superEmail}</strong><br>
-          <span style="font-size:10px">Reply will come to your registered email: ${userEmail}</span>
-        </div>` : ''}
+        ${superEmail ? '<div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);padding:8px 12px;border-radius:2px">📧 Will be sent to: <strong style="color:var(--text)">' + superEmail + '</strong><br><span style="font-size:10px">Reply will come to your registered email: ' + userEmail + '</span></div>' : ''}
 
         <div id="tcm-status" style="font-size:12px;min-height:18px;margin-bottom:12px"></div>
 
-        <button id="tcm-send-btn" onclick="sendTrialRequest()"
+        <button id="tcm-send-btn"
           style="width:100%;background:var(--amber);color:#111;border:none;
             font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;
             padding:12px;cursor:pointer">
@@ -9078,15 +9102,27 @@ async function openTrialContactModal(state) {
       </div>
     </div>`;
 
-  // Store request type on the overlay element
   overlay._requestType = 'extend';
   document.body.appendChild(overlay);
 
+  // Wire all buttons via addEventListener — no inline onclick (CSP safe)
+  document.getElementById('tcm-close-btn').addEventListener('click', () => overlay.remove());
+
+  document.getElementById('tcm-btn-extend').addEventListener('click', () => _setTrialRequestType('extend'));
+  document.getElementById('tcm-btn-subscribe').addEventListener('click', () => _setTrialRequestType('subscribe'));
+  document.getElementById('tcm-send-btn').addEventListener('click', sendTrialRequest);
+
+  // Wire textarea focus/blur
+  const ta = document.getElementById('tcm-message');
+  if (ta) {
+    ta.addEventListener('focus', () => { ta.style.borderColor = 'var(--amber)'; });
+    ta.addEventListener('blur',  () => { ta.style.borderColor = ''; });
+  }
+
   // Close on backdrop click
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.remove();
-  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
+
 
 function _setTrialRequestType(type) {
   const overlay = document.getElementById('trial-contact-modal');
@@ -9779,7 +9815,7 @@ function openUnitPartsModal(unitId) {
               <th style="width:24px">#</th>
               <th style="min-width:130px">Part Name</th>
               <th style="width:50px">Qty</th>
-              <th style="width:70px">Length</th>
+              <th style="width:70px">Height</th>
               <th style="width:70px">Width</th>
               <th style="min-width:140px">Material</th>
               <th style="min-width:120px">Edge L1</th>
@@ -12771,8 +12807,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
           const amt = parseFloat(e.amount) || 0;
           if (!amt) return '';
           if (e.otherType) {
-            const opt = _otherOptions().find(o => o.key === e.otherType);
-            const label = opt ? opt.label : e.otherType;
+            const label = _resolveExtraLabel(e);
             const qty = e.otherQty || 1;
             return `<tr><td>${label} <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></td><td class="num">${qty}</td><td class="num">—</td><td class="num cost">${R(amt)}</td></tr>`;
           }
@@ -13590,7 +13625,7 @@ function renderImportPreview() {
       <table class="cutlist-table" style="width:100%">
         <thead>
           <tr>
-            <th>Part</th><th class="qty">Qty</th><th class="dim">L (mm)</th><th class="dim">W (mm)</th>
+            <th>Part</th><th class="qty">Qty</th><th class="dim">H (mm)</th><th class="dim">W (mm)</th>
             <th class="material">Material</th>
             <th class="edge">El1</th><th class="edge">El2</th><th class="edge">Ew1</th><th class="edge">Ew2</th>
             <th>Notes</th>
@@ -14210,7 +14245,7 @@ function saveImportedCutlist() {
 function exportImportedCSV() {
   if (!importedCutlistData) return;
   const { label, parts } = importedCutlistData;
-  const header = ['Part','Qty','L (mm)','W (mm)','Material','El1','El2','Ew1','Ew2','Notes','Group'];
+  const header = ['Part','Qty','H (mm)','W (mm)','Material','El1','El2','Ew1','Ew2','Notes','Group'];
   const rows   = parts.map(p => [
     p.name||'', p.qty||1, p.l||0, p.w||0, p.mat||'',
     p.el1||'', p.el2||'', p.ew1||'', p.ew2||'',
@@ -14238,7 +14273,7 @@ function printImportedCutlist() {
       <thead><tr style="background:#f0f0f0">
         <th style="border:1px solid #ccc;padding:4px 6px;text-align:left">Part</th>
         <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">Qty</th>
-        <th style="border:1px solid #ccc;padding:4px 6px;text-align:right">L</th>
+        <th style="border:1px solid #ccc;padding:4px 6px;text-align:right">H</th>
         <th style="border:1px solid #ccc;padding:4px 6px;text-align:right">W</th>
         <th style="border:1px solid #ccc;padding:4px 6px">Material</th>
         <th style="border:1px solid #ccc;padding:4px 6px;text-align:center">El1</th>
@@ -14338,7 +14373,7 @@ function importedToCutlist() {
         <div>
           <table class="cutlist-table">
             <thead><tr>
-              <th>Part</th><th class="qty">Qty</th><th class="dim">L mm</th><th class="dim">W mm</th>
+              <th>Part</th><th class="qty">Qty</th><th class="dim">H mm</th><th class="dim">W mm</th>
               <th class="material">Material</th>
               <th class="edge">El1</th><th class="edge">El2</th><th class="edge">Ew1</th><th class="edge">Ew2</th>
               <th>Notes</th>
@@ -15254,7 +15289,7 @@ function builderInfoTable() {
 
   let html = `<div class="bldr-info-pill">PARTS LIST</div>
   <table class="bldr-compartment-table">
-    <tr><th>Part</th><th>Mat</th><th>L</th><th>W</th></tr>`;
+    <tr><th>Part</th><th>Mat</th><th>H</th><th>W</th></tr>`;
 
   if (bs.topType === 'nailers') {
     html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${innerW}</td><td>100</td></tr>`;
@@ -16748,7 +16783,7 @@ function drawerPartsPreviewHTML() {
     <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
       <th style="text-align:left;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">PART</th>
       <th style="text-align:center;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">QTY</th>
-      <th style="text-align:right;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">L</th>
+      <th style="text-align:right;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">H</th>
       <th style="text-align:right;padding:4px 6px;font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--amber-dim);font-weight:400">W</th>
     </thead><tbody>
     ${parts.map(p=>`<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
