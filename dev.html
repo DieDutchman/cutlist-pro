@@ -6584,7 +6584,7 @@ let quoteState = {
   runnerType: 'soft',
   topsOpen: false,
   feesOpen: false,
-  hwOpen:   false,
+  hwOpen:   true,
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -6816,7 +6816,7 @@ function _renderQuoteView() {
   ).join('');
 
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()">
+    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()" id="qv-head-tops">
     <span>Tops ${topsTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(topsTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.topsOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -6958,7 +6958,7 @@ function _renderQuoteView() {
 
     mainHtml += `
     <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()">
+      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()" id="qv-head-hw">
       <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
         <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
       </span>
@@ -6969,7 +6969,7 @@ function _renderQuoteView() {
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()">
+    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()" id="qv-head-fees">
     <span>Fees ${feesTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(feesTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.feesOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -7149,6 +7149,15 @@ function _renderQuoteView() {
       <div class="qv-main">${mainHtml}</div>
       <div class="qv-sidebar">${sideHtml}</div>
     </div>`;
+
+  // Wire section toggle heads via addEventListener (CSP-safe — onclick in innerHTML is blocked)
+  const _wireToggle = (id, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
+  };
+  _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
+  _wireToggle('qv-head-hw',      () => { quoteState.hwOpen   = !quoteState.hwOpen;   saveQuoteState(); renderQuoteView(); });
+  _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
 
   // Always sync totals via the single source of truth, regardless of what was baked into the HTML
   refreshQuoteTotals();
