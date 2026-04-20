@@ -33,14 +33,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Copy dev.html → index.html
+      - name: Copy dev.html → index.html and stamp version
         run: |
           if [ ! -f "dev.html" ]; then
             echo "❌ dev.html not found"
             exit 1
           fi
           cp dev.html index.html
-          echo "✓ Copied dev.html → index.html"
+          STAMP="LIVE $(date -u '+%Y-%m-%d %H:%M UTC')"
+          sed -i "s|BUILD_TIMESTAMP|${STAMP}|g" index.html
+          echo "✓ Copied dev.html → index.html (${STAMP})"
 
       - name: Commit and push
         run: |
@@ -50,7 +52,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "ℹ No changes — index.html already matches dev.html"
           else
-            git commit -m "🚀 Promote dev → live [$(date '+%Y-%m-%d %H:%M UTC')]"
+            git commit -m "🚀 Promote dev → live [$(date -u '+%Y-%m-%d %H:%M UTC')]"
             git push
             echo ""
             echo "✅ LIVE — will update in ~30 seconds:"
