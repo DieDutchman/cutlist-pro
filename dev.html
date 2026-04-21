@@ -8614,6 +8614,7 @@ async function loadJobFromSelect() {
 function newJob() {
   if (!confirm('Start a new job? Unsaved changes will be lost.')) return;
   currentJobId = null;
+  try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
   // Clear job details
