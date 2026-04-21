@@ -1872,6 +1872,105 @@
     line-height: 1;
   }
   .img-lightbox-close:hover { color: white; }
+
+  /* ── SHEET OPTIMIZER ── */
+  .opt-wrap { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .opt-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 16px;
+    padding-bottom: 14px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .opt-title {
+    font-family: 'Oswald', sans-serif; font-size: 22px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--text); margin: 0;
+  }
+  .opt-sub {
+    font-size: 12px; color: var(--text-muted);
+    letter-spacing: 1px; margin-top: 4px;
+  }
+  .opt-controls {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 12px 16px; margin-bottom: 18px;
+  }
+  .opt-ctrl { display: flex; flex-direction: column; gap: 3px; }
+  .opt-ctrl label {
+    font-family: 'Oswald', sans-serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .opt-ctrl input, .opt-ctrl select {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-size: 13px; padding: 5px 8px; width: 110px;
+    font-family: 'Barlow', sans-serif;
+  }
+  .opt-ctrl input:focus, .opt-ctrl select:focus { outline: none; border-color: var(--amber); }
+  .opt-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 20px;
+  }
+  .opt-stat {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber); padding: 10px 14px;
+  }
+  .opt-stat-label {
+    font-family: 'Oswald', sans-serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .opt-stat-val {
+    font-family: 'Oswald', sans-serif; font-size: 20px;
+    color: var(--amber); letter-spacing: 1px; margin-top: 2px;
+  }
+  .opt-stat-val.small { font-size: 16px; color: var(--text); }
+  .opt-mat-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    margin-bottom: 20px; padding: 14px 16px;
+  }
+  .opt-mat-title {
+    font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--amber);
+    padding-bottom: 8px; margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .opt-mat-meta { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+  .opt-sheets { display: flex; flex-wrap: wrap; gap: 16px; }
+  .opt-sheet {
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 10px;
+  }
+  .opt-sheet-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--text-dim);
+    font-family: 'Oswald', sans-serif; letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .opt-sheet-head .eff { color: var(--amber); font-weight: 600; }
+  .opt-sheet svg { display: block; background: var(--bg4); border: 1px solid var(--border-light); }
+  .opt-piece-label {
+    font-family: 'Barlow', sans-serif;
+    fill: #fff; font-weight: 600;
+    paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 0.6px;
+    pointer-events: none;
+  }
+  .opt-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .opt-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .opt-legend-swatch {
+    width: 14px; height: 14px; border: 1px solid rgba(0,0,0,0.4);
+    display: inline-block;
+  }
+  .opt-empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted); font-size: 14px;
+    border: 1px dashed var(--border); background: var(--bg2);
+  }
+  body.supplier-theme .opt-sheet svg,
+  body.user-light-theme .opt-sheet svg { background: #f7f5f0; }
 </style>
 </head>
 <body>
@@ -2115,6 +2214,7 @@
     <span class="nav-row-label">Tools</span>
     <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab">🪵 Panels</button>
     <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab">✦ Cutlist</button>
+    <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab">▦ Sheet Optimizer</button>
     <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab">☰ Summary</button>
     <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab">✏ Edit Units</button>
     <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab">💰 Quote</button>
@@ -2170,6 +2270,7 @@
     </div>
   </div>
   <div id="cutlist-view"></div>
+  <div id="optimize-view" style="display:none"></div>
   <div id="summary-view"></div>
   <div id="editor-view" style="display:none"></div>
   <div id="quote-price-view" style="display:none"></div>
@@ -3171,6 +3272,12 @@ function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
 
+  // Always hide optimizer unless explicitly requested — simplifies per-branch logic
+  if (section !== '__optimize__') {
+    const _ov = document.getElementById('optimize-view');
+    if (_ov) _ov.style.display = 'none';
+  }
+
   if (section === '__cutlist__') {
     document.getElementById('quote-view').style.display = 'none';
     document.getElementById('summary-view').style.display = 'none';
@@ -3184,7 +3291,19 @@ function switchTab(btn, section) {
     document.getElementById('import-view').style.display = 'none';
     document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('pl-view').style.display = 'none';
+    const _optV = document.getElementById('optimize-view'); if (_optV) _optV.style.display = 'none';
     document.getElementById('cutlist-view').style.display = 'block';
+    return;
+  }
+
+  if (section === '__optimize__') {
+    ['quote-view','cutlist-view','summary-view','editor-view','quote-price-view',
+     'costing-view','materials-view','prices-view','builder-view','panels-view',
+     'import-view','imported-cutlist-view','pl-view'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    document.getElementById('optimize-view').style.display = 'block';
+    renderOptimizer();
     return;
   }
 
@@ -3916,6 +4035,7 @@ function generateCutlist() {
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(true)">⊞ Expand All</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(false)">⊟ Collapse All</button>
       <button class="btn btn-excel" onclick="downloadXLSX()">⬇ Download .xlsx</button>
+      <button class="btn btn-ghost" onclick="openOptimizer()">▦ Optimize Sheets</button>
       <button class="btn btn-ghost" onclick="window.print()">⊕ Print</button>
       <button class="btn btn-ghost" onclick="backToQuote()">← Edit Units</button>
     </div>
@@ -17943,6 +18063,342 @@ setTimeout(() => {
 
   // (bake nudge removed — data is now saved to Supabase automatically)
 }, 500);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHEET OPTIMIZER — guillotine-style shelf bin packing for 2D nesting.
+   Groups parts by material, packs each group onto standard sheets, and
+   renders an SVG layout with stats. Supports rotation, kerf, and custom
+   sheet dimensions.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const OPTIMIZER_STATE = {
+  sheetW: 2750,      // mm — matches SHEET_W used elsewhere
+  sheetH: 1830,      // mm
+  kerf: 3,           // mm — saw kerf
+  trim: 10,          // mm — edge trim per sheet side
+  allowRotation: true,
+};
+
+// Deterministic colour from a string — used to tint part groups.
+function optColor(seed, alpha) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  const sat = 55 + (h >> 8) % 20;   // 55-74
+  const light = 42 + (h >> 12) % 12; // 42-53
+  return `hsla(${hue},${sat}%,${light}%,${alpha == null ? 0.85 : alpha})`;
+}
+
+function openOptimizer() {
+  const tab = document.getElementById('optimize-tab');
+  if (tab) switchTab(tab, '__optimize__');
+}
+
+function collectOptimizerParts() {
+  // Prefer the last-generated cutlist. Fall back to generating one on the fly.
+  if (!window._lastCutlist) {
+    try { generateCutlist(); } catch (e) { /* ignore */ }
+  }
+  const cl = window._lastCutlist;
+  if (!cl || !cl.consolidated) return [];
+  const parts = [];
+  Object.values(cl.consolidated).forEach(p => {
+    if (!p.l || !p.w || !p.qty) return;
+    // Normalise: long edge = L, short edge = W for readable layout
+    const L = Math.max(p.l, p.w);
+    const W = Math.min(p.l, p.w);
+    for (let i = 0; i < p.qty; i++) {
+      parts.push({
+        l: L, w: W,
+        mat: p.mat || 'Unknown',
+        category: p.category || 'Other',
+        label: p.partName || '',
+      });
+    }
+  });
+  return parts;
+}
+
+/**
+ * Shelf-bin-packing with rotation. Allocates pieces to a single sheet.
+ * Returns { placed:[{x,y,w,h,rotated,part}], leftover:[parts] }.
+ * The sheet usable area is reduced by edge trim on all sides.
+ */
+function packOneSheet(parts, sheetW, sheetH, kerf, trim, allowRotation) {
+  const usableW = sheetW - trim * 2;
+  const usableH = sheetH - trim * 2;
+
+  // Sort: tallest side first (classic shelf heuristic)
+  const queue = parts.slice().sort((a, b) => {
+    const aMax = Math.max(a.l, a.w);
+    const bMax = Math.max(b.l, b.w);
+    if (bMax !== aMax) return bMax - aMax;
+    return (b.l * b.w) - (a.l * a.w);
+  });
+
+  const placed = [];
+  const leftover = [];
+  let shelfY = 0;
+  let shelfH = 0;
+  let shelfX = 0;
+
+  for (const part of queue) {
+    // Try two orientations. "Long side along shelf" = w along X, h = W.
+    const orientations = [];
+    // Orientation A: piece length along X (w=L, h=W)
+    orientations.push({ w: part.l, h: part.w, rotated: false });
+    if (allowRotation && part.l !== part.w) {
+      // Orientation B: piece length along Y (w=W, h=L)
+      orientations.push({ w: part.w, h: part.l, rotated: true });
+    }
+
+    let placedThis = false;
+
+    // Prefer orientation that fits on current shelf without starting a new one
+    for (const o of orientations) {
+      if (o.w > usableW || o.h > usableH) continue;
+      const needW = o.w + (shelfX > 0 ? kerf : 0);
+      const fitsOnCurrent = (shelfX + needW <= usableW) && (o.h <= shelfH || shelfH === 0);
+      if (fitsOnCurrent) {
+        const x = shelfX + (shelfX > 0 ? kerf : 0);
+        if (shelfH === 0) shelfH = o.h;
+        // Height of the current shelf is locked to the first piece's height;
+        // later pieces must be <= that height.
+        if (o.h > shelfH) continue;
+        placed.push({
+          x: trim + x, y: trim + shelfY,
+          w: o.w, h: o.h,
+          rotated: o.rotated, part,
+        });
+        shelfX = x + o.w;
+        placedThis = true;
+        break;
+      }
+    }
+    if (placedThis) continue;
+
+    // Start a new shelf. Pick orientation with the smaller height that still fits the sheet.
+    const candidates = orientations.filter(o => o.w <= usableW && (shelfY + (shelfH > 0 ? shelfH + kerf : 0) + o.h <= usableH));
+    if (candidates.length === 0) {
+      leftover.push(part);
+      continue;
+    }
+    // Choose orientation that leaves most remaining width (so later pieces fit)
+    candidates.sort((a, b) => a.h - b.h);
+    const o = candidates[0];
+    const newShelfY = shelfY + (shelfH > 0 ? shelfH + kerf : 0);
+    shelfY = newShelfY;
+    shelfH = o.h;
+    shelfX = 0;
+    placed.push({
+      x: trim + 0, y: trim + shelfY,
+      w: o.w, h: o.h,
+      rotated: o.rotated, part,
+    });
+    shelfX = o.w;
+  }
+
+  return { placed, leftover };
+}
+
+function optimizeMaterial(parts, opts) {
+  // Pack onto successive sheets until all placed.
+  const sheets = [];
+  let remaining = parts.slice();
+  // Sanity cap
+  for (let guard = 0; guard < 500 && remaining.length > 0; guard++) {
+    const res = packOneSheet(remaining, opts.sheetW, opts.sheetH, opts.kerf, opts.trim, opts.allowRotation);
+    if (res.placed.length === 0) {
+      // Part is too big for the sheet — drop to oversize bucket
+      break;
+    }
+    sheets.push({ placed: res.placed });
+    remaining = res.leftover;
+  }
+  return { sheets, oversized: remaining };
+}
+
+function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM) {
+  const px = pxPerMM || 0.18;
+  const svgW = Math.round(sheetW * px);
+  const svgH = Math.round(sheetH * px);
+  const pieces = sheet.placed.map(p => {
+    const x = p.x * px, y = p.y * px;
+    const w = p.w * px, h = p.h * px;
+    const seed = colorKey === 'category' ? p.part.category : (p.part.label || p.part.category);
+    const fill = optColor(seed, 0.88);
+    const stroke = 'rgba(0,0,0,0.55)';
+    const showLabel = (w > 40 && h > 22);
+    const fontSize = Math.max(8, Math.min(11, Math.round(h / 5)));
+    const dim1 = Math.round(p.part.l);
+    const dim2 = Math.round(p.part.w);
+    const label = showLabel
+      ? `<text class="opt-piece-label" x="${x + w/2}" y="${y + h/2 + fontSize/3}" font-size="${fontSize}" text-anchor="middle">${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}</text>`
+      : '';
+    const title = `<title>${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}</title>`;
+    return `<g>${title}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${label}</g>`;
+  }).join('');
+  return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+    ${pieces}
+  </svg>`;
+}
+
+function renderOptimizer() {
+  const view = document.getElementById('optimize-view');
+  if (!view) return;
+
+  const st = OPTIMIZER_STATE;
+  const parts = collectOptimizerParts();
+
+  const controlsHtml = `
+    <div class="opt-header">
+      <div>
+        <h2 class="opt-title">▦ Sheet Optimizer</h2>
+        <div class="opt-sub">Guillotine shelf-packing · grouped by material · rotation ${st.allowRotation ? 'on' : 'off'}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="renderOptimizer()">↻ Recalculate</button>
+        <button class="btn btn-ghost" onclick="printOptimizer()">⊕ Print Layouts</button>
+        <button class="btn btn-ghost" onclick="backToQuote()">← Edit Units</button>
+      </div>
+    </div>
+
+    <div class="opt-controls">
+      <div class="opt-ctrl"><label>Sheet W (mm)</label>
+        <input type="number" id="opt-sheet-w" value="${st.sheetW}" min="100" onchange="updateOptimizerSetting('sheetW', this.value)"></div>
+      <div class="opt-ctrl"><label>Sheet H (mm)</label>
+        <input type="number" id="opt-sheet-h" value="${st.sheetH}" min="100" onchange="updateOptimizerSetting('sheetH', this.value)"></div>
+      <div class="opt-ctrl"><label>Kerf (mm)</label>
+        <input type="number" id="opt-kerf" value="${st.kerf}" min="0" step="0.1" onchange="updateOptimizerSetting('kerf', this.value)"></div>
+      <div class="opt-ctrl"><label>Edge Trim (mm)</label>
+        <input type="number" id="opt-trim" value="${st.trim}" min="0" onchange="updateOptimizerSetting('trim', this.value)"></div>
+      <div class="opt-ctrl"><label>Rotation</label>
+        <select id="opt-rot" onchange="updateOptimizerSetting('allowRotation', this.value === 'true')">
+          <option value="true" ${st.allowRotation ? 'selected' : ''}>Allow</option>
+          <option value="false" ${!st.allowRotation ? 'selected' : ''}>Lock grain</option>
+        </select></div>
+      <div class="opt-ctrl"><label>Preset</label>
+        <select onchange="applyOptimizerPreset(this.value); this.value=''">
+          <option value="">—</option>
+          <option value="2750x1830">2750 × 1830 (ZA standard)</option>
+          <option value="2440x1220">2440 × 1220 (4×8 ft)</option>
+          <option value="3050x1525">3050 × 1525 (10×5 ft)</option>
+          <option value="2400x1200">2400 × 1200 (metric)</option>
+        </select></div>
+    </div>
+  `;
+
+  if (parts.length === 0) {
+    view.innerHTML = `<div class="opt-wrap">${controlsHtml}
+      <div class="opt-empty">
+        No cuttable parts found. Go to the <strong>Cutlist</strong> tab to generate a cutlist first,
+        then return here to optimize.
+      </div></div>`;
+    return;
+  }
+
+  // Group by material, run optimizer per group
+  const byMat = {};
+  parts.forEach(p => { (byMat[p.mat] = byMat[p.mat] || []).push(p); });
+
+  const opts = { sheetW: st.sheetW, sheetH: st.sheetH, kerf: st.kerf, trim: st.trim, allowRotation: st.allowRotation };
+  const sheetArea = st.sheetW * st.sheetH;
+
+  let totalSheets = 0;
+  let totalUsedArea = 0;
+  let totalSheetArea = 0;
+  let totalOversized = 0;
+  const matResults = [];
+
+  Object.keys(byMat).sort().forEach(mat => {
+    const res = optimizeMaterial(byMat[mat], opts);
+    const usedArea = byMat[mat].reduce((s, p) => s + p.l * p.w, 0);
+    const sheetCount = res.sheets.length;
+    const matSheetArea = sheetCount * sheetArea;
+    totalSheets += sheetCount;
+    totalUsedArea += usedArea;
+    totalSheetArea += matSheetArea;
+    totalOversized += res.oversized.length;
+    matResults.push({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount: byMat[mat].length });
+  });
+
+  const efficiency = totalSheetArea > 0 ? (totalUsedArea / totalSheetArea) * 100 : 0;
+  const waste = 100 - efficiency;
+
+  const summaryHtml = `
+    <div class="opt-summary">
+      <div class="opt-stat"><div class="opt-stat-label">Sheets Needed</div><div class="opt-stat-val">${totalSheets}</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Pieces Placed</div><div class="opt-stat-val">${parts.length - totalOversized}</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Material Used</div><div class="opt-stat-val small">${(totalUsedArea / 1e6).toFixed(2)} m²</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Sheet Area</div><div class="opt-stat-val small">${(totalSheetArea / 1e6).toFixed(2)} m²</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Efficiency</div><div class="opt-stat-val">${efficiency.toFixed(1)}%</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Waste</div><div class="opt-stat-val">${waste.toFixed(1)}%</div></div>
+      ${totalOversized > 0 ? `<div class="opt-stat" style="border-left-color:#d4583a"><div class="opt-stat-label">Oversized</div><div class="opt-stat-val" style="color:#d4583a">${totalOversized}</div></div>` : ''}
+    </div>
+  `;
+
+  const matBlocksHtml = matResults.map(({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount }) => {
+    const matEff = matSheetArea > 0 ? (usedArea / matSheetArea) * 100 : 0;
+    const cats = new Set(byMat[mat].map(p => p.category));
+    const legendHtml = [...cats].sort().map(c =>
+      `<span class="opt-legend-item"><span class="opt-legend-swatch" style="background:${optColor(c, 0.9)}"></span>${c}</span>`
+    ).join('');
+
+    const sheetsHtml = res.sheets.map((sheet, idx) => {
+      const used = sheet.placed.reduce((s, p) => s + p.w * p.h, 0);
+      const eff = (used / sheetArea) * 100;
+      return `<div class="opt-sheet">
+        <div class="opt-sheet-head">
+          <span>Sheet ${idx + 1} / ${sheetCount}</span>
+          <span class="eff">${eff.toFixed(1)}% used</span>
+        </div>
+        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category')}
+      </div>`;
+    }).join('');
+
+    const oversizedHtml = res.oversized.length > 0
+      ? `<div style="margin-top:10px;padding:8px 10px;background:rgba(212,88,58,0.15);border:1px solid #d4583a;font-size:12px;color:#d4583a">
+           ⚠ ${res.oversized.length} piece${res.oversized.length > 1 ? 's' : ''} too large for ${st.sheetW}×${st.sheetH}mm sheet:
+           ${res.oversized.slice(0, 5).map(p => `${p.l}×${p.w}mm`).join(', ')}${res.oversized.length > 5 ? '…' : ''}
+         </div>`
+      : '';
+
+    return `<div class="opt-mat-block">
+      <div class="opt-mat-title">
+        <span>${mat}</span>
+        <span class="opt-mat-meta">${pieceCount} pieces · ${sheetCount} sheet${sheetCount !== 1 ? 's' : ''} · ${matEff.toFixed(1)}% efficient</span>
+      </div>
+      <div class="opt-sheets">${sheetsHtml}</div>
+      ${oversizedHtml}
+      ${legendHtml ? `<div class="opt-legend">${legendHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  view.innerHTML = `<div class="opt-wrap">${controlsHtml}${summaryHtml}${matBlocksHtml}</div>`;
+}
+
+function updateOptimizerSetting(key, value) {
+  const num = Number(value);
+  if (key === 'allowRotation') {
+    OPTIMIZER_STATE.allowRotation = !!value;
+  } else if (!isNaN(num) && num >= 0) {
+    OPTIMIZER_STATE[key] = num;
+  }
+  renderOptimizer();
+}
+
+function applyOptimizerPreset(preset) {
+  if (!preset) return;
+  const [w, h] = preset.split('x').map(Number);
+  if (w && h) {
+    OPTIMIZER_STATE.sheetW = w;
+    OPTIMIZER_STATE.sheetH = h;
+    renderOptimizer();
+  }
+}
+
+function printOptimizer() { window.print(); }
 </script>
 
 <!-- Version chip — shows file's last-modified timestamp -->
