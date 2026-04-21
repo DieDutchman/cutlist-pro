@@ -8351,6 +8351,7 @@ async function onLoginSuccess() {
   applyStoredTheme();
   _updateThemeToggleIcon();
   await loadUserJobs();
+  if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
   checkFeedbackUnread();
   // Start trial countdown badge for users with a trial expiry
