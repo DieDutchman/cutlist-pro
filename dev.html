@@ -8563,6 +8563,7 @@ async function saveJobToCloud() {
     const rows = await res.json();
     if (rows.length && !currentJobId) {
       currentJobId = rows[0].id;
+      try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       document.getElementById('job-delete-btn').style.display = 'block';
