@@ -8624,6 +8624,7 @@ async function cleanupDeleteRow(name, btn) {
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 function openFeedbackModal() {
+  if (canManageUsers()) { openUsersModal(); showUsersTab('feedback'); return; }
   const modal = document.getElementById('feedback-modal');
   modal.style.display = 'flex';
   const activeTab = document.querySelector('.tab.active');
