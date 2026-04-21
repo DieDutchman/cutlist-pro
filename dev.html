@@ -1741,20 +1741,23 @@
     margin-bottom: 14px;
   }
   .bldr-save-btn {
-    margin-top: 20px;
+    margin-top: 14px;
     width: 100%;
     padding: 11px;
-    background: var(--amber);
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
     border: none;
     color: #1a1208;
     font-family: 'Oswald', sans-serif;
     font-size: 13px;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
-    transition: opacity 0.15s;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
+    transition: transform 0.12s, box-shadow 0.12s;
   }
-  .bldr-save-btn:hover { opacity: 0.88; }
+  .bldr-save-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
+  .bldr-save-btn:active { transform: translateY(0); }
   .bldr-compartment-table {
     width: 100%;
     border-collapse: collapse;
