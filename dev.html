@@ -1696,9 +1696,12 @@
     font-size: 13px;
     outline: none;
     min-width: 0;
+    border-radius: 3px;
+    transition: border-color 0.15s;
   }
-  .bldr-input:focus { border-color: var(--amber); }
-  .bldr-input[type=range] { padding: 4px 0; cursor: pointer; }
+  .bldr-input:hover { border-color: var(--text-muted); }
+  .bldr-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
+  .bldr-input[type=range] { padding: 4px 0; cursor: pointer; box-shadow: none; }
   .bldr-unit { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
   .bldr-check-row {
     display: flex;
