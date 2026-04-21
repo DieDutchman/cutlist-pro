@@ -16063,12 +16063,12 @@ function _renderBuilderView() {
   // rendering below throws an error.
   bv.innerHTML = `<div class="bldr-mode-bar" style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;position:relative;z-index:2">
     <button onclick="_builderMode='unit';try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
-      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
-      🔨 UNIT BUILDER
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:${_builderMode==='unit'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
+      🔨 <span style="letter-spacing:1px">UNIT BUILDER</span>
     </button>
     <button onclick="_builderMode='drawer';try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
-      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
-      🗂 DRAWER BUILDER
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:${_builderMode==='drawer'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
+      🗂 <span style="letter-spacing:1px">DRAWER BUILDER</span>
     </button>
   </div><div id="bldr-content-area"></div>`;
 
