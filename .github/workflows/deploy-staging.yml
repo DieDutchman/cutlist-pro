@@ -10,25 +10,12 @@ on:
 jobs:
   confirm:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Stamp staging version
+      - name: Staging ready
         run: |
-          STAMP="DEV $(date -u '+%Y-%m-%d %H:%M UTC')"
-          sed -i "s|BUILD_TIMESTAMP|${STAMP}|g" dev.html
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dev.html
-          if git diff --cached --quiet; then
-            echo "ℹ Already stamped"
-          else
-            git commit -m "🔧 Stamp staging build [skip ci]"
-            git push
-          fi
-          echo "✅ Staging: https://diedutchman.github.io/cutlist-pro/dev.html"
+          echo "✅ dev.html pushed successfully."
+          echo ""
+          echo "🔧 Staging: https://diedutchman.github.io/cutlist-pro/dev.html"
+          echo "🌐 Live site unchanged: https://diedutchman.github.io/cutlist-pro/"
+          echo ""
+          echo "When happy → Actions → 🚀 Promote DEV → LIVE → type PROMOTE"
