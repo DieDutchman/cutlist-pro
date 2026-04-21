@@ -2879,6 +2879,7 @@ const deletedUnits = new Set();
 
 // ── Declared early so getEffectiveUnits() can safely read it at startup ───────
 let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
+let sbLastJobId = null; // restored from profiles.last_job_id on login
 
 // ── User-defined rooms & units (non-admin users) ──────────────────────────────
 let userRooms = [];   // [{id, name, icon}]
