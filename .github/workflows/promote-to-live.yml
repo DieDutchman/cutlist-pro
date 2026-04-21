@@ -48,7 +48,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "ℹ No changes"
           else
-            git commit -m "🚀 Promote dev → live [skip ci]"
+            git commit -m "🚀 Promote dev → live"
             git push
             echo "✅ LIVE: https://diedutchman.github.io/cutlist-pro/"
           fi
