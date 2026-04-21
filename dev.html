@@ -8591,6 +8591,7 @@ async function loadJobFromSelect() {
     if (!rows.length) throw new Error('Not found');
     const job = rows[0];
     currentJobId = job.id;
+    try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
 
     // Apply job details
     if (document.getElementById('job-client'))  document.getElementById('job-client').value  = job.client  || '';
