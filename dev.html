@@ -8480,6 +8480,9 @@ async function loadUserJobs() {
 function rebuildJobSelect() {
   const sel = document.getElementById('job-select');
   if (!sel) return;
+  if (!currentJobId) {
+    try { currentJobId = localStorage.getItem('cutlist_current_job_id') || null; } catch(e) {}
+  }
   sel.innerHTML = '<option value="">— New Job —</option>';
   sbJobs.forEach(j => {
     const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
