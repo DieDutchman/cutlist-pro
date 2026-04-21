@@ -1718,16 +1718,27 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
+    background: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
   }
   .bldr-svg-wrap svg {
     max-width: 100%;
-    filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.45));
   }
   .bldr-dims-badge {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 1px;
+    color: var(--amber-dim);
+    letter-spacing: 0.5px;
+    background: rgba(212,145,58,0.08);
+    border: 1px solid rgba(212,145,58,0.2);
+    border-radius: 4px;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 14px;
   }
   .bldr-save-btn {
     margin-top: 20px;
