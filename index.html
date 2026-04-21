@@ -3486,7 +3486,7 @@ function _renderPanel() {
     const svcBtnStyle = hasSvcOverride
       ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
       : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
-    const svcBtn = costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user')
+    const svcBtn = costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user')
       ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
            style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
       : '';
@@ -14691,7 +14691,7 @@ function _renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:4px;flex-wrap:nowrap">
-        ${costingPrices.specialServices.length > 0 && (canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
@@ -17944,7 +17944,7 @@ setTimeout(() => {
 }, 500);
 </script>
 
-<!-- Version chip — timestamp injected by GitHub Actions at deploy time -->
+<!-- Version chip — shows file's last-modified timestamp -->
 <div id="version-chip" style="
   position: fixed;
   bottom: 10px;
@@ -17961,7 +17961,24 @@ setTimeout(() => {
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-04-20 21:42 UTC</div>
+" title="Build version">LIVE 2026-04-21 05:13 UTC</div>
+<script>
+(function() {
+  const chip = document.getElementById('version-chip');
+  if (!chip) return;
+  const raw = chip.textContent.trim();
+  // If workflow already stamped it, show as-is
+  if (raw !== 'LIVE 2026-04-21 05:13 UTC') return;
+  // Fallback: use document.lastModified
+  try {
+    const d = new Date(document.lastModified);
+    if (d && !isNaN(d)) {
+      const pad = n => String(n).padStart(2,'0');
+      chip.textContent = 'DEV ' + d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+  } catch(e) {}
+})();
+</script>
 
 </body>
 </html>
