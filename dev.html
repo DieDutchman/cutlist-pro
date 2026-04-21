@@ -8262,10 +8262,11 @@ let sbCanEditPrices = false; // true when this user has been granted price-edit 
 
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,last_job_id`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
+    sbLastJobId = rows[0]?.last_job_id || null;
     // Supplier always edits prices (their job). Admin always edits prices.
     // Superuser only edits prices when can_edit_prices = true (toggleable).
     sbCanEditPrices = sbRole === 'supplier'
