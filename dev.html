@@ -8610,6 +8610,7 @@ async function saveJobToCloud() {
     } else {
       await loadUserJobs();
     }
+    persistLastJobId(currentJobId);
     setJobSyncStatus('✓ Saved', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
   } catch(e) {
