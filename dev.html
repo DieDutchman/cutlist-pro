@@ -9070,13 +9070,22 @@ function closeBoardCleanupModal() {
   loadSupplierPrices(); // re-sync after cleanup
 }
 
+// ── Shared cache of all suppliers (populated when Users modal opens) ─────────
+let _allSuppliersCache = [];
+
 async function loadUsersModal() {
   const list = document.getElementById('users-list');
   const status = document.getElementById('users-status');
   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
   status.textContent = '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at&order=email.asc`, { headers: authHeaders() });
+    // Fetch all suppliers once so each user row can render its multi-select
+    try {
+      const sRes = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,name&order=name.asc`, { headers: authHeaders() });
+      _allSuppliersCache = sRes.ok ? await sRes.json() : [];
+    } catch(e) { _allSuppliersCache = []; }
+
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at,supplier_ids&order=email.asc`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const users = await res.json();
     if (!users.length) {
@@ -9087,6 +9096,25 @@ async function loadUsersModal() {
     status.textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
   } catch(e) {
     list.innerHTML = `<div style="padding:24px;text-align:center;color:#e07070;font-size:13px">Failed to load users: ${e.message}</div>`;
+  }
+}
+
+async function updateUserSuppliers(userId, selectEl) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  const ids = Array.from(selectEl.selectedOptions).map(o => o.value).filter(Boolean);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ supplier_ids: ids }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+    console.warn('[Supabase] updateUserSuppliers failed:', e.message);
   }
 }
 
