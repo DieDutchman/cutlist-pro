@@ -15662,7 +15662,7 @@ function builderDrawSVG() {
 
 function builderDrawSideSVG() {
   const geo = builderGeometry();
-  const { H, D, T, innerH, innerW, resolvedShelves } = geo;
+  const { H, W, D, T, innerH, innerW, resolvedShelves } = geo;
   const bs = builderState;
   const bk = bs.backing;
   const backT = bk.enabled ? (bk.type === 'solid' ? T : 3) : 0;
