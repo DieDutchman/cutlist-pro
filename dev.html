@@ -10251,7 +10251,10 @@ async function loadSupplierPrices() {
   renderSyncBadge();
   let rows = [];
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*`, { headers: authHeaders() });
+    const filter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*${filter}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     rows = await res.json();
 
