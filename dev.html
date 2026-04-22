@@ -10226,14 +10226,19 @@ function openUnitEditModal(unitId) {
             || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
+  const isBuiltin = !userUnits.find(u => u.id === unitId) && !customUnits.find(u => u.id === unitId);
+
   const baseWidth  = parseBaseWidth(unit);
   const baseHeight = (() => {
-    // Detect height from part named 'Sides' or tallest l/w not matching width
     const sides = (unit.parts||[]).find(p => /\bsides?\b/i.test(p.name));
     if (sides) return Math.max(sides.l, sides.w);
     const dims = (unit.parts||[]).flatMap(p => [p.l, p.w]).filter(d => d > 200 && Math.abs(d-baseWidth) > 20);
     return dims.length ? Math.max(...dims) : 780;
   })();
+
+  const sectionOptions = sections.map(s =>
+    `<option value="${s.id}" ${s.id === unit.section ? 'selected' : ''}>${s.label}</option>`
+  ).join('');
 
   document.getElementById('uem-modal')?.remove();
   const modal = document.createElement('div');
@@ -10241,13 +10246,27 @@ function openUnitEditModal(unitId) {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
-      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">✏ EDIT UNIT</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">Changes are applied immediately. Use Scale to proportionally resize all parts.</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">
+        ${isBuiltin ? '📐 SCALE UNIT' : '✏ EDIT UNIT'}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">
+        ${isBuiltin
+          ? 'Scales parts proportionally and saves as a <strong>new unit</strong> in your template. Original is preserved.'
+          : 'Changes are applied immediately. Scale adjusts all parts proportionally.'}
+      </div>
 
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Unit Name</label>
       <input id="uem-name" value="${unit.name.replace(/"/g,'&quot;')}"
         style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+
+      ${isBuiltin ? `
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Save to Section</label>
+      <select id="uem-section"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        ${sectionOptions}
+      </select>` : ''}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
         <div>
@@ -10275,8 +10294,10 @@ function openUnitEditModal(unitId) {
       </div>
 
       <div style="display:flex;gap:10px">
-        <button onclick="confirmUnitEdit('${unitId}', ${baseWidth}, ${baseHeight})"
-          style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">APPLY CHANGES</button>
+        <button onclick="confirmUnitEdit('${unitId}', ${baseWidth}, ${baseHeight}, ${isBuiltin})"
+          style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">
+          ${isBuiltin ? '💾 SAVE AS NEW UNIT' : 'APPLY CHANGES'}
+        </button>
         <button onclick="document.getElementById('uem-modal').remove()"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
