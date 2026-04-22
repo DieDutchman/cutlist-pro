@@ -5491,7 +5491,8 @@ function scalePart(part, baseWidth, newWidth) {
   const DEPTHS  = new Set([534,535,533,580,579,581,300,299,301,561,560,562,517,516,518,
                             484,485,483,500,499,501,116,115,117,100,99,101,70,71,
                             130,131,164,146,176,118,119,453,325,305,314,451,
-                            200,201,199,150,149,151,110,111,109,378,391]);
+                            200,201,199,150,149,151,110,111,109,378,391,
+                            452,451,467,466,468,514,513]);
   const isStructural = d => d < 50 || HEIGHTS.has(d) || DEPTHS.has(d);
 
   // Parts whose dimensions never change regardless of width
