@@ -8278,13 +8278,9 @@ async function doLogout() {
   try {
     await fetch(`${SB_URL}/auth/v1/logout`, { method: 'POST', headers: authHeaders() });
   } catch(e) {}
-  sbToken = null; sbUser = null; sbJobs = []; currentJobId = null;
   try { localStorage.removeItem('cutlist_session'); } catch(e) {}
-  document.getElementById('job-bar').style.display = 'none';
-  document.getElementById('login-overlay').style.display = 'flex';
-  document.getElementById('login-btn').textContent = 'SIGN IN';
-  document.getElementById('login-btn').disabled = false;
-  document.getElementById('login-error').style.display = 'none';
+  try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
+  window.location.reload();
 }
 
 let sbCanEditPrices = false; // true when this user has been granted price-edit access
