@@ -10289,16 +10289,16 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  // Built-in UNITS template: edit via unitOverrides so the original id is
+  // preserved (no duplicate appears in the picker after refresh).
+  let isBuiltin = false;
   if (!unit) {
-    // Standard template unit — create a copy in customUnits so the edit persists
-    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    const tmpl = UNITS.find(u => u.id === unitId);
     if (!tmpl) return;
-    unit = JSON.parse(JSON.stringify(tmpl)); // deep copy
-    unit.id = 'custom_edit_' + Date.now();
-    customUnits.push(unit);
-    // Remap the quantity to the new id so the count carries over
-    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
-    source = 'custom';
+    const ov = unitOverrides[unitId] || {};
+    unit = JSON.parse(JSON.stringify({ ...tmpl, ...ov })); // deep working copy
+    isBuiltin = true;
+    source = 'override';
   }
 
   const newName   = document.getElementById('uem-name')?.value.trim() || unit.name;
@@ -10318,6 +10318,15 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
       const s = scalePartHeight(p, origHeight, newHeight);
       return { ...s, _lMode: undefined, _wMode: undefined };
     });
+  }
+
+  if (isBuiltin) {
+    unitOverrides[unitId] = {
+      ...(unitOverrides[unitId] || {}),
+      name:    unit.name,
+      section: unit.section,
+      parts:   unit.parts,
+    };
   }
 
   document.getElementById('uem-modal').remove();
