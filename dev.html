@@ -10626,7 +10626,7 @@ async function pushSupplierPrice(category, name, price, meta) {
     } else if (meta) {
       payload.meta = JSON.stringify(meta);
     }
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=supplier_id,name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify(payload)
