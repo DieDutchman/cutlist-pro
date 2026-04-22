@@ -8286,6 +8286,69 @@ async function fetchUserRole() {
   }
 }
 
+// ── Multi-supplier loader ─────────────────────────────────────────────────────
+async function _loadAvailableSuppliers(ids, activeId) {
+  try {
+    if (isSupplier()) {
+      // Supplier edits their own row — fetch any supplier records they own
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?owner_id=eq.${sbUser.id}&select=id,name`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      availableSuppliers = rows || [];
+      activeSupplierRow = availableSuppliers[0] || null;
+      return;
+    }
+    // Non-supplier: start with Default, then append assigned suppliers
+    const list = [{ id: null, name: 'Default' }];
+    if (ids && ids.length) {
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${ids.join(',')})&select=id,name`, { headers: authHeaders() });
+      if (res.ok) {
+        const rows = await res.json();
+        rows.forEach(r => list.push({ id: r.id, name: r.name }));
+      }
+    }
+    availableSuppliers = list;
+    activeSupplierRow = list.find(s => (s.id || null) === (activeId || null)) || list[0];
+    _renderSupplierSelector();
+  } catch(e) {
+    console.warn('[Supabase] Could not load suppliers:', e.message);
+    availableSuppliers = [{ id: null, name: 'Default' }];
+    activeSupplierRow = availableSuppliers[0];
+    _renderSupplierSelector();
+  }
+}
+
+function _renderSupplierSelector() {
+  const wrap = document.getElementById('supplier-selector-wrap');
+  if (!wrap) return;
+  if (isSupplier() || availableSuppliers.length <= 1) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  const sel = document.getElementById('supplier-select');
+  if (!sel) return;
+  sel.innerHTML = availableSuppliers
+    .map(s => `<option value="${s.id || ''}">${s.name}</option>`)
+    .join('');
+  sel.value = activeSupplierRow?.id || '';
+}
+
+async function onSupplierSelectChange() {
+  const sel = document.getElementById('supplier-select');
+  const val = sel.value || null;
+  activeSupplierRow = availableSuppliers.find(s => (s.id || null) === (val || null)) || availableSuppliers[0];
+  try {
+    await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ active_supplier_id: activeSupplierRow?.id || null })
+    });
+  } catch(e) { console.warn('[Supabase] Could not persist active supplier:', e.message); }
+  await loadSupplierPrices();
+  if (typeof refreshPriceViews === 'function') refreshPriceViews();
+}
+
 function isSuperuser()   { return sbRole === 'superuser'; }
 function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; }
 function isSupplier()    { return sbRole === 'supplier'; }
