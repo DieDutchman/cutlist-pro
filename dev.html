@@ -8335,15 +8335,23 @@ async function _loadAvailableSuppliers(ids, activeId) {
       activeSupplierRow = availableSuppliers[0] || null;
       return;
     }
-    // Non-supplier: start with Default, then append assigned suppliers
-    const list = [{ id: null, name: 'Default' }];
-    if (ids && ids.length) {
+    // Non-supplier: superuser gets all suppliers; admin/user get only assigned ones.
+    let list = [];
+    if (sbRole === 'superuser') {
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,name&order=name.asc`, { headers: authHeaders() });
+      if (res.ok) {
+        const rows = await res.json();
+        list = rows.map(r => ({ id: r.id, name: r.name }));
+      }
+    } else if (ids && ids.length) {
       const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${ids.join(',')})&select=id,name`, { headers: authHeaders() });
       if (res.ok) {
         const rows = await res.json();
-        rows.forEach(r => list.push({ id: r.id, name: r.name }));
+        list = rows.map(r => ({ id: r.id, name: r.name }));
       }
     }
+    // Safety net: never leave the user without at least one option.
+    if (!list.length) list = [{ id: null, name: 'Default' }];
     availableSuppliers = list;
     activeSupplierRow = list.find(s => (s.id || null) === (activeId || null)) || list[0];
     _renderSupplierSelector();
