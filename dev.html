@@ -9118,6 +9118,91 @@ async function updateUserSuppliers(userId, selectEl) {
   }
 }
 
+// ── Suppliers tab (users modal) ───────────────────────────────────────────────
+async function loadSuppliersTab() {
+  const list = document.getElementById('suppliers-list');
+  if (!list) return;
+  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  try {
+    const [sRes, pRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/suppliers?select=id,name,owner_id&order=name.asc`, { headers: authHeaders() }),
+      fetch(`${SB_URL}/rest/v1/profiles?select=id,email&order=email.asc`, { headers: authHeaders() }),
+    ]);
+    if (!sRes.ok) throw new Error(`HTTP ${sRes.status}`);
+    const suppliers = await sRes.json();
+    const profiles  = pRes.ok ? await pRes.json() : [];
+    const emailById = {};
+    profiles.forEach(p => { emailById[p.id] = p.email; });
+
+    // Populate owner dropdown for the add form
+    const ownerSel = document.getElementById('sup-new-owner');
+    if (ownerSel) {
+      ownerSel.innerHTML = '<option value="">— select owner —</option>' +
+        profiles.map(p => `<option value="${p.id}">${p.email}</option>`).join('');
+    }
+
+    if (!suppliers.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No suppliers yet. Add one above.</div>';
+      return;
+    }
+    list.innerHTML = suppliers.map(s => renderSupplierRow(s, emailById[s.owner_id] || '(unassigned)')).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:#e07070;font-size:13px">Failed to load suppliers: ${e.message}</div>`;
+  }
+}
+
+function renderSupplierRow(s, ownerEmail) {
+  return `
+  <div id="sup-row-${s.id}" style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:140px">
+      <div style="font-size:13px;color:var(--text)">${s.name}</div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px">Owner: ${ownerEmail}</div>
+    </div>
+    <button onclick="deleteSupplier('${s.id}')"
+      style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:4px 10px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">
+      DELETE
+    </button>
+  </div>`;
+}
+
+async function addSupplier(name, ownerId) {
+  name = (name || '').trim();
+  if (!name) { alert('Supplier name is required.'); return; }
+  if (!ownerId) { alert('Select an owner for this supplier.'); return; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, owner_id: ownerId }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.message || j.hint || j.details || msg; } catch(e2) {}
+      throw new Error(msg);
+    }
+    const nameInput = document.getElementById('sup-new-name');
+    if (nameInput) nameInput.value = '';
+    await loadSuppliersTab();
+  } catch(e) {
+    alert('Add supplier failed: ' + e.message);
+  }
+}
+
+async function deleteSupplier(id) {
+  if (!confirm('Delete this supplier? Their prices will remain but be orphaned.')) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadSuppliersTab();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
 function renderUserRow(u) {
   const isMe = u.id === sbUser?.id;
   const roleColor = u.role === 'superuser' ? '#d4913a' : u.role === 'admin' ? 'var(--amber-dim)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
