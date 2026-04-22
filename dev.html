@@ -15668,9 +15668,9 @@ function builderDrawSideSVG() {
   const backT = bk.enabled ? (bk.type === 'solid' ? T : 3) : 0;
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
 
-  const MAX_H = 600;
-  // Use the same height scale as the front view so both drawings are the same height
-  const scale = MAX_H / H;
+  const MAX_W = 480, MAX_H = 600;
+  // Match the front view scale exactly — same min(MAX_W/W, MAX_H/H) — so bH is identical
+  const scale = Math.min(MAX_W / W, MAX_H / H);
   const s = v => Math.round(v * scale);
   const bW = s(D), bH = s(H);
   const isOutsideRail = supportsEnabled && bk.supportPlacement === 'outside';
