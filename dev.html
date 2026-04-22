@@ -8632,6 +8632,7 @@ function getJobState() {
     userUnits:            [...userUnits],
     unitSpecialServices:  {...unitSpecialServices},
     panelSpecialServices: {...panelSpecialServices},
+    activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
