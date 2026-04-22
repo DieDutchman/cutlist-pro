@@ -8457,6 +8457,7 @@ async function onLoginSuccess() {
   applyRoleRestrictions();
   applyStoredTheme();
   _updateThemeToggleIcon();
+  await fetchLastJobId();
   await loadUserJobs();
   if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
