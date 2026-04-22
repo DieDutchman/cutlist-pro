@@ -8325,8 +8325,8 @@ async function fetchLastJobId() {
 // ── Multi-supplier loader ─────────────────────────────────────────────────────
 async function _loadAvailableSuppliers(ids, activeId) {
   try {
-    if (isSupplier()) {
-      // Supplier edits their own row — fetch any supplier records they own
+    if (isSupplier() || sbRole === 'admin') {
+      // Supplier and admin are scoped to their own supplier row — no dropdown, no peeking at other suppliers' prices.
       const res = await fetch(`${SB_URL}/rest/v1/suppliers?owner_id=eq.${sbUser.id}&select=id,name`, { headers: authHeaders() });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const rows = await res.json();
@@ -8334,7 +8334,7 @@ async function _loadAvailableSuppliers(ids, activeId) {
       activeSupplierRow = availableSuppliers[0] || null;
       return;
     }
-    // Non-supplier: superuser gets all suppliers; admin/user get only assigned ones.
+    // Remaining roles: superuser gets all suppliers; user gets only assigned ones.
     let list = [];
     if (sbRole === 'superuser') {
       const res = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,name&order=name.asc`, { headers: authHeaders() });
