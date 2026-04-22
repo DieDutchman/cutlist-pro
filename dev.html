@@ -10403,15 +10403,16 @@ function saveUnitParts(unitId) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  // Built-in UNITS template: use unitOverrides so the original id/quantity is
+  // preserved and no duplicate entry appears in the picker after refresh.
+  let isBuiltin = false;
   if (!unit) {
-    // Standard template unit — promote to a customUnit copy so the edit persists
-    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    const tmpl = UNITS.find(u => u.id === unitId);
     if (!tmpl) return;
-    unit = JSON.parse(JSON.stringify(tmpl));
-    unit.id = 'custom_edit_' + Date.now();
-    customUnits.push(unit);
-    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
-    source = 'custom';
+    // Start from any existing override so we don't drop name/section changes
+    unit = { ...tmpl, ...(unitOverrides[unitId] || {}) };
+    isBuiltin = true;
+    source = 'override';
   }
 
   const rows = document.querySelectorAll('#upm-parts-tbody tr');
@@ -10433,7 +10434,18 @@ function saveUnitParts(unitId) {
       holes: get('holes') || '',
     });
   });
-  unit.parts = parts;
+
+  if (isBuiltin) {
+    unitOverrides[unitId] = {
+      ...(unitOverrides[unitId] || {}),
+      name:    unit.name,
+      section: unit.section,
+      parts,
+    };
+  } else {
+    unit.parts = parts;
+  }
+
   document.getElementById('upm-modal').remove();
   if (source === 'user') { scheduleAutoSave(); }
   else { saveCustomUnits(); }
