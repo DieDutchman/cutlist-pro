@@ -10608,7 +10608,7 @@ async function pushSupplierPrice(category, name, price, meta) {
   }
   try {
     const now = new Date().toISOString();
-    const payload = { category, name, price: Number(price), updated_at: now };
+    const payload = { category, name, price: Number(price), updated_at: now, supplier_id: activeSupplierRow?.id || null };
     // For boards, embed billing mode flags + price date in meta so all users pick them up
     if (category === 'board') {
       const boardMeta = meta ? { ...meta } : {};
