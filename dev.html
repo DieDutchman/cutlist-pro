@@ -17477,16 +17477,16 @@ function drawerCalcParts() {
 
     parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
     parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), largeBoxH, boxW, cm, ce));
-    parts.push(p('Pot Drawer Bottoms',        n-1,    DD - 50, fullBoxW - 4, cm));
+    parts.push(p('Pot Drawer Bottoms',        n-1,    DD - 33, fullBoxW - 4, cm));
     parts.push(p('Top Drawer Sides',          2,       DD, topBoxH, cm, ce));
     parts.push(p('Top Drawer Fronts & Backs', 2,       topBoxH, boxW, cm, ce));
-    parts.push(p('Top Drawer Bottom',         1,       DD - 50, fullBoxW - 4, cm));
+    parts.push(p('Top Drawer Bottom',         1,       DD - 33, fullBoxW - 4, cm));
   } else {
     const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
       parts.push(p('Drawer Fronts & Backs', 2*n, boxH,  boxW,    cm, ce));
-      parts.push(p('Drawer Bottoms',        n,   DD - 50, fullBoxW - 4, cm));
+      parts.push(p('Drawer Bottoms',        n,   DD - 33, fullBoxW - 4, cm));
     } else {
       // Custom different heights — list each separately using per-drawer auto calc
       // but still honour a global boxHeight override if set
