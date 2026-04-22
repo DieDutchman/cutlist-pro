@@ -8265,7 +8265,7 @@ let sbCanEditPrices = false; // true when this user has been granted price-edit 
 
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,last_job_id`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,last_job_id,active_supplier_id,supplier_ids`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
@@ -8275,9 +8275,13 @@ async function fetchUserRole() {
     sbCanEditPrices = sbRole === 'supplier'
       || sbRole === 'admin'
       || rows[0]?.can_edit_prices === true;
+    // Load available suppliers for this user (and pick active row)
+    await _loadAvailableSuppliers(rows[0]?.supplier_ids || [], rows[0]?.active_supplier_id || null);
   } catch(e) {
     sbRole = 'user'; // safe default
     sbCanEditPrices = false;
+    activeSupplierRow = null;
+    availableSuppliers = [];
     console.warn('[Supabase] Could not fetch role:', e.message);
   }
 }
