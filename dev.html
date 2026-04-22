@@ -11931,6 +11931,9 @@ function _renderPricesView() {
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
       </div>
+      <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:6px 10px;margin-bottom:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber)">
+        ◆ SUPPLIER: ${activeSupplierRow?.name || 'Default'}${isSupplier() ? '' : ' <span style="color:var(--text-muted);font-size:10px;letter-spacing:1px">(change in job bar)</span>'}
+      </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
         ${canEditPrices() && !isSupplier() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
       </div>
