@@ -10157,6 +10157,13 @@ function applyRoleRestrictions() {
         const staticDivider = navTabs.querySelector('.nav-divider:not(#user-rooms-divider)');
         if (staticDivider) staticDivider.style.display = 'none';
 
+        // ── Wipe any stale rooms row from a prior job so the onboarding nav
+        //     button is the only thing visible for a fresh new-job flow.
+        const stale = document.getElementById('user-rooms-row');
+        if (stale) stale.remove();
+        const staleDiv = document.getElementById('user-rooms-divider');
+        if (staleDiv) staleDiv.remove();
+
         // ── Ensure the Add Your First Room nav row is visible ────────────────
         let row = document.getElementById('user-rooms-row');
         if (row) {
