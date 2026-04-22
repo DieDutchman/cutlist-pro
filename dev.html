@@ -10306,28 +10306,25 @@ function openUnitEditModal(unitId) {
   document.getElementById('uem-name').focus();
 }
 
-function confirmUnitEdit(unitId, origWidth, origHeight) {
-  // Find unit across all sources and track which list it lives in
+function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
-  // Built-in UNITS template: edit via unitOverrides so the original id is
-  // preserved (no duplicate appears in the picker after refresh).
-  let isBuiltin = false;
+  const isBuiltin = isBuiltinHint || (!unit && !!UNITS.find(u => u.id === unitId));
   if (!unit) {
     const tmpl = UNITS.find(u => u.id === unitId);
     if (!tmpl) return;
-    const ov = unitOverrides[unitId] || {};
-    unit = JSON.parse(JSON.stringify({ ...tmpl, ...ov })); // deep working copy
-    isBuiltin = true;
-    source = 'override';
+    unit = JSON.parse(JSON.stringify({ ...tmpl, ...(unitOverrides[unitId] || {}) }));
+    source = 'new_custom';
   }
 
-  const newName   = document.getElementById('uem-name')?.value.trim() || unit.name;
-  const newWidth  = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
-  const newHeight = parseInt(document.getElementById('uem-height')?.value) || origHeight;
+  const newName    = document.getElementById('uem-name')?.value.trim() || unit.name;
+  const newWidth   = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
+  const newHeight  = parseInt(document.getElementById('uem-height')?.value) || origHeight;
+  const newSection = document.getElementById('uem-section')?.value || unit.section;
 
-  unit.name = newName;
+  unit.name    = newName;
+  unit.section = newSection;
 
   if (newWidth !== origWidth && unit.parts?.length) {
     unit.parts = unit.parts.map(p => {
@@ -10343,17 +10340,21 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
   }
 
   if (isBuiltin) {
-    unitOverrides[unitId] = {
-      ...(unitOverrides[unitId] || {}),
-      name:    unit.name,
-      section: unit.section,
-      parts:   unit.parts,
-    };
+    // Save as brand-new custom unit — original built-in is untouched
+    const newId = 'custom_' + Date.now();
+    customUnits.push({ ...unit, id: newId });
+    saveCustomUnits();
+  } else if (source === 'custom') {
+    const idx = customUnits.findIndex(u => u.id === unitId);
+    if (idx >= 0) customUnits[idx] = { ...customUnits[idx], ...unit };
+    saveCustomUnits();
+  } else if (source === 'user') {
+    const idx = userUnits.findIndex(u => u.id === unitId);
+    if (idx >= 0) userUnits[idx] = { ...userUnits[idx], ...unit };
+    scheduleAutoSave();
   }
 
   document.getElementById('uem-modal').remove();
-  if (source === 'user') { scheduleAutoSave(); }
-  else { saveCustomUnits(); }
   renderPanel();
   updateCounts();
 }
