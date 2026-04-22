@@ -8869,7 +8869,10 @@ async function cleanupDeleteRow(name, btn) {
   if (!confirm(`Delete "${name}" from Supabase?`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}`,
+    const supplierFilter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}${supplierFilter}`,
       { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=representation' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const deleted = await res.json();
