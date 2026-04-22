@@ -13687,7 +13687,7 @@ function applyState(state) {
   // unitOverrides, customUnits, deletedUnits are global template settings — not restored from job state
   if (state.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  state.unitSpecialServices); }
   if (state.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, state.panelSpecialServices); }
-  if (state.userRooms) {
+  if (state.userRooms?.length) {
     userRooms = [...state.userRooms];
     // Re-register in MAT_GROUPS so material selectors work after reload
     userRooms.forEach(room => {
