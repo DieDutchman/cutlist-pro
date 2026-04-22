@@ -16926,7 +16926,9 @@ function drawerSVG() {
     yPx -= fgPx; // gap above each face (including the top gap above last face)
   });
 
-  return `<svg viewBox="0 0 ${sw+20} ${sh+20}" width="${sw+20}" height="${sh+20}" xmlns="http://www.w3.org/2000/svg">
+  // PADY=26 matches side view so both SVGs render at identical total height (sh+26)
+  const PADY = 26;
+  return `<svg viewBox="0 0 ${sw+20} ${sh+PADY}" width="${sw+20}" height="${sh+PADY}" xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(0,10)">
     <!-- Carcass outline -->
     <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
