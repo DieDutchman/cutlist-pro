@@ -9176,7 +9176,13 @@ function renderSupplierRow(s, ownerEmail) {
   return `
   <div id="sup-row-${s.id}" style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
     <div style="flex:1;min-width:140px">
-      <div style="font-size:13px;color:var(--text)">${s.name}</div>
+      <input
+        value="${s.name}"
+        onfocus="this.style.borderColor='var(--amber)'"
+        onblur="this.style.borderColor='var(--border)';renameSupplier('${s.id}', this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;width:100%;max-width:200px"
+      >
       <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px">Owner: ${ownerEmail}</div>
     </div>
     <button onclick="deleteSupplier('${s.id}')"
@@ -9184,6 +9190,26 @@ function renderSupplierRow(s, ownerEmail) {
       DELETE
     </button>
   </div>`;
+}
+
+async function renameSupplier(id, newName) {
+  newName = (newName || '').trim();
+  if (!newName || !id) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ name: newName })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Update local cache
+    const s = availableSuppliers.find(s => s.id === id);
+    if (s) { s.name = newName; _renderSupplierSelector(); }
+    const cached = (_allSuppliersCache || []).find(s => s.id === id);
+    if (cached) cached.name = newName;
+  } catch(e) {
+    alert('Could not rename: ' + e.message);
+  }
 }
 
 async function addSupplier(name, ownerId) {
