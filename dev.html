@@ -8287,7 +8287,7 @@ let sbCanEditPrices = false; // true when this user has been granted price-edit 
 
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,active_supplier_id,supplier_ids,last_job_id`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,active_supplier_id,supplier_ids`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
