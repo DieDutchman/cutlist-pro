@@ -9172,6 +9172,7 @@ function renderUserRow(u) {
       <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
     ${priceEditToggle}
+    ${supplierSelect}
     ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
       <div style="display:flex;align-items:center;gap:5px">
