@@ -13697,7 +13697,7 @@ function applyState(state) {
       }
     });
   }
-  if (state.userUnits)     { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
+  if (state.userUnits?.length) { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
   if (userRooms.length > 0) { renderUserRoomsNav(); }
   if (state.job) {
     ['client','house','address','notes'].forEach(f => {
