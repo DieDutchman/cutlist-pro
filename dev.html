@@ -13497,6 +13497,24 @@ function applyState(state) {
       if (el && state.job[f] !== undefined) el.value = state.job[f];
     });
   }
+  // ── Restore active supplier (if job was saved with one) ────────────────────
+  if (state.activeSupplierRow) {
+    const found = availableSuppliers.find(s => (s.id || null) === (state.activeSupplierRow.id || null));
+    if (found) {
+      activeSupplierRow = found;
+      _renderSupplierSelector();
+    } else {
+      // Supplier no longer accessible — warn the user
+      const msg = `Job was priced with ${state.activeSupplierRow.name} — prices may differ`;
+      console.warn(msg);
+      if (typeof showToast === 'function') {
+        showToast(msg);
+      } else {
+        // Lightweight inline banner via the existing sync status line
+        try { setJobSyncStatus(msg, 'var(--amber)'); } catch(e) {}
+      }
+    }
+  }
   save(); saveHoles(); saveJobDetails(); saveQuoteState();
   saveBedroomAddons(); saveCostingPrices();
   try {
