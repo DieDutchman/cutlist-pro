@@ -17421,8 +17421,8 @@ function drawerCalcParts() {
     const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
-      parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
-      parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
+      parts.push(p('Drawer Fronts & Backs', 2*n, boxH,  boxW,    cm, ce));
+      parts.push(p('Drawer Bottoms',        n,   DD - 50, fullBoxW - 4, cm));
     } else {
       // Custom different heights — list each separately using per-drawer auto calc
       // but still honour a global boxHeight override if set
