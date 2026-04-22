@@ -10558,7 +10558,10 @@ async function _checkStalePrices() {
   if (!sbUser || isSupplier()) return;
   if (!_priceLoadedAt) return;
   try {
-    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}`;
+    const supplierFilter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}${supplierFilter}`;
     const res = await fetchWithAuth(url);
     if (!res.ok) return;
     const changedRows = await res.json();
