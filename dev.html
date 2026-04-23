@@ -17003,7 +17003,7 @@ function drawerSVG() {
 function drawerSideSVG() {
   const ds   = drawerState;
   const H    = ds.height, D = ds.depth, T = ds.thickness;
-  const DD   = ds.drawerDepth;
+  const DD   = drawerEffectiveDepth();
   const fh   = drawerFaceHeights();
   const fg   = ds.faceGap;
   const n    = ds.drawerCount;
