@@ -9069,6 +9069,14 @@ function openFeedbackModal() {
   document.getElementById('fb-message').value = '';
   document.getElementById('fb-status').textContent = '';
   document.getElementById('fb-send-btn').disabled = false;
+  // Reset screenshot
+  document.getElementById('fb-screenshot-file').value = '';
+  document.getElementById('fb-screenshot-preview').src = '';
+  document.getElementById('fb-screenshot-preview-wrap').style.display = 'none';
+  document.getElementById('fb-screenshot-label').textContent = 'Click to attach a screenshot (JPG, PNG, GIF, WebP)';
+  document.getElementById('fb-screenshot-icon').textContent = '📷';
+  document.getElementById('fb-screenshot-size-warn').style.display = 'none';
+  toggleFbScreenshot();
   setTimeout(() => document.getElementById('fb-message').focus(), 100);
 }
 
