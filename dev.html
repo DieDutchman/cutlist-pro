@@ -2439,7 +2439,8 @@
           <label style="font-size:10px;letter-spacing:1.5px;color:var(--amber-dim);font-family:'Oswald',sans-serif">CATEGORY</label>
           <select id="fb-category"
             style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onchange="toggleFbScreenshot()">
             <option value="Feature request">&#x1F4A1; Feature request</option>
             <option value="Bug report">&#x1F41B; Bug report</option>
             <option value="Pricing / boards">&#x1F4B0; Pricing / boards</option>
