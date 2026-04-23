@@ -15123,7 +15123,7 @@ function renderImportedCutlistView() {
           style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--amber);background:none;border:none;border-bottom:1px solid transparent;outline:none;padding:0 2px"
           onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='transparent'">
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
-          ${parts.length} parts
+          ${parts.length} lines · ${parts.reduce((s,p) => s + (parseInt(p.qty)||0), 0)} parts
           ${importedCutlistData._changed ? ' · <span style="color:var(--amber-dim)">Unsaved changes</span>' : ''}
           ${savedAt ? ` · Saved ${savedAt}` : ''}
         </div>
