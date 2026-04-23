@@ -17334,8 +17334,30 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-body">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.6">
             Height of drawer box sides, fronts &amp; backs.<br>
-            Leave blank to auto-calculate (face height − 40mm:<br>
-            10mm bottom gap + 30mm top clearance for nailers).
+            Leave blank to auto-calculate: face height − (${ds.bottomGap ?? 26} + ${ds.topClearance ?? 30})mm<br>
+            = face − ${drawerReduction()}mm total reduction.
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Box anchored this distance above the bottom of the drawer face">Bottom gap</span>
+            <input class="bldr-input" type="number"
+              value="${ds.bottomGap}"
+              min="0" max="200" step="1"
+              oninput="drawerState.bottomGap=this.value===''?26:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Free space at top of face for nailers / carcass top">Top clearance</span>
+            <input class="bldr-input" type="number"
+              value="${ds.topClearance}"
+              min="0" max="200" step="1"
+              oninput="drawerState.topClearance=this.value===''?30:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:4px 0 10px;padding:4px 6px;background:rgba(212,145,58,0.06);border-left:2px solid rgba(212,145,58,0.4);line-height:1.5">
+            Box sits <strong style="color:var(--text)">${ds.bottomGap}mm</strong> above face bottom. <strong style="color:var(--text)">${ds.topClearance}mm</strong> top clearance for nailers / carcass top.<br>
+            boxHeight = faceHeight − (${ds.bottomGap} + ${ds.topClearance}) = faceHeight − <strong style="color:var(--amber)">${drawerReduction()}mm</strong>
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="${ds.drawerType === 'pot' ? 'Pot drawers (large)' : 'All drawers'}">${ds.drawerType === 'pot' ? 'Pot box H' : 'Box height'}</span>
@@ -17348,7 +17370,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px">
-            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ' (face − 40mm)' : ' — overridden'}
+            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ` (face − ${drawerReduction()}mm)` : ' — overridden'}
           </div>
           ${ds.drawerType === 'pot' ? `
           <div class="bldr-row">
@@ -17362,7 +17384,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
-            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 40mm)' : ' — overridden'}
+            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ` (top face − ${drawerReduction()}mm)` : ' — overridden'}
           </div>` : ''}
           ${ds.boxHeight != null || ds.topBoxHeight != null ? `
           <button onclick="drawerState.boxHeight=null;drawerState.topBoxHeight=null;drawerRedraw()"
