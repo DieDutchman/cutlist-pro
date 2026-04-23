@@ -122,10 +122,13 @@
   }
 
   .btn-primary {
-    background: var(--amber);
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
     color: #141414;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
   }
-  .btn-primary:hover { background: var(--amber-light); }
+  .btn-primary:hover { background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 100%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
+  .btn-primary:active { transform: translateY(0); }
 
   .btn-ghost {
     background: transparent;
@@ -204,7 +207,7 @@
     font-size: 10px;
     padding: 1px 5px;
     margin-left: 6px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
   .tab.active .count { background: var(--amber); color: #141414; }
 
@@ -215,12 +218,14 @@
   .section-header {
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
-    letter-spacing: 3px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--text-muted);
-    padding: 20px 0 10px;
+    color: var(--amber-dim);
+    padding: 10px 12px 8px 14px;
     border-bottom: var(--line);
     margin-bottom: 0;
+    background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+    border-left: 2px solid var(--amber-dim);
   }
 
   .units-table {
@@ -263,10 +268,12 @@
     padding: 6px 10px;
     text-align: center;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     appearance: textfield;
+    border-radius: 3px;
   }
-  .qty-input:focus { border-color: var(--amber); }
+  .qty-input:hover { border-color: var(--text-muted); }
+  .qty-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .qty-input::-webkit-inner-spin-button,
   .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; }
   .no-spin::-webkit-inner-spin-button,
@@ -295,13 +302,16 @@
     border: var(--line);
     padding: 20px;
     margin-bottom: 16px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .card-title {
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
-    letter-spacing: 3px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--amber-dim);
     margin-bottom: 16px;
     padding-bottom: 10px;
     border-bottom: var(--line);
@@ -329,18 +339,20 @@
   .generate-btn {
     width: 100%;
     padding: 14px;
-    background: var(--amber);
-    color: #141414;
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
+    color: #1a1208;
     font-family: 'Oswald', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     border: none;
     cursor: pointer;
     transition: all 0.15s;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
   }
-  .generate-btn:hover { background: var(--amber-light); transform: translateY(-1px); }
+  .generate-btn:hover { background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 100%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
   .generate-btn:active { transform: translateY(0); }
 
   /* ── CUTLIST VIEW ── */
@@ -456,12 +468,12 @@
     font-size: 12px;
     padding: 4px 6px;
     outline: none;
-    transition: border-color 0.15s, background 0.15s;
-    border-radius: 2px;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    border-radius: 3px;
     min-width: 140px;
   }
-  .holes-input:hover { border-color: var(--border-light); }
-  .holes-input:focus { border-color: var(--amber); background: rgba(212,145,58,0.06); color: var(--text); }
+  .holes-input:hover { border-color: var(--text-muted); }
+  .holes-input:focus { border-color: var(--amber); background: rgba(212,145,58,0.06); color: var(--text); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .holes-input::placeholder { color: var(--text-muted); font-style: italic; }
 
   .edge-tag {
@@ -504,6 +516,8 @@
     border: var(--line);
     padding: 14px 20px;
     margin-bottom: 24px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .stat {
     display: flex;
@@ -539,6 +553,9 @@
     flex-wrap: wrap;
     gap: 20px;
     align-items: flex-end;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .mat-group {
     display: flex;
@@ -578,10 +595,12 @@
     padding: 5px 8px;
     outline: none;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     flex: 1;
+    border-radius: 3px;
   }
-  .mat-select:focus { border-color: var(--amber); }
+  .mat-select:hover { border-color: var(--text-muted); }
+  .mat-select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .mat-swatch {
     width: 14px;
     height: 14px;
@@ -612,9 +631,11 @@
     font-size: 13px;
     padding: 7px 10px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    border-radius: 3px;
   }
-  .job-input:focus { border-color: var(--amber); }
+  .job-input:hover { border-color: var(--text-muted); }
+  .job-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .job-input::placeholder { color: var(--text-muted); }
 
   /* ── CUTLIST JOB INFO BOX ── */
@@ -668,6 +689,9 @@
     margin: 20px 24px 0;
     border: var(--line);
     background: var(--bg2);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .summary-unit-title {
     font-family: 'Oswald', sans-serif;
@@ -685,7 +709,7 @@
     font-size: 12px;
     background: rgba(0,0,0,0.2);
     padding: 2px 8px;
-    border-radius: 2px;
+    border-radius: 4px;
     letter-spacing: 1px;
   }
   .summary-table {
@@ -745,7 +769,7 @@
     text-transform: uppercase;
     padding: 1px 5px;
     margin-left: 6px;
-    border-radius: 2px;
+    border-radius: 4px;
     vertical-align: middle;
   }
   .summary-cat-tag.backing  { background: #2a3a2a; color: #6aaa64; }
@@ -759,6 +783,9 @@
     gap: 1px;
     background: var(--border);
     border: var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .summary-totals-bar .st-cell {
     flex: 1;
@@ -815,8 +842,11 @@
     font-size: 13px;
     padding: 6px 8px;
     outline: none;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .editor-section-select:focus { border-color: var(--amber); }
+  .editor-section-select:hover { border-color: var(--text-muted); }
+  .editor-section-select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .editor-unit-list {
     overflow-y: auto;
     flex: 1;
@@ -844,7 +874,7 @@
     padding: 1px 5px;
     background: var(--bg4);
     color: var(--text-muted);
-    border-radius: 2px;
+    border-radius: 4px;
     flex-shrink: 0;
   }
   .editor-unit-badge.custom { background: #1a3a1a; color: var(--green); }
@@ -900,10 +930,12 @@
     font-size: 13px;
     padding: 8px 10px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     width: 100%;
+    border-radius: 3px;
   }
-  .editor-input:focus, .editor-select:focus { border-color: var(--amber); }
+  .editor-input:hover, .editor-select:hover { border-color: var(--text-muted); }
+  .editor-input:focus, .editor-select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
 
   .editor-parts-header {
     font-family: 'Oswald', sans-serif;
@@ -991,8 +1023,11 @@
     width: 100%;
     outline: none;
     font-family: 'Barlow', sans-serif;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .editor-mat-select:focus { border-color: var(--amber); }
+  .editor-mat-select:hover { border-color: var(--text-muted); }
+  .editor-mat-select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
 
   @media (max-width: 900px) {
     .editor-layout { grid-template-columns: 1fr; height: auto; }
@@ -1018,12 +1053,15 @@
   .cv-section-head {
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
-    letter-spacing: 3px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--amber-dim);
-    padding: 14px 0 6px;
+    padding: 10px 12px 8px 14px;
     border-bottom: var(--line);
     margin-bottom: 0;
+    background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+    border-left: 2px solid var(--amber-dim);
+    margin-left: -2px;
   }
   .cv-price-grid {
     display: flex;
@@ -1038,6 +1076,7 @@
     background: var(--bg3);
     border: 1px solid var(--border);
     padding: 8px 10px;
+    border-radius: 3px;
   }
   .cv-price-label {
     font-size: 12px;
@@ -1102,6 +1141,9 @@
     border: 1px solid var(--border);
     border-left: 3px solid var(--amber);
     margin-bottom: 20px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .cv-unit-head { display: none; }
   .cv-unit-qty { font-size: 11px; color: var(--text-muted); }
@@ -1117,6 +1159,8 @@
     border: var(--line);
     padding: 16px;
     margin-top: 16px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .cv-total-row {
     display: flex;
@@ -1156,8 +1200,11 @@
     width: 100px;
     text-align: right;
     outline: none;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .cv-extra-input:focus { border-color: var(--amber); }
+  .cv-extra-input:hover { border-color: var(--text-muted); }
+  .cv-extra-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
 
   @media (max-width: 900px) {
     .cv-layout { grid-template-columns: 1fr; }
@@ -1179,7 +1226,7 @@
     border-top: var(--line);
     margin-top: 16px;
   }
-  .addon-card { border: 1px solid var(--border); margin-bottom: 10px; background: var(--bg3); transition: border-color 0.2s; }
+  .addon-card { border: 1px solid var(--border); margin-bottom: 10px; background: var(--bg3); transition: border-color 0.2s; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
   .addon-card.active { border-color: var(--amber); }
   .addon-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
   .addon-header:hover { background: rgba(212,145,58,0.04); }
@@ -1192,8 +1239,9 @@
   .addon-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 90px; }
   .addon-field.wide { flex: 2; min-width: 180px; }
   .addon-field label { font-size: 10px; font-family: 'Oswald',sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
-  .addon-field input, .addon-field select { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; font-size: 13px; font-family: 'Barlow',sans-serif; outline: none; width: 100%; box-sizing: border-box; }
-  .addon-field input:focus, .addon-field select:focus { border-color: var(--amber); }
+  .addon-field input, .addon-field select { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; font-size: 13px; font-family: 'Barlow',sans-serif; outline: none; width: 100%; box-sizing: border-box; border-radius: 3px; transition: border-color 0.15s, box-shadow 0.15s; }
+  .addon-field input:hover, .addon-field select:hover { border-color: var(--text-muted); }
+  .addon-field input:focus, .addon-field select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .addon-cost { margin-top: 10px; padding: 8px 10px; background: rgba(212,145,58,0.06); border-left: 3px solid var(--amber); font-size: 12px; color: var(--text-muted); }
 </style>
 <style>
@@ -1217,6 +1265,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
   }
   .wb-header {
     padding: 18px 24px;
@@ -1261,8 +1311,11 @@
     padding: 8px 10px;
     outline: none;
     width: 100%;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .wb-select:focus, .wb-input:focus { border-color: var(--amber); }
+  .wb-select:hover, .wb-input:hover { border-color: var(--text-muted); }
+  .wb-select:focus, .wb-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
 
   .wb-width-row {
     display: flex;
@@ -1272,6 +1325,7 @@
     background: var(--bg3);
     padding: 16px 20px;
     border: 1px solid var(--border);
+    border-radius: 4px;
   }
   .wb-width-label {
     font-family: 'Oswald', sans-serif;
@@ -1355,7 +1409,7 @@
     color: var(--amber-dim);
     padding: 1px 5px;
     margin-left: 4px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
   .wb-footer {
     padding: 16px 24px;
@@ -1374,8 +1428,11 @@
     font-size: 13px;
     padding: 8px 12px;
     outline: none;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .wb-name-input:focus { border-color: var(--amber); }
+  .wb-name-input:hover { border-color: var(--text-muted); }
+  .wb-name-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .wb-name-input::placeholder { color: var(--text-muted); }
   /* ── QUOTE VIEW ── */
   .qv-layout {
@@ -1408,12 +1465,15 @@
   .qv-section-head {
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
-    letter-spacing: 3px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--amber-dim);
-    padding: 14px 0 6px;
+    padding: 10px 12px 8px 14px;
     border-bottom: var(--line);
     margin-bottom: 0;
+    background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+    border-left: 2px solid var(--amber-dim);
+    margin-left: -2px;
   }
   .qv-table {
     width: 100%;
@@ -1527,6 +1587,8 @@
     border: var(--line);
     padding: 16px;
     margin-top: 16px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .qv-total-row {
     display: flex;
@@ -1561,13 +1623,16 @@
     border: var(--line);
     padding: 14px 16px;
     margin-bottom: 14px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .qv-card-title {
     font-family: 'Oswald', sans-serif;
     font-size: 10px;
-    letter-spacing: 2.5px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--amber-dim);
     margin-bottom: 10px;
   }
   .qv-markup-compare {
@@ -1608,8 +1673,11 @@
     outline: none;
     width: 80px;
     text-align: center;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .qv-tops-input:focus { border-color: var(--amber); }
+  .qv-tops-input:hover { border-color: var(--text-muted); }
+  .qv-tops-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .qv-tops-label { font-size: 12px; color: var(--text-muted); }
 
   /* ─── BUILDER ─── */
@@ -1640,22 +1708,26 @@
   .bldr-title {
     font-family: 'Oswald', sans-serif;
     font-size: 11px;
-    letter-spacing: 3px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--amber-dim);
     margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
   }
   .bldr-section {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
     border: 1px solid var(--border);
-    border-radius: 2px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
   .bldr-section-head {
-    background: var(--bg3);
-    padding: 9px 12px;
+    background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+    padding: 9px 12px 9px 14px;
     font-family: 'Oswald', sans-serif;
     font-size: 10px;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--amber-dim);
     cursor: pointer;
@@ -1663,6 +1735,7 @@
     justify-content: space-between;
     align-items: center;
     user-select: none;
+    border-left: 2px solid var(--amber-dim);
   }
   .bldr-section-body {
     padding: 12px;
@@ -1691,9 +1764,12 @@
     font-size: 13px;
     outline: none;
     min-width: 0;
+    border-radius: 3px;
+    transition: border-color 0.15s;
   }
-  .bldr-input:focus { border-color: var(--amber); }
-  .bldr-input[type=range] { padding: 4px 0; cursor: pointer; }
+  .bldr-input:hover { border-color: var(--text-muted); }
+  .bldr-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
+  .bldr-input[type=range] { padding: 4px 0; cursor: pointer; box-shadow: none; }
   .bldr-unit { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
   .bldr-check-row {
     display: flex;
@@ -1710,32 +1786,62 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
+    background: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
   }
   .bldr-svg-wrap svg {
     max-width: 100%;
-    filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.45));
+  }
+  .bldr-svg-side-wrap {
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+  }
+  .bldr-svg-side-wrap svg {
+    max-width: 100%;
+    filter: drop-shadow(0 4px 20px rgba(0,0,0,0.45));
   }
   .bldr-dims-badge {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 1px;
+    color: var(--amber-dim);
+    letter-spacing: 0.5px;
+    background: rgba(212,145,58,0.08);
+    border: 1px solid rgba(212,145,58,0.2);
+    border-radius: 4px;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 14px;
   }
   .bldr-save-btn {
-    margin-top: 20px;
+    margin-top: 14px;
     width: 100%;
     padding: 11px;
-    background: var(--amber);
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
     border: none;
     color: #1a1208;
     font-family: 'Oswald', sans-serif;
     font-size: 13px;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
-    transition: opacity 0.15s;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
+    transition: transform 0.12s, box-shadow 0.12s;
   }
-  .bldr-save-btn:hover { opacity: 0.88; }
+  .bldr-save-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
+  .bldr-save-btn:active { transform: translateY(0); }
   .bldr-compartment-table {
     width: 100%;
     border-collapse: collapse;
@@ -1765,8 +1871,9 @@
     font-family: 'Oswald', sans-serif;
     letter-spacing: 1px;
     padding: 3px 8px;
-    border-radius: 2px;
+    border-radius: 4px;
     margin-bottom: 4px;
+    border: 1px solid rgba(212,145,58,0.2);
   }
 </style>
 <style>  
@@ -1872,6 +1979,113 @@
     line-height: 1;
   }
   .img-lightbox-close:hover { color: white; }
+
+  /* ── SHEET OPTIMIZER ── */
+  .opt-wrap { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .opt-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 16px;
+    padding-bottom: 14px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .opt-title {
+    font-family: 'Oswald', sans-serif; font-size: 22px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--text); margin: 0;
+  }
+  .opt-sub {
+    font-size: 12px; color: var(--text-muted);
+    letter-spacing: 1px; margin-top: 4px;
+  }
+  .opt-controls {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 12px 16px; margin-bottom: 18px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .opt-ctrl { display: flex; flex-direction: column; gap: 3px; }
+  .opt-ctrl label {
+    font-family: 'Oswald', sans-serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .opt-ctrl input, .opt-ctrl select {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-size: 13px; padding: 5px 8px; width: 110px;
+    font-family: 'Barlow', sans-serif; border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .opt-ctrl input:hover, .opt-ctrl select:hover { border-color: var(--text-muted); }
+  .opt-ctrl input:focus, .opt-ctrl select:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
+  .opt-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 20px;
+  }
+  .opt-stat {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber); padding: 10px 14px;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .opt-stat-label {
+    font-family: 'Oswald', sans-serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .opt-stat-val {
+    font-family: 'Oswald', sans-serif; font-size: 20px;
+    color: var(--amber); letter-spacing: 1px; margin-top: 2px;
+  }
+  .opt-stat-val.small { font-size: 16px; color: var(--text); }
+  .opt-mat-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    margin-bottom: 20px; padding: 14px 16px;
+    border-radius: 6px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .opt-mat-title {
+    font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--amber);
+    padding-bottom: 8px; margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .opt-mat-meta { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+  .opt-sheets { display: flex; flex-wrap: wrap; gap: 16px; }
+  .opt-sheet {
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 10px;
+  }
+  .opt-sheet-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--text-dim);
+    font-family: 'Oswald', sans-serif; letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .opt-sheet-head .eff { color: var(--amber); font-weight: 600; }
+  .opt-sheet svg { display: block; background: var(--bg4); border: 1px solid var(--border-light); }
+  .opt-piece-label {
+    font-family: 'Barlow', sans-serif;
+    fill: #fff; font-weight: 600;
+    paint-order: stroke; stroke: rgba(0,0,0,0.6); stroke-width: 0.6px;
+    pointer-events: none;
+  }
+  .opt-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .opt-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .opt-legend-swatch {
+    width: 14px; height: 14px; border: 1px solid rgba(0,0,0,0.4);
+    display: inline-block;
+  }
+  .opt-empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted); font-size: 14px;
+    border: 1px dashed var(--border); background: var(--bg2);
+  }
+  body.supplier-theme .opt-sheet svg,
+  body.user-light-theme .opt-sheet svg { background: #f7f5f0; }
 </style>
 </head>
 <body>
@@ -1979,6 +2193,12 @@
       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
       oninput="saveJobDetails()">
   </div>
+  <div id="supplier-selector-wrap" style="display:none;align-items:center;gap:6px">
+    <span style="font-size:10px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:2px;text-transform:uppercase;white-space:nowrap">Supplier</span>
+    <select id="supplier-select" onchange="onSupplierSelectChange()"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
+    </select>
+  </div>
   <button onclick="saveJobToCloud()" id="job-save-btn"
     style="background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap">
     💾 SAVE JOB
@@ -2054,6 +2274,10 @@
         style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         FEEDBACK INBOX<span id="fb-inbox-badge" style="color:var(--amber)"></span>
       </button>
+      <button onclick="showUsersTab('suppliers')" id="um-tab-suppliers"
+        style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
+        SUPPLIERS
+      </button>
     </div>
 
     <!-- Users panel -->
@@ -2083,6 +2307,22 @@
       </div>
     </div>
 
+    <!-- Suppliers panel -->
+    <div id="um-panel-suppliers" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin-bottom:8px">ADD SUPPLIER</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="sup-new-name" type="text" placeholder="Supplier name"
+            style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;font-size:13px;outline:none;font-family:'Barlow',sans-serif">
+          <select id="sup-new-owner"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;font-size:12px;outline:none"></select>
+          <button onclick="addSupplier(document.getElementById('sup-new-name').value, document.getElementById('sup-new-owner').value)"
+            style="background:var(--amber);color:#111;border:none;padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ ADD</button>
+        </div>
+      </div>
+      <div id="suppliers-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
+    </div>
+
   </div>
 </div>
 
@@ -2109,12 +2349,14 @@
     <button class="tab" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
     <button class="tab" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
     <button class="tab" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
+    <button class="tab" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
   </div>
   <hr class="nav-divider">
   <div class="nav-row">
     <span class="nav-row-label">Tools</span>
     <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab">🪵 Panels</button>
     <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab">✦ Cutlist</button>
+    <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab">▦ Sheet Optimizer</button>
     <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab">☰ Summary</button>
     <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab">✏ Edit Units</button>
     <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab">💰 Quote</button>
@@ -2170,6 +2412,7 @@
     </div>
   </div>
   <div id="cutlist-view"></div>
+  <div id="optimize-view" style="display:none"></div>
   <div id="summary-view"></div>
   <div id="editor-view" style="display:none"></div>
   <div id="quote-price-view" style="display:none"></div>
@@ -2196,7 +2439,8 @@
           <label style="font-size:10px;letter-spacing:1.5px;color:var(--amber-dim);font-family:'Oswald',sans-serif">CATEGORY</label>
           <select id="fb-category"
             style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;outline:none"
-            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            onchange="toggleFbScreenshot()">
             <option value="Feature request">&#x1F4A1; Feature request</option>
             <option value="Bug report">&#x1F41B; Bug report</option>
             <option value="Pricing / boards">&#x1F4B0; Pricing / boards</option>
@@ -2210,6 +2454,21 @@
           <textarea id="fb-message" rows="5" placeholder="Describe your idea or issue..."
             style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:'Barlow',sans-serif;font-size:13px;outline:none;resize:vertical;line-height:1.6"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"></textarea>
+        </div>
+        <div id="fb-screenshot-wrap" style="display:none;flex-direction:column;gap:5px">
+          <label style="font-size:10px;letter-spacing:1.5px;color:var(--amber-dim);font-family:'Oswald',sans-serif">SCREENSHOT <span style="color:var(--text-muted);font-size:9px;letter-spacing:0;text-transform:none">(optional)</span></label>
+          <label id="fb-screenshot-drop" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px dashed var(--border);cursor:pointer;min-height:48px"
+            onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor=''">
+            <span id="fb-screenshot-icon" style="font-size:20px;flex-shrink:0">&#x1F4F7;</span>
+            <div style="flex:1;min-width:0">
+              <div id="fb-screenshot-label" style="font-size:12px;color:var(--text-muted);line-height:1.5">Click to attach a screenshot (JPG, PNG, GIF, WebP)</div>
+              <div id="fb-screenshot-preview-wrap" style="display:none;margin-top:6px">
+                <img id="fb-screenshot-preview" src="" alt="preview" style="max-height:80px;max-width:100%;border:1px solid var(--border)">
+              </div>
+            </div>
+            <input type="file" id="fb-screenshot-file" accept="image/*" style="display:none" onchange="onFbScreenshotPicked(this)">
+          </label>
+          <div id="fb-screenshot-size-warn" style="display:none;font-size:11px;color:#e07070;line-height:1.5">Image too large &mdash; please screenshot a smaller area or compress first (max 2 MB).</div>
         </div>
         <div id="fb-status" style="font-size:12px;min-height:18px"></div>
       </div>
@@ -2378,7 +2637,7 @@ const UNITS = [
     {name:'Bottom',qty:1,l:718,w:534,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Front Support',qty:1,l:718,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Back Support',qty:1,l:718,w:70,mat:'White Melamine',el1:'White Edging 1mm'},
-    {name:'Drawer Bottoms',qty:3,l:659,w:451,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:3,l:451,w:659,mat:'White Melamine'},
     {name:'Drawer Backs and Fronts',qty:4,l:659,w:200,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Drawer Sides',qty:4,l:484,w:200,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Top Drawer Backs and Fronts',qty:2,l:659,w:116,mat:'White Melamine',el1:'White Edging 1mm'},
@@ -2435,7 +2694,7 @@ const UNITS = [
     {name:'Bottom',qty:1,l:718,w:534,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Front Support',qty:1,l:718,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Back Support',qty:1,l:718,w:70,mat:'White Melamine',el1:'White Edging 1mm'},
-    {name:'Drawer Bottoms',qty:4,l:659,w:468,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:4,l:468,w:659,mat:'White Melamine'},
     {name:'Drawer Fronts and Backs',qty:8,l:659,w:116,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Drawer Sides',qty:8,l:500,w:116,mat:'White Melamine',el1:'White Edging 1mm'},
   ]},
@@ -2553,7 +2812,7 @@ const UNITS = [
     {name:'Sides',qty:2,l:1955,w:580,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Top/Bottom/Shelf',qty:8,l:768,w:580,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Supports',qty:8,l:768,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottoms',qty:2,l:709,w:514,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:2,l:514,w:709,mat:'White Melamine'},
     {name:'Drawer Front and Backs',qty:4,l:709,w:160,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Box Sides',qty:2,l:580,w:445,mat:'White Melamine',ew1:'Dunblane Edging 1mm'},
     {name:'Drawer Sides',qty:4,l:546,w:160,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
@@ -2564,7 +2823,7 @@ const UNITS = [
     {name:'Top/Bottom/Shelves',qty:8,l:768,w:580,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Supports',qty:8,l:768,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Face',qty:1,l:441,w:796,mat:'Dunblane',el1:'Dunblane Edging 1mm',el2:'Dunblane Edging 1mm',ew1:'Dunblane Edging 1mm',ew2:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottom',qty:1,l:709,w:514,mat:'White Melamine'},
+    {name:'Drawer Bottom',qty:1,l:514,w:709,mat:'White Melamine'},
     {name:'Drawer Front and Backs',qty:2,l:709,w:382,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Sides',qty:2,l:546,w:382,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Box Sides',qty:2,l:580,w:445,mat:'White Melamine',ew1:'Dunblane Edging 1mm'},
@@ -2615,7 +2874,7 @@ const UNITS = [
     {name:'Drawer Face Filler',qty:1,l:632,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Support',qty:1,l:632,w:100,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Sides',qty:2,l:620,w:560,mat:'White Melamine',el1:'Dunblane Edging 1mm',ew1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottom',qty:1,l:573,w:468,mat:'White Melamine'},
+    {name:'Drawer Bottom',qty:1,l:468,w:573,mat:'White Melamine'},
     {name:'Drawer Front and Back',qty:2,l:573,w:110,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Sides',qty:2,l:500,w:110,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
   ]},
@@ -2637,7 +2896,7 @@ const UNITS = [
     {name:'Drawer Face Filler',qty:1,l:632,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Support',qty:1,l:632,w:100,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Sides',qty:2,l:620,w:470,mat:'White Melamine',el1:'Dunblane Edging 1mm',ew1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottom',qty:1,l:574,w:378,mat:'White Melamine'},
+    {name:'Drawer Bottom',qty:1,l:378,w:574,mat:'White Melamine'},
     {name:'Drawer Front and Back',qty:2,l:574,w:110,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Drawer Sides',qty:2,l:410,w:110,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
   ]},
@@ -2670,7 +2929,7 @@ const UNITS = [
     {name:'Supports',qty:2,l:720,w:100,mat:'White Melamine'},
     {name:'Bottom',qty:1,l:688,w:534,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Front Support',qty:1,l:688,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottoms',qty:3,l:629,w:451,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:3,l:451,w:629,mat:'White Melamine'},
     {name:'Drawer Backs and Fronts',qty:4,l:629,w:200,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Top Drawer Backs and Fronts',qty:2,l:659,w:116,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Drawer Sides',qty:4,l:484,w:200,mat:'White Melamine',el1:'White Edging 1mm'},
@@ -2703,7 +2962,7 @@ const UNITS = [
     {name:'Supports',qty:2,l:555,w:100,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Drawer Split',qty:1,l:555,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Left Side',qty:1,l:520,w:500,mat:'White Melamine',el1:'Dunblane Edging 1mm',ew1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottoms',qty:2,l:497,w:408,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:2,l:408,w:497,mat:'White Melamine'},
     {name:'Top Drawer Front and Back',qty:2,l:497,w:160,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Bottom Drawer Front and Back',qty:2,l:497,w:210,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Bottom Drawer Sides',qty:2,l:440,w:210,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
@@ -2734,7 +2993,7 @@ const UNITS = [
     {name:'Supports',qty:2,l:574,w:100,mat:'White Melamine',el1:'White Edging 1mm'},
     {name:'Drawer Split',qty:1,l:574,w:100,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Left Side',qty:1,l:520,w:305,mat:'White Melamine',el1:'Dunblane Edging 1mm',ew1:'Dunblane Edging 1mm'},
-    {name:'Drawer Bottoms',qty:2,l:516,w:233,mat:'White Melamine'},
+    {name:'Drawer Bottoms',qty:2,l:233,w:516,mat:'White Melamine'},
     {name:'Bottom Drawer Front and Back',qty:2,l:516,w:210,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Top Drawer Front and Back',qty:2,l:516,w:160,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
     {name:'Bottom Drawer Sides',qty:2,l:265,w:210,mat:'White Melamine',el1:'Dunblane Edging 1mm'},
@@ -2756,6 +3015,10 @@ const deletedUnits = new Set();
 
 // ── Declared early so getEffectiveUnits() can safely read it at startup ───────
 let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
+let sbLastJobId = null; // restored from profiles.last_job_id on login
+// ── Multi-supplier support ────────────────────────────────────────────────────
+let activeSupplierRow = null;   // { id: UUID|null, name: string } — null id = "Default"
+let availableSuppliers = [];    // [{ id, name }]
 
 // ── User-defined rooms & units (non-admin users) ──────────────────────────────
 let userRooms = [];   // [{id, name, icon}]
@@ -3162,6 +3425,7 @@ const sections = [
   {id:'linnekast', label:'Linne Kas'},
   {id:'bathroom', label:'Badkamer Kassies'},
   {id:'custom', label:'Custom'},
+  {id:'fillers', label:'Fillers & Extra'},
 ];
 
 let currentSection = 'kitchen';
@@ -3170,6 +3434,12 @@ const expandedUnits = new Set(); // tracks which unit IDs have their parts expan
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+
+  // Always hide optimizer unless explicitly requested — simplifies per-branch logic
+  if (section !== '__optimize__') {
+    const _ov = document.getElementById('optimize-view');
+    if (_ov) _ov.style.display = 'none';
+  }
 
   if (section === '__cutlist__') {
     document.getElementById('quote-view').style.display = 'none';
@@ -3184,7 +3454,19 @@ function switchTab(btn, section) {
     document.getElementById('import-view').style.display = 'none';
     document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('pl-view').style.display = 'none';
+    const _optV = document.getElementById('optimize-view'); if (_optV) _optV.style.display = 'none';
     document.getElementById('cutlist-view').style.display = 'block';
+    return;
+  }
+
+  if (section === '__optimize__') {
+    ['quote-view','cutlist-view','summary-view','editor-view','quote-price-view',
+     'costing-view','materials-view','prices-view','builder-view','panels-view',
+     'import-view','imported-cutlist-view','pl-view'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    document.getElementById('optimize-view').style.display = 'block';
+    renderOptimizer();
     return;
   }
 
@@ -3916,6 +4198,7 @@ function generateCutlist() {
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(true)">⊞ Expand All</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(false)">⊟ Collapse All</button>
       <button class="btn btn-excel" onclick="downloadXLSX()">⬇ Download .xlsx</button>
+      <button class="btn btn-ghost" onclick="openOptimizer()">▦ Optimize Sheets</button>
       <button class="btn btn-ghost" onclick="window.print()">⊕ Print</button>
       <button class="btn btn-ghost" onclick="backToQuote()">← Edit Units</button>
     </div>
@@ -5317,7 +5600,8 @@ function scalePart(part, baseWidth, newWidth) {
   const DEPTHS  = new Set([534,535,533,580,579,581,300,299,301,561,560,562,517,516,518,
                             484,485,483,500,499,501,116,115,117,100,99,101,70,71,
                             130,131,164,146,176,118,119,453,325,305,314,451,
-                            200,201,199,150,149,151,110,111,109,378,391]);
+                            200,201,199,150,149,151,110,111,109,378,391,
+                            452,451,467,466,468,514,513]);
   const isStructural = d => d < 50 || HEIGHTS.has(d) || DEPTHS.has(d);
 
   // Parts whose dimensions never change regardless of width
@@ -8106,20 +8390,16 @@ async function doLogout() {
   try {
     await fetch(`${SB_URL}/auth/v1/logout`, { method: 'POST', headers: authHeaders() });
   } catch(e) {}
-  sbToken = null; sbUser = null; sbJobs = []; currentJobId = null;
   try { localStorage.removeItem('cutlist_session'); } catch(e) {}
-  document.getElementById('job-bar').style.display = 'none';
-  document.getElementById('login-overlay').style.display = 'flex';
-  document.getElementById('login-btn').textContent = 'SIGN IN';
-  document.getElementById('login-btn').disabled = false;
-  document.getElementById('login-error').style.display = 'none';
+  try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
+  window.location.reload();
 }
 
 let sbCanEditPrices = false; // true when this user has been granted price-edit access
 
 async function fetchUserRole() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices`, { headers: authHeaders() });
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=role,can_edit_prices,active_supplier_id,supplier_ids`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     sbRole = rows[0]?.role || 'user';
@@ -8128,11 +8408,99 @@ async function fetchUserRole() {
     sbCanEditPrices = sbRole === 'supplier'
       || sbRole === 'admin'
       || rows[0]?.can_edit_prices === true;
+    sbLastJobId = rows[0]?.last_job_id || null;
+    // Load available suppliers for this user (and pick active row)
+    await _loadAvailableSuppliers(rows[0]?.supplier_ids || [], rows[0]?.active_supplier_id || null);
   } catch(e) {
     sbRole = 'user'; // safe default
     sbCanEditPrices = false;
+    activeSupplierRow = null;
+    availableSuppliers = [];
     console.warn('[Supabase] Could not fetch role:', e.message);
   }
+}
+
+async function fetchLastJobId() {
+  if (!sbUser) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=last_job_id`, { headers: authHeaders() });
+    if (!res.ok) return;
+    const rows = await res.json();
+    sbLastJobId = rows[0]?.last_job_id || null;
+  } catch(e) {
+    console.warn('[Supabase] Could not fetch last_job_id — column may not exist yet:', e.message);
+  }
+}
+
+// ── Multi-supplier loader ─────────────────────────────────────────────────────
+async function _loadAvailableSuppliers(ids, activeId) {
+  try {
+    if (isSupplier() || sbRole === 'admin') {
+      // Supplier and admin are scoped to their own supplier row — no dropdown, no peeking at other suppliers' prices.
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?owner_id=eq.${sbUser.id}&select=id,name`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      availableSuppliers = rows || [];
+      activeSupplierRow = availableSuppliers[0] || null;
+      return;
+    }
+    // Remaining roles: superuser gets all suppliers; user gets only assigned ones.
+    let list = [];
+    if (sbRole === 'superuser') {
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,name&order=name.asc`, { headers: authHeaders() });
+      if (res.ok) {
+        const rows = await res.json();
+        list = rows.map(r => ({ id: r.id, name: r.name }));
+      }
+    } else if (ids && ids.length) {
+      const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=in.(${ids.join(',')})&select=id,name`, { headers: authHeaders() });
+      if (res.ok) {
+        const rows = await res.json();
+        list = rows.map(r => ({ id: r.id, name: r.name }));
+      }
+    }
+    // Safety net: never leave the user without at least one option.
+    if (!list.length) list = [{ id: null, name: 'Default' }];
+    availableSuppliers = list;
+    activeSupplierRow = list.find(s => (s.id || null) === (activeId || null)) || list[0];
+    _renderSupplierSelector();
+  } catch(e) {
+    console.warn('[Supabase] Could not load suppliers:', e.message);
+    availableSuppliers = [{ id: null, name: 'Default' }];
+    activeSupplierRow = availableSuppliers[0];
+    _renderSupplierSelector();
+  }
+}
+
+function _renderSupplierSelector() {
+  const wrap = document.getElementById('supplier-selector-wrap');
+  if (!wrap) return;
+  if (isSupplier() || availableSuppliers.length <= 1) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  const sel = document.getElementById('supplier-select');
+  if (!sel) return;
+  sel.innerHTML = availableSuppliers
+    .map(s => `<option value="${s.id || ''}">${s.name}</option>`)
+    .join('');
+  sel.value = activeSupplierRow?.id || '';
+}
+
+async function onSupplierSelectChange() {
+  const sel = document.getElementById('supplier-select');
+  const val = sel.value || null;
+  activeSupplierRow = availableSuppliers.find(s => (s.id || null) === (val || null)) || availableSuppliers[0];
+  try {
+    await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ active_supplier_id: activeSupplierRow?.id || null })
+    });
+  } catch(e) { console.warn('[Supabase] Could not persist active supplier:', e.message); }
+  await loadSupplierPrices();
+  if (typeof refreshPriceViews === 'function') refreshPriceViews();
 }
 
 function isSuperuser()   { return sbRole === 'superuser'; }
@@ -8206,7 +8574,9 @@ async function onLoginSuccess() {
   applyRoleRestrictions();
   applyStoredTheme();
   _updateThemeToggleIcon();
+  await fetchLastJobId();
   await loadUserJobs();
+  if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
   checkFeedbackUnread();
   // Start trial countdown badge for users with a trial expiry
@@ -8338,6 +8708,9 @@ async function loadUserJobs() {
 function rebuildJobSelect() {
   const sel = document.getElementById('job-select');
   if (!sel) return;
+  if (!currentJobId) {
+    try { currentJobId = localStorage.getItem('cutlist_current_job_id') || null; } catch(e) {}
+  }
   sel.innerHTML = '<option value="">— New Job —</option>';
   sbJobs.forEach(j => {
     const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
@@ -8350,6 +8723,43 @@ function rebuildJobSelect() {
   });
   const deleteBtn = document.getElementById('job-delete-btn');
   if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
+}
+
+async function restoreLastJob(jobId) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    if (!rows.length) return;
+    const job = rows[0];
+    currentJobId = job.id;
+    try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
+    const sel = document.getElementById('job-select');
+    if (sel) sel.value = currentJobId;
+    const deleteBtn = document.getElementById('job-delete-btn');
+    if (deleteBtn) deleteBtn.style.display = 'block';
+    ['job-client','job-house','job-address','job-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = job[id.replace('job-','')] || '';
+    });
+    if (job.state) applyState(job.state);
+    renderPanel(); updateCounts();
+  } catch(e) {
+    console.warn('[Supabase] Could not restore last job:', e.message);
+  }
+}
+
+async function persistLastJobId(jobId) {
+  if (!sbUser) return;
+  try {
+    await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ last_job_id: jobId }),
+    });
+  } catch(e) {
+    console.warn('[Supabase] Could not persist last_job_id:', e.message);
+  }
 }
 
 function setJobSyncStatus(msg, color) {
@@ -8377,6 +8787,7 @@ function getJobState() {
     userUnits:            [...userUnits],
     unitSpecialServices:  {...unitSpecialServices},
     panelSpecialServices: {...panelSpecialServices},
+    activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
@@ -8418,12 +8829,14 @@ async function saveJobToCloud() {
     const rows = await res.json();
     if (rows.length && !currentJobId) {
       currentJobId = rows[0].id;
+      try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       document.getElementById('job-delete-btn').style.display = 'block';
     } else {
       await loadUserJobs();
     }
+    persistLastJobId(currentJobId);
     setJobSyncStatus('✓ Saved', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
   } catch(e) {
@@ -8445,6 +8858,8 @@ async function loadJobFromSelect() {
     if (!rows.length) throw new Error('Not found');
     const job = rows[0];
     currentJobId = job.id;
+    try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
+    persistLastJobId(currentJobId);
 
     // Apply job details
     if (document.getElementById('job-client'))  document.getElementById('job-client').value  = job.client  || '';
@@ -8467,6 +8882,8 @@ async function loadJobFromSelect() {
 function newJob() {
   if (!confirm('Start a new job? Unsaved changes will be lost.')) return;
   currentJobId = null;
+  try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
+  persistLastJobId(null);
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
   // Clear job details
@@ -8478,6 +8895,10 @@ function newJob() {
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
   Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
+  // Rooms + user units are job-scoped — reset so the "Add Your First Room"
+  // onboarding flow triggers for a fresh job instead of showing leftover rooms.
+  userRooms = [];
+  userUnits = [];
   panelsState.items = []; panelsState.label = '';
   Object.keys(quoteState).forEach(k => delete quoteState[k]);
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
@@ -8550,12 +8971,20 @@ function clearFeedbackDot() {
 }
 
 function showUsersTab(tab) {
-  const isUsers = tab === 'users';
-  document.getElementById('um-panel-users').style.display    = isUsers ? 'flex' : 'none';
-  document.getElementById('um-panel-feedback').style.display = isUsers ? 'none' : 'flex';
-  document.getElementById('um-tab-users').style.cssText    = `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${isUsers ? 'var(--amber)' : 'transparent'};background:${isUsers ? 'rgba(212,145,58,0.08)' : 'none'};color:${isUsers ? 'var(--amber)' : 'var(--text-muted)'}`;
-  document.getElementById('um-tab-feedback').style.cssText = `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${!isUsers ? 'var(--amber)' : 'transparent'};background:${!isUsers ? 'rgba(212,145,58,0.08)' : 'none'};color:${!isUsers ? 'var(--amber)' : 'var(--text-muted)'}`;
-  if (!isUsers) { clearFeedbackDot(); loadFeedbackInbox(); }
+  const isUsers     = tab === 'users';
+  const isFeedback  = tab === 'feedback';
+  const isSuppliers = tab === 'suppliers';
+  document.getElementById('um-panel-users').style.display     = isUsers     ? 'flex' : 'none';
+  document.getElementById('um-panel-feedback').style.display  = isFeedback  ? 'flex' : 'none';
+  const supPanel = document.getElementById('um-panel-suppliers');
+  if (supPanel) supPanel.style.display = isSuppliers ? 'flex' : 'none';
+  const styleFor = (active) => `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
+  document.getElementById('um-tab-users').style.cssText    = styleFor(isUsers);
+  document.getElementById('um-tab-feedback').style.cssText = styleFor(isFeedback);
+  const supTab = document.getElementById('um-tab-suppliers');
+  if (supTab) supTab.style.cssText = styleFor(isSuppliers);
+  if (isFeedback) { clearFeedbackDot(); loadFeedbackInbox(); }
+  if (isSuppliers && typeof loadSuppliersTab === 'function') loadSuppliersTab();
 }
 function openUsersModal() {
   document.getElementById('users-modal').style.display = 'flex';
@@ -8572,7 +9001,10 @@ async function openBoardCleanupModal() {
   const body = document.getElementById('board-cleanup-body');
   body.innerHTML = `<div style="color:var(--text-muted);padding:20px 0">Loading from Supabase…</div>`;
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*&order=category,name`, { headers: authHeaders() });
+    const supplierFilter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*&order=category,name${supplierFilter}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = await res.json();
     const boards  = rows.filter(r => r.category === 'board');
@@ -8605,7 +9037,10 @@ async function cleanupDeleteRow(name, btn) {
   if (!confirm(`Delete "${name}" from Supabase?`)) return;
   btn.disabled = true; btn.textContent = '…';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}`,
+    const supplierFilter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(name)}${supplierFilter}`,
       { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=representation' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const deleted = await res.json();
@@ -8634,7 +9069,49 @@ function openFeedbackModal() {
   document.getElementById('fb-message').value = '';
   document.getElementById('fb-status').textContent = '';
   document.getElementById('fb-send-btn').disabled = false;
+  // Reset screenshot
+  document.getElementById('fb-screenshot-file').value = '';
+  document.getElementById('fb-screenshot-preview').src = '';
+  document.getElementById('fb-screenshot-preview-wrap').style.display = 'none';
+  document.getElementById('fb-screenshot-label').textContent = 'Click to attach a screenshot (JPG, PNG, GIF, WebP)';
+  document.getElementById('fb-screenshot-icon').textContent = '📷';
+  document.getElementById('fb-screenshot-size-warn').style.display = 'none';
+  toggleFbScreenshot();
   setTimeout(() => document.getElementById('fb-message').focus(), 100);
+}
+
+function toggleFbScreenshot() {
+  const cat = document.getElementById('fb-category').value;
+  const wrap = document.getElementById('fb-screenshot-wrap');
+  wrap.style.display = cat === 'Bug report' ? 'flex' : 'none';
+}
+
+function onFbScreenshotPicked(input) {
+  const file = input.files[0];
+  const sizeWarn = document.getElementById('fb-screenshot-size-warn');
+  const preview  = document.getElementById('fb-screenshot-preview');
+  const previewWrap = document.getElementById('fb-screenshot-preview-wrap');
+  const label    = document.getElementById('fb-screenshot-label');
+  const icon     = document.getElementById('fb-screenshot-icon');
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    sizeWarn.style.display = 'block';
+    input.value = '';
+    preview.src = '';
+    previewWrap.style.display = 'none';
+    label.textContent = 'Click to attach a screenshot (JPG, PNG, GIF, WebP)';
+    icon.textContent = '📷';
+    return;
+  }
+  sizeWarn.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.src = e.target.result;
+    previewWrap.style.display = 'block';
+    label.textContent = file.name;
+    icon.textContent = '✓';
+  };
+  reader.readAsDataURL(file);
 }
 
 function closeFeedbackModal() {
@@ -8654,15 +9131,37 @@ async function submitFeedback() {
     statusEl.textContent = 'Please enter a message before sending.';
     return;
   }
+
+  // Collect screenshot for bug reports
+  let screenshotBase64 = null;
+  if (category === 'Bug report') {
+    const fileInput = document.getElementById('fb-screenshot-file');
+    const sizeWarn  = document.getElementById('fb-screenshot-size-warn');
+    if (fileInput && fileInput.files[0]) {
+      if (fileInput.files[0].size > 2 * 1024 * 1024) {
+        sizeWarn.style.display = 'block';
+        return;
+      }
+      screenshotBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(fileInput.files[0]);
+      });
+    }
+  }
+
   sendBtn.disabled = true;
   statusEl.style.color = 'var(--amber-dim)';
   statusEl.textContent = 'Sending\u2026';
 
   try {
+    const payload = { user_email: sbUser?.email || 'unknown', category, tab, message };
+    if (screenshotBase64) payload.screenshot_base64 = screenshotBase64;
     const res = await fetch(`${SB_URL}/rest/v1/feedback`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ user_email: sbUser?.email || 'unknown', category, tab, message }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
@@ -8733,6 +9232,18 @@ async function loadFeedbackInbox() {
           </div>
         </div>
         <div style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap">${escHtml(r.message)}</div>
+        ${r.screenshot_base64 ? `
+        <details style="margin-top:10px">
+          <summary style="font-size:11px;color:var(--amber-dim);cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
+            <span style="font-size:9px">&#x25B6;</span> SCREENSHOT ATTACHED
+          </summary>
+          <div style="margin-top:8px">
+            <a href="${r.screenshot_base64}" target="_blank" title="Open full size">
+              <img src="${r.screenshot_base64}" alt="Bug screenshot" style="max-width:100%;max-height:260px;border:1px solid var(--border);cursor:pointer;display:block">
+            </a>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Click image to open full size in new tab</div>
+          </div>
+        </details>` : ''}
       </div>`;
     }).join('');
   } catch(e) {
@@ -8768,13 +9279,22 @@ function closeBoardCleanupModal() {
   loadSupplierPrices(); // re-sync after cleanup
 }
 
+// ── Shared cache of all suppliers (populated when Users modal opens) ─────────
+let _allSuppliersCache = [];
+
 async function loadUsersModal() {
   const list = document.getElementById('users-list');
   const status = document.getElementById('users-status');
   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
   status.textContent = '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at&order=email.asc`, { headers: authHeaders() });
+    // Fetch all suppliers once so each user row can render its multi-select
+    try {
+      const sRes = await fetch(`${SB_URL}/rest/v1/suppliers?select=id,name&order=name.asc`, { headers: authHeaders() });
+      _allSuppliersCache = sRes.ok ? await sRes.json() : [];
+    } catch(e) { _allSuppliersCache = []; }
+
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?select=id,email,role,can_edit_prices,trial_expires_at,supplier_ids&order=email.asc`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const users = await res.json();
     if (!users.length) {
@@ -8785,6 +9305,136 @@ async function loadUsersModal() {
     status.textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
   } catch(e) {
     list.innerHTML = `<div style="padding:24px;text-align:center;color:#e07070;font-size:13px">Failed to load users: ${e.message}</div>`;
+  }
+}
+
+async function updateUserSuppliers(userId, selectEl) {
+  const statusEl = document.getElementById(`user-status-${userId}`);
+  const ids = Array.from(selectEl.selectedOptions).map(o => o.value).filter(Boolean);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ supplier_ids: ids }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#5dba6e'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✕'; statusEl.style.color = '#e07070'; }
+    console.warn('[Supabase] updateUserSuppliers failed:', e.message);
+  }
+}
+
+// ── Suppliers tab (users modal) ───────────────────────────────────────────────
+async function loadSuppliersTab() {
+  const list = document.getElementById('suppliers-list');
+  if (!list) return;
+  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  try {
+    const [sRes, pRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/suppliers?select=id,name,owner_id&order=name.asc`, { headers: authHeaders() }),
+      fetch(`${SB_URL}/rest/v1/profiles?select=id,email&order=email.asc`, { headers: authHeaders() }),
+    ]);
+    if (!sRes.ok) throw new Error(`HTTP ${sRes.status}`);
+    const suppliers = await sRes.json();
+    const profiles  = pRes.ok ? await pRes.json() : [];
+    const emailById = {};
+    profiles.forEach(p => { emailById[p.id] = p.email; });
+
+    // Populate owner dropdown for the add form
+    const ownerSel = document.getElementById('sup-new-owner');
+    if (ownerSel) {
+      ownerSel.innerHTML = '<option value="">— select owner —</option>' +
+        profiles.map(p => `<option value="${p.id}">${p.email}</option>`).join('');
+    }
+
+    if (!suppliers.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No suppliers yet. Add one above.</div>';
+      return;
+    }
+    list.innerHTML = suppliers.map(s => renderSupplierRow(s, emailById[s.owner_id] || '(unassigned)')).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:#e07070;font-size:13px">Failed to load suppliers: ${e.message}</div>`;
+  }
+}
+
+function renderSupplierRow(s, ownerEmail) {
+  return `
+  <div id="sup-row-${s.id}" style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:140px">
+      <input
+        value="${s.name}"
+        onfocus="this.style.borderColor='var(--amber)'"
+        onblur="this.style.borderColor='var(--border)';renameSupplier('${s.id}', this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;width:100%;max-width:200px"
+      >
+      <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-top:2px">Owner: ${ownerEmail}</div>
+    </div>
+    <button onclick="deleteSupplier('${s.id}')"
+      style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:4px 10px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">
+      DELETE
+    </button>
+  </div>`;
+}
+
+async function renameSupplier(id, newName) {
+  newName = (newName || '').trim();
+  if (!newName || !id) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ name: newName })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Update local cache
+    const s = availableSuppliers.find(s => s.id === id);
+    if (s) { s.name = newName; _renderSupplierSelector(); }
+    const cached = (_allSuppliersCache || []).find(s => s.id === id);
+    if (cached) cached.name = newName;
+  } catch(e) {
+    alert('Could not rename: ' + e.message);
+  }
+}
+
+async function addSupplier(name, ownerId) {
+  name = (name || '').trim();
+  if (!name) { alert('Supplier name is required.'); return; }
+  if (!ownerId) { alert('Select an owner for this supplier.'); return; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, owner_id: ownerId }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.message || j.hint || j.details || msg; } catch(e2) {}
+      throw new Error(msg);
+    }
+    const nameInput = document.getElementById('sup-new-name');
+    if (nameInput) nameInput.value = '';
+    await loadSuppliersTab();
+  } catch(e) {
+    alert('Add supplier failed: ' + e.message);
+  }
+}
+
+async function deleteSupplier(id) {
+  if (!confirm('Delete this supplier? Their prices will remain but be orphaned.')) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadSuppliersTab();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
   }
 }
 
@@ -8812,6 +9462,20 @@ function renderUserRow(u) {
       </button>
     </div>` : '';
 
+  // Supplier multi-select: lets superuser grant access to specific suppliers
+  const assignedIds = Array.isArray(u.supplier_ids) ? u.supplier_ids : [];
+  const supplierOptions = (_allSuppliersCache || []).map(s =>
+    `<option value="${s.id}" ${assignedIds.includes(s.id) ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+  const supplierSelect = (u.role === 'user' || u.role === 'admin' || u.role === 'superuser') && (_allSuppliersCache || []).length > 0 ? `
+    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+      <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">SUPPLIERS</label>
+      <select multiple onchange="updateUserSuppliers('${u.id}', this)" size="3"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none;min-width:140px">
+        ${supplierOptions}
+      </select>
+    </div>` : '';
+
   return `
   <div id="user-row-${u.id}" style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">
     <div style="flex:1;min-width:160px">
@@ -8828,6 +9492,7 @@ function renderUserRow(u) {
       <option value="superuser" ${u.role === 'superuser' ? 'selected' : ''}>Superuser</option>
     </select>
     ${priceEditToggle}
+    ${supplierSelect}
     ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
       <div style="display:flex;align-items:center;gap:5px">
@@ -9525,9 +10190,12 @@ function openTemplateBrowser() {
     {id:'linnekast', label:'🚪 Linne Kas'},
     {id:'bathroom', label:'🚿 Badkamer'},
     {id:'custom', label:'✦ Custom'},
+    {id:'fillers', label:'📎 Fillers & Extra'},
   ];
 
-  const allAdminUnits = UNITS;
+  // Include saved custom templates (admin/superuser's own database) alongside
+  // the built-in UNITS array so users can copy any template they've defined.
+  const allAdminUnits = [...UNITS, ...customUnits];
   let tabsHtml = adminSections.map((s,i) => {
     const count = allAdminUnits.filter(u => u.section === s.id).length;
     return `<button class="tab ${i===0?'active':''}" onclick="switchTplTab(this,'${s.id}')"
@@ -9564,7 +10232,9 @@ function switchTplTab(btn, sectionId) {
 }
 
 function renderTplTab(sectionId) {
-  const units = UNITS.filter(u => u.section === sectionId);
+  // Include saved customUnits so users can copy from the full template database,
+  // not just the hardcoded built-ins.
+  const units = [...UNITS, ...customUnits].filter(u => u.section === sectionId);
   const list = document.getElementById('tpl-unit-list');
   if (!list) return;
 
@@ -9587,7 +10257,10 @@ function renderTplTab(sectionId) {
 }
 
 function copyTemplateUnit(templateUnitId) {
-  const template = UNITS.find(u => u.id === templateUnitId);
+  // Look up in UNITS first, then fall back to customUnits so admin/superuser
+  // templates are also copyable from the browser.
+  const template = UNITS.find(u => u.id === templateUnitId)
+                || customUnits.find(u => u.id === templateUnitId);
   if (!template) return;
   const id = 'uu_' + Date.now() + '_' + Math.floor(Math.random()*1000);
   const copy = {
@@ -9671,6 +10344,13 @@ function applyRoleRestrictions() {
         const staticDivider = navTabs.querySelector('.nav-divider:not(#user-rooms-divider)');
         if (staticDivider) staticDivider.style.display = 'none';
 
+        // ── Wipe any stale rooms row from a prior job so the onboarding nav
+        //     button is the only thing visible for a fresh new-job flow.
+        const stale = document.getElementById('user-rooms-row');
+        if (stale) stale.remove();
+        const staleDiv = document.getElementById('user-rooms-divider');
+        if (staleDiv) staleDiv.remove();
+
         // ── Ensure the Add Your First Room nav row is visible ────────────────
         let row = document.getElementById('user-rooms-row');
         if (row) {
@@ -9732,14 +10412,19 @@ function openUnitEditModal(unitId) {
             || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
+  const isBuiltin = !userUnits.find(u => u.id === unitId) && !customUnits.find(u => u.id === unitId);
+
   const baseWidth  = parseBaseWidth(unit);
   const baseHeight = (() => {
-    // Detect height from part named 'Sides' or tallest l/w not matching width
     const sides = (unit.parts||[]).find(p => /\bsides?\b/i.test(p.name));
     if (sides) return Math.max(sides.l, sides.w);
     const dims = (unit.parts||[]).flatMap(p => [p.l, p.w]).filter(d => d > 200 && Math.abs(d-baseWidth) > 20);
     return dims.length ? Math.max(...dims) : 780;
   })();
+
+  const sectionOptions = sections.map(s =>
+    `<option value="${s.id}" ${s.id === unit.section ? 'selected' : ''}>${s.label}</option>`
+  ).join('');
 
   document.getElementById('uem-modal')?.remove();
   const modal = document.createElement('div');
@@ -9747,13 +10432,27 @@ function openUnitEditModal(unitId) {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
-      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">✏ EDIT UNIT</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">Changes are applied immediately. Use Scale to proportionally resize all parts.</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">
+        ${isBuiltin ? '📐 SCALE UNIT' : '✏ EDIT UNIT'}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">
+        ${isBuiltin
+          ? 'Scales parts proportionally and saves as a <strong>new unit</strong> in your template. Original is preserved.'
+          : 'Changes are applied immediately. Scale adjusts all parts proportionally.'}
+      </div>
 
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Unit Name</label>
       <input id="uem-name" value="${unit.name.replace(/"/g,'&quot;')}"
         style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+
+      ${isBuiltin ? `
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Save to Section</label>
+      <select id="uem-section"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        ${sectionOptions}
+      </select>` : ''}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
         <div>
@@ -9781,8 +10480,10 @@ function openUnitEditModal(unitId) {
       </div>
 
       <div style="display:flex;gap:10px">
-        <button onclick="confirmUnitEdit('${unitId}', ${baseWidth}, ${baseHeight})"
-          style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">APPLY CHANGES</button>
+        <button onclick="confirmUnitEdit('${unitId}', ${baseWidth}, ${baseHeight}, ${isBuiltin})"
+          style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">
+          ${isBuiltin ? '💾 SAVE AS NEW UNIT' : 'APPLY CHANGES'}
+        </button>
         <button onclick="document.getElementById('uem-modal').remove()"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
@@ -9791,28 +10492,25 @@ function openUnitEditModal(unitId) {
   document.getElementById('uem-name').focus();
 }
 
-function confirmUnitEdit(unitId, origWidth, origHeight) {
-  // Find unit across all sources and track which list it lives in
+function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  const isBuiltin = isBuiltinHint || (!unit && !!UNITS.find(u => u.id === unitId));
   if (!unit) {
-    // Standard template unit — create a copy in customUnits so the edit persists
-    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    const tmpl = UNITS.find(u => u.id === unitId);
     if (!tmpl) return;
-    unit = JSON.parse(JSON.stringify(tmpl)); // deep copy
-    unit.id = 'custom_edit_' + Date.now();
-    customUnits.push(unit);
-    // Remap the quantity to the new id so the count carries over
-    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
-    source = 'custom';
+    unit = JSON.parse(JSON.stringify({ ...tmpl, ...(unitOverrides[unitId] || {}) }));
+    source = 'new_custom';
   }
 
-  const newName   = document.getElementById('uem-name')?.value.trim() || unit.name;
-  const newWidth  = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
-  const newHeight = parseInt(document.getElementById('uem-height')?.value) || origHeight;
+  const newName    = document.getElementById('uem-name')?.value.trim() || unit.name;
+  const newWidth   = parseInt(document.getElementById('uem-width')?.value)  || origWidth;
+  const newHeight  = parseInt(document.getElementById('uem-height')?.value) || origHeight;
+  const newSection = document.getElementById('uem-section')?.value || unit.section;
 
-  unit.name = newName;
+  unit.name    = newName;
+  unit.section = newSection;
 
   if (newWidth !== origWidth && unit.parts?.length) {
     unit.parts = unit.parts.map(p => {
@@ -9827,9 +10525,22 @@ function confirmUnitEdit(unitId, origWidth, origHeight) {
     });
   }
 
+  if (isBuiltin) {
+    // Save as brand-new custom unit — original built-in is untouched
+    const newId = 'custom_' + Date.now();
+    customUnits.push({ ...unit, id: newId });
+    saveCustomUnits();
+  } else if (source === 'custom') {
+    const idx = customUnits.findIndex(u => u.id === unitId);
+    if (idx >= 0) customUnits[idx] = { ...customUnits[idx], ...unit };
+    saveCustomUnits();
+  } else if (source === 'user') {
+    const idx = userUnits.findIndex(u => u.id === unitId);
+    if (idx >= 0) userUnits[idx] = { ...userUnits[idx], ...unit };
+    scheduleAutoSave();
+  }
+
   document.getElementById('uem-modal').remove();
-  if (source === 'user') { scheduleAutoSave(); }
-  else { saveCustomUnits(); }
   renderPanel();
   updateCounts();
 }
@@ -9910,15 +10621,16 @@ function saveUnitParts(unitId) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
+  // Built-in UNITS template: use unitOverrides so the original id/quantity is
+  // preserved and no duplicate entry appears in the picker after refresh.
+  let isBuiltin = false;
   if (!unit) {
-    // Standard template unit — promote to a customUnit copy so the edit persists
-    const tmpl = getEffectiveUnits().find(u => u.id === unitId);
+    const tmpl = UNITS.find(u => u.id === unitId);
     if (!tmpl) return;
-    unit = JSON.parse(JSON.stringify(tmpl));
-    unit.id = 'custom_edit_' + Date.now();
-    customUnits.push(unit);
-    if (quantities[unitId] !== undefined) { quantities[unit.id] = quantities[unitId]; delete quantities[unitId]; }
-    source = 'custom';
+    // Start from any existing override so we don't drop name/section changes
+    unit = { ...tmpl, ...(unitOverrides[unitId] || {}) };
+    isBuiltin = true;
+    source = 'override';
   }
 
   const rows = document.querySelectorAll('#upm-parts-tbody tr');
@@ -9940,7 +10652,18 @@ function saveUnitParts(unitId) {
       holes: get('holes') || '',
     });
   });
-  unit.parts = parts;
+
+  if (isBuiltin) {
+    unitOverrides[unitId] = {
+      ...(unitOverrides[unitId] || {}),
+      name:    unit.name,
+      section: unit.section,
+      parts,
+    };
+  } else {
+    unit.parts = parts;
+  }
+
   document.getElementById('upm-modal').remove();
   if (source === 'user') { scheduleAutoSave(); }
   else { saveCustomUnits(); }
@@ -9990,7 +10713,10 @@ async function loadSupplierPrices() {
   renderSyncBadge();
   let rows = [];
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*`, { headers: authHeaders() });
+    const filter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?select=*${filter}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     rows = await res.json();
 
@@ -10294,7 +11020,10 @@ async function _checkStalePrices() {
   if (!sbUser || isSupplier()) return;
   if (!_priceLoadedAt) return;
   try {
-    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}`;
+    const supplierFilter = activeSupplierRow?.id
+      ? `&supplier_id=eq.${activeSupplierRow.id}`
+      : `&supplier_id=is.null`;
+    const url = `${SB_URL}/rest/v1/supplier_prices?select=name,category,price,updated_at&updated_at=gt.${encodeURIComponent(_priceLoadedAt)}${supplierFilter}`;
     const res = await fetchWithAuth(url);
     if (!res.ok) return;
     const changedRows = await res.json();
@@ -10341,7 +11070,7 @@ async function pushSupplierPrice(category, name, price, meta) {
   }
   try {
     const now = new Date().toISOString();
-    const payload = { category, name, price: Number(price), updated_at: now };
+    const payload = { category, name, price: Number(price), updated_at: now, supplier_id: activeSupplierRow?.id || null };
     // For boards, embed billing mode flags + price date in meta so all users pick them up
     if (category === 'board') {
       const boardMeta = meta ? { ...meta } : {};
@@ -10359,7 +11088,7 @@ async function pushSupplierPrice(category, name, price, meta) {
     } else if (meta) {
       payload.meta = JSON.stringify(meta);
     }
-    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=name`, {
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=supplier_id,name`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify(payload)
@@ -11650,6 +12379,9 @@ function _renderPricesView() {
           <button onclick="loadSupplierPrices()" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
+      </div>
+      <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:6px 10px;margin-bottom:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber)">
+        ◆ SUPPLIER: ${activeSupplierRow?.name || 'Default'}${isSupplier() ? '' : ' <span style="color:var(--text-muted);font-size:10px;letter-spacing:1px">(change in job bar)</span>'}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
         ${canEditPrices() && !isSupplier() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
@@ -13205,7 +13937,7 @@ function applyState(state) {
   // unitOverrides, customUnits, deletedUnits are global template settings — not restored from job state
   if (state.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  state.unitSpecialServices); }
   if (state.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, state.panelSpecialServices); }
-  if (state.userRooms) {
+  if (state.userRooms?.length) {
     userRooms = [...state.userRooms];
     // Re-register in MAT_GROUPS so material selectors work after reload
     userRooms.forEach(room => {
@@ -13215,13 +13947,31 @@ function applyState(state) {
       }
     });
   }
-  if (state.userUnits)     { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
+  if (state.userUnits?.length) { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
   if (userRooms.length > 0) { renderUserRoomsNav(); }
   if (state.job) {
     ['client','house','address','notes'].forEach(f => {
       const el = document.getElementById('job-' + f);
       if (el && state.job[f] !== undefined) el.value = state.job[f];
     });
+  }
+  // ── Restore active supplier (if job was saved with one) ────────────────────
+  if (state.activeSupplierRow) {
+    const found = availableSuppliers.find(s => (s.id || null) === (state.activeSupplierRow.id || null));
+    if (found) {
+      activeSupplierRow = found;
+      _renderSupplierSelector();
+    } else {
+      // Supplier no longer accessible — warn the user
+      const msg = `Job was priced with ${state.activeSupplierRow.name} — prices may differ`;
+      console.warn(msg);
+      if (typeof showToast === 'function') {
+        showToast(msg);
+      } else {
+        // Lightweight inline banner via the existing sync status line
+        try { setJobSyncStatus(msg, 'var(--amber)'); } catch(e) {}
+      }
+    }
   }
   save(); saveHoles(); saveJobDetails(); saveQuoteState();
   saveBedroomAddons(); saveCostingPrices();
@@ -14803,15 +15553,19 @@ const drawerState = {
   height:      780,
   depth:       560,
   thickness:    16,
-  drawerDepth: 500,   // internal drawer box depth (mm)
+  drawerDepth: null,  // internal drawer box depth override (null = auto: carcassDepth − backPanel − rearGap)
+  backPanel:    16,   // mm: back panel / support thickness (deducted from carcass depth)
+  rearGap:      18,   // mm: gap between drawer box rear and back panel
   sideGap:       2,   // mm between face edge and carcass edge (each side)
   faceGap:       4,   // mm gap between drawer faces
   drawerType:  'equal',  // 'equal' | 'pot' | 'custom'
   drawerCount:   4,
   potTopHeight: 192,  // face height of the small top drawer in pot mode
   customHeights: [],  // used when drawerType === 'custom'
-  boxHeight:    null, // manual box height override (null = auto: largestFace - 16)
-  topBoxHeight: null, // manual box height for pot top drawer (null = auto: topFace - 16)
+  boxHeight:    null, // manual box height override (null = auto: largestFace - (bottomGap + topClearance))
+  topBoxHeight: null, // manual box height for pot top drawer (null = auto: topFace - (bottomGap + topClearance))
+  bottomGap:     26,  // mm: box anchored this distance above bottom of face
+  topClearance:  30,  // mm: free space at top of face for nailers / carcass top
   topType:     'solid', // 'solid' | 'nailers'
   hasBacking: true,
   materials: {
@@ -15097,15 +15851,15 @@ function builderDrawSVG() {
 
 function builderDrawSideSVG() {
   const geo = builderGeometry();
-  const { H, D, T, innerH, innerW, resolvedShelves } = geo;
+  const { H, W, D, T, innerH, innerW, resolvedShelves } = geo;
   const bs = builderState;
   const bk = bs.backing;
   const backT = bk.enabled ? (bk.type === 'solid' ? T : 3) : 0;
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
 
-  const MAX_H = 600;
-  // Use the same height scale as the front view so both drawings are the same height
-  const scale = MAX_H / H;
+  const MAX_W = 480, MAX_H = 600;
+  // Match the front view scale exactly — same min(MAX_W/W, MAX_H/H) — so bH is identical
+  const scale = Math.min(MAX_W / W, MAX_H / H);
   const s = v => Math.round(v * scale);
   const bW = s(D), bH = s(H);
   const isOutsideRail = supportsEnabled && bk.supportPlacement === 'outside';
@@ -15921,12 +16675,12 @@ function _renderBuilderView() {
   // rendering below throws an error.
   bv.innerHTML = `<div class="bldr-mode-bar" style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;position:relative;z-index:2">
     <button onclick="_builderMode='unit';try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
-      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
-      🔨 UNIT BUILDER
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:${_builderMode==='unit'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
+      🔨 <span style="letter-spacing:1px">UNIT BUILDER</span>
     </button>
     <button onclick="_builderMode='drawer';try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
-      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:none;color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
-      🗂 DRAWER BUILDER
+      style="padding:10px 20px;font-family:'Oswald',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:${_builderMode==='drawer'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
+      🗂 <span style="letter-spacing:1px">DRAWER BUILDER</span>
     </button>
   </div><div id="bldr-content-area"></div>`;
 
@@ -16037,13 +16791,13 @@ function _renderBuilderView() {
       <div class="bldr-dims-badge">${bs.width} W × ${bs.height} H × ${bs.depth} D mm</div>
       <div style="display:flex;gap:16px;align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Front</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Front</div>
           <div class="bldr-svg-wrap">
             <div id="bldr-svg-container">${builderDrawSVG()}</div>
           </div>
         </div>
         <div style="flex:0 0 auto">
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Side</div>
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Side</div>
           <div class="bldr-svg-wrap">
             <div id="bldr-svg-side">${builderDrawSideSVG()}</div>
           </div>
@@ -16306,13 +17060,41 @@ function drawerFaceHeights() {
 // ── Box height helpers ────────────────────────────────────────────────────────
 // Returns the effective box height for main/pot drawers.
 // Uses manual override if set, otherwise auto-calculates from face heights.
+// Formula: box height = face height − (bottomGap + topClearance)
+//   · Box sits `bottomGap`mm above the bottom of the face (default 26mm)
+//   · `topClearance`mm clearance from the top of the face (default 30mm — nailers / carcass top)
+//   · Defaults: 26 + 30 = 56mm total reduction from face height
+function drawerReduction() {
+  const ds = drawerState;
+  const b  = (ds.bottomGap    != null && ds.bottomGap    >= 0) ? ds.bottomGap    : 26;
+  const t  = (ds.topClearance != null && ds.topClearance >= 0) ? ds.topClearance : 30;
+  return b + t;
+}
+
+// Auto drawer box depth = carcassDepth − backPanel − rearGap
+//   · backPanel: thickness of back panel / support (default 16mm)
+//   · rearGap:   clearance between drawer box rear and back panel (default 18mm)
+function drawerAutoDepth() {
+  const ds = drawerState;
+  const bp = (ds.backPanel != null && ds.backPanel >= 0) ? ds.backPanel : 16;
+  const rg = (ds.rearGap   != null && ds.rearGap   >= 0) ? ds.rearGap   : 18;
+  return Math.max(50, ds.depth - bp - rg);
+}
+
+// Effective drawer box depth — honours manual override when set
+function drawerEffectiveDepth() {
+  const ds = drawerState;
+  if (ds.drawerDepth != null && ds.drawerDepth > 0) return ds.drawerDepth;
+  return drawerAutoDepth();
+}
+
 function drawerEffectiveBoxH() {
   const ds  = drawerState;
   if (ds.boxHeight != null && ds.boxHeight > 0) return ds.boxHeight;
   const fh = drawerFaceHeights();
   // For pot: use the large drawer face; for equal/custom: tallest face
   const refH = ds.drawerType === 'pot' ? fh[0] : Math.max(...fh);
-  return Math.max(10, refH - 16);
+  return Math.max(10, refH - drawerReduction());
 }
 
 function drawerEffectiveTopBoxH() {
@@ -16320,7 +17102,7 @@ function drawerEffectiveTopBoxH() {
   if (ds.topBoxHeight != null && ds.topBoxHeight > 0) return ds.topBoxHeight;
   const fh  = drawerFaceHeights();
   const topH = fh[fh.length - 1]; // top face height
-  return Math.max(10, topH - 16);
+  return Math.max(10, topH - drawerReduction());
 }
 
 function drawerGapCheck() {
@@ -16361,7 +17143,9 @@ function drawerSVG() {
     yPx -= fgPx; // gap above each face (including the top gap above last face)
   });
 
-  return `<svg viewBox="0 0 ${sw+20} ${sh+20}" width="${sw+20}" height="${sh+20}" xmlns="http://www.w3.org/2000/svg">
+  // PADY=26 matches side view so both SVGs render at identical total height (sh+26)
+  const PADY = 26;
+  return `<svg viewBox="0 0 ${sw+20} ${sh+PADY}" width="${sw+20}" height="${sh+PADY}" xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(0,10)">
     <!-- Carcass outline -->
     <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
@@ -16388,7 +17172,7 @@ function drawerSVG() {
 function drawerSideSVG() {
   const ds   = drawerState;
   const H    = ds.height, D = ds.depth, T = ds.thickness;
-  const DD   = ds.drawerDepth;
+  const DD   = drawerEffectiveDepth();
   const fh   = drawerFaceHeights();
   const fg   = ds.faceGap;
   const n    = ds.drawerCount;
@@ -16481,9 +17265,15 @@ function drawerSideSVG() {
     const isTopDrawer = isPot && i === fh.length - 1;
     const actualBoxH  = isTopDrawer ? effTopBoxH : effBoxH;
     const boxHpx      = Math.round(actualBoxH * SCALE);
-    const clearPx     = Math.round(((h - actualBoxH) / 2) * SCALE); // centre vertically in face slot
-    const boxTop      = faceTop + clearPx;
-    const boxBot      = boxTop + boxHpx;
+    // Real-world layout: box sits `bottomGap`mm above bottom of face (default 26mm),
+    // `topClearance`mm at top (default 30mm — nailers / carcass top). Only centre if
+    // overridden box height leaves too little room for the configured bottom gap.
+    const bgMm        = (ds.bottomGap != null && ds.bottomGap >= 0) ? ds.bottomGap : 26;
+    const bottomGapPx = Math.round(bgMm * SCALE);
+    const freePx      = Math.round((h - actualBoxH) * SCALE);
+    const offsetPx    = freePx >= bottomGapPx ? bottomGapPx : Math.max(0, Math.round(freePx / 2));
+    const boxBot     = faceTop + Math.round(h * SCALE) - offsetPx;
+    const boxTop     = boxBot - boxHpx;
 
     // Clamp to inner space
     const clTop = Math.max(innerTop, boxTop);
@@ -16540,7 +17330,7 @@ function drawerSideSVG() {
         <path d="M0,0 L5,2.5 L0,5" fill="none" stroke="rgba(212,145,58,0.5)" stroke-width="1"/>
       </marker>
     </defs>
-    <g transform="translate(0,6)">
+    <g transform="translate(0,10)">
 
     <!-- Carcass side panel outline -->
     <rect x="0" y="0" width="${sd}" height="${sh}"
@@ -16660,9 +17450,40 @@ function renderDrawerBuilderHTML() {
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
             <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          <div class="bldr-row"><span class="bldr-label">Drawer depth</span>
-            <input class="bldr-input" type="number" value="${ds.drawerDepth}" min="200" max="700" oninput="drawerNumInput('drawerDepth',this.value)" onblur="drawerRedraw()">
+          <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto = carcass depth − back panel − rear gap.">Drawer depth</span>
+            <input class="bldr-input" type="number"
+              value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
+              min="100" max="800"
+              placeholder="${drawerAutoDepth()}"
+              oninput="drawerState.drawerDepth=this.value===''?null:Math.max(50,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
+            Auto: carcass depth − ${(ds.backPanel ?? 16) + (ds.rearGap ?? 18)}mm (${ds.backPanel ?? 16}mm back panel + ${ds.rearGap ?? 18}mm rear gap) = <strong style="color:var(--text)">${drawerAutoDepth()}mm</strong>${ds.drawerDepth == null ? '' : ' — overridden'}. Leave blank for auto; override if needed.
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Thickness of back panel / support — deducted from carcass depth">Back panel</span>
+            <input class="bldr-input" type="number"
+              value="${ds.backPanel}"
+              min="0" max="50" step="1"
+              oninput="drawerState.backPanel=this.value===''?16:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between drawer box rear and back panel">Rear gap</span>
+            <input class="bldr-input" type="number"
+              value="${ds.rearGap}"
+              min="0" max="100" step="1"
+              oninput="drawerState.rearGap=this.value===''?18:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          ${ds.drawerDepth != null ? `
+          <button onclick="drawerState.drawerDepth=null;drawerRedraw()"
+            style="margin:4px 0 6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Oswald',sans-serif;letter-spacing:1px">
+            ↺ RESET DEPTH TO AUTO
+          </button>` : ''}
           <!-- Top type: solid or nailers -->
           <div style="margin-top:8px;margin-bottom:4px">
             <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
@@ -16732,7 +17553,30 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-body">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.6">
             Height of drawer box sides, fronts &amp; backs.<br>
-            Leave blank to auto-calculate (face height − 16mm).
+            Leave blank to auto-calculate: face height − (${ds.bottomGap ?? 26} + ${ds.topClearance ?? 30})mm<br>
+            = face − ${drawerReduction()}mm total reduction.
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Box anchored this distance above the bottom of the drawer face">Bottom gap</span>
+            <input class="bldr-input" type="number"
+              value="${ds.bottomGap}"
+              min="0" max="200" step="1"
+              oninput="drawerState.bottomGap=this.value===''?26:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Free space at top of face for nailers / carcass top">Top clearance</span>
+            <input class="bldr-input" type="number"
+              value="${ds.topClearance}"
+              min="0" max="200" step="1"
+              oninput="drawerState.topClearance=this.value===''?30:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:4px 0 10px;padding:4px 6px;background:rgba(212,145,58,0.06);border-left:2px solid rgba(212,145,58,0.4);line-height:1.5">
+            Box sits <strong style="color:var(--text)">${ds.bottomGap}mm</strong> above face bottom. <strong style="color:var(--text)">${ds.topClearance}mm</strong> top clearance for nailers / carcass top.<br>
+            boxHeight = faceHeight − (${ds.bottomGap} + ${ds.topClearance}) = faceHeight − <strong style="color:var(--amber)">${drawerReduction()}mm</strong>
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="${ds.drawerType === 'pot' ? 'Pot drawers (large)' : 'All drawers'}">${ds.drawerType === 'pot' ? 'Pot box H' : 'Box height'}</span>
@@ -16745,7 +17589,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px">
-            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ' (face − 16mm)' : ' — overridden'}
+            Auto = <strong style="color:var(--text)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight == null ? ` (face − ${drawerReduction()}mm)` : ' — overridden'}
           </div>
           ${ds.drawerType === 'pot' ? `
           <div class="bldr-row">
@@ -16759,7 +17603,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
-            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 16mm)' : ' — overridden'}
+            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ` (top face − ${drawerReduction()}mm)` : ' — overridden'}
           </div>` : ''}
           ${ds.boxHeight != null || ds.topBoxHeight != null ? `
           <button onclick="drawerState.boxHeight=null;drawerState.topBoxHeight=null;drawerRedraw()"
@@ -16804,7 +17648,7 @@ function renderDrawerBuilderHTML() {
       <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center">
         <div style="text-align:center">
           <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">FRONT VIEW</div>
-          <div class="bldr-svg-wrap">${drawerSVG()}</div>
+          <div class="bldr-svg-wrap" style="width:fit-content">${drawerSVG()}</div>
         </div>
         <div style="text-align:center">
           <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:2px;color:var(--text-muted);margin-bottom:6px">SIDE VIEW</div>
@@ -16852,7 +17696,7 @@ function drawerPartsPreviewHTML() {
 function drawerCalcParts() {
   const ds = drawerState;
   const W  = ds.width, H = ds.height, D = ds.depth, T = ds.thickness;
-  const DD = ds.drawerDepth;
+  const DD = drawerEffectiveDepth();
   const cm = ds.materials.carcass, ce = ds.materials.carcassEdge;
   const fm = ds.materials.face,    fe = ds.materials.faceEdge;
   const fh = drawerFaceHeights();
@@ -16906,33 +17750,33 @@ function drawerCalcParts() {
   }
 
   // ── Drawer boxes ──────────────────────────────────────────────────────────
-  // Box side height: manual override or auto (face height − 16mm runner clearance)
+  // Box side height: manual override or auto (face height − (bottomGap + topClearance); defaults 26 + 30 = 56mm)
   if (ds.drawerType === 'pot') {
     const largeBoxH = drawerEffectiveBoxH();
     const topBoxH   = drawerEffectiveTopBoxH();
 
     parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
-    parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), boxW, largeBoxH, cm, ce));
-    parts.push(p('Pot Drawer Bottoms',        n-1,    fullBoxW - 4, DD - 50, cm));
+    parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), largeBoxH, boxW, cm, ce));
+    parts.push(p('Pot Drawer Bottoms',        n-1,    DD - 33, fullBoxW - 4, cm));
     parts.push(p('Top Drawer Sides',          2,       DD, topBoxH, cm, ce));
-    parts.push(p('Top Drawer Fronts & Backs', 2,       boxW, topBoxH, cm, ce));
-    parts.push(p('Top Drawer Bottom',         1,       fullBoxW - 4, DD - 50, cm));
+    parts.push(p('Top Drawer Fronts & Backs', 2,       topBoxH, boxW, cm, ce));
+    parts.push(p('Top Drawer Bottom',         1,       DD - 33, fullBoxW - 4, cm));
   } else {
     const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
-      parts.push(p('Drawer Fronts & Backs', 2*n, boxW,  boxH,    cm, ce));
-      parts.push(p('Drawer Bottoms',        n,   fullBoxW - 4, DD - 50, cm));
+      parts.push(p('Drawer Fronts & Backs', 2*n, boxH,  boxW,    cm, ce));
+      parts.push(p('Drawer Bottoms',        n,   DD - 33, fullBoxW - 4, cm));
     } else {
       // Custom different heights — list each separately using per-drawer auto calc
       // but still honour a global boxHeight override if set
       fh.forEach((h, i) => {
         const bh = ds.boxHeight != null && ds.boxHeight > 0
           ? ds.boxHeight
-          : Math.max(10, h - 16);
+          : Math.max(10, h - drawerReduction());
         parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
-        parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, boxW, bh,   cm, ce));
-        parts.push(p(`Drawer ${i+1} Bottom`,        1, fullBoxW-4, DD-50, cm));
+        parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, bh,   boxW, cm, ce));
+        parts.push(p(`Drawer ${i+1} Bottom`,        1, DD-33, fullBoxW-4, cm));
       });
     }
   }
@@ -17943,6 +18787,342 @@ setTimeout(() => {
 
   // (bake nudge removed — data is now saved to Supabase automatically)
 }, 500);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHEET OPTIMIZER — guillotine-style shelf bin packing for 2D nesting.
+   Groups parts by material, packs each group onto standard sheets, and
+   renders an SVG layout with stats. Supports rotation, kerf, and custom
+   sheet dimensions.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const OPTIMIZER_STATE = {
+  sheetW: 2750,      // mm — matches SHEET_W used elsewhere
+  sheetH: 1830,      // mm
+  kerf: 3,           // mm — saw kerf
+  trim: 10,          // mm — edge trim per sheet side
+  allowRotation: true,
+};
+
+// Deterministic colour from a string — used to tint part groups.
+function optColor(seed, alpha) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  const sat = 55 + (h >> 8) % 20;   // 55-74
+  const light = 42 + (h >> 12) % 12; // 42-53
+  return `hsla(${hue},${sat}%,${light}%,${alpha == null ? 0.85 : alpha})`;
+}
+
+function openOptimizer() {
+  const tab = document.getElementById('optimize-tab');
+  if (tab) switchTab(tab, '__optimize__');
+}
+
+function collectOptimizerParts() {
+  // Prefer the last-generated cutlist. Fall back to generating one on the fly.
+  if (!window._lastCutlist) {
+    try { generateCutlist(); } catch (e) { /* ignore */ }
+  }
+  const cl = window._lastCutlist;
+  if (!cl || !cl.consolidated) return [];
+  const parts = [];
+  Object.values(cl.consolidated).forEach(p => {
+    if (!p.l || !p.w || !p.qty) return;
+    // Normalise: long edge = L, short edge = W for readable layout
+    const L = Math.max(p.l, p.w);
+    const W = Math.min(p.l, p.w);
+    for (let i = 0; i < p.qty; i++) {
+      parts.push({
+        l: L, w: W,
+        mat: p.mat || 'Unknown',
+        category: p.category || 'Other',
+        label: p.partName || '',
+      });
+    }
+  });
+  return parts;
+}
+
+/**
+ * Shelf-bin-packing with rotation. Allocates pieces to a single sheet.
+ * Returns { placed:[{x,y,w,h,rotated,part}], leftover:[parts] }.
+ * The sheet usable area is reduced by edge trim on all sides.
+ */
+function packOneSheet(parts, sheetW, sheetH, kerf, trim, allowRotation) {
+  const usableW = sheetW - trim * 2;
+  const usableH = sheetH - trim * 2;
+
+  // Sort: tallest side first (classic shelf heuristic)
+  const queue = parts.slice().sort((a, b) => {
+    const aMax = Math.max(a.l, a.w);
+    const bMax = Math.max(b.l, b.w);
+    if (bMax !== aMax) return bMax - aMax;
+    return (b.l * b.w) - (a.l * a.w);
+  });
+
+  const placed = [];
+  const leftover = [];
+  let shelfY = 0;
+  let shelfH = 0;
+  let shelfX = 0;
+
+  for (const part of queue) {
+    // Try two orientations. "Long side along shelf" = w along X, h = W.
+    const orientations = [];
+    // Orientation A: piece length along X (w=L, h=W)
+    orientations.push({ w: part.l, h: part.w, rotated: false });
+    if (allowRotation && part.l !== part.w) {
+      // Orientation B: piece length along Y (w=W, h=L)
+      orientations.push({ w: part.w, h: part.l, rotated: true });
+    }
+
+    let placedThis = false;
+
+    // Prefer orientation that fits on current shelf without starting a new one
+    for (const o of orientations) {
+      if (o.w > usableW || o.h > usableH) continue;
+      const needW = o.w + (shelfX > 0 ? kerf : 0);
+      const fitsOnCurrent = (shelfX + needW <= usableW) && (o.h <= shelfH || shelfH === 0);
+      if (fitsOnCurrent) {
+        const x = shelfX + (shelfX > 0 ? kerf : 0);
+        if (shelfH === 0) shelfH = o.h;
+        // Height of the current shelf is locked to the first piece's height;
+        // later pieces must be <= that height.
+        if (o.h > shelfH) continue;
+        placed.push({
+          x: trim + x, y: trim + shelfY,
+          w: o.w, h: o.h,
+          rotated: o.rotated, part,
+        });
+        shelfX = x + o.w;
+        placedThis = true;
+        break;
+      }
+    }
+    if (placedThis) continue;
+
+    // Start a new shelf. Pick orientation with the smaller height that still fits the sheet.
+    const candidates = orientations.filter(o => o.w <= usableW && (shelfY + (shelfH > 0 ? shelfH + kerf : 0) + o.h <= usableH));
+    if (candidates.length === 0) {
+      leftover.push(part);
+      continue;
+    }
+    // Choose orientation that leaves most remaining width (so later pieces fit)
+    candidates.sort((a, b) => a.h - b.h);
+    const o = candidates[0];
+    const newShelfY = shelfY + (shelfH > 0 ? shelfH + kerf : 0);
+    shelfY = newShelfY;
+    shelfH = o.h;
+    shelfX = 0;
+    placed.push({
+      x: trim + 0, y: trim + shelfY,
+      w: o.w, h: o.h,
+      rotated: o.rotated, part,
+    });
+    shelfX = o.w;
+  }
+
+  return { placed, leftover };
+}
+
+function optimizeMaterial(parts, opts) {
+  // Pack onto successive sheets until all placed.
+  const sheets = [];
+  let remaining = parts.slice();
+  // Sanity cap
+  for (let guard = 0; guard < 500 && remaining.length > 0; guard++) {
+    const res = packOneSheet(remaining, opts.sheetW, opts.sheetH, opts.kerf, opts.trim, opts.allowRotation);
+    if (res.placed.length === 0) {
+      // Part is too big for the sheet — drop to oversize bucket
+      break;
+    }
+    sheets.push({ placed: res.placed });
+    remaining = res.leftover;
+  }
+  return { sheets, oversized: remaining };
+}
+
+function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM) {
+  const px = pxPerMM || 0.18;
+  const svgW = Math.round(sheetW * px);
+  const svgH = Math.round(sheetH * px);
+  const pieces = sheet.placed.map(p => {
+    const x = p.x * px, y = p.y * px;
+    const w = p.w * px, h = p.h * px;
+    const seed = colorKey === 'category' ? p.part.category : (p.part.label || p.part.category);
+    const fill = optColor(seed, 0.88);
+    const stroke = 'rgba(0,0,0,0.55)';
+    const showLabel = (w > 40 && h > 22);
+    const fontSize = Math.max(8, Math.min(11, Math.round(h / 5)));
+    const dim1 = Math.round(p.part.l);
+    const dim2 = Math.round(p.part.w);
+    const label = showLabel
+      ? `<text class="opt-piece-label" x="${x + w/2}" y="${y + h/2 + fontSize/3}" font-size="${fontSize}" text-anchor="middle">${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}</text>`
+      : '';
+    const title = `<title>${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}</title>`;
+    return `<g>${title}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${label}</g>`;
+  }).join('');
+  return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+    ${pieces}
+  </svg>`;
+}
+
+function renderOptimizer() {
+  const view = document.getElementById('optimize-view');
+  if (!view) return;
+
+  const st = OPTIMIZER_STATE;
+  const parts = collectOptimizerParts();
+
+  const controlsHtml = `
+    <div class="opt-header">
+      <div>
+        <h2 class="opt-title">▦ Sheet Optimizer</h2>
+        <div class="opt-sub">Guillotine shelf-packing · grouped by material · rotation ${st.allowRotation ? 'on' : 'off'}</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="renderOptimizer()">↻ Recalculate</button>
+        <button class="btn btn-ghost" onclick="printOptimizer()">⊕ Print Layouts</button>
+        <button class="btn btn-ghost" onclick="backToQuote()">← Edit Units</button>
+      </div>
+    </div>
+
+    <div class="opt-controls">
+      <div class="opt-ctrl"><label>Sheet W (mm)</label>
+        <input type="number" id="opt-sheet-w" value="${st.sheetW}" min="100" onchange="updateOptimizerSetting('sheetW', this.value)"></div>
+      <div class="opt-ctrl"><label>Sheet H (mm)</label>
+        <input type="number" id="opt-sheet-h" value="${st.sheetH}" min="100" onchange="updateOptimizerSetting('sheetH', this.value)"></div>
+      <div class="opt-ctrl"><label>Kerf (mm)</label>
+        <input type="number" id="opt-kerf" value="${st.kerf}" min="0" step="0.1" onchange="updateOptimizerSetting('kerf', this.value)"></div>
+      <div class="opt-ctrl"><label>Edge Trim (mm)</label>
+        <input type="number" id="opt-trim" value="${st.trim}" min="0" onchange="updateOptimizerSetting('trim', this.value)"></div>
+      <div class="opt-ctrl"><label>Rotation</label>
+        <select id="opt-rot" onchange="updateOptimizerSetting('allowRotation', this.value === 'true')">
+          <option value="true" ${st.allowRotation ? 'selected' : ''}>Allow</option>
+          <option value="false" ${!st.allowRotation ? 'selected' : ''}>Lock grain</option>
+        </select></div>
+      <div class="opt-ctrl"><label>Preset</label>
+        <select onchange="applyOptimizerPreset(this.value); this.value=''">
+          <option value="">—</option>
+          <option value="2750x1830">2750 × 1830 (ZA standard)</option>
+          <option value="2440x1220">2440 × 1220 (4×8 ft)</option>
+          <option value="3050x1525">3050 × 1525 (10×5 ft)</option>
+          <option value="2400x1200">2400 × 1200 (metric)</option>
+        </select></div>
+    </div>
+  `;
+
+  if (parts.length === 0) {
+    view.innerHTML = `<div class="opt-wrap">${controlsHtml}
+      <div class="opt-empty">
+        No cuttable parts found. Go to the <strong>Cutlist</strong> tab to generate a cutlist first,
+        then return here to optimize.
+      </div></div>`;
+    return;
+  }
+
+  // Group by material, run optimizer per group
+  const byMat = {};
+  parts.forEach(p => { (byMat[p.mat] = byMat[p.mat] || []).push(p); });
+
+  const opts = { sheetW: st.sheetW, sheetH: st.sheetH, kerf: st.kerf, trim: st.trim, allowRotation: st.allowRotation };
+  const sheetArea = st.sheetW * st.sheetH;
+
+  let totalSheets = 0;
+  let totalUsedArea = 0;
+  let totalSheetArea = 0;
+  let totalOversized = 0;
+  const matResults = [];
+
+  Object.keys(byMat).sort().forEach(mat => {
+    const res = optimizeMaterial(byMat[mat], opts);
+    const usedArea = byMat[mat].reduce((s, p) => s + p.l * p.w, 0);
+    const sheetCount = res.sheets.length;
+    const matSheetArea = sheetCount * sheetArea;
+    totalSheets += sheetCount;
+    totalUsedArea += usedArea;
+    totalSheetArea += matSheetArea;
+    totalOversized += res.oversized.length;
+    matResults.push({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount: byMat[mat].length });
+  });
+
+  const efficiency = totalSheetArea > 0 ? (totalUsedArea / totalSheetArea) * 100 : 0;
+  const waste = 100 - efficiency;
+
+  const summaryHtml = `
+    <div class="opt-summary">
+      <div class="opt-stat"><div class="opt-stat-label">Sheets Needed</div><div class="opt-stat-val">${totalSheets}</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Pieces Placed</div><div class="opt-stat-val">${parts.length - totalOversized}</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Material Used</div><div class="opt-stat-val small">${(totalUsedArea / 1e6).toFixed(2)} m²</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Sheet Area</div><div class="opt-stat-val small">${(totalSheetArea / 1e6).toFixed(2)} m²</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Efficiency</div><div class="opt-stat-val">${efficiency.toFixed(1)}%</div></div>
+      <div class="opt-stat"><div class="opt-stat-label">Waste</div><div class="opt-stat-val">${waste.toFixed(1)}%</div></div>
+      ${totalOversized > 0 ? `<div class="opt-stat" style="border-left-color:#d4583a"><div class="opt-stat-label">Oversized</div><div class="opt-stat-val" style="color:#d4583a">${totalOversized}</div></div>` : ''}
+    </div>
+  `;
+
+  const matBlocksHtml = matResults.map(({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount }) => {
+    const matEff = matSheetArea > 0 ? (usedArea / matSheetArea) * 100 : 0;
+    const cats = new Set(byMat[mat].map(p => p.category));
+    const legendHtml = [...cats].sort().map(c =>
+      `<span class="opt-legend-item"><span class="opt-legend-swatch" style="background:${optColor(c, 0.9)}"></span>${c}</span>`
+    ).join('');
+
+    const sheetsHtml = res.sheets.map((sheet, idx) => {
+      const used = sheet.placed.reduce((s, p) => s + p.w * p.h, 0);
+      const eff = (used / sheetArea) * 100;
+      return `<div class="opt-sheet">
+        <div class="opt-sheet-head">
+          <span>Sheet ${idx + 1} / ${sheetCount}</span>
+          <span class="eff">${eff.toFixed(1)}% used</span>
+        </div>
+        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category')}
+      </div>`;
+    }).join('');
+
+    const oversizedHtml = res.oversized.length > 0
+      ? `<div style="margin-top:10px;padding:8px 10px;background:rgba(212,88,58,0.15);border:1px solid #d4583a;font-size:12px;color:#d4583a">
+           ⚠ ${res.oversized.length} piece${res.oversized.length > 1 ? 's' : ''} too large for ${st.sheetW}×${st.sheetH}mm sheet:
+           ${res.oversized.slice(0, 5).map(p => `${p.l}×${p.w}mm`).join(', ')}${res.oversized.length > 5 ? '…' : ''}
+         </div>`
+      : '';
+
+    return `<div class="opt-mat-block">
+      <div class="opt-mat-title">
+        <span>${mat}</span>
+        <span class="opt-mat-meta">${pieceCount} pieces · ${sheetCount} sheet${sheetCount !== 1 ? 's' : ''} · ${matEff.toFixed(1)}% efficient</span>
+      </div>
+      <div class="opt-sheets">${sheetsHtml}</div>
+      ${oversizedHtml}
+      ${legendHtml ? `<div class="opt-legend">${legendHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  view.innerHTML = `<div class="opt-wrap">${controlsHtml}${summaryHtml}${matBlocksHtml}</div>`;
+}
+
+function updateOptimizerSetting(key, value) {
+  const num = Number(value);
+  if (key === 'allowRotation') {
+    OPTIMIZER_STATE.allowRotation = !!value;
+  } else if (!isNaN(num) && num >= 0) {
+    OPTIMIZER_STATE[key] = num;
+  }
+  renderOptimizer();
+}
+
+function applyOptimizerPreset(preset) {
+  if (!preset) return;
+  const [w, h] = preset.split('x').map(Number);
+  if (w && h) {
+    OPTIMIZER_STATE.sheetW = w;
+    OPTIMIZER_STATE.sheetH = h;
+    renderOptimizer();
+  }
+}
+
+function printOptimizer() { window.print(); }
 </script>
 
 <!-- Version chip — shows file's last-modified timestamp -->
@@ -17962,14 +19142,14 @@ setTimeout(() => {
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-04-21 17:27 UTC</div>
+" title="Build version">LIVE 2026-04-23 19:37 UTC</div>
 <script>
 (function() {
   const chip = document.getElementById('version-chip');
   if (!chip) return;
   const raw = chip.textContent.trim();
   // If workflow already stamped it, show as-is
-  if (raw !== 'LIVE 2026-04-21 17:27 UTC') return;
+  if (raw !== 'LIVE 2026-04-23 19:37 UTC') return;
   // Fallback: use document.lastModified
   try {
     const d = new Date(document.lastModified);
