@@ -9057,6 +9057,36 @@ async function cleanupDeleteRow(name, btn) {
   }
 }
 
+// ── WIP Banner ────────────────────────────────────────────────────────────────
+function showWipBanner(storageKey, containerId) {
+  const dismissed = sessionStorage.getItem(storageKey);
+  if (dismissed) return;
+  const existing = document.getElementById(storageKey + '-wip-banner');
+  if (existing) return;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const banner = document.createElement('div');
+  banner.id = storageKey + '-wip-banner';
+  banner.style.cssText = [
+    'display:flex','align-items:center','gap:10px',
+    'background:rgba(212,145,58,0.1)','border-bottom:1px solid var(--amber-dim)',
+    'padding:8px 14px','font-size:12px','font-family:Barlow,sans-serif',
+    'color:var(--text)','flex-shrink:0','z-index:10','position:relative'
+  ].join(';');
+  banner.innerHTML = `
+    <span style="font-size:14px;flex-shrink:0">🚧</span>
+    <span style="flex:1">
+      <strong style="color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:0.5px;font-size:11px">WORK IN PROGRESS</strong>
+      <span style="color:var(--text-muted);margin-left:8px">This feature is still being refined. If you spot anything unexpected, please</span>
+      <a href="#" onclick="event.preventDefault();var s=document.getElementById('fb-category');if(s){s.value='Bug report';toggleFbScreenshot();}openFeedbackModal();"
+        style="color:var(--amber);text-decoration:underline;cursor:pointer;margin-left:4px">report it via Feedback</a>.
+    </span>
+    <button onclick="sessionStorage.setItem('${storageKey}',1);this.closest('#${storageKey}-wip-banner').remove();"
+      title="Dismiss"
+      style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;flex-shrink:0">&times;</button>`;
+  container.insertBefore(banner, container.firstChild);
+}
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 function openFeedbackModal() {
   if (canManageUsers()) { openUsersModal(); showUsersTab('feedback'); return; }
