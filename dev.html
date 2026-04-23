@@ -15185,13 +15185,25 @@ function renderImportedCutlistView() {
 // Builds a _lastCutlist-shaped object from importedCutlistData and calls the
 // existing downloadXLSX() so the supplier's file is byte-for-byte the same
 // format users get when exporting their own cutlist.
-async function downloadImportedXLSX() {
-  if (!importedCutlistData || !importedCutlistData.parts?.length) {
+async function downloadImportedXLSX(partsArg, labelArg) {
+  // Accept explicit (parts, label) so this works from both:
+  //  • the post-import Preview (importState.parsed)
+  //  • the fully opened imported cutlist view (importedCutlistData)
+  const srcParts = partsArg
+    || importedCutlistData?.parts
+    || importState?.parsed
+    || null;
+  const srcLabel = labelArg
+    || importedCutlistData?.label
+    || importState?.label
+    || 'Imported Cutlist';
+
+  if (!srcParts || !srcParts.length) {
     alert('No imported cutlist to export.');
     return;
   }
 
-  const label = importedCutlistData.label || 'Imported Cutlist';
+  const label = srcLabel;
 
   // Normalise parts — strip the '?' prefix from unrecognised edges so the
   // exported file doesn't carry the warning marker into the Excel cells.
