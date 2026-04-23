@@ -2002,9 +2002,11 @@
   .opt-ctrl input, .opt-ctrl select {
     background: var(--bg3); border: 1px solid var(--border);
     color: var(--text); font-size: 13px; padding: 5px 8px; width: 110px;
-    font-family: 'Barlow', sans-serif;
+    font-family: 'Barlow', sans-serif; border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .opt-ctrl input:focus, .opt-ctrl select:focus { outline: none; border-color: var(--amber); }
+  .opt-ctrl input:hover, .opt-ctrl select:hover { border-color: var(--text-muted); }
+  .opt-ctrl input:focus, .opt-ctrl select:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .opt-summary {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px; margin-bottom: 20px;
