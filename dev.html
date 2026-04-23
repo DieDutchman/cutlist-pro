@@ -2485,6 +2485,49 @@
     </div>
   </div>
 
+  <!-- ═══ BULK PRICE ADJUSTMENT MODAL ═══════════════════════════════════════ -->
+  <div id="bulk-adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
+        <button onclick="closeBulkAdjustModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="font-size:13px;color:var(--text);white-space:nowrap">Adjustment</span>
+          <input id="bulk-adjust-pct" type="number" min="-50" max="50" step="0.1" value="0"
+            oninput="updateBulkAdjustPreview()"
+            style="width:90px;background:var(--bg3);border:1px solid var(--amber);color:var(--text);padding:6px 10px;font-size:16px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'">
+          <span style="font-size:16px;color:var(--amber);font-family:'JetBrains Mono',monospace">%</span>
+          <span style="font-size:11px;color:var(--text-muted)">(negative = reduce prices)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-muted);margin-right:4px">Apply to:</span>
+          <button id="bulk-tog-boards" onclick="toggleBulkCat('boards')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ BOARDS</button>
+          <button id="bulk-tog-edges" onclick="toggleBulkCat('edges')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ EDGING</button>
+          <button id="bulk-tog-services" onclick="toggleBulkCat('services')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ SERVICES</button>
+          <button onclick="setBulkAllCats(true)" style="font-size:10px;padding:4px 10px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">SELECT ALL</button>
+          <button onclick="setBulkAllCats(false)" style="font-size:10px;padding:4px 10px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">CLEAR</button>
+        </div>
+        <div id="bulk-adjust-error" style="display:none;background:rgba(224,82,82,0.12);border:1px solid #e05252;color:#e05252;padding:8px 12px;font-size:12px;margin-bottom:12px"></div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin-bottom:8px">PREVIEW</div>
+        <div id="bulk-adjust-preview" style="border:1px solid var(--border);overflow-y:auto;max-height:320px"></div>
+        <div id="bulk-adjust-count" style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:right"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <button onclick="closeBulkAdjustModal()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer">CANCEL</button>
+        <button id="bulk-adjust-apply-btn" onclick="applyBulkPriceAdjustment()"
+          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:pointer;font-weight:600">
+          APPLY TO DATABASE
+        </button>
+      </div>
+    </div>
+  </div>
+
     <div id="board-cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
