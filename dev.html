@@ -19133,6 +19133,7 @@ function renderOptimizer() {
   }).join('');
 
   view.innerHTML = `<div class="opt-wrap">${controlsHtml}${summaryHtml}${matBlocksHtml}</div>`;
+  showWipBanner('optimizer', 'optimize-view');
 }
 
 function updateOptimizerSetting(key, value) {
