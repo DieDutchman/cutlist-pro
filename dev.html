@@ -9131,15 +9131,37 @@ async function submitFeedback() {
     statusEl.textContent = 'Please enter a message before sending.';
     return;
   }
+
+  // Collect screenshot for bug reports
+  let screenshotBase64 = null;
+  if (category === 'Bug report') {
+    const fileInput = document.getElementById('fb-screenshot-file');
+    const sizeWarn  = document.getElementById('fb-screenshot-size-warn');
+    if (fileInput && fileInput.files[0]) {
+      if (fileInput.files[0].size > 2 * 1024 * 1024) {
+        sizeWarn.style.display = 'block';
+        return;
+      }
+      screenshotBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(fileInput.files[0]);
+      });
+    }
+  }
+
   sendBtn.disabled = true;
   statusEl.style.color = 'var(--amber-dim)';
   statusEl.textContent = 'Sending\u2026';
 
   try {
+    const payload = { user_email: sbUser?.email || 'unknown', category, tab, message };
+    if (screenshotBase64) payload.screenshot_base64 = screenshotBase64;
     const res = await fetch(`${SB_URL}/rest/v1/feedback`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ user_email: sbUser?.email || 'unknown', category, tab, message }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
@@ -9210,6 +9232,18 @@ async function loadFeedbackInbox() {
           </div>
         </div>
         <div style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap">${escHtml(r.message)}</div>
+        ${r.screenshot_base64 ? `
+        <details style="margin-top:10px">
+          <summary style="font-size:11px;color:var(--amber-dim);cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
+            <span style="font-size:9px">&#x25B6;</span> SCREENSHOT ATTACHED
+          </summary>
+          <div style="margin-top:8px">
+            <a href="${r.screenshot_base64}" target="_blank" title="Open full size">
+              <img src="${r.screenshot_base64}" alt="Bug screenshot" style="max-width:100%;max-height:260px;border:1px solid var(--border);cursor:pointer;display:block">
+            </a>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Click image to open full size in new tab</div>
+          </div>
+        </details>` : ''}
       </div>`;
     }).join('');
   } catch(e) {
