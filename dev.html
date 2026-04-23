@@ -17496,7 +17496,7 @@ function drawerPartsPreviewHTML() {
 function drawerCalcParts() {
   const ds = drawerState;
   const W  = ds.width, H = ds.height, D = ds.depth, T = ds.thickness;
-  const DD = ds.drawerDepth;
+  const DD = drawerEffectiveDepth();
   const cm = ds.materials.carcass, ce = ds.materials.carcassEdge;
   const fm = ds.materials.face,    fe = ds.materials.faceEdge;
   const fh = drawerFaceHeights();
