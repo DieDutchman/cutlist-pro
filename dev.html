@@ -17532,7 +17532,7 @@ function drawerCalcParts() {
       fh.forEach((h, i) => {
         const bh = ds.boxHeight != null && ds.boxHeight > 0
           ? ds.boxHeight
-          : Math.max(10, h - 40);
+          : Math.max(10, h - drawerReduction());
         parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, bh,   boxW, cm, ce));
         parts.push(p(`Drawer ${i+1} Bottom`,        1, DD-33, fullBoxW-4, cm));
