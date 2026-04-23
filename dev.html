@@ -335,18 +335,20 @@
   .generate-btn {
     width: 100%;
     padding: 14px;
-    background: var(--amber);
-    color: #141414;
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
+    color: #1a1208;
     font-family: 'Oswald', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     border: none;
     cursor: pointer;
     transition: all 0.15s;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
   }
-  .generate-btn:hover { background: var(--amber-light); transform: translateY(-1px); }
+  .generate-btn:hover { background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 100%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
   .generate-btn:active { transform: translateY(0); }
 
   /* ── CUTLIST VIEW ── */
