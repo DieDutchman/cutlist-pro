@@ -17347,7 +17347,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
-            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 16mm)' : ' — overridden'}
+            Auto = <strong style="color:var(--text)">${drawerEffectiveTopBoxH()}mm</strong>${ds.topBoxHeight == null ? ' (top face − 40mm)' : ' — overridden'}
           </div>` : ''}
           ${ds.boxHeight != null || ds.topBoxHeight != null ? `
           <button onclick="drawerState.boxHeight=null;drawerState.topBoxHeight=null;drawerRedraw()"
