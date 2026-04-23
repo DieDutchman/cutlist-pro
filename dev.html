@@ -17077,12 +17077,13 @@ function drawerSideSVG() {
     const isTopDrawer = isPot && i === fh.length - 1;
     const actualBoxH  = isTopDrawer ? effTopBoxH : effBoxH;
     const boxHpx      = Math.round(actualBoxH * SCALE);
-    // Real-world layout: box sits 10mm above bottom of face (bottom clearance),
-    // 30mm clearance at top (nailers / carcass top). Only centre if overridden
-    // box height leaves too little room for the 10mm bottom gap.
-    const bottomGapPx = Math.round(10 * SCALE);
-    const freePx     = Math.round((h - actualBoxH) * SCALE);
-    const offsetPx   = freePx >= bottomGapPx ? bottomGapPx : Math.max(0, Math.round(freePx / 2));
+    // Real-world layout: box sits `bottomGap`mm above bottom of face (default 26mm),
+    // `topClearance`mm at top (default 30mm — nailers / carcass top). Only centre if
+    // overridden box height leaves too little room for the configured bottom gap.
+    const bgMm        = (ds.bottomGap != null && ds.bottomGap >= 0) ? ds.bottomGap : 26;
+    const bottomGapPx = Math.round(bgMm * SCALE);
+    const freePx      = Math.round((h - actualBoxH) * SCALE);
+    const offsetPx    = freePx >= bottomGapPx ? bottomGapPx : Math.max(0, Math.round(freePx / 2));
     const boxBot     = faceTop + Math.round(h * SCALE) - offsetPx;
     const boxTop     = boxBot - boxHpx;
 
