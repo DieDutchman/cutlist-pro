@@ -15173,6 +15173,93 @@ function renderImportedCutlistView() {
   </div>`;
 }
 
+// ── Download imported cutlist as XLSX ────────────────────────────────────────
+// Builds a _lastCutlist-shaped object from importedCutlistData and calls the
+// existing downloadXLSX() so the supplier's file is byte-for-byte the same
+// format users get when exporting their own cutlist.
+async function downloadImportedXLSX() {
+  if (!importedCutlistData || !importedCutlistData.parts?.length) {
+    alert('No imported cutlist to export.');
+    return;
+  }
+
+  const label = importedCutlistData.label || 'Imported Cutlist';
+
+  // Normalise parts — strip the '?' prefix from unrecognised edges so the
+  // exported file doesn't carry the warning marker into the Excel cells.
+  const cleanEdge = v => (v && v.startsWith('?')) ? v.slice(1) : (v || '');
+
+  // Build the same shape generateCutlist produces (consolidated, byCat, catOrder, …).
+  const allParts = importedCutlistData.parts.map(p => {
+    const part = {
+      partName: p.name || '',
+      unitName: p.group || label,
+      qty: parseInt(p.qty) || 0,
+      l: parseFloat(p.l) || 0,
+      w: parseFloat(p.w) || 0,
+      mat: p.mat || '',
+      el1: cleanEdge(p.el1), el2: cleanEdge(p.el2),
+      ew1: cleanEdge(p.ew1), ew2: cleanEdge(p.ew2),
+      holes: p.holes || '',
+    };
+    part.category = (typeof getCategory === 'function') ? getCategory(part) : (part.mat || 'Other');
+    return part;
+  }).filter(p => p.qty > 0);
+
+  // Consolidate identical rows (same dims + mat + edges + category).
+  const consolidated = {};
+  allParts.forEach(p => {
+    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}`;
+    if (consolidated[key]) {
+      consolidated[key].qty += p.qty;
+      consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
+    } else {
+      consolidated[key] = { ...p, _key: key, sources: [p.unitName + ' × ' + p.qty] };
+    }
+  });
+
+  // Build catOrder the same way generateCutlist does.
+  const allCats  = [...new Set(Object.values(consolidated).map(p => p.category))];
+  const doorCats = allCats.filter(c => c.startsWith('Door — ')).sort();
+  const faceCats = allCats.filter(c => c.startsWith('Drawer Faces — ')).sort();
+  const wmCats   = allCats.filter(c => c.startsWith('White Melamine Peen')).sort();
+  const matCats  = allCats.filter(c => !c.startsWith('Door — ') && !c.startsWith('Drawer Faces — ')
+                                    && !c.startsWith('White Melamine — ') && !c.startsWith('White Melamine Peen')
+                                    && c !== 'Backing').sort();
+  const catOrder = ['Backing', ...doorCats, ...faceCats, ...wmCats, ...matCats]
+                     .filter(c => allCats.includes(c));
+
+  const byCat = {};
+  catOrder.forEach(c => byCat[c] = []);
+  Object.values(consolidated).forEach(p => {
+    if (!byCat[p.category]) { byCat[p.category] = []; catOrder.push(p.category); }
+    byCat[p.category].push(p);
+  });
+
+  // Sort within each category: L desc, then W desc.
+  catOrder.forEach(c => {
+    byCat[c].sort((a, b) => (b.l - a.l) || (b.w - a.w));
+  });
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-ZA', { day:'numeric', month:'long', year:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-ZA', { hour:'2-digit', minute:'2-digit' });
+  const dateTimeStr = `${dateStr} at ${timeStr}`;
+
+  // Preserve any existing _lastCutlist (user could have a real one); restore after.
+  const prev = window._lastCutlist;
+  window._lastCutlist = {
+    consolidated, byCat, catOrder, dateTimeStr,
+    jobClient: label, jobHouse: '', jobAddress: '', jobNotes: '',
+    matSummaryText: '', matSummaryLines: [],
+  };
+  try {
+    await downloadXLSX();
+  } finally {
+    window._lastCutlist = prev;
+  }
+}
+
 function updateImportedPart(idx, field, value) {
   if (!importedCutlistData) return;
   _pushImportedHistory();
