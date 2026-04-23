@@ -15146,6 +15146,11 @@ function renderImportedCutlistView() {
           style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           ⬇ EXPORT CSV
         </button>
+        <button onclick="downloadImportedXLSX()"
+          style="background:rgba(29,111,66,0.15);border:1px solid #1D6F42;color:#4caf82;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer"
+          title="Download as Excel (same format as a normal cutlist export)">
+          ⬇ EXPORT .XLSX
+        </button>
         <button onclick="printImportedCutlist()"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           🖨 PRINT
