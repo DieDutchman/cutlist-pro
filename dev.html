@@ -19002,6 +19002,8 @@ function renderOptimizer() {
   const view = document.getElementById('optimize-view');
   if (!view) return;
 
+  showWipBanner('optimizer', 'optimize-view');
+
   const st = OPTIMIZER_STATE;
   const parts = collectOptimizerParts();
 
