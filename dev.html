@@ -1021,8 +1021,11 @@
     width: 100%;
     outline: none;
     font-family: 'Barlow', sans-serif;
+    border-radius: 3px;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .editor-mat-select:focus { border-color: var(--amber); }
+  .editor-mat-select:hover { border-color: var(--text-muted); }
+  .editor-mat-select:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
 
   @media (max-width: 900px) {
     .editor-layout { grid-template-columns: 1fr; height: auto; }
