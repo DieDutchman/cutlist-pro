@@ -122,10 +122,13 @@
   }
 
   .btn-primary {
-    background: var(--amber);
+    background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
     color: #141414;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(212,145,58,0.25);
   }
-  .btn-primary:hover { background: var(--amber-light); }
+  .btn-primary:hover { background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 100%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); }
+  .btn-primary:active { transform: translateY(0); }
 
   .btn-ghost {
     background: transparent;
