@@ -15384,7 +15384,9 @@ const drawerState = {
   height:      780,
   depth:       560,
   thickness:    16,
-  drawerDepth: 500,   // internal drawer box depth (mm)
+  drawerDepth: null,  // internal drawer box depth override (null = auto: carcassDepth − backPanel − rearGap)
+  backPanel:    16,   // mm: back panel / support thickness (deducted from carcass depth)
+  rearGap:      18,   // mm: gap between drawer box rear and back panel
   sideGap:       2,   // mm between face edge and carcass edge (each side)
   faceGap:       4,   // mm gap between drawer faces
   drawerType:  'equal',  // 'equal' | 'pot' | 'custom'
