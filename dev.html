@@ -17281,9 +17281,40 @@ function renderDrawerBuilderHTML() {
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
             <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          <div class="bldr-row"><span class="bldr-label">Drawer depth</span>
-            <input class="bldr-input" type="number" value="${ds.drawerDepth}" min="200" max="700" oninput="drawerNumInput('drawerDepth',this.value)" onblur="drawerRedraw()">
+          <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto = carcass depth − back panel − rear gap.">Drawer depth</span>
+            <input class="bldr-input" type="number"
+              value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
+              min="100" max="800"
+              placeholder="${drawerAutoDepth()}"
+              oninput="drawerState.drawerDepth=this.value===''?null:Math.max(50,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
+            Auto: carcass depth − ${(ds.backPanel ?? 16) + (ds.rearGap ?? 18)}mm (${ds.backPanel ?? 16}mm back panel + ${ds.rearGap ?? 18}mm rear gap) = <strong style="color:var(--text)">${drawerAutoDepth()}mm</strong>${ds.drawerDepth == null ? '' : ' — overridden'}. Leave blank for auto; override if needed.
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Thickness of back panel / support — deducted from carcass depth">Back panel</span>
+            <input class="bldr-input" type="number"
+              value="${ds.backPanel}"
+              min="0" max="50" step="1"
+              oninput="drawerState.backPanel=this.value===''?16:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="Gap between drawer box rear and back panel">Rear gap</span>
+            <input class="bldr-input" type="number"
+              value="${ds.rearGap}"
+              min="0" max="100" step="1"
+              oninput="drawerState.rearGap=this.value===''?18:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          ${ds.drawerDepth != null ? `
+          <button onclick="drawerState.drawerDepth=null;drawerRedraw()"
+            style="margin:4px 0 6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Oswald',sans-serif;letter-spacing:1px">
+            ↺ RESET DEPTH TO AUTO
+          </button>` : ''}
           <!-- Top type: solid or nailers -->
           <div style="margin-top:8px;margin-bottom:4px">
             <div style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
