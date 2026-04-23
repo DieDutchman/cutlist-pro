@@ -11134,6 +11134,184 @@ async function reloadSupplierPrices() {
   }
 }
 
+// ─── Bulk Price Adjustment ────────────────────────────────────────────────────
+let _bulkAdjCats = { boards: true, edges: true, services: true };
+
+function openBulkAdjustModal() {
+  _bulkAdjCats = { boards: true, edges: true, services: true };
+  document.getElementById('bulk-adjust-pct').value = '0';
+  document.getElementById('bulk-adjust-error').style.display = 'none';
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+  document.getElementById('bulk-adjust-modal').style.display = 'flex';
+}
+
+function closeBulkAdjustModal() {
+  document.getElementById('bulk-adjust-modal').style.display = 'none';
+}
+
+function toggleBulkCat(cat) {
+  _bulkAdjCats[cat] = !_bulkAdjCats[cat];
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+}
+
+function setBulkAllCats(val) {
+  _bulkAdjCats = { boards: val, edges: val, services: val };
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+}
+
+function updateBulkToggleStyles() {
+  const labels = { boards: 'BOARDS', edges: 'EDGING', services: 'SERVICES' };
+  ['boards', 'edges', 'services'].forEach(cat => {
+    const btn = document.getElementById('bulk-tog-' + cat);
+    if (!btn) return;
+    const on = _bulkAdjCats[cat];
+    btn.style.border = `1px solid ${on ? 'var(--amber)' : 'var(--border)'}`;
+    btn.style.background = on ? 'rgba(212,145,58,0.15)' : 'var(--bg4)';
+    btn.style.color = on ? 'var(--amber)' : 'var(--text-muted)';
+    btn.textContent = (on ? '✓ ' : '') + labels[cat];
+  });
+}
+
+function _buildBulkItems(pct) {
+  const mult = 1 + pct / 100;
+  const round2 = v => Math.round(v * 100) / 100;
+  const items = [];
+  if (_bulkAdjCats.boards) {
+    Object.entries(costingPrices.mat).forEach(([name, price]) => {
+      if (price > 0) items.push({ cat: 'board', label: name, before: price, after: round2(price * mult), name });
+    });
+  }
+  if (_bulkAdjCats.edges) {
+    Object.entries(costingPrices.edge).forEach(([name, price]) => {
+      if (price > 0) items.push({ cat: 'edge', label: name, before: price, after: round2(price * mult), name });
+    });
+  }
+  if (_bulkAdjCats.services) {
+    [
+      { key: 'cutLabel',         label: 'Cut & Label – Boards',   dbName: 'Cut & Label - Boards' },
+      { key: 'cutLabelMasonite', label: 'Cut & Label – Masonite', dbName: 'Cut & Label - Masonite' },
+      { key: 'drilling',         label: 'Hinge Drilling',         dbName: 'Hinge Drilling' },
+      { key: 'hPrice',           label: 'Supplier Handling',      dbName: 'Supplier HPrice' },
+    ].forEach(({ key, label, dbName }) => {
+      const price = costingPrices.extras[key] || 0;
+      if (price > 0) items.push({ cat: 'service', label, before: price, after: round2(price * mult), name: dbName, extrasKey: key });
+    });
+    costingPrices.specialServices.forEach(svc => {
+      if (svc.price > 0) items.push({ cat: 'special_service', label: svc.name, before: svc.price, after: round2(svc.price * mult), name: svc.id, svcRef: svc });
+    });
+  }
+  return items;
+}
+
+let _bulkAdjTimer = null;
+function updateBulkAdjustPreview() {
+  clearTimeout(_bulkAdjTimer);
+  _bulkAdjTimer = setTimeout(() => {
+    const pct = parseFloat(document.getElementById('bulk-adjust-pct').value) || 0;
+    const items = _buildBulkItems(pct);
+    const noneSelected = !_bulkAdjCats.boards && !_bulkAdjCats.edges && !_bulkAdjCats.services;
+    const disabled = pct === 0 || noneSelected;
+    const applyBtn = document.getElementById('bulk-adjust-apply-btn');
+    if (applyBtn) {
+      applyBtn.disabled = disabled;
+      applyBtn.style.opacity = disabled ? '0.4' : '1';
+      applyBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    }
+    const rows = items.map(it => {
+      const diff = it.after - it.before;
+      const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
+      const diffColor = diff >= 0 ? '#e07070' : '#5dba6e';
+      return `<div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:12px;color:var(--text)">${escHtml(it.label)}</span>
+        <span style="font-size:11px;color:var(--text-muted);padding:0 16px;font-family:'JetBrains Mono',monospace">R${it.before.toFixed(2)}</span>
+        <span style="font-size:11px;color:var(--text);padding:0 16px;font-family:'JetBrains Mono',monospace;font-weight:600">R${it.after.toFixed(2)}</span>
+        <span style="font-size:10px;color:${diffColor};font-family:'JetBrains Mono',monospace;width:60px;text-align:right">${diffStr}</span>
+      </div>`;
+    }).join('');
+    const header = `<div style="display:grid;grid-template-columns:1fr auto auto auto;padding:5px 12px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">ITEM</span>
+      <span style="font-size:10px;color:var(--text-muted);padding:0 16px;font-family:'Oswald',sans-serif;letter-spacing:1px">BEFORE</span>
+      <span style="font-size:10px;color:var(--text-muted);padding:0 16px;font-family:'Oswald',sans-serif;letter-spacing:1px">AFTER</span>
+      <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;text-align:right">CHANGE</span>
+    </div>`;
+    const preview = document.getElementById('bulk-adjust-preview');
+    const count = document.getElementById('bulk-adjust-count');
+    if (preview) preview.innerHTML = items.length ? header + rows : `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">No items selected with price &gt; 0</div>`;
+    if (count) count.textContent = items.length ? `${items.length} item${items.length !== 1 ? 's' : ''} will be updated` : '';
+  }, 200);
+}
+
+async function applyBulkPriceAdjustment() {
+  const pct = parseFloat(document.getElementById('bulk-adjust-pct').value) || 0;
+  if (pct === 0) return;
+  const items = _buildBulkItems(pct);
+  if (!items.length) return;
+  const applyBtn = document.getElementById('bulk-adjust-apply-btn');
+  const errEl = document.getElementById('bulk-adjust-error');
+  errEl.style.display = 'none';
+  applyBtn.disabled = true;
+  applyBtn.textContent = 'APPLYING…';
+
+  const now = new Date().toISOString();
+  const batchPayload = [];
+
+  items.forEach(it => {
+    if (it.cat === 'board') {
+      costingPrices.mat[it.name] = it.after;
+      costingPrices.matPriceDates[it.name] = now;
+      const bm = {};
+      if (costingPrices.matFullSheet?.[it.name])    bm.fullSheet    = true;
+      if (costingPrices.matSpecialOrder?.[it.name]) bm.specialOrder = true;
+      if (costingPrices.matMinSheets?.[it.name] != null) bm.minSheets = costingPrices.matMinSheets[it.name];
+      bm.priceUpdatedAt = now;
+      batchPayload.push({ category: 'board', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify(bm) });
+    } else if (it.cat === 'edge') {
+      costingPrices.edge[it.name] = it.after;
+      batchPayload.push({ category: 'edge', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+    } else if (it.cat === 'service') {
+      costingPrices.extras[it.extrasKey] = it.after;
+      batchPayload.push({ category: 'service', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+    } else if (it.cat === 'special_service') {
+      it.svcRef.price = it.after;
+      batchPayload.push({ category: 'special_service', name: String(it.name), price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify({ name: it.svcRef.name, category: it.svcRef.category, unit: it.svcRef.unit }) });
+    }
+  });
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=supplier_id,name`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(batchPayload)
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.message || j.hint || j.details || msg; } catch(e2) {}
+      throw new Error(msg);
+    }
+    saveCostingPrices();
+    refreshCostingResults();
+    sbSyncStatus = 'ok';
+    sbLastSyncTime = new Date();
+    sbLastSyncError = null;
+    renderSyncBadge();
+    closeBulkAdjustModal();
+    renderPricesView();
+  } catch(e) {
+    await loadSupplierPrices();
+    sbSyncStatus = 'error';
+    sbLastSyncError = e.message;
+    renderSyncBadge();
+    errEl.textContent = `Failed to apply: ${e.message}`;
+    errEl.style.display = 'block';
+    applyBtn.disabled = false;
+    applyBtn.textContent = 'APPLY TO DATABASE';
+  }
+}
+
 async function pushSupplierPrice(category, name, price, meta) {
   if (!sbUser) {
     sbSyncStatus = 'error';
