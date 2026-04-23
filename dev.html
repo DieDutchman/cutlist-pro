@@ -16889,17 +16889,24 @@ function drawerFaceHeights() {
 // ── Box height helpers ────────────────────────────────────────────────────────
 // Returns the effective box height for main/pot drawers.
 // Uses manual override if set, otherwise auto-calculates from face heights.
-// Formula: box height = face height − 40mm
-//   · Box sits 10mm above the bottom of the face (bottom clearance)
-//   · 30mm clearance from the top of the face (nailers / carcass top on top drawer)
-//   · 10 + 30 = 40mm total reduction from face height
+// Formula: box height = face height − (bottomGap + topClearance)
+//   · Box sits `bottomGap`mm above the bottom of the face (default 26mm)
+//   · `topClearance`mm clearance from the top of the face (default 30mm — nailers / carcass top)
+//   · Defaults: 26 + 30 = 56mm total reduction from face height
+function drawerReduction() {
+  const ds = drawerState;
+  const b  = (ds.bottomGap    != null && ds.bottomGap    >= 0) ? ds.bottomGap    : 26;
+  const t  = (ds.topClearance != null && ds.topClearance >= 0) ? ds.topClearance : 30;
+  return b + t;
+}
+
 function drawerEffectiveBoxH() {
   const ds  = drawerState;
   if (ds.boxHeight != null && ds.boxHeight > 0) return ds.boxHeight;
   const fh = drawerFaceHeights();
   // For pot: use the large drawer face; for equal/custom: tallest face
   const refH = ds.drawerType === 'pot' ? fh[0] : Math.max(...fh);
-  return Math.max(10, refH - 40);
+  return Math.max(10, refH - drawerReduction());
 }
 
 function drawerEffectiveTopBoxH() {
@@ -16907,7 +16914,7 @@ function drawerEffectiveTopBoxH() {
   if (ds.topBoxHeight != null && ds.topBoxHeight > 0) return ds.topBoxHeight;
   const fh  = drawerFaceHeights();
   const topH = fh[fh.length - 1]; // top face height
-  return Math.max(10, topH - 40);
+  return Math.max(10, topH - drawerReduction());
 }
 
 function drawerGapCheck() {
