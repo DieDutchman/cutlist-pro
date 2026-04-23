@@ -629,9 +629,11 @@
     font-size: 13px;
     padding: 7px 10px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    border-radius: 3px;
   }
-  .job-input:focus { border-color: var(--amber); }
+  .job-input:hover { border-color: var(--text-muted); }
+  .job-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .job-input::placeholder { color: var(--text-muted); }
 
   /* ── CUTLIST JOB INFO BOX ── */
