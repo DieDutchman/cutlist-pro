@@ -16902,6 +16902,23 @@ function drawerReduction() {
   return b + t;
 }
 
+// Auto drawer box depth = carcassDepth − backPanel − rearGap
+//   · backPanel: thickness of back panel / support (default 16mm)
+//   · rearGap:   clearance between drawer box rear and back panel (default 18mm)
+function drawerAutoDepth() {
+  const ds = drawerState;
+  const bp = (ds.backPanel != null && ds.backPanel >= 0) ? ds.backPanel : 16;
+  const rg = (ds.rearGap   != null && ds.rearGap   >= 0) ? ds.rearGap   : 18;
+  return Math.max(50, ds.depth - bp - rg);
+}
+
+// Effective drawer box depth — honours manual override when set
+function drawerEffectiveDepth() {
+  const ds = drawerState;
+  if (ds.drawerDepth != null && ds.drawerDepth > 0) return ds.drawerDepth;
+  return drawerAutoDepth();
+}
+
 function drawerEffectiveBoxH() {
   const ds  = drawerState;
   if (ds.boxHeight != null && ds.boxHeight > 0) return ds.boxHeight;
