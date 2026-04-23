@@ -17509,7 +17509,7 @@ function drawerCalcParts() {
   }
 
   // ── Drawer boxes ──────────────────────────────────────────────────────────
-  // Box side height: manual override or auto (face height − 40mm: 10mm bottom gap + 30mm top clearance)
+  // Box side height: manual override or auto (face height − (bottomGap + topClearance); defaults 26 + 30 = 56mm)
   if (ds.drawerType === 'pot') {
     const largeBoxH = drawerEffectiveBoxH();
     const topBoxH   = drawerEffectiveTopBoxH();
