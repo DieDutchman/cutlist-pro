@@ -48,6 +48,9 @@
   body.supplier-theme .tab, body.user-light-theme .tab { color: #4a3f30; }
   body.supplier-theme .tab:hover, body.supplier-theme .tab.active,
   body.user-light-theme .tab:hover, body.user-light-theme .tab.active { background: rgba(0,0,0,0.06); color: #1a1612; }
+  /* Active-tab underline: keep the amber indicator consistent across themes */
+  body.supplier-theme .tab.active,
+  body.user-light-theme .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
   body.supplier-theme .cv-extra-input, body.user-light-theme .cv-extra-input { background: #edeae4; border-color: #c8c0b0; color: #1a1612; }
   body.supplier-theme .cv-extra-input:focus, body.user-light-theme .cv-extra-input:focus { border-color: var(--amber); }
   /* Light theme: darken internal dividers in prices/costing views */
