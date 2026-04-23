@@ -15187,7 +15187,10 @@ function updateImportedPart(idx, field, value) {
   // Update just the part count header without full re-render
   const el = document.getElementById('imported-cutlist-view');
   const meta = el?.querySelector('div[style*="12px;color:var(--text-muted)"]');
-  if (meta) meta.innerHTML = `${importedCutlistData.parts.length} parts · <span style="color:var(--amber-dim)">Unsaved changes</span>`;
+  if (meta) {
+    const _totParts = importedCutlistData.parts.reduce((s,p) => s + (parseInt(p.qty)||0), 0);
+    meta.innerHTML = `${importedCutlistData.parts.length} lines · ${_totParts} parts · <span style="color:var(--amber-dim)">Unsaved changes</span>`;
+  }
 }
 
 function deleteImportedPart(idx) {
