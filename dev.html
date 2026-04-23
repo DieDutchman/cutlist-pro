@@ -15210,7 +15210,7 @@ async function downloadImportedXLSX(partsArg, labelArg) {
   const cleanEdge = v => (v && v.startsWith('?')) ? v.slice(1) : (v || '');
 
   // Build the same shape generateCutlist produces (consolidated, byCat, catOrder, …).
-  const allParts = importedCutlistData.parts.map(p => {
+  const allParts = srcParts.map(p => {
     const part = {
       partName: p.name || '',
       unitName: p.group || label,
