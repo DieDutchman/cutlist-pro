@@ -2101,6 +2101,9 @@
 /* ── TABLET (≤768px) ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
 
+  /* Issue 3b: ensure border-box everywhere so px padding doesn't break layout on zoom */
+  *, *::before, *::after { box-sizing: border-box; }
+
   /* Header: tighten padding, stack if needed */
   header {
     padding: 0 10px;
@@ -2123,9 +2126,17 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 1px;
+    /* Issue 1: fade edges to signal horizontal scroll */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 90%, transparent 100%);
   }
   .nav-row::-webkit-scrollbar { display: none; }
-  .tab { padding: 7px 10px; font-size: 10px; letter-spacing: 0.5px; min-height: 44px; flex-shrink: 0; }
+
+  /* Issue 3a: compact tab density */
+  .tab { padding: 4px 8px; font-size: 10px; letter-spacing: 0.5px; min-height: 36px; flex-shrink: 0; }
+
+  /* Issue 2: normalize newly-created room tab (addBtn has inline padding:12px 14px) */
+  #user-rooms-row .tab { padding: 4px 8px !important; font-size: 10px !important; min-height: 36px !important; }
 
   /* Job bar: stack all inputs vertically */
   #job-bar {
