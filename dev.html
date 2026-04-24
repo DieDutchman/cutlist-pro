@@ -2295,9 +2295,11 @@
   .header-actions .btn-ghost { display: none; }
   .header-actions .btn-primary { width: auto; }
 
-  /* Nav tabs: even tighter */
-  .tab { padding: 7px 8px; font-size: 10px; letter-spacing: 0.5px; }
+  /* Nav tabs: even tighter — reinforce compact padding from tablet rule */
+  .tab { padding: 4px 7px !important; font-size: 10px; letter-spacing: 0.5px; min-height: 32px; }
   .tab .count { font-size: 9px; padding: 1px 3px; }
+  /* Issue 2: phone — normalize add room button with room tabs */
+  #user-rooms-row .tab { padding: 4px 7px !important; font-size: 10px !important; min-height: 32px !important; }
 
   /* Main: minimal padding */
   .main { padding: 6px; }
