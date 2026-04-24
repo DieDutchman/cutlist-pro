@@ -2103,36 +2103,36 @@
 
   /* Header: tighten padding, stack if needed */
   header {
-    padding: 0 12px;
+    padding: 0 10px;
     height: auto;
-    min-height: 52px;
+    min-height: 48px;
     flex-wrap: wrap;
-    gap: 6px;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    gap: 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
-  .logo { font-size: 16px; letter-spacing: 2px; }
-  .header-actions { gap: 6px; flex-wrap: wrap; }
-  .btn { padding: 8px 12px; font-size: 11px; letter-spacing: 1px; min-height: 44px; }
+  .logo { font-size: 15px; letter-spacing: 2px; }
+  .header-actions { gap: 4px; flex-wrap: wrap; }
+  .btn { padding: 6px 10px; font-size: 11px; letter-spacing: 1px; min-height: 44px; }
 
   /* Nav tabs: both rows scrollable horizontally, no wrap */
-  .nav-tabs { padding: 0 8px; overflow: hidden; }
+  .nav-tabs { padding: 0 6px; overflow: hidden; }
   .nav-row {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
   }
   .nav-row::-webkit-scrollbar { display: none; }
-  .tab { padding: 10px 14px; font-size: 11px; letter-spacing: 1px; min-height: 44px; flex-shrink: 0; }
+  .tab { padding: 7px 10px; font-size: 10px; letter-spacing: 0.5px; min-height: 44px; flex-shrink: 0; }
 
   /* Job bar: stack all inputs vertically */
   #job-bar {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 8px !important;
-    padding: 10px 12px !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
   }
   #job-bar > span:first-child { display: none !important; } /* hide "JOB" label when stacked */
   #job-select {
@@ -2143,7 +2143,7 @@
   #job-bar-details {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 6px !important;
+    gap: 4px !important;
     width: 100%;
   }
   #job-bar-details input {
@@ -2156,7 +2156,7 @@
   #supplier-selector-wrap {
     flex-direction: row !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100%;
   }
   #supplier-selector-wrap select { flex: 1; min-height: 44px; }
@@ -2166,14 +2166,14 @@
   #job-bar > div[style*="margin-left:auto"] {
     margin-left: 0 !important;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     width: 100%;
     justify-content: flex-start !important;
   }
 
   /* Main layout: sidebar already collapses at 900px; reinforce */
-  .main { padding: 12px; }
-  .layout { gap: 12px; }
+  .main { padding: 8px; }
+  .layout { gap: 8px; }
   .sidebar { position: static !important; }
 
   /* Quote view sidebar/layout already handled by 900px rule */
@@ -2185,14 +2185,14 @@
   .bldr-layout { grid-template-columns: 1fr !important; height: auto !important; overflow: visible !important; }
   .bldr-panel { border-right: none !important; border-bottom: var(--line); min-height: 0; max-height: none; }
   .editor-layout { grid-template-columns: 1fr !important; height: auto !important; overflow: visible !important; }
-  .editor-sidebar { height: auto !important; max-height: 280px; }
+  .editor-sidebar { height: auto !important; max-height: 240px; }
 
   /* Stats bar: wrapping on tablet */
-  .stats-bar { flex-wrap: wrap; gap: 12px; padding: 10px 14px; }
+  .stats-bar { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
 
   /* Summary totals bar: allow wrapping */
   .summary-totals-bar { flex-wrap: wrap; }
-  .summary-totals-bar .st-cell { min-width: 120px; }
+  .summary-totals-bar .st-cell { min-width: 110px; }
 
   /* Modals: constrained to viewport */
   .wb-modal { max-width: calc(100vw - 16px) !important; max-height: 94vh !important; }
@@ -2207,7 +2207,7 @@
   .mat-select { min-height: 44px; }
 
   /* Units table: tighter on tablet */
-  .units-table td, .units-table th { padding: 8px 10px; }
+  .units-table td, .units-table th { padding: 6px 8px; }
 
   /* Markup grid: 3 columns on tablet instead of 5 */
   .qv-markup-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -2230,7 +2230,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    padding: 24px 0;
+    padding: 14px 0;
   }
   /* Card container: constrain width, no overflow */
   #login-overlay > div {
@@ -2240,7 +2240,7 @@
   }
   /* Form cards: tighter padding on tablet */
   #login-form,
-  #setpw-form { padding: 24px !important; }
+  #setpw-form { padding: 14px !important; }
 
   /* Trial expired screen: same full-viewport treatment */
   #trial-expired-screen {
@@ -2258,7 +2258,7 @@
     width: 90% !important;
     max-width: 400px !important;
     box-sizing: border-box;
-    padding: 32px 24px !important;
+    padding: 20px 14px !important;
   }
 
 }
