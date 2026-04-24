@@ -2218,6 +2218,49 @@
   /* Sheet optimizer sheets: allow scroll */
   .opt-sheets { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
 
+  /* ── AUTH SCREENS ── */
+  /* Login overlay: ensure it covers the full viewport and doesn't scroll */
+  #login-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100dvh !important;
+    min-height: 100vh !important; /* fallback for browsers without dvh */
+    overflow-y: auto;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 24px 0;
+  }
+  /* Card container: constrain width, no overflow */
+  #login-overlay > div {
+    width: 90% !important;
+    max-width: 400px !important;
+    box-sizing: border-box;
+  }
+  /* Form cards: tighter padding on tablet */
+  #login-form,
+  #setpw-form { padding: 24px !important; }
+
+  /* Trial expired screen: same full-viewport treatment */
+  #trial-expired-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100dvh !important;
+    min-height: 100vh !important;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+  }
+  #trial-expired-screen > div {
+    width: 90% !important;
+    max-width: 400px !important;
+    box-sizing: border-box;
+    padding: 32px 24px !important;
+  }
+
 }
 
 /* ── PHONE (≤480px) ─────────────────────────────────────────────────────── */
