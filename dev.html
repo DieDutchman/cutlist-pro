@@ -2284,10 +2284,10 @@
   .section-header { font-size: 10px; padding: 5px 8px 4px 10px; }
   /* costing-view panel rows rendered inline — target the clickable head row */
   .cv-unit-card > div:first-child { padding: 5px 8px !important; }
-  /* opt-sheets scroll indicator */
+  /* opt-sheets scroll indicator — right fade only, left always fully visible */
   .opt-sheets {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 92%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 4%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
   }
 
 }
