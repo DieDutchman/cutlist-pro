@@ -2272,6 +2272,17 @@
     padding: 20px 14px !important;
   }
 
+  /* Issue 3a: compact density — unit cards, section headers, panel rows */
+  .cv-unit-card { padding: 0; margin-bottom: 10px; }
+  .section-header { font-size: 10px; padding: 5px 8px 4px 10px; }
+  /* costing-view panel rows rendered inline — target the clickable head row */
+  .cv-unit-card > div:first-child { padding: 5px 8px !important; }
+  /* opt-sheets scroll indicator */
+  .opt-sheets {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 92%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 4%, black 92%, transparent 100%);
+  }
+
 }
 
 /* ── PHONE (≤480px) ─────────────────────────────────────────────────────── */
