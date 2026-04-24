@@ -2129,9 +2129,9 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 1px;
-    /* Issue 1: fade edges to signal horizontal scroll */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 90%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 90%, transparent 100%);
+    /* Issue 1: fade right edge only — left stays fully visible so first tab never clips */
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
   }
   .nav-row::-webkit-scrollbar { display: none; }
 
