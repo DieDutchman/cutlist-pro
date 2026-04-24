@@ -2267,22 +2267,22 @@
 @media (max-width: 480px) {
 
   /* Header: hide non-essential actions, logo only shows on phone */
-  header { padding: 6px 10px; }
-  .logo { font-size: 14px; letter-spacing: 1px; }
+  header { padding: 4px 8px; }
+  .logo { font-size: 13px; letter-spacing: 1px; }
   /* Hide secondary header buttons — keep Generate Cutlist */
   .header-actions .btn-ghost { display: none; }
   .header-actions .btn-primary { width: auto; }
 
   /* Nav tabs: even tighter */
-  .tab { padding: 9px 10px; font-size: 10px; letter-spacing: 0.5px; }
-  .tab .count { font-size: 9px; padding: 1px 4px; }
+  .tab { padding: 7px 8px; font-size: 10px; letter-spacing: 0.5px; }
+  .tab .count { font-size: 9px; padding: 1px 3px; }
 
   /* Main: minimal padding */
-  .main { padding: 8px; }
+  .main { padding: 6px; }
 
   /* Job bar save/delete buttons: side by side on phone */
   #job-bar button[onclick="saveJobToCloud()"],
-  #job-bar button[onclick="newJob()"] { width: calc(50% - 4px); }
+  #job-bar button[onclick="newJob()"] { width: calc(50% - 3px); }
 
   /* Supplier Prices two-column grid → single column */
   /* These are inline style grids in JS-rendered HTML, override with descendant selector */
@@ -2309,11 +2309,11 @@
   }
 
   /* Editor field rows: single column */
-  .editor-field-row { grid-template-columns: 1fr !important; gap: 10px; }
+  .editor-field-row { grid-template-columns: 1fr !important; gap: 6px; }
 
   /* Cutlist header: stack title and buttons */
-  .cutlist-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .cutlist-title { font-size: 20px; letter-spacing: 2px; }
+  .cutlist-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cutlist-title { font-size: 18px; letter-spacing: 2px; }
 
   /* Cutlist table: horizontal scroll */
   .cutlist-section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -2324,13 +2324,13 @@
   .summary-table { min-width: 480px; }
 
   /* Summary view header: stack */
-  .summary-view-header { flex-direction: column; gap: 10px; padding: 12px 12px 0; }
-  .summary-unit-block { margin: 12px 8px 0; }
-  .summary-totals-bar { margin: 12px 8px; }
+  .summary-view-header { flex-direction: column; gap: 6px; padding: 8px 8px 0; }
+  .summary-unit-block { margin: 6px 6px 0; }
+  .summary-totals-bar { margin: 6px 6px; }
 
   /* Stats bar: 2-up grid */
-  .stats-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-val { font-size: 15px; }
+  .stats-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-val { font-size: 14px; }
 
   /* Markup grid: 2 columns on phone */
   .qv-markup-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -2363,11 +2363,11 @@
   .job-info-cell:last-child { border-bottom: none !important; }
 
   /* Mat selector bar: single column */
-  .mat-selector-bar { flex-direction: column; gap: 12px; }
+  .mat-selector-bar { flex-direction: column; gap: 6px; }
   .mat-group { min-width: 0; width: 100%; }
 
   /* Builder: full width SVG */
-  .bldr-svg-wrap, .bldr-svg-side-wrap { padding: 12px; }
+  .bldr-svg-wrap, .bldr-svg-side-wrap { padding: 8px; }
   .bldr-label { min-width: 80px; }
 
   /* Optimize: no horizontal scroll — let sheets stack */
@@ -2375,7 +2375,7 @@
   .opt-sheet { width: 100%; }
 
   /* wb-modal controls: already 1-col from tablet rule, ensure width */
-  .wb-width-row { flex-wrap: wrap; gap: 10px; }
+  .wb-width-row { flex-wrap: wrap; gap: 6px; }
   .wb-width-val { min-width: auto; }
 
   /* ── AUTH SCREENS (phone) ── */
@@ -2385,12 +2385,12 @@
   }
   /* Form padding: reduce for narrow phones so inputs don't clip */
   #login-form,
-  #setpw-form { padding: 20px !important; }
+  #setpw-form { padding: 14px !important; }
   /* Logo: smaller on phone */
-  #login-overlay .logo-title { font-size: 24px !important; letter-spacing: 2px !important; }
+  #login-overlay .logo-title { font-size: 22px !important; letter-spacing: 2px !important; }
 
   /* Trial expired card: tighter padding on phone */
-  #trial-expired-screen > div { padding: 24px 16px !important; }
+  #trial-expired-screen > div { padding: 18px 12px !important; }
 
 }
 </style>
