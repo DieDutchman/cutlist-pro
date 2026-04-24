@@ -2140,6 +2140,10 @@
 
   /* Issue 2: normalize newly-created room tab (addBtn has inline padding:12px 14px) */
   #user-rooms-row .tab { padding: 4px 8px !important; font-size: 10px !important; min-height: 36px !important; }
+  /* Bug 1: contain room tab scroll inside the row — never let it push body wide */
+  #user-rooms-row { max-width: 100%; overflow-x: auto; overflow-y: visible; }
+  /* Bug 1: inline name input when creating a room must not stretch beyond row */
+  #user-rooms-row input { max-width: 120px; box-sizing: border-box; }
 
   /* Job bar: stack all inputs vertically */
   #job-bar {
