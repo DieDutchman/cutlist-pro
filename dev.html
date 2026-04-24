@@ -2378,6 +2378,20 @@
   .wb-width-row { flex-wrap: wrap; gap: 10px; }
   .wb-width-val { min-width: auto; }
 
+  /* ── AUTH SCREENS (phone) ── */
+  /* Card: full-bleed with minimal side margins on small phones */
+  #login-overlay > div {
+    width: 92% !important;
+  }
+  /* Form padding: reduce for narrow phones so inputs don't clip */
+  #login-form,
+  #setpw-form { padding: 20px !important; }
+  /* Logo: smaller on phone */
+  #login-overlay .logo-title { font-size: 24px !important; letter-spacing: 2px !important; }
+
+  /* Trial expired card: tighter padding on phone */
+  #trial-expired-screen > div { padding: 24px 16px !important; }
+
 }
 </style>
 </head>
