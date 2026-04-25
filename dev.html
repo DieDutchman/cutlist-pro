@@ -19745,23 +19745,100 @@ function packOneSheet(parts, usableW, usableH, kerf, allowRotation) {
   };
 }
 
+/**
+ * Phase 4 — SuperBox stacking.
+ * Pre-groups identical parts (same L × W × mat × grainLocked) into stacks so a
+ * saw operator can cut the whole stack in one pass. Stack height is bounded by
+ * usableH so a stack always fits the sheet.
+ */
+function stackIdenticalParts(parts, usableH, kerf) {
+  const groups = {};
+  parts.forEach(p => {
+    const key = `${p.l}|${p.w}|${p.mat}|${p.grainLocked ? 1 : 0}`;
+    (groups[key] = groups[key] || []).push(p);
+  });
+
+  const result = [];
+  Object.values(groups).forEach(group => {
+    let stack = [], stackH = 0;
+    const flush = () => {
+      if (!stack.length) return;
+      if (stack.length === 1) {
+        result.push(stack[0]);
+      } else {
+        // Combined block: width is shared part.l, height is sum of part.w + kerfs
+        result.push({
+          ...stack[0],
+          w: stackH - kerf,   // total stacked short-edge dimension
+          _stack: stack.slice(),
+        });
+      }
+      stack = []; stackH = 0;
+    };
+    group.forEach(p => {
+      const addH = p.w + (stack.length ? kerf : 0);
+      if (stackH + addH > usableH) flush();
+      stack.push(p); stackH += addH;
+    });
+    flush();
+  });
+  return result;
+}
+
 function optimizeMaterial(parts, opts) {
-  // Pack onto successive sheets until all placed.
-  const usableW = opts.sheetW - opts.trim * 2;
-  const usableH = opts.sheetH - opts.trim * 2;
+  // Phase 3 — pull sheet dims from the first part of this material group.
+  // collectOptimizerParts() tags every part with sheetL/sheetW so the group is
+  // homogeneous by definition.
+  const sheetL = (parts[0] && parts[0].sheetL) || opts.sheetW;
+  const sheetW = (parts[0] && parts[0].sheetW) || opts.sheetH;
+  const usableW = sheetL - opts.trim * 2;
+  const usableH = sheetW - opts.trim * 2;
+
+  // Phase 4 — stack identical parts before packing
+  const workParts = (opts.stackIdentical !== false)
+    ? stackIdenticalParts(parts, usableH, opts.kerf)
+    : parts.slice();
+
   const sheets = [];
-  let remaining = parts.slice();
-  // Sanity cap
+  let remaining = workParts;
+
+  // Phase 5 — try to fit on user-supplied scraps before opening new sheets.
+  // Scraps are sorted largest-first to use up big offcuts before slivers.
+  const scraps = (opts.scraps || []).slice().sort((a, b) => (b.l * b.w) - (a.l * a.w));
+  for (const scrap of scraps) {
+    if (!remaining.length) break;
+    const sUW = scrap.l - opts.trim * 2;
+    const sUH = scrap.w - opts.trim * 2;
+    if (sUW <= 0 || sUH <= 0) continue;
+    const res = packOneSheet(remaining, sUW, sUH, opts.kerf, opts.allowRotation);
+    if (res.placed.length) {
+      sheets.push({
+        placed: res.placed,
+        leftovers: res.leftovers,
+        isScrap: true,
+        sheetL: scrap.l,
+        sheetW: scrap.w,
+      });
+      remaining = res.unplaced;
+    }
+  }
+
+  // Standard sheets for whatever's left
   for (let guard = 0; guard < 500 && remaining.length > 0; guard++) {
     const res = packOneSheet(remaining, usableW, usableH, opts.kerf, opts.allowRotation);
     if (res.placed.length === 0) {
       // Part is too big for the sheet — drop to oversize bucket
       break;
     }
-    sheets.push({ placed: res.placed, leftovers: res.leftovers });
+    sheets.push({
+      placed: res.placed,
+      leftovers: res.leftovers,
+      sheetL,
+      sheetW,
+    });
     remaining = res.unplaced;
   }
-  return { sheets, oversized: remaining };
+  return { sheets, oversized: remaining, sheetL, sheetW };
 }
 
 // Derive guillotine cut lines from placed part edges. xs/ys are interior cuts
