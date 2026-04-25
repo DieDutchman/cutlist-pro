@@ -11298,6 +11298,10 @@ async function loadSupplierPrices() {
           if (m.minSheets != null)      costingPrices.matMinSheets[row.name]    = m.minSheets;
           if (m.priceUpdatedAt)         costingPrices.matPriceDates[row.name]   = m.priceUpdatedAt;
           else if (row.updated_at)      costingPrices.matPriceDates[row.name]   = row.updated_at;
+          // Supplier-set sheet dimensions (mm)
+          const _sL = parseInt(m.sheetL) || 0;
+          const _sW = parseInt(m.sheetW) || 0;
+          if (_sL > 0 && _sW > 0) costingPrices.matSheetDims[row.name] = { l: _sL, w: _sW };
         } else if (row.updated_at) {
           costingPrices.matPriceDates[row.name] = row.updated_at;
         }
