@@ -19637,12 +19637,17 @@ function collectOptimizerParts() {
     // Normalise: long edge = L, short edge = W for readable layout
     const L = Math.max(p.l, p.w);
     const W = Math.min(p.l, p.w);
+    const mat = p.mat || 'Unknown';
+    const spec = getMaterialSheetSpec(mat);
     for (let i = 0; i < p.qty; i++) {
       parts.push({
         l: L, w: W,
-        mat: p.mat || 'Unknown',
+        mat,
         category: p.category || 'Other',
         label: p.partName || '',
+        grainLocked: !!spec.grainLocked,
+        sheetL: spec.l,
+        sheetW: spec.w,
       });
     }
   });
