@@ -19943,24 +19943,28 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts)
       stackContent = dividers.join('') + rowLabels.join('');
     }
 
-    // Bug fix — only show a label when the rect is large enough, and
-    // constrain it to the rect width so it never overflows neighbours.
-    const showLabel = pxW > 30 && pxH > 16;
+    // Only show a label when the rect is large enough.
+    // clipPath clips overflow naturally — no textLength/lengthAdjust distortion.
+    const showLabel = pxW > 24 && pxH > 14;
     let label = '';
     if (!stackContent && showLabel) {
       const cx = x + pxW / 2;
       const cy = y + pxH / 2;
-      const fs = Math.min(10, pxH * 0.35);
-      const labelW = Math.max(pxW - 6, 10);
+      const fs = Math.min(11, Math.max(7, pxH * 0.28));
       const dim1 = Math.round(p.part.l);
       const dim2 = Math.round(p.part.w);
-      const text = `${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}`;
-      // If both dimensions fit comfortably, single line. Otherwise stack L over W.
+      const placedIdx = sheet.placed.indexOf(p);
+      const clipId = `clip-p-${sheet.sheetIdx != null ? sheet.sheetIdx : 0}-${placedIdx}`;
+      const clipDef = `<defs><clipPath id="${clipId}"><rect x="${x + 2}" y="${y + 2}" width="${pxW - 4}" height="${pxH - 4}"/></clipPath></defs>`;
+      // If rect is tall enough for two lines, split dim1 and dim2.
       if (pxH > fs * 2.4) {
-        label = `<text x="${cx}" y="${cy - fs * 0.55}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${dim1}</text>`
-                + `<text x="${cx}" y="${cy + fs * 0.65}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">×${dim2}${p.rotated ? ' ⟲' : ''}</text>`;
+        label = clipDef
+          + `<text x="${cx}" y="${cy - fs * 0.55}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">${dim1}</text>`
+          + `<text x="${cx}" y="${cy + fs * 0.65}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">×${dim2}${p.rotated ? ' ⟲' : ''}</text>`;
       } else {
-        label = `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${text}</text>`;
+        const text = `${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}`;
+        label = clipDef
+          + `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">${text}</text>`;
       }
     }
     const titleText = p.part._stack && p.part._stack.length > 1
