@@ -20186,12 +20186,40 @@ function renderOptimizer() {
 }
 
 function updateOptimizerSetting(key, value) {
-  const num = Number(value);
-  if (key === 'allowRotation') {
-    OPTIMIZER_STATE.allowRotation = !!value;
-  } else if (!isNaN(num) && num >= 0) {
-    OPTIMIZER_STATE[key] = num;
+  if (key === 'allowRotation' || key === 'stackIdentical') {
+    OPTIMIZER_STATE[key] = !!value;
+  } else {
+    const num = Number(value);
+    if (!isNaN(num) && num >= 0) OPTIMIZER_STATE[key] = num;
   }
+  renderOptimizer();
+}
+
+function updateMaterialSheet(mat, field, value) {
+  const st = OPTIMIZER_STATE;
+  const current = st.materialSheets[mat] || getMaterialSheetSpec(mat);
+  if (field === 'grainLocked') {
+    current.grainLocked = !!value;
+  } else {
+    const num = Number(value);
+    if (!isNaN(num) && num > 0) current[field] = num;
+  }
+  st.materialSheets[mat] = { l: current.l, w: current.w, grainLocked: !!current.grainLocked };
+  renderOptimizer();
+}
+
+function addScrap() {
+  const lEl = document.getElementById('opt-scrap-l');
+  const wEl = document.getElementById('opt-scrap-w');
+  const l = Number(lEl && lEl.value);
+  const w = Number(wEl && wEl.value);
+  if (!l || !w || l < 1 || w < 1) return;
+  OPTIMIZER_STATE.scraps.push({ l, w });
+  renderOptimizer();
+}
+
+function removeScrap(idx) {
+  OPTIMIZER_STATE.scraps.splice(idx, 1);
   renderOptimizer();
 }
 
