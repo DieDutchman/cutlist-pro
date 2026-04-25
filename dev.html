@@ -20086,7 +20086,8 @@ function renderOptimizer() {
   // Phase 3 — Material Sheets UI: one row per detected material.
   const matSheetsUI = Object.keys(byMat).sort().map(mat => {
     const spec = getMaterialSheetSpec(mat);
-    const safe = mat.replace(/"/g, '&quot;');
+    // Escape for embedding inside a JS single-quoted string inside an HTML attribute.
+    const safe = mat.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     return `<div class="opt-matrow" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;font-weight:600;font-size:12px">${mat}</div>
       <label style="font-size:11px;color:var(--text-muted)">L</label>
