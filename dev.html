@@ -8651,6 +8651,7 @@ const costingPrices = {
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
   matPriceDates: {},   // { [matName]: ISO string } — when price was last updated by supplier
+  matSheetDims: {},    // { [matName]: { l, w } } — supplier-set sheet dimensions (mm); falls back to MATERIAL_SHEET_DEFAULTS
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
