@@ -19623,100 +19623,111 @@ function collectOptimizerParts() {
 }
 
 /**
- * Shelf-bin-packing with rotation. Allocates pieces to a single sheet.
- * Returns { placed:[{x,y,w,h,rotated,part}], leftover:[parts] }.
- * The sheet usable area is reduced by edge trim on all sides.
+ * Guillotine bin packer — best short-side fit with shorter-axis split rule.
+ * Returns { placed:[{x,y,w,h,rotated,part}], unplaced:[parts], leftovers:[{x,y,w,h}] }.
+ * Coordinates are relative to the usable area (caller adds trim offset for rendering).
+ * Each part must expose .w and .h (mapped from .l/.w by the wrapper).
  */
-function packOneSheet(parts, sheetW, sheetH, kerf, trim, allowRotation) {
-  const usableW = sheetW - trim * 2;
-  const usableH = sheetH - trim * 2;
-
-  // Sort: tallest side first (classic shelf heuristic)
-  const queue = parts.slice().sort((a, b) => {
-    const aMax = Math.max(a.l, a.w);
-    const bMax = Math.max(b.l, b.w);
-    if (bMax !== aMax) return bMax - aMax;
-    return (b.l * b.w) - (a.l * a.w);
-  });
-
+function guillotinePack(parts, usableW, usableH, kerf, allowRotation) {
+  let freeRects = [{ x: 0, y: 0, w: usableW, h: usableH }];
   const placed = [];
-  const leftover = [];
-  let shelfY = 0;
-  let shelfH = 0;
-  let shelfX = 0;
+  const unplaced = [];
 
-  for (const part of queue) {
-    // Try two orientations. "Long side along shelf" = w along X, h = W.
-    const orientations = [];
-    // Orientation A: piece length along X (w=L, h=W)
-    orientations.push({ w: part.l, h: part.w, rotated: false });
-    if (allowRotation && part.l !== part.w) {
-      // Orientation B: piece length along Y (w=W, h=L)
-      orientations.push({ w: part.w, h: part.l, rotated: true });
-    }
+  for (const part of parts) {
+    let bestScore = Infinity, bestRect = null, bestRotated = false;
 
-    let placedThis = false;
-
-    // Prefer orientation that fits on current shelf without starting a new one
-    for (const o of orientations) {
-      if (o.w > usableW || o.h > usableH) continue;
-      const needW = o.w + (shelfX > 0 ? kerf : 0);
-      const fitsOnCurrent = (shelfX + needW <= usableW) && (o.h <= shelfH || shelfH === 0);
-      if (fitsOnCurrent) {
-        const x = shelfX + (shelfX > 0 ? kerf : 0);
-        if (shelfH === 0) shelfH = o.h;
-        // Height of the current shelf is locked to the first piece's height;
-        // later pieces must be <= that height.
-        if (o.h > shelfH) continue;
-        placed.push({
-          x: trim + x, y: trim + shelfY,
-          w: o.w, h: o.h,
-          rotated: o.rotated, part,
-        });
-        shelfX = x + o.w;
-        placedThis = true;
-        break;
+    for (const rect of freeRects) {
+      // Try normal orientation
+      if (part.w <= rect.w && part.h <= rect.h) {
+        const score = Math.min(rect.w - part.w, rect.h - part.h); // best short-side fit
+        if (score < bestScore) { bestScore = score; bestRect = rect; bestRotated = false; }
+      }
+      // Try rotated
+      if (allowRotation && !part.grainLocked && part.h <= rect.w && part.w <= rect.h) {
+        const score = Math.min(rect.w - part.h, rect.h - part.w);
+        if (score < bestScore) { bestScore = score; bestRect = rect; bestRotated = true; }
       }
     }
-    if (placedThis) continue;
 
-    // Start a new shelf. Pick orientation with the smaller height that still fits the sheet.
-    const candidates = orientations.filter(o => o.w <= usableW && (shelfY + (shelfH > 0 ? shelfH + kerf : 0) + o.h <= usableH));
-    if (candidates.length === 0) {
-      leftover.push(part);
-      continue;
+    if (!bestRect) { unplaced.push(part); continue; }
+
+    const bw = bestRotated ? part.h : part.w;
+    const bh = bestRotated ? part.w : part.h;
+    placed.push({ x: bestRect.x, y: bestRect.y, w: bw, h: bh, rotated: bestRotated, part });
+
+    // Split the used free rect into two new ones (shorter-axis rule)
+    freeRects = freeRects.filter(r => r !== bestRect);
+    const rightW = bestRect.w - bw - kerf;
+    const belowH = bestRect.h - bh - kerf;
+    if (rightW > bw && belowH > 0) {
+      // Horizontal split first
+      if (rightW > 0) freeRects.push({ x: bestRect.x + bw + kerf, y: bestRect.y, w: rightW, h: bh });
+      if (belowH > 0) freeRects.push({ x: bestRect.x, y: bestRect.y + bh + kerf, w: bestRect.w, h: belowH });
+    } else {
+      // Vertical split first
+      if (belowH > 0) freeRects.push({ x: bestRect.x, y: bestRect.y + bh + kerf, w: bw, h: belowH });
+      if (rightW > 0) freeRects.push({ x: bestRect.x + bw + kerf, y: bestRect.y, w: rightW, h: bestRect.h });
     }
-    // Choose orientation that leaves most remaining width (so later pieces fit)
-    candidates.sort((a, b) => a.h - b.h);
-    const o = candidates[0];
-    const newShelfY = shelfY + (shelfH > 0 ? shelfH + kerf : 0);
-    shelfY = newShelfY;
-    shelfH = o.h;
-    shelfX = 0;
-    placed.push({
-      x: trim + 0, y: trim + shelfY,
-      w: o.w, h: o.h,
-      rotated: o.rotated, part,
-    });
-    shelfX = o.w;
+
+    // Prune useless slivers
+    freeRects = freeRects.filter(r => r.w > kerf * 2 && r.h > kerf * 2);
   }
 
-  return { placed, leftover };
+  // Merge remaining free rects as leftovers
+  return { placed, unplaced, leftovers: freeRects };
+}
+
+/**
+ * Multi-strategy wrapper. Maps part .l/.w → .w/.h internally, runs three presort
+ * orders, picks the highest-efficiency result. Returns the same packer contract
+ * with an added .eff field.
+ */
+function packOneSheet(parts, usableW, usableH, kerf, allowRotation) {
+  // Map cutlist parts (.l/.w) → packer parts (.w/.h, long edge along W).
+  const mapped = parts.map(p => ({
+    w: Math.max(p.l, p.w),
+    h: Math.min(p.l, p.w),
+    grainLocked: !!p.grainLocked,
+    _src: p,
+  }));
+
+  const strategies = [
+    [...mapped].sort((a, b) => (b.w * b.h) - (a.w * a.h)),                   // area DESC
+    [...mapped].sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h)),     // longest side DESC
+    [...mapped].sort((a, b) => (b.w + b.h) - (a.w + a.h)),                   // perimeter DESC
+  ];
+
+  let best = null;
+  for (const sorted of strategies) {
+    const result = guillotinePack(sorted, usableW, usableH, kerf, allowRotation);
+    const eff = result.placed.reduce((s, p) => s + p.w * p.h, 0) / (usableW * usableH);
+    if (!best || eff > best.eff) best = { ...result, eff };
+  }
+
+  // Re-attach the original cutlist part reference on each placement / unplaced entry.
+  return {
+    placed: best.placed.map(p => ({ x: p.x, y: p.y, w: p.w, h: p.h, rotated: p.rotated, part: p.part._src })),
+    unplaced: best.unplaced.map(p => p._src),
+    leftovers: best.leftovers,
+    eff: best.eff,
+  };
 }
 
 function optimizeMaterial(parts, opts) {
   // Pack onto successive sheets until all placed.
+  const usableW = opts.sheetW - opts.trim * 2;
+  const usableH = opts.sheetH - opts.trim * 2;
   const sheets = [];
   let remaining = parts.slice();
   // Sanity cap
   for (let guard = 0; guard < 500 && remaining.length > 0; guard++) {
-    const res = packOneSheet(remaining, opts.sheetW, opts.sheetH, opts.kerf, opts.trim, opts.allowRotation);
+    const res = packOneSheet(remaining, usableW, usableH, opts.kerf, opts.allowRotation);
     if (res.placed.length === 0) {
       // Part is too big for the sheet — drop to oversize bucket
       break;
     }
-    sheets.push({ placed: res.placed });
-    remaining = res.leftover;
+    sheets.push({ placed: res.placed, leftovers: res.leftovers });
+    remaining = res.unplaced;
   }
   return { sheets, oversized: remaining };
 }
