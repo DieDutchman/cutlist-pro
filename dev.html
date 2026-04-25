@@ -20052,8 +20052,13 @@ function renderOptimizer() {
   const byMat = {};
   parts.forEach(p => { (byMat[p.mat] = byMat[p.mat] || []).push(p); });
 
-  const opts = { sheetW: st.sheetW, sheetH: st.sheetH, kerf: st.kerf, trim: st.trim, allowRotation: st.allowRotation };
-  const sheetArea = st.sheetW * st.sheetH;
+  const opts = {
+    sheetW: st.sheetW, sheetH: st.sheetH,
+    kerf: st.kerf, trim: st.trim,
+    allowRotation: st.allowRotation,
+    stackIdentical: st.stackIdentical,
+    scraps: st.scraps,
+  };
 
   let totalSheets = 0;
   let totalUsedArea = 0;
@@ -20065,13 +20070,61 @@ function renderOptimizer() {
     const res = optimizeMaterial(byMat[mat], opts);
     const usedArea = byMat[mat].reduce((s, p) => s + p.l * p.w, 0);
     const sheetCount = res.sheets.length;
-    const matSheetArea = sheetCount * sheetArea;
+    // Per-sheet area — scrap sheets count their own dims
+    const matSheetArea = res.sheets.reduce((s, sh) => {
+      const sl = sh.sheetL || res.sheetL || st.sheetW;
+      const sw = sh.sheetW || res.sheetW || st.sheetH;
+      return s + sl * sw;
+    }, 0);
     totalSheets += sheetCount;
     totalUsedArea += usedArea;
     totalSheetArea += matSheetArea;
     totalOversized += res.oversized.length;
     matResults.push({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount: byMat[mat].length });
   });
+
+  // Phase 3 — Material Sheets UI: one row per detected material.
+  const matSheetsUI = Object.keys(byMat).sort().map(mat => {
+    const spec = getMaterialSheetSpec(mat);
+    const safe = mat.replace(/"/g, '&quot;');
+    return `<div class="opt-matrow" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;font-weight:600;font-size:12px">${mat}</div>
+      <label style="font-size:11px;color:var(--text-muted)">L</label>
+      <input type="number" value="${spec.l}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'l', this.value)">
+      <label style="font-size:11px;color:var(--text-muted)">W</label>
+      <input type="number" value="${spec.w}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'w', this.value)">
+      <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">
+        <input type="checkbox" ${spec.grainLocked ? 'checked' : ''} onchange="updateMaterialSheet('${safe}', 'grainLocked', this.checked)"> grain locked
+      </label>
+    </div>`;
+  }).join('');
+  const materialSheetsHtml = `
+    <div class="opt-section" style="margin:14px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;letter-spacing:0.5px">MATERIAL SHEETS</div>
+      ${matSheetsUI || '<div style="font-size:12px;color:var(--text-muted)">Run optimizer to populate.</div>'}
+    </div>
+  `;
+
+  // Phase 5 — Scrap inventory UI
+  const scrapRowsHtml = (st.scraps || []).map((s, idx) =>
+    `<div class="opt-scrap-row" style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12px">
+      <span style="flex:1">${s.l} × ${s.w} mm</span>
+      <button class="btn btn-ghost" style="padding:2px 8px" onclick="removeScrap(${idx})">×</button>
+    </div>`
+  ).join('');
+  const scrapsHtml = `
+    <div class="opt-section" style="margin:14px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;letter-spacing:0.5px">SCRAP SHEETS</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <label style="font-size:11px;color:var(--text-muted)">L</label>
+        <input type="number" id="opt-scrap-l" min="100" placeholder="length" style="width:100px">
+        <label style="font-size:11px;color:var(--text-muted)">W</label>
+        <input type="number" id="opt-scrap-w" min="100" placeholder="width" style="width:100px">
+        <button class="btn btn-ghost" onclick="addScrap()">+ Add</button>
+      </div>
+      ${scrapRowsHtml || '<div style="font-size:12px;color:var(--text-muted)">No scraps registered.</div>'}
+    </div>
+  `;
 
   const efficiency = totalSheetArea > 0 ? (totalUsedArea / totalSheetArea) * 100 : 0;
   const waste = 100 - efficiency;
