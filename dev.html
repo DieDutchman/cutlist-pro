@@ -20030,6 +20030,11 @@ function renderOptimizer() {
           <option value="3050x1525">3050 × 1525 (10×5 ft)</option>
           <option value="2400x1200">2400 × 1200 (metric)</option>
         </select></div>
+      <div class="opt-ctrl"><label>Stack identical</label>
+        <select onchange="updateOptimizerSetting('stackIdentical', this.value === 'true')">
+          <option value="true" ${st.stackIdentical ? 'selected' : ''}>On</option>
+          <option value="false" ${!st.stackIdentical ? 'selected' : ''}>Off</option>
+        </select></div>
     </div>
   `;
 
