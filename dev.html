@@ -19580,7 +19580,34 @@ const OPTIMIZER_STATE = {
   kerf: 3,           // mm — saw kerf
   trim: 10,          // mm — edge trim per sheet side
   allowRotation: true,
+  stackIdentical: true,           // Phase 4 — pre-group identical parts into stacks
+  materialSheets: {},             // Phase 3 — { [matName]: { l, w, grainLocked } }
+  scraps: [],                     // Phase 5 — [{ l, w }]
 };
+
+// Phase 3 — Per-material default sheet dimensions.
+// Match by case-insensitive substring on part.mat. Anything not matched
+// falls back to the global sheet size with grain locked (safer default
+// for melamine, veneered ply, oak ply, etc.).
+const MATERIAL_SHEET_DEFAULTS = {
+  'masonite': { l: 2440, w: 1220, grainLocked: false },
+  '3mm':      { l: 2440, w: 1220, grainLocked: false },
+};
+
+function getMaterialSheetSpec(matName) {
+  const st = OPTIMIZER_STATE;
+  // 1. User-set override wins
+  if (st.materialSheets && st.materialSheets[matName]) {
+    return st.materialSheets[matName];
+  }
+  // 2. Default lookup
+  const lower = (matName || '').toLowerCase();
+  for (const key of Object.keys(MATERIAL_SHEET_DEFAULTS)) {
+    if (lower.includes(key)) return { ...MATERIAL_SHEET_DEFAULTS[key] };
+  }
+  // 3. Global fallback — grain locked by default for solid/veneered stock
+  return { l: st.sheetW, w: st.sheetH, grainLocked: true };
+}
 
 // Deterministic colour from a string — used to tint part groups.
 function optColor(seed, alpha) {
