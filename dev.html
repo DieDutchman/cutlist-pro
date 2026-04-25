@@ -11755,6 +11755,15 @@ async function pushSupplierPrice(category, name, price, meta) {
       else                                        delete boardMeta.specialOrder;
       if (costingPrices.matMinSheets?.[name] != null) boardMeta.minSheets = costingPrices.matMinSheets[name];
       else                                             delete boardMeta.minSheets;
+      // Sheet dimensions (mm) — supplier-set per board
+      const _dims = costingPrices.matSheetDims?.[name];
+      if (_dims && _dims.l > 0 && _dims.w > 0) {
+        boardMeta.sheetL = _dims.l;
+        boardMeta.sheetW = _dims.w;
+      } else {
+        delete boardMeta.sheetL;
+        delete boardMeta.sheetW;
+      }
       boardMeta.priceUpdatedAt = now;
       payload.meta = JSON.stringify(boardMeta);
       // Also record locally so the timestamp shows without waiting for a reload
