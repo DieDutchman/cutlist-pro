@@ -19766,11 +19766,19 @@ function stackIdenticalParts(parts, usableH, kerf) {
       if (stack.length === 1) {
         result.push(stack[0]);
       } else {
-        // Combined block: width is shared part.l, height is sum of part.w + kerfs
+        // Combined block: l = shared long edge of every part in the stack,
+        // w = sum of short edges + kerfs between them. _stack keeps the
+        // originals so the SVG renderer can draw dividers and per-row labels.
+        // _partL/_partW preserve the single-part dims for axis detection
+        // after the packer's L/W normalization.
+        const base = stack[0];
         result.push({
-          ...stack[0],
-          w: stackH - kerf,   // total stacked short-edge dimension
+          ...base,
+          l: base.l,
+          w: stackH - kerf,
           _stack: stack.slice(),
+          _partL: base.l,
+          _partW: base.w,
         });
       }
       stack = []; stackH = 0;
