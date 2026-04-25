@@ -19934,11 +19934,11 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts)
           rx = x + acc2 * px; ry = y; rw = rowSpan * px; rh = pxH;
         }
         acc2 += rowSpan + kerf;
-        const showRow = rw > 30 && rh > 16;
+        const showRow = rw > 24 && rh > 14;
         if (!showRow) continue;
-        const fs = Math.min(10, rh * 0.35);
-        const lblW = Math.max(rw - 6, 10);
-        rowLabels.push(`<text x="${rx + rw/2}" y="${ry + rh/2}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${lblW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${part.l}×${part.w}</text>`);
+        const fs = Math.min(11, Math.max(7, rh * 0.28));
+        const rowClipId = `clip-sr-${sheet.sheetIdx != null ? sheet.sheetIdx : 0}-${i}`;
+        rowLabels.push(`<defs><clipPath id="${rowClipId}"><rect x="${rx + 2}" y="${ry + 2}" width="${rw - 4}" height="${rh - 4}"/></clipPath></defs><text x="${rx + rw/2}" y="${ry + rh/2}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${rowClipId})" style="pointer-events:none">${part.l}×${part.w}</text>`);
       }
       stackContent = dividers.join('') + rowLabels.join('');
     }
