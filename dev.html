@@ -9993,19 +9993,55 @@ function showTrialExpiredScreen(email) {
   el.id = 'trial-expired-screen';
   el.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
   el.innerHTML = `
-    <div style="text-align:center;max-width:420px;padding:40px 32px">
+    <div style="text-align:center;max-width:480px;padding:40px 32px">
       <div style="font-size:48px;margin-bottom:20px">⏳</div>
       <div style="font-family:'Oswald',sans-serif;font-size:24px;letter-spacing:3px;color:var(--text);margin-bottom:12px">TRIAL EXPIRED</div>
-      <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:28px">
-        Your trial period for <strong style="color:var(--text)">${email}</strong> has ended.<br>
-        Contact us to continue using Cutlist Pro.
+      <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:24px">
+        Your trial period for <strong style="color:var(--text)">${email}</strong> has ended.
       </div>
-      <button onclick="doLogout()"
-        style="background:var(--amber);color:#111;border:none;padding:10px 28px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+        <button id="tes-extend-btn"
+          style="padding:16px 12px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
+            color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'Barlow',sans-serif">
+          <span style="font-size:26px">📅</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">REQUEST EXTENSION</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Ask for more time</span>
+        </button>
+        <button id="tes-subscribe-btn"
+          style="padding:16px 12px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
+            color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'Barlow',sans-serif">
+          <span style="font-size:26px">🚀</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">SUBSCRIBE</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Get full access</span>
+        </button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">
+        Or contact us directly to continue using Cutlist Pro.
+      </div>
+
+      <button id="tes-signout-btn"
+        style="background:none;color:var(--text-muted);border:1px solid var(--border);padding:8px 24px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">
         SIGN OUT
       </button>
     </div>`;
   document.body.appendChild(el);
+
+  // Wire buttons (CSP-safe — no inline onclick)
+  const extendBtn    = document.getElementById('tes-extend-btn');
+  const subscribeBtn = document.getElementById('tes-subscribe-btn');
+  const signoutBtn   = document.getElementById('tes-signout-btn');
+
+  if (extendBtn) extendBtn.addEventListener('click', async () => {
+    await openTrialContactModal('expired');
+    _setTrialRequestType('extend');
+  });
+  if (subscribeBtn) subscribeBtn.addEventListener('click', async () => {
+    await openTrialContactModal('expired');
+    _setTrialRequestType('subscribe');
+  });
+  if (signoutBtn) signoutBtn.addEventListener('click', () => doLogout());
 }
 
 // ── Trial Countdown Badge ─────────────────────────────────────────────────────
