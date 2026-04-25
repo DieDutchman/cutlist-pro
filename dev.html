@@ -20150,13 +20150,16 @@ function renderOptimizer() {
 
     const sheetsHtml = res.sheets.map((sheet, idx) => {
       const used = sheet.placed.reduce((s, p) => s + p.w * p.h, 0);
-      const eff = (used / sheetArea) * 100;
+      const sl = sheet.sheetL || res.sheetL || st.sheetW;
+      const sw = sheet.sheetW || res.sheetW || st.sheetH;
+      const eff = (used / (sl * sw)) * 100;
+      const tag = sheet.isScrap ? '<span style="color:var(--amber);font-weight:700">SCRAP</span> ' : '';
       return `<div class="opt-sheet">
         <div class="opt-sheet-head">
-          <span>Sheet ${idx + 1} / ${sheetCount}</span>
+          <span>${tag}Sheet ${idx + 1} / ${sheetCount} · ${sl}×${sw}</span>
           <span class="eff">${eff.toFixed(1)}% used</span>
         </div>
-        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category', null, { trim: st.trim, kerf: st.kerf })}
+        ${renderOptimizerSheetSVG(sheet, sl, sw, 'category', null, { trim: st.trim, kerf: st.kerf })}
       </div>`;
     }).join('');
 
