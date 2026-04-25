@@ -19895,27 +19895,96 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts)
 
   const pieces = sheet.placed.map(p => {
     const x = (trim + p.x) * px, y = (trim + p.y) * px;
-    const w = p.w * px, h = p.h * px;
+    const pxW = p.w * px, pxH = p.h * px;
     const seed = colorKey === 'category' ? p.part.category : (p.part.label || p.part.category);
     const fill = optColor(seed, 0.88);
     const stroke = 'rgba(0,0,0,0.55)';
-    const showLabel = (w > 40 && h > 22);
-    const fontSize = Math.max(8, Math.min(11, Math.round(h / 5)));
-    const dim1 = Math.round(p.part.l);
-    const dim2 = Math.round(p.part.w);
-    const label = showLabel
-      ? `<text class="opt-piece-label" x="${x + w/2}" y="${y + h/2 + fontSize/3}" font-size="${fontSize}" text-anchor="middle">${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}</text>`
-      : '';
-    const title = `<title>${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}</title>`;
-    return `<g>${title}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${label}</g>`;
+
+    // Phase 4 — stacked block: draw dividers perpendicular to stack axis
+    // and label each row instead of the whole block.
+    let stackContent = '';
+    if (p.part._stack && p.part._stack.length > 1) {
+      const stack = p.part._stack;
+      const partL = p.part._partL;
+      // Stack axis = whichever placed dim does NOT match the shared long edge.
+      // Tolerance accounts for floating-point drift after rotation mapping.
+      const stackAlongH = Math.abs(p.w - partL) < 0.5;
+      const dividers = [];
+      let acc = 0;
+      for (let i = 0; i < stack.length - 1; i++) {
+        acc += stack[i].w + kerf;
+        if (stackAlongH) {
+          const yLine = y + acc * px;
+          dividers.push(`<line x1="${x}" y1="${yLine}" x2="${x + pxW}" y2="${yLine}" stroke="rgba(0,0,0,0.7)" stroke-width="0.7" stroke-dasharray="3,2"/>`);
+        } else {
+          const xLine = x + acc * px;
+          dividers.push(`<line x1="${xLine}" y1="${y}" x2="${xLine}" y2="${y + pxH}" stroke="rgba(0,0,0,0.7)" stroke-width="0.7" stroke-dasharray="3,2"/>`);
+        }
+      }
+      // Per-row labels
+      const rowLabels = [];
+      let acc2 = 0;
+      for (let i = 0; i < stack.length; i++) {
+        const part = stack[i];
+        const rowSpan = part.w; // mm along stack axis
+        let rx, ry, rw, rh;
+        if (stackAlongH) {
+          rx = x; ry = y + acc2 * px; rw = pxW; rh = rowSpan * px;
+        } else {
+          rx = x + acc2 * px; ry = y; rw = rowSpan * px; rh = pxH;
+        }
+        acc2 += rowSpan + kerf;
+        const showRow = rw > 30 && rh > 16;
+        if (!showRow) continue;
+        const fs = Math.min(10, rh * 0.35);
+        const lblW = Math.max(rw - 6, 10);
+        rowLabels.push(`<text x="${rx + rw/2}" y="${ry + rh/2}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${lblW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${part.l}×${part.w}</text>`);
+      }
+      stackContent = dividers.join('') + rowLabels.join('');
+    }
+
+    // Bug fix — only show a label when the rect is large enough, and
+    // constrain it to the rect width so it never overflows neighbours.
+    const showLabel = pxW > 30 && pxH > 16;
+    let label = '';
+    if (!stackContent && showLabel) {
+      const cx = x + pxW / 2;
+      const cy = y + pxH / 2;
+      const fs = Math.min(10, pxH * 0.35);
+      const labelW = Math.max(pxW - 6, 10);
+      const dim1 = Math.round(p.part.l);
+      const dim2 = Math.round(p.part.w);
+      const text = `${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}`;
+      // If both dimensions fit comfortably, single line. Otherwise stack L over W.
+      if (pxH > fs * 2.4) {
+        label = `<text x="${cx}" y="${cy - fs * 0.55}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${dim1}</text>`
+                + `<text x="${cx}" y="${cy + fs * 0.65}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">×${dim2}${p.rotated ? ' ⟲' : ''}</text>`;
+      } else {
+        label = `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" textLength="${labelW}" lengthAdjust="spacingAndGlyphs" style="pointer-events:none">${text}</text>`;
+      }
+    }
+    const titleText = p.part._stack && p.part._stack.length > 1
+      ? `${p.part._stack.length}× ${p.part.label || p.part.category} — stacked`
+      : `${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}`;
+    const title = `<title>${titleText}</title>`;
+    return `<g>${title}<rect x="${x}" y="${y}" width="${pxW}" height="${pxH}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${stackContent}${label}</g>`;
   }).join('');
+
+  // Phase 5 — scrap sheets get an amber border and a SCRAP badge.
+  const isScrap = !!sheet.isScrap;
+  const sheetStroke = isScrap ? 'var(--amber)' : 'rgba(0,0,0,0.35)';
+  const sheetStrokeW = isScrap ? 2 : 1;
+  const scrapBadge = isScrap
+    ? `<g><rect x="6" y="6" width="58" height="18" fill="var(--amber)" stroke="rgba(0,0,0,0.5)" stroke-width="0.6"/><text x="35" y="19" text-anchor="middle" font-size="11px" font-weight="700" fill="#000" font-family="'Barlow',sans-serif" style="pointer-events:none">SCRAP</text></g>`
+    : '';
 
   return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
     ${defs}
-    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="${sheetStroke}" stroke-width="${sheetStrokeW}"/>
     ${wasteRects}
     ${cutLines}
     ${pieces}
+    ${scrapBadge}
   </svg>`;
 }
 
