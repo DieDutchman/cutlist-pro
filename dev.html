@@ -19912,7 +19912,7 @@ function renderOptimizer() {
           <span>Sheet ${idx + 1} / ${sheetCount}</span>
           <span class="eff">${eff.toFixed(1)}% used</span>
         </div>
-        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category')}
+        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category', null, { trim: st.trim, kerf: st.kerf })}
       </div>`;
     }).join('');
 
