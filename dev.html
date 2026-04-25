@@ -9661,7 +9661,7 @@ async function loadFeedbackInbox() {
       const newPill = isUnread
         ? `<span style="background:${catColor};color:#111;font-size:9px;padding:2px 6px;letter-spacing:1.5px;font-family:'Oswald',sans-serif;font-weight:700;border-radius:2px">NEW</span>`
         : '';
-      return `<div id="fb-row-${r.id}" style="${cardStyle}">
+      return `<div id="fb-row-${r.id}" data-read="${isUnread ? '0' : '1'}" style="${cardStyle}">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0">
             <span style="${badgeStyle}">${escHtml(cat)}</span>
