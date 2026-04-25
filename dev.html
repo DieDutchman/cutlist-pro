@@ -9714,9 +9714,7 @@ async function markFeedbackRead(id) {
       row.setAttribute('data-read', '1');
       const btn = row.querySelector('button');
       if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>';
-      // Remove the NEW pill if present (second span in header row, after the badge)
-      const newPill = row.querySelector('span[style*="NEW"], span'); // best-effort no-op fallback
-      // Targeted removal: find any span whose textContent is exactly 'NEW'
+      // Remove the NEW pill once the message is marked read
       row.querySelectorAll('span').forEach(s => { if (s.textContent.trim() === 'NEW') s.remove(); });
     }
     // Update badge count — count rows that have NOT been marked read
