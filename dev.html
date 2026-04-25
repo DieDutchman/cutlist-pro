@@ -19732,12 +19732,52 @@ function optimizeMaterial(parts, opts) {
   return { sheets, oversized: remaining };
 }
 
-function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM) {
+// Derive guillotine cut lines from placed part edges. xs/ys are interior cuts
+// in usable-area coordinates; render adds trim offset.
+function deriveCutLines(placed, kerf, usableW, usableH) {
+  const xs = new Set(), ys = new Set();
+  placed.forEach(p => {
+    if (p.x > 0) xs.add(p.x);
+    xs.add(p.x + p.w + kerf);
+    if (p.y > 0) ys.add(p.y);
+    ys.add(p.y + p.h + kerf);
+  });
+  return {
+    xs: [...xs].filter(x => x > 0 && x < usableW),
+    ys: [...ys].filter(y => y > 0 && y < usableH),
+  };
+}
+
+function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts) {
   const px = pxPerMM || 0.18;
+  const trim = (opts && opts.trim != null) ? opts.trim : OPTIMIZER_STATE.trim;
+  const kerf = (opts && opts.kerf != null) ? opts.kerf : OPTIMIZER_STATE.kerf;
+  const usableW = sheetW - trim * 2;
+  const usableH = sheetH - trim * 2;
   const svgW = Math.round(sheetW * px);
   const svgH = Math.round(sheetH * px);
+
+  const defs = `<defs>
+    <pattern id="opt-hatch" patternUnits="userSpaceOnUse" width="8" height="8">
+      <path d="M0,8 L8,0" stroke="rgba(150,150,150,0.35)" stroke-width="0.8"/>
+    </pattern>
+  </defs>`;
+
+  // Waste / leftover rects — render BEFORE parts so parts sit on top.
+  const wasteRects = (sheet.leftovers || [])
+    .filter(r => r.w > 10 && r.h > 10)
+    .map(r => `<rect x="${(trim + r.x) * px}" y="${(trim + r.y) * px}" width="${r.w * px}" height="${r.h * px}" fill="url(#opt-hatch)" stroke="rgba(120,120,120,0.3)" stroke-width="0.5"/>`)
+    .join('');
+
+  // Cut lines — derived from placed part edges.
+  const cuts = deriveCutLines(sheet.placed, kerf, usableW, usableH);
+  const cutLines = [
+    ...cuts.ys.map(y => `<line x1="${trim*px}" y1="${(trim+y)*px}" x2="${(trim+usableW)*px}" y2="${(trim+y)*px}" stroke="rgba(180,180,180,0.6)" stroke-width="0.6" stroke-dasharray="5,3"/>`),
+    ...cuts.xs.map(x => `<line x1="${(trim+x)*px}" y1="${trim*px}" x2="${(trim+x)*px}" y2="${(trim+usableH)*px}" stroke="rgba(180,180,180,0.6)" stroke-width="0.6" stroke-dasharray="5,3"/>`),
+  ].join('');
+
   const pieces = sheet.placed.map(p => {
-    const x = p.x * px, y = p.y * px;
+    const x = (trim + p.x) * px, y = (trim + p.y) * px;
     const w = p.w * px, h = p.h * px;
     const seed = colorKey === 'category' ? p.part.category : (p.part.label || p.part.category);
     const fill = optColor(seed, 0.88);
@@ -19752,8 +19792,12 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM) {
     const title = `<title>${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}</title>`;
     return `<g>${title}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${label}</g>`;
   }).join('');
+
   return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+    ${defs}
     <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+    ${wasteRects}
+    ${cutLines}
     ${pieces}
   </svg>`;
 }
