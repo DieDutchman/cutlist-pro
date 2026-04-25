@@ -9620,32 +9620,69 @@ async function loadFeedbackInbox() {
         dot.style.display = 'none'; fbBtn.style.borderColor = ''; fbBtn.style.color = '';
       }
     }
-    el.innerHTML = rows.map(r => {
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;padding:12px">' + rows.map(r => {
       const date = new Date(r.created_at).toLocaleString('en-ZA', {
         day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
       });
-      const catColor = r.category === 'Bug report' ? '#e07070'
-        : r.category === 'Feature request' ? '#4caf82'
-        : r.category === 'Pricing / boards' ? 'var(--amber)'
-        : 'var(--text-muted)';
-      return `<div id="fb-row-${r.id}" style="padding:14px 16px;border-bottom:1px solid var(--border);${r.read ? 'opacity:0.45' : ''}">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:10px;border:1px solid ${catColor};color:${catColor};padding:1px 7px;letter-spacing:1px;font-family:'Oswald',sans-serif">${r.category}</span>
-            ${r.tab ? `<span style="font-size:10px;color:var(--text-muted)">on: ${escHtml(r.tab)}</span>` : ''}
-            <span style="font-size:11px;color:var(--amber-dim)">${escHtml(r.user_email)}</span>
+      // Color-coded accents per category
+      const cat = r.category || 'General';
+      const catColor =
+          cat === 'Bug report'                ? '#e07070'        // red
+        : cat === 'Feature request'           ? '#5b9fd6'        // blue
+        : cat === 'Trial Extension Request'   ? 'var(--amber)'   // amber
+        : cat === 'Subscription Request'      ? '#5dba6e'        // green
+        : cat === 'Pricing / boards'          ? '#c98a3a'        // orange-amber
+        : 'var(--text-muted)';                                   // general / fallback
+      const isUnread = !r.read;
+      // Card: stronger separation via background + 4px left accent border + outer border
+      const cardStyle = [
+        `border-left:4px solid ${catColor}`,
+        'border-top:1px solid var(--border)',
+        'border-right:1px solid var(--border)',
+        'border-bottom:1px solid var(--border)',
+        `background:${isUnread ? 'var(--bg2)' : 'var(--bg)'}`,
+        'padding:14px 16px',
+        `box-shadow:${isUnread ? '0 1px 0 rgba(0,0,0,0.15)' : 'none'}`,
+        `opacity:${isUnread ? '1' : '0.6'}`
+      ].join(';');
+      // Badge: filled pill in category colour
+      const badgeStyle = [
+        `background:${catColor}`,
+        'color:#111',
+        'font-size:10px',
+        'padding:3px 9px',
+        'letter-spacing:1.2px',
+        "font-family:'Oswald',sans-serif",
+        'font-weight:600',
+        'text-transform:uppercase',
+        'border-radius:2px',
+        'flex-shrink:0'
+      ].join(';');
+      const newPill = isUnread
+        ? `<span style="background:${catColor};color:#111;font-size:9px;padding:2px 6px;letter-spacing:1.5px;font-family:'Oswald',sans-serif;font-weight:700;border-radius:2px">NEW</span>`
+        : '';
+      return `<div id="fb-row-${r.id}" style="${cardStyle}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0">
+            <span style="${badgeStyle}">${escHtml(cat)}</span>
+            ${newPill}
+            ${r.tab ? `<span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">ON: ${escHtml(r.tab).toUpperCase()}</span>` : ''}
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
             <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${date}</span>
-            ${!r.read
-              ? `<button onclick="markFeedbackRead('${r.id}')" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">\u2713 Mark read</button>`
-              : '<span style="font-size:10px;color:var(--text-muted)">Read</span>'}
+            ${isUnread
+              ? `<button onclick="markFeedbackRead('${r.id}')" style="background:none;border:1px solid var(--border-light);color:var(--text);font-size:10px;padding:3px 9px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;border-radius:2px" onmouseover="this.style.borderColor='${catColor}';this.style.color='${catColor}'" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text)'">\u2713 MARK READ</button>`
+              : '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>'}
           </div>
         </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap">${escHtml(r.message)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--border)">
+          <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">FROM</span>
+          <span style="font-size:12px;color:var(--text);font-family:'JetBrains Mono',monospace;word-break:break-all">${escHtml(r.user_email || 'unknown')}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.65;white-space:pre-wrap;font-family:'Barlow',sans-serif">${escHtml(r.message)}</div>
         ${r.screenshot_base64 ? `
-        <details style="margin-top:10px">
-          <summary style="font-size:11px;color:var(--amber-dim);cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
+        <details style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">
+          <summary style="font-size:11px;color:${catColor};cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
             <span style="font-size:9px">&#x25B6;</span> SCREENSHOT ATTACHED
           </summary>
           <div style="margin-top:8px">
@@ -9656,7 +9693,7 @@ async function loadFeedbackInbox() {
           </div>
         </details>` : ''}
       </div>`;
-    }).join('');
+    }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = `<div style="padding:16px;color:#e07070;font-size:13px">Failed to load: ${e.message}</div>`;
   }
@@ -9671,15 +9708,23 @@ async function markFeedbackRead(id) {
     });
     const row = document.getElementById(`fb-row-${id}`);
     if (row) {
-      row.style.opacity = '0.45';
+      row.style.opacity = '0.6';
+      row.style.background = 'var(--bg)';
+      row.style.boxShadow = 'none';
+      row.setAttribute('data-read', '1');
       const btn = row.querySelector('button');
-      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted)">Read</span>';
+      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>';
+      // Remove the NEW pill if present (second span in header row, after the badge)
+      const newPill = row.querySelector('span[style*="NEW"], span'); // best-effort no-op fallback
+      // Targeted removal: find any span whose textContent is exactly 'NEW'
+      row.querySelectorAll('span').forEach(s => { if (s.textContent.trim() === 'NEW') s.remove(); });
     }
-    // Update badge count
+    // Update badge count — count rows that have NOT been marked read
     const badge = document.getElementById('fb-inbox-badge');
     if (badge) {
-      const unread = document.querySelectorAll('[id^="fb-row-"]').length -
-        document.querySelectorAll('[id^="fb-row-"][style*="opacity:0.45"]').length;
+      const total  = document.querySelectorAll('[id^="fb-row-"]').length;
+      const read   = document.querySelectorAll('[id^="fb-row-"][data-read="1"]').length;
+      const unread = total - read;
       badge.textContent = unread > 0 ? ` (${unread} unread)` : '';
     }
   } catch(e) { console.warn('Mark read failed:', e.message); }
