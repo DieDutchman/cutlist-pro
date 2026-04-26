@@ -6144,7 +6144,7 @@ function buildUnitForm(id) {
     <div class="editor-actions">
       <button class="btn btn-primary" onclick="saveUnit('${id}')">💾 Save Unit</button>
       <button class="btn btn-ghost" onclick="editingUnitId=null;renderEditor()">Cancel</button>
-      ${!isAdmin()
+      ${usesUserUnits()
         ? `<button class="btn btn-danger-soft" onclick="editorDeleteUserUnit('${id}')">🗑 Delete Unit</button>`
         : isCustom
           ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')">⧉ Copy Unit</button>
