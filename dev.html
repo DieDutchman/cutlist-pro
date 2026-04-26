@@ -4232,14 +4232,20 @@ function _renderPanel() {
               const rp = applyMaterials(p, u);
               const edgeSides = [rp.el1,rp.el2,rp.ew1,rp.ew2].filter(Boolean);
               const edgeShort = [...new Set(edgeSides.map(e => e.replace(/ Edging.*$/,'').replace(/ \d+mm$/,'')))].join(', ') || '—';
-              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              const holesTxt = (p.holes||'').toString().trim();
+              const notesTxt = (p.notes||'').toString().trim();
+              const extras = [];
+              if (holesTxt) extras.push(`<span title="Holes" style="display:inline-block;background:rgba(212,145,58,0.10);border:1px solid rgba(212,145,58,0.30);color:var(--amber-dim);font-size:10px;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace">⊙ ${holesTxt.replace(/</g,'&lt;')}</span>`);
+              if (notesTxt) extras.push(`<span title="Notes" style="display:inline-block;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 6px;border-radius:2px;font-style:italic">✎ ${notesTxt.replace(/</g,'&lt;')}</span>`);
+              const extrasRow = extras.length ? `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))"><td colspan="6" style="padding:0 8px 6px 28px;display:flex;flex-wrap:wrap;gap:6px">${extras.join('')}</td></tr>` : '';
+              return `<tr style="border-bottom:${extras.length?'none':'1px solid var(--border-inner,rgba(255,255,255,0.06))'}">
                 <td style="padding:4px 8px;color:var(--text)">${p.name||'Part'}</td>
                 <td style="padding:4px 8px;text-align:center;color:var(--text-muted)">${p.qty||1}</td>
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.l||0}</td>
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.w||0}</td>
                 <td style="padding:4px 8px;color:var(--text-muted);font-size:10px">${rp.mat||''}</td>
                 <td style="padding:4px 8px;text-align:center;color:var(--amber-dim);font-size:10px">${edgeShort}</td>
-              </tr>`;
+              </tr>${extrasRow}`;
             }).join('')}
           </tbody>
         </table>
