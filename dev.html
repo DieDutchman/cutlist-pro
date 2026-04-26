@@ -19013,11 +19013,11 @@ function renderDrawerBuilderHTML() {
   // Build section list — standard rooms + any user-created rooms
   const _stdSecs = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
   const _userSecs = userRooms.filter(r => !_stdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
-  const _allSecs  = !isAdmin() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
+  const _allSecs  = usesUserUnits() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
   const secOpts   = _allSecs.map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
 
-  // For regular users, ensure drawerState.section is one of their actual rooms
-  if (!isAdmin() && userRooms.length > 0) {
+  // For user-mode (admin + user), ensure drawerState.section is one of their actual rooms
+  if (usesUserUnits() && userRooms.length > 0) {
     const validIds = _allSecs.map(s => s.id);
     if (!validIds.includes(ds.section)) drawerState.section = _allSecs[0]?.id || ds.section;
   }
