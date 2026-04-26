@@ -6084,7 +6084,7 @@ function buildUnitForm(id) {
   if (!unit) return '<div class="editor-placeholder">Unit not found</div>';
   const isCustom = customUnits.some(u => u.id === id);
 
-  const roomList = (!isAdmin())
+  const roomList = usesUserUnits()
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionOpts = roomList.map(s =>
