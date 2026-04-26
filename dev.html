@@ -11307,8 +11307,18 @@ function applyRoleRestrictions() {
     if (userRooms.length > 0) {
       renderUserRoomsNav();
     } else {
-      // New user / no rooms — hide static rooms row, show welcome nav button
+      // New user / no rooms — hide static rooms row, show welcome nav button.
+      // NOTE: this runs in a setTimeout to allow the DOM to settle, so by the
+      // time it fires, an in-flight restoreLastJob() → applyState() may have
+      // populated userRooms. Re-check inside the timer and abort the welcome
+      // takeover if rooms are now present (otherwise we'd wipe the user's
+      // restored rooms and force the onboarding screen on top of a real job).
       setTimeout(() => {
+        // Bail out if rooms got restored asynchronously (job load, snapshot, etc.)
+        if (userRooms.length > 0) {
+          renderUserRoomsNav();
+          return;
+        }
         const navTabs = document.getElementById('navTabs');
         if (!navTabs) return;
         // ── Hide ONLY the static admin rooms row and its divider ─────────────
