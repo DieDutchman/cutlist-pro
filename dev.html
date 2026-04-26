@@ -9327,6 +9327,11 @@ function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; 
 function isSupplier()    { return sbRole === 'supplier'; }
 function canEditPrices() { return sbCanEditPrices; }
 function canManageUsers(){ return sbRole === 'superuser'; }
+// Unit/room rendering mode: everyone EXCEPT superuser uses the userRooms/userUnits
+// onboarding flow (empty rooms list, welcome screen, "+ Add Your First Room").
+// Admins go through the same first-time experience as regular users so they can
+// guide them; only superuser sees the full hardcoded sections + template library.
+function usesUserUnits()  { return !isSuperuser(); }
 
 
 
