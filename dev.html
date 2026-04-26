@@ -4790,15 +4790,15 @@ function clearAll() {
     importState.status = 'idle';
     importState.error = null;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    // For user mode, activate first user room; for admin, activate kitchen
-    if (!isAdmin() && userRooms.length > 0) {
+    // For user mode (admin + user), activate first user room; for superuser, activate kitchen
+    if (usesUserUnits() && userRooms.length > 0) {
       currentSection = userRooms[0].id;
     } else {
       currentSection = 'kitchen';
     }
     const _caTab = document.querySelector('[data-section="' + currentSection + '"]');
     if (_caTab) _caTab.classList.add('active');
-    if (!isAdmin()) applyRoleRestrictions(); // re-show Add Room button for users
+    if (usesUserUnits()) applyRoleRestrictions(); // re-show Add Room button for non-superuser
     renderPanel();
     window._lastCutlist = null;
     window._lastSummary = null;
