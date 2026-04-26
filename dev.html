@@ -19613,7 +19613,7 @@ function plOpenPDFImport(jobId) {
   overlay.id = 'pl-pdf-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:880px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">📄 IMPORT INVOICE PDF</div>
         <button onclick="document.getElementById('pl-pdf-overlay').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
