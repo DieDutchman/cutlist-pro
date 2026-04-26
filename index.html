@@ -48,6 +48,9 @@
   body.supplier-theme .tab, body.user-light-theme .tab { color: #4a3f30; }
   body.supplier-theme .tab:hover, body.supplier-theme .tab.active,
   body.user-light-theme .tab:hover, body.user-light-theme .tab.active { background: rgba(0,0,0,0.06); color: #1a1612; }
+  /* Active-tab underline: keep the amber indicator consistent across themes */
+  body.supplier-theme .tab.active,
+  body.user-light-theme .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
   body.supplier-theme .cv-extra-input, body.user-light-theme .cv-extra-input { background: #edeae4; border-color: #c8c0b0; color: #1a1612; }
   body.supplier-theme .cv-extra-input:focus, body.user-light-theme .cv-extra-input:focus { border-color: var(--amber); }
   /* Light theme: darken internal dividers in prices/costing views */
@@ -2087,6 +2090,341 @@
   body.supplier-theme .opt-sheet svg,
   body.user-light-theme .opt-sheet svg { background: #f7f5f0; }
 </style>
+
+<!-- ═══ MOBILE / TABLET RESPONSIVE STYLES ═══════════════════════════════════
+     Tablet  : max-width 768px
+     Phone   : max-width 480px
+     Desktop : untouched — zero rules changed above this block
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style>
+
+/* ── TABLET (≤768px) ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Prevent any child overflow from pushing body/html wider than viewport */
+  html, body { max-width: 100vw; overflow-x: hidden; }
+
+  /* Issue 3b: ensure border-box everywhere so px padding doesn't break layout on zoom */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* Header: tighten padding, stack if needed */
+  header {
+    padding: 0 10px;
+    height: auto;
+    min-height: 48px;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .logo { font-size: 15px; letter-spacing: 2px; }
+  .header-actions { gap: 4px; flex-wrap: wrap; }
+  .btn { padding: 6px 10px; font-size: 11px; letter-spacing: 1px; min-height: 44px; }
+
+  /* Nav tabs: both rows scrollable horizontally, no wrap */
+  .nav-tabs { padding: 0 6px; overflow: hidden; }
+  .nav-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 1px;
+    /* Issue 1: fade right edge only — left stays fully visible so first tab never clips */
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+  }
+  .nav-row::-webkit-scrollbar { display: none; }
+
+  /* Issue 3a: compact tab density */
+  .tab { padding: 4px 8px; font-size: 10px; letter-spacing: 0.5px; min-height: 36px; flex-shrink: 0; }
+
+  /* Issue 2: normalize newly-created room tab (addBtn has inline padding:12px 14px) */
+  #user-rooms-row .tab { padding: 4px 8px !important; font-size: 10px !important; min-height: 36px !important; }
+  /* Bug 1: contain room tab scroll inside the row — never let it push body wide */
+  #user-rooms-row { max-width: 100%; overflow-x: auto; overflow-y: visible; }
+  /* Bug 1: inline name input when creating a room must not stretch beyond row */
+  #user-rooms-row input { max-width: 120px; box-sizing: border-box; }
+
+  /* Job bar: stack all inputs vertically */
+  #job-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
+  }
+  #job-bar > span:first-child { display: none !important; } /* hide "JOB" label when stacked */
+  #job-select {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-height: 44px;
+  }
+  #job-bar-details {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    width: 100%;
+  }
+  #job-bar-details input {
+    width: 100% !important;
+    min-height: 44px;
+    font-size: 14px !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box;
+  }
+  #supplier-selector-wrap {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100%;
+  }
+  #supplier-selector-wrap select { flex: 1; min-height: 44px; }
+  #job-bar .btn,
+  #job-bar button { min-height: 44px; width: 100%; text-align: center; }
+  /* Keep the right-side status/user row compact but wrap */
+  #job-bar > div[style*="margin-left:auto"] {
+    margin-left: 0 !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  /* Main layout: sidebar already collapses at 900px; reinforce */
+  .main { padding: 8px; }
+  .layout { gap: 8px; }
+  .sidebar { position: static !important; }
+
+  /* Quote view sidebar/layout already handled by 900px rule */
+  /* cv-layout, qv-layout, bldr-layout — collapse at tablet */
+  .cv-layout { grid-template-columns: 1fr !important; }
+  .qv-layout { grid-template-columns: 1fr !important; min-height: auto !important; }
+  .qv-main { border-right: none !important; border-bottom: var(--line); }
+  .qv-sidebar { border-top: var(--line); }
+  .bldr-layout { grid-template-columns: 1fr !important; height: auto !important; overflow: visible !important; }
+  .bldr-panel { border-right: none !important; border-bottom: var(--line); min-height: 0; max-height: none; }
+  .editor-layout { grid-template-columns: 1fr !important; height: auto !important; overflow: visible !important; }
+  .editor-sidebar { height: auto !important; max-height: 240px; }
+
+  /* Stats bar: wrapping on tablet */
+  .stats-bar { flex-wrap: wrap; gap: 8px; padding: 6px 10px; }
+
+  /* Summary totals bar: allow wrapping */
+  .summary-totals-bar { flex-wrap: wrap; }
+  .summary-totals-bar .st-cell { min-width: 110px; }
+
+  /* Modals: constrained to viewport */
+  .wb-modal { max-width: calc(100vw - 16px) !important; max-height: 94vh !important; }
+  .wb-controls { grid-template-columns: 1fr !important; }
+
+  /* Touch targets: all interactive inline elements */
+  .qty-input { min-height: 44px; padding: 8px 10px; font-size: 16px; }
+  select, input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
+    min-height: 44px;
+    font-size: 16px !important; /* prevents iOS zoom on focus */
+  }
+  .mat-select { min-height: 44px; }
+
+  /* Units table: tighter on tablet */
+  .units-table td, .units-table th { padding: 6px 8px; }
+
+  /* Markup grid: 3 columns on tablet instead of 5 */
+  .qv-markup-grid { grid-template-columns: repeat(3, 1fr) !important; }
+
+  /* Parts editor table: allow horizontal scroll */
+  .parts-edit-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Sheet optimizer sheets: allow scroll */
+  .opt-sheets { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+
+  /* ── AUTH SCREENS ── */
+  /* Login overlay: ensure it covers the full viewport and doesn't scroll */
+  #login-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100dvh !important;
+    min-height: 100vh !important; /* fallback for browsers without dvh */
+    overflow-y: auto;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 14px 0;
+  }
+  /* Card container: constrain width, no overflow */
+  #login-overlay > div {
+    width: 90% !important;
+    max-width: 400px !important;
+    box-sizing: border-box;
+  }
+  /* Form cards: tighter padding on tablet */
+  #login-form,
+  #setpw-form { padding: 14px !important; }
+
+  /* Trial expired screen: same full-viewport treatment */
+  #trial-expired-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100dvh !important;
+    min-height: 100vh !important;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+  }
+  #trial-expired-screen > div {
+    width: 90% !important;
+    max-width: 400px !important;
+    box-sizing: border-box;
+    padding: 20px 14px !important;
+  }
+
+  /* Issue 3a: compact density — unit cards, section headers, panel rows */
+  .cv-unit-card { padding: 0; margin-bottom: 10px; }
+  .section-header { font-size: 10px; padding: 5px 8px 4px 10px; }
+  /* costing-view panel rows rendered inline — target the clickable head row */
+  .cv-unit-card > div:first-child { padding: 5px 8px !important; }
+  /* opt-sheets scroll indicator — right fade only, left always fully visible */
+  .opt-sheets {
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+  }
+
+}
+
+/* ── PHONE (≤480px) ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Header: hide non-essential actions, logo only shows on phone */
+  header { padding: 4px 8px; }
+  .logo { font-size: 13px; letter-spacing: 1px; }
+  /* Hide secondary header buttons — keep Generate Cutlist */
+  .header-actions .btn-ghost { display: none; }
+  .header-actions .btn-primary { width: auto; }
+
+  /* Nav tabs: even tighter — reinforce compact padding from tablet rule */
+  .tab { padding: 4px 7px !important; font-size: 10px; letter-spacing: 0.5px; min-height: 32px; }
+  .tab .count { font-size: 9px; padding: 1px 3px; }
+  /* Issue 2: phone — normalize add room button with room tabs */
+  #user-rooms-row .tab { padding: 4px 7px !important; font-size: 10px !important; min-height: 32px !important; }
+
+  /* Main: minimal padding */
+  .main { padding: 6px; }
+
+  /* Job bar save/delete buttons: side by side on phone */
+  #job-bar button[onclick="saveJobToCloud()"],
+  #job-bar button[onclick="newJob()"] { width: calc(50% - 3px); }
+
+  /* Supplier Prices two-column grid → single column */
+  /* These are inline style grids in JS-rendered HTML, override with descendant selector */
+  #prices-view [style*="grid-template-columns:1fr 1fr"],
+  #prices-view [style*="grid-template-columns: 1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* Column headers in prices view */
+  #prices-view [style*="grid-template-columns:1fr 1fr"] > div,
+  #prices-view [style*="grid-template-columns: 1fr 1fr"] > div {
+    border-right: none !important;
+    border-bottom: var(--line) !important;
+  }
+  /* Price rows themselves (board/edge pairs) */
+  #prices-view [style*="display:grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* cv-layout services grid → single column */
+  [style*="grid-template-columns:1fr 1fr"] .cv-extra-row {
+    border-right: none !important;
+  }
+
+  /* Editor field rows: single column */
+  .editor-field-row { grid-template-columns: 1fr !important; gap: 6px; }
+
+  /* Cutlist header: stack title and buttons */
+  .cutlist-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cutlist-title { font-size: 18px; letter-spacing: 2px; }
+
+  /* Cutlist table: horizontal scroll */
+  .cutlist-section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cutlist-table { min-width: 520px; }
+
+  /* Summary table: horizontal scroll */
+  .summary-unit-block { overflow-x: auto; }
+  .summary-table { min-width: 480px; }
+
+  /* Summary view header: stack */
+  .summary-view-header { flex-direction: column; gap: 6px; padding: 8px 8px 0; }
+  .summary-unit-block { margin: 6px 6px 0; }
+  .summary-totals-bar { margin: 6px 6px; }
+
+  /* Stats bar: 2-up grid */
+  .stats-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-val { font-size: 14px; }
+
+  /* Markup grid: 2 columns on phone */
+  .qv-markup-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Modals: full screen */
+  .wb-overlay { padding: 0 !important; align-items: flex-end !important; }
+  .wb-modal {
+    max-width: 100vw !important;
+    max-height: 96vh !important;
+    border-radius: 10px 10px 0 0 !important;
+    width: 100% !important;
+  }
+  /* Generic modals (inline style): full-screen treatment */
+  #qm-overlay > div,
+  #users-modal > div,
+  #feedback-modal > div {
+    width: 100% !important;
+    max-width: 100vw !important;
+    max-height: 96vh !important;
+    border-radius: 0 !important;
+  }
+
+  /* Price stale banner: stack buttons */
+  #price-stale-banner { flex-direction: column !important; align-items: flex-start !important; }
+
+  /* Job info box: single column */
+  .job-info-box { grid-template-columns: 1fr !important; }
+  .job-info-cell { border-right: none !important; }
+  .job-info-cell:nth-last-child(-n+2) { border-bottom: 1px solid var(--border) !important; }
+  .job-info-cell:last-child { border-bottom: none !important; }
+
+  /* Mat selector bar: single column */
+  .mat-selector-bar { flex-direction: column; gap: 6px; }
+  .mat-group { min-width: 0; width: 100%; }
+
+  /* Builder: full width SVG */
+  .bldr-svg-wrap, .bldr-svg-side-wrap { padding: 8px; }
+  .bldr-label { min-width: 80px; }
+
+  /* Optimize: no horizontal scroll — let sheets stack */
+  .opt-sheets { flex-wrap: wrap !important; overflow-x: visible; }
+  .opt-sheet { width: 100%; }
+
+  /* wb-modal controls: already 1-col from tablet rule, ensure width */
+  .wb-width-row { flex-wrap: wrap; gap: 6px; }
+  .wb-width-val { min-width: auto; }
+
+  /* ── AUTH SCREENS (phone) ── */
+  /* Card: full-bleed with minimal side margins on small phones */
+  #login-overlay > div {
+    width: 92% !important;
+  }
+  /* Form padding: reduce for narrow phones so inputs don't clip */
+  #login-form,
+  #setpw-form { padding: 14px !important; }
+  /* Logo: smaller on phone */
+  #login-overlay .logo-title { font-size: 22px !important; letter-spacing: 2px !important; }
+
+  /* Trial expired card: tighter padding on phone */
+  #trial-expired-screen > div { padding: 18px 12px !important; }
+
+}
+</style>
 </head>
 <body>
 
@@ -2278,6 +2616,10 @@
         style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         SUPPLIERS
       </button>
+      <button onclick="showUsersTab('templates')" id="um-tab-templates"
+        style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
+        UNIT TEMPLATES
+      </button>
     </div>
 
     <!-- Users panel -->
@@ -2321,6 +2663,24 @@
         </div>
       </div>
       <div id="suppliers-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
+    </div>
+
+    <!-- Unit Templates panel -->
+    <div id="um-panel-templates" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div style="padding:12px 20px;background:rgba(212,145,58,0.07);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--text-muted);flex:1;min-width:200px">
+          Manage the <strong style="color:var(--text)">live unit template library</strong>. Active templates load automatically for every user on login.
+        </div>
+        <button onclick="openTemplateEditor()" style="background:var(--amber);color:#111;border:none;padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ ADD TEMPLATE</button>
+        <button id="tpl-seed-btn" onclick="seedUnitTemplates()" style="display:none;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber);padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer" title="Insert hardcoded UNITS as DB rows (superuser only)">⚙ SEED FROM CODE</button>
+      </div>
+      <div id="tpl-admin-list" style="flex:1;overflow-y:auto;padding:8px 0">
+        <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+        <span id="tpl-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
+        <button onclick="loadTemplatesAdmin()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">↻ REFRESH</button>
+      </div>
     </div>
 
   </div>
@@ -2480,6 +2840,129 @@
         <button onclick="submitFeedback()" id="fb-send-btn"
           style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:pointer">
           SEND
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BULK PRICE ADJUSTMENT MODAL ═══════════════════════════════════════ -->
+  <div id="bulk-adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
+        <button onclick="closeBulkAdjustModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="font-size:13px;color:var(--text);white-space:nowrap">Adjustment</span>
+          <input id="bulk-adjust-pct" type="number" min="-50" max="50" step="0.1" value="0"
+            oninput="updateBulkAdjustPreview()"
+            style="width:90px;background:var(--bg3);border:1px solid var(--amber);color:var(--text);padding:6px 10px;font-size:16px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'">
+          <span style="font-size:16px;color:var(--amber);font-family:'JetBrains Mono',monospace">%</span>
+          <span style="font-size:11px;color:var(--text-muted)">(negative = reduce prices)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-muted);margin-right:4px">Apply to:</span>
+          <button id="bulk-tog-boards" onclick="toggleBulkCat('boards')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ BOARDS</button>
+          <button id="bulk-tog-edges" onclick="toggleBulkCat('edges')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ EDGING</button>
+          <button id="bulk-tog-services" onclick="toggleBulkCat('services')"
+            style="font-size:11px;padding:5px 14px;cursor:pointer;border:1px solid var(--amber);background:rgba(212,145,58,0.15);color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">✓ SERVICES</button>
+          <button onclick="setBulkAllCats(true)" style="font-size:10px;padding:4px 10px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">SELECT ALL</button>
+          <button onclick="setBulkAllCats(false)" style="font-size:10px;padding:4px 10px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">CLEAR</button>
+        </div>
+        <div id="bulk-adjust-error" style="display:none;background:rgba(224,82,82,0.12);border:1px solid #e05252;color:#e05252;padding:8px 12px;font-size:12px;margin-bottom:12px"></div>
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin-bottom:8px">PREVIEW</div>
+        <div id="bulk-adjust-preview" style="border:1px solid var(--border);overflow-y:auto;max-height:320px"></div>
+        <div id="bulk-adjust-count" style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:right"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <button onclick="closeBulkAdjustModal()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer">CANCEL</button>
+        <button id="bulk-adjust-apply-btn" onclick="applyBulkPriceAdjustment()"
+          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:pointer;font-weight:600">
+          APPLY TO DATABASE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="import-prices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
+        <button onclick="closeImportPricesModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:16px">
+          <!-- Step 1 -->
+          <div style="flex:1;text-align:center;padding:10px 8px;background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim)">
+            <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--amber)">STEP 1</div>
+            <div style="font-size:12px;color:var(--text);margin-top:4px">Download template</div>
+          </div>
+          <div style="font-size:16px;color:var(--text-muted);padding:0 6px">→</div>
+          <!-- Step 2 -->
+          <div style="flex:1;text-align:center;padding:10px 8px;background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim)">
+            <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--amber)">STEP 2</div>
+            <div style="font-size:12px;color:var(--text);margin-top:4px">Fill in your prices</div>
+          </div>
+          <div style="font-size:16px;color:var(--text-muted);padding:0 6px">→</div>
+          <!-- Step 3 -->
+          <div style="flex:1;text-align:center;padding:10px 8px;background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim)">
+            <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--amber)">STEP 3</div>
+            <div style="font-size:12px;color:var(--text);margin-top:4px">Upload &amp; import</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▸')?'▾ Hide format':'▸ Show format'"
+            style="background:none;border:none;color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;padding:0">
+            ▸ SHOW FORMAT
+          </button>
+          <div style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);overflow-x:auto">
+            <div style="color:var(--amber);margin-bottom:4px"># Required columns (first row = header)</div>
+            <div>name, type, price, sheet_l, sheet_w, min_sheets, full_sheet, special_order</div>
+            <div style="margin-top:8px;color:var(--amber)"># Examples</div>
+            <div>White Melamine 18mm, board, 1760, 2750, 1830, 0.25, false, false</div>
+            <div>Dunblane Edging 1mm, edge, 18</div>
+            <div>CNC Cut-out Round, service, 85</div>
+            <div style="margin-top:8px;color:var(--text-muted)"># type: board | edge | service</div>
+            <div># sheet_l/w and other columns optional for edge/service rows</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="font-size:12px;color:var(--text-muted)">Need a starting point?</span>
+          <button onclick="downloadPriceTemplate()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:5px 12px;cursor:pointer">↓ CSV TEMPLATE</button>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:auto">Accepts .csv, .xlsx, .xls</span>
+        </div>
+
+        <div id="import-drop-zone"
+          ondragover="event.preventDefault();this.style.background='rgba(212,145,58,0.12)';this.style.borderColor='var(--amber)'"
+          ondragleave="this.style.background='var(--bg3)';this.style.borderColor='var(--amber-dim)'"
+          ondrop="handleImportFileDrop(event)"
+          onclick="document.getElementById('import-file-input').click()"
+          style="border:2px dashed var(--amber-dim);background:var(--bg3);padding:32px 16px;text-align:center;cursor:pointer;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--amber)">DROP FILE HERE OR CLICK TO BROWSE</div>
+          <div id="import-file-name" style="font-size:11px;color:var(--text-muted);margin-top:6px;font-family:'JetBrains Mono',monospace"></div>
+        </div>
+        <input id="import-file-input" type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFileSelect(event)">
+
+        <div id="import-error" style="display:none;background:rgba(224,82,82,0.12);border:1px solid #e05252;color:#e05252;padding:8px 12px;font-size:12px;margin-bottom:12px"></div>
+
+        <div id="import-summary" style="display:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;margin-bottom:8px"></div>
+
+        <div id="import-preview-wrap" style="display:none">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin-bottom:6px">PREVIEW (first 10 rows)</div>
+          <div id="import-preview" style="border:1px solid var(--border);overflow:auto;max-height:300px"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <button onclick="closeImportPricesModal()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer">CANCEL</button>
+        <button id="import-prices-confirm-btn" onclick="confirmImportPrices()" disabled
+          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:not-allowed;font-weight:600;opacity:0.4">
+          IMPORT
         </button>
       </div>
     </div>
@@ -3077,15 +3560,318 @@ function pushTemplatesToCloud() {
 }
 const saveDeletedUnits = saveCustomUnits;
 
+// ── Cloud-backed Unit Template Library ────────────────────────────────────────
+// Live library lives in the unit_templates table. The hardcoded UNITS array is
+// kept as an offline fallback so the app still works if the DB is empty or the
+// fetch fails. DB rows are normalised into the legacy shape (id, section,
+// name, parts, …) so the rest of the code does not need to know the source.
+window._dbUnitTemplates = null; // null = not yet attempted, [] = empty/failed, [...] = loaded
+
+function _normalizeDbTemplate(row) {
+  const meta = (row && typeof row.meta === 'object' && row.meta) ? row.meta : {};
+  return {
+    id:       row.id,
+    section:  row.category || row.subcategory || 'custom',
+    name:     row.name,
+    parts:    Array.isArray(row.parts) ? row.parts : [],
+    width:    meta.width,
+    height:   meta.height,
+    depth:    meta.depth,
+    icon:     meta.icon,
+    tags:     Array.isArray(meta.tags) ? meta.tags : [],
+    sortOrder: typeof meta.sortOrder === 'number' ? meta.sortOrder : 0,
+    _dbRow:   row, // keep raw row for admin edits
+  };
+}
+
+async function loadUnitTemplates() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/unit_templates?active=eq.true&select=*&order=category,subcategory`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    if (Array.isArray(rows) && rows.length > 0) {
+      window._dbUnitTemplates = rows.map(_normalizeDbTemplate);
+      console.log('[Templates] Loaded', rows.length, 'unit templates from DB');
+    } else {
+      window._dbUnitTemplates = [];
+    }
+  } catch(e) {
+    console.warn('[Supabase] Could not load unit templates:', e.message);
+    window._dbUnitTemplates = [];
+  }
+}
+
+function getUnitTemplates() {
+  if (window._dbUnitTemplates && window._dbUnitTemplates.length > 0) {
+    return window._dbUnitTemplates;
+  }
+  return UNITS; // hardcoded fallback
+}
+
 function getEffectiveUnits() {
   // Non-admin/superuser users always use their own units (empty array if none created yet)
   if (!isAdmin()) {
     return userUnits;
   }
-  const base = UNITS
+  const base = getUnitTemplates()
     .filter(u => !deletedUnits.has(u.id))
     .map(u => unitOverrides[u.id] ? {...u, ...unitOverrides[u.id]} : u);
   return [...base, ...customUnits];
+}
+
+// ── Admin: Unit Template Library CRUD ─────────────────────────────────────────
+window._adminTemplates = []; // raw rows, includes inactive
+
+function _setTplStatus(msg, isError) {
+  const el = document.getElementById('tpl-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = isError ? '#e05252' : 'var(--text-muted)';
+}
+
+async function loadTemplatesAdmin() {
+  if (!isAdmin()) return;
+  const list = document.getElementById('tpl-admin-list');
+  if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  _setTplStatus('Loading…');
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/unit_templates?select=*&order=category,subcategory,name`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    window._adminTemplates = rows;
+    if (!list) return;
+    if (!rows.length) {
+      list.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px">
+        <div style="font-size:28px;margin-bottom:10px">📋</div>
+        <div>No templates yet. Use <strong style="color:var(--amber)">+ ADD TEMPLATE</strong>${isSuperuser() ? ' or <strong style="color:var(--amber)">⚙ SEED FROM CODE</strong>' : ''} to populate the library.</div>
+      </div>`;
+    } else {
+      list.innerHTML = rows.map(renderTemplateRow).join('');
+    }
+    _setTplStatus(`${rows.length} template${rows.length===1?'':'s'} (${rows.filter(r=>r.active).length} active)`);
+  } catch(e) {
+    if (list) list.innerHTML = `<div style="padding:24px;text-align:center;color:#e05252;font-size:13px">Load failed: ${e.message}</div>`;
+    _setTplStatus(e.message, true);
+  }
+}
+
+function renderTemplateRow(t) {
+  const partCount = Array.isArray(t.parts) ? t.parts.length : 0;
+  const cat = (t.category || '').toString();
+  const sub = (t.subcategory || '').toString();
+  const safeName = (t.name || '').replace(/'/g,"\\'");
+  return `<div style="display:flex;align-items:center;gap:10px;padding:9px 20px;border-bottom:1px solid var(--border);${t.active ? '' : 'opacity:0.55;'}">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name || '(unnamed)'}</div>
+      <div style="font-size:11px;color:var(--text-muted)">
+        <span style="color:var(--amber-dim)">${cat}</span>${sub ? ' · ' + sub : ''} · ${partCount} part${partCount===1?'':'s'}${t.active ? '' : ' · <span style="color:#e05252">INACTIVE</span>'}
+      </div>
+    </div>
+    <button onclick="openTemplateEditor('${t.id}')" title="Edit"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">EDIT</button>
+    <button onclick="toggleTemplateActive('${t.id}', ${!t.active})" title="${t.active ? 'Deactivate' : 'Activate'}"
+      style="background:${t.active?'var(--bg3)':'rgba(212,145,58,0.15)'};border:1px solid ${t.active?'var(--border)':'var(--amber-dim)'};color:${t.active?'var(--text-muted)':'var(--amber)'};padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">${t.active ? 'OFF' : 'ON'}</button>
+    <button onclick="deleteTemplate('${t.id}','${safeName}')" title="Delete"
+      style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">DEL</button>
+  </div>`;
+}
+
+async function saveTemplate(payload) {
+  // payload may include id (PATCH) or no id (POST)
+  const { id, ...body } = payload;
+  body.updated_at = new Date().toISOString();
+  try {
+    let res;
+    if (id) {
+      res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+      });
+    } else {
+      res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+      });
+    }
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error(`HTTP ${res.status} ${txt}`);
+    }
+    await loadUnitTemplates(); // refresh live cache
+    await loadTemplatesAdmin();
+    return true;
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    return false;
+  }
+}
+
+async function toggleTemplateActive(id, makeActive) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ active: !!makeActive, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    alert('Toggle failed: ' + e.message);
+  }
+}
+
+async function deleteTemplate(id, name) {
+  if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+async function seedUnitTemplates() {
+  if (!isSuperuser()) { alert('Superuser only.'); return; }
+  if (!confirm(`This will insert all ${UNITS.length} hardcoded unit templates into the database. Existing rows are not modified. Continue?`)) return;
+  const rows = UNITS.map(u => ({
+    name: u.name,
+    category: u.section || u.category || 'custom',
+    subcategory: u.subcategory || u.group || '',
+    parts: u.parts || [],
+    meta: {
+      width:  u.width  ?? null,
+      height: u.height ?? null,
+      depth:  u.depth  ?? null,
+      icon:   u.icon   ?? null,
+      tags:   u.tags || [],
+      sortOrder: u.sortOrder || 0,
+      legacyId: u.id || null,
+      price:  u.price ?? null,
+    },
+    active: true,
+  }));
+  _setTplStatus(`Seeding ${rows.length} templates…`);
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error(`HTTP ${res.status} ${txt}`);
+    }
+    alert(`Seeded ${rows.length} templates successfully.`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    _setTplStatus(e.message, true);
+    alert('Seed failed: ' + e.message);
+  }
+}
+
+function openTemplateEditor(id) {
+  if (!isAdmin()) return;
+  const existing = id ? (window._adminTemplates || []).find(t => t.id === id) : null;
+  document.getElementById('tpl-edit-modal')?.remove();
+
+  const data = existing || { name:'', category:'custom', subcategory:'', parts:[], meta:{}, active:true };
+  const partsJson = JSON.stringify(data.parts || [], null, 2);
+  const metaJson  = JSON.stringify(data.meta  || {}, null, 2);
+
+  const modal = document.createElement('div');
+  modal.id = 'tpl-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9600;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:2.5px;color:var(--text)">${existing ? '✏ EDIT TEMPLATE' : '+ NEW TEMPLATE'}</div>
+        <button onclick="document.getElementById('tpl-edit-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:18px 20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">NAME</span>
+            <input id="tpl-f-name" type="text" value="${(data.name||'').replace(/"/g,'&quot;')}"
+              style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">CATEGORY</span>
+            <select id="tpl-f-cat" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;outline:none">
+              ${['kitchen','mainbedroom','sparebedroom','linnekast','bathroom','custom','fillers','floor','wall','bedroom']
+                .map(c => `<option value="${c}" ${c===(data.category||'custom')?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">SUBCATEGORY</span>
+            <input id="tpl-f-sub" type="text" value="${(data.subcategory||'').replace(/"/g,'&quot;')}" placeholder="e.g. Base Units"
+              style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          </label>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">PARTS (JSON ARRAY)</span>
+          <textarea id="tpl-f-parts" rows="14"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical">${partsJson}</textarea>
+          <span style="font-size:10px;color:var(--text-muted)">Each part: {name, qty, l, w, mat, el1, el2, ew1, ew2, holes}</span>
+        </label>
+
+        <label style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">META (JSON OBJECT)</span>
+          <textarea id="tpl-f-meta" rows="6"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical">${metaJson}</textarea>
+          <span style="font-size:10px;color:var(--text-muted)">{ width, height, depth, icon, tags, sortOrder }</span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">
+          <input id="tpl-f-active" type="checkbox" ${data.active ? 'checked' : ''}>
+          <span>Active (visible to all users)</span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <span id="tpl-edit-err" style="font-size:11px;color:#e05252;flex:1"></span>
+        <button onclick="document.getElementById('tpl-edit-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+        <button onclick="submitTemplateEditor(${existing ? `'${existing.id}'` : 'null'})" style="background:var(--amber);color:#111;border:none;padding:8px 22px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">💾 SAVE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('tpl-f-name').focus();
+}
+
+async function submitTemplateEditor(id) {
+  const errEl = document.getElementById('tpl-edit-err');
+  if (errEl) errEl.textContent = '';
+  const name = document.getElementById('tpl-f-name').value.trim();
+  const category = document.getElementById('tpl-f-cat').value;
+  const subcategory = document.getElementById('tpl-f-sub').value.trim();
+  const partsTxt = document.getElementById('tpl-f-parts').value.trim() || '[]';
+  const metaTxt  = document.getElementById('tpl-f-meta').value.trim()  || '{}';
+  const active   = document.getElementById('tpl-f-active').checked;
+
+  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; return; }
+  let parts, meta;
+  try { parts = JSON.parse(partsTxt); if (!Array.isArray(parts)) throw new Error('parts must be a JSON array'); }
+  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; return; }
+  try { meta  = JSON.parse(metaTxt); if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) throw new Error('meta must be a JSON object'); }
+  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; return; }
+
+  const payload = { id, name, category, subcategory, parts, meta, active };
+  const ok = await saveTemplate(payload);
+  if (ok) document.getElementById('tpl-edit-modal')?.remove();
 }
 
 // Quantities — seed from all effective units
@@ -3851,14 +4637,20 @@ function _renderPanel() {
               const rp = applyMaterials(p, u);
               const edgeSides = [rp.el1,rp.el2,rp.ew1,rp.ew2].filter(Boolean);
               const edgeShort = [...new Set(edgeSides.map(e => e.replace(/ Edging.*$/,'').replace(/ \d+mm$/,'')))].join(', ') || '—';
-              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              const holesTxt = (p.holes||'').toString().trim();
+              const notesTxt = (p.notes||'').toString().trim();
+              const extras = [];
+              if (holesTxt) extras.push(`<span title="Holes" style="display:inline-block;background:rgba(212,145,58,0.10);border:1px solid rgba(212,145,58,0.30);color:var(--amber-dim);font-size:10px;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace">⊙ ${holesTxt.replace(/</g,'&lt;')}</span>`);
+              if (notesTxt) extras.push(`<span title="Notes" style="display:inline-block;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 6px;border-radius:2px;font-style:italic">✎ ${notesTxt.replace(/</g,'&lt;')}</span>`);
+              const extrasRow = extras.length ? `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))"><td colspan="6" style="padding:0 8px 6px 28px;display:flex;flex-wrap:wrap;gap:6px">${extras.join('')}</td></tr>` : '';
+              return `<tr style="border-bottom:${extras.length?'none':'1px solid var(--border-inner,rgba(255,255,255,0.06))'}">
                 <td style="padding:4px 8px;color:var(--text)">${p.name||'Part'}</td>
                 <td style="padding:4px 8px;text-align:center;color:var(--text-muted)">${p.qty||1}</td>
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.l||0}</td>
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.w||0}</td>
                 <td style="padding:4px 8px;color:var(--text-muted);font-size:10px">${rp.mat||''}</td>
                 <td style="padding:4px 8px;text-align:center;color:var(--amber-dim);font-size:10px">${edgeShort}</td>
-              </tr>`;
+              </tr>${extrasRow}`;
             }).join('')}
           </tbody>
         </table>
@@ -4121,10 +4913,14 @@ function generateCutlist() {
     });
   });
 
-  // Consolidate identical parts (same dims + mat + edges)
+  // Consolidate identical parts (same dims + mat + edges + holes/notes).
+  // Holes/notes MUST be part of the key — otherwise parts with different
+  // per-unit holes (e.g. 3 plain doors + 2 with hinge holes at the same
+  // size) get merged into one row and the hole spec is lost.
   const consolidated = {};
   allParts.forEach(p => {
-    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${p._panelKey||''}`;
+    const holesNorm = (p.holes||'').trim();
+    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${p._panelKey||''}|${holesNorm}`;
     if (consolidated[key]) {
       consolidated[key].qty += p.qty;
       consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
@@ -8201,6 +8997,27 @@ function setMatSpecialOrder(mat, isSpecial) {
   renderPricesView();
 }
 
+// Update the supplier-set sheet dimension (L or W, in mm) for a material
+// Pushes to Supabase so the new dimension reaches all users via meta.
+async function updateMatSheetDim(matName, axis, value) {
+  const val = parseInt(value) || 0;
+  if (val <= 0) return;
+  if (!costingPrices.matSheetDims) costingPrices.matSheetDims = {};
+  if (!costingPrices.matSheetDims[matName]) costingPrices.matSheetDims[matName] = { l: 2750, w: 1830 };
+  costingPrices.matSheetDims[matName][axis] = val;
+  saveCostingPrices();
+  const dims = costingPrices.matSheetDims[matName];
+  const meta = {
+    fullSheet:    costingPrices.matFullSheet?.[matName]    || false,
+    specialOrder: costingPrices.matSpecialOrder?.[matName] || false,
+    minSheets:    costingPrices.matMinSheets?.[matName]    || 0,
+    sheetL:       dims.l,
+    sheetW:       dims.w,
+  };
+  await pushSupplierPrice('board', matName, costingPrices.mat[matName] || 0, meta);
+  refreshCostingResults();
+}
+
 // Toggle full-sheet-purchase flag for a material
 // When set: billing always rounds up to whole sheets, supplier supplies offcuts
 function setMatFullSheet(mat, isFullSheet) {
@@ -8270,6 +9087,7 @@ const costingPrices = {
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
   matPriceDates: {},   // { [matName]: ISO string } — when price was last updated by supplier
+  matSheetDims: {},    // { [matName]: { l, w } } — supplier-set sheet dimensions (mm); falls back to MATERIAL_SHEET_DEFAULTS
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
   tops: {
@@ -8291,6 +9109,7 @@ try {
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
   if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
   if (saved.matPriceDates)   Object.assign(costingPrices.matPriceDates,   saved.matPriceDates);
+  if (saved.matSheetDims)    Object.assign(costingPrices.matSheetDims,    saved.matSheetDims);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
   if (saved.hiddenMats)   costingPrices.hiddenMats = saved.hiddenMats;
@@ -8578,6 +9397,7 @@ async function onLoginSuccess() {
   await loadUserJobs();
   if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
+  await loadUnitTemplates();
   checkFeedbackUnread();
   // Start trial countdown badge for users with a trial expiry
   initTrialCountdown();
@@ -8974,17 +9794,23 @@ function showUsersTab(tab) {
   const isUsers     = tab === 'users';
   const isFeedback  = tab === 'feedback';
   const isSuppliers = tab === 'suppliers';
+  const isTemplates = tab === 'templates';
   document.getElementById('um-panel-users').style.display     = isUsers     ? 'flex' : 'none';
   document.getElementById('um-panel-feedback').style.display  = isFeedback  ? 'flex' : 'none';
   const supPanel = document.getElementById('um-panel-suppliers');
   if (supPanel) supPanel.style.display = isSuppliers ? 'flex' : 'none';
+  const tplPanel = document.getElementById('um-panel-templates');
+  if (tplPanel) tplPanel.style.display = isTemplates ? 'flex' : 'none';
   const styleFor = (active) => `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
   document.getElementById('um-tab-users').style.cssText    = styleFor(isUsers);
   document.getElementById('um-tab-feedback').style.cssText = styleFor(isFeedback);
   const supTab = document.getElementById('um-tab-suppliers');
   if (supTab) supTab.style.cssText = styleFor(isSuppliers);
+  const tplTab = document.getElementById('um-tab-templates');
+  if (tplTab) tplTab.style.cssText = styleFor(isTemplates);
   if (isFeedback) { clearFeedbackDot(); loadFeedbackInbox(); }
   if (isSuppliers && typeof loadSuppliersTab === 'function') loadSuppliersTab();
+  if (isTemplates) loadTemplatesAdmin();
 }
 function openUsersModal() {
   document.getElementById('users-modal').style.display = 'flex';
@@ -9239,32 +10065,69 @@ async function loadFeedbackInbox() {
         dot.style.display = 'none'; fbBtn.style.borderColor = ''; fbBtn.style.color = '';
       }
     }
-    el.innerHTML = rows.map(r => {
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;padding:12px">' + rows.map(r => {
       const date = new Date(r.created_at).toLocaleString('en-ZA', {
         day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
       });
-      const catColor = r.category === 'Bug report' ? '#e07070'
-        : r.category === 'Feature request' ? '#4caf82'
-        : r.category === 'Pricing / boards' ? 'var(--amber)'
-        : 'var(--text-muted)';
-      return `<div id="fb-row-${r.id}" style="padding:14px 16px;border-bottom:1px solid var(--border);${r.read ? 'opacity:0.45' : ''}">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:10px;border:1px solid ${catColor};color:${catColor};padding:1px 7px;letter-spacing:1px;font-family:'Oswald',sans-serif">${r.category}</span>
-            ${r.tab ? `<span style="font-size:10px;color:var(--text-muted)">on: ${escHtml(r.tab)}</span>` : ''}
-            <span style="font-size:11px;color:var(--amber-dim)">${escHtml(r.user_email)}</span>
+      // Color-coded accents per category
+      const cat = r.category || 'General';
+      const catColor =
+          cat === 'Bug report'                ? '#e07070'        // red
+        : cat === 'Feature request'           ? '#5b9fd6'        // blue
+        : cat === 'Trial Extension Request'   ? 'var(--amber)'   // amber
+        : cat === 'Subscription Request'      ? '#5dba6e'        // green
+        : cat === 'Pricing / boards'          ? '#c98a3a'        // orange-amber
+        : 'var(--text-muted)';                                   // general / fallback
+      const isUnread = !r.read;
+      // Card: stronger separation via background + 4px left accent border + outer border
+      const cardStyle = [
+        `border-left:4px solid ${catColor}`,
+        'border-top:1px solid var(--border)',
+        'border-right:1px solid var(--border)',
+        'border-bottom:1px solid var(--border)',
+        `background:${isUnread ? 'var(--bg2)' : 'var(--bg)'}`,
+        'padding:14px 16px',
+        `box-shadow:${isUnread ? '0 1px 0 rgba(0,0,0,0.15)' : 'none'}`,
+        `opacity:${isUnread ? '1' : '0.6'}`
+      ].join(';');
+      // Badge: filled pill in category colour
+      const badgeStyle = [
+        `background:${catColor}`,
+        'color:#111',
+        'font-size:10px',
+        'padding:3px 9px',
+        'letter-spacing:1.2px',
+        "font-family:'Oswald',sans-serif",
+        'font-weight:600',
+        'text-transform:uppercase',
+        'border-radius:2px',
+        'flex-shrink:0'
+      ].join(';');
+      const newPill = isUnread
+        ? `<span style="background:${catColor};color:#111;font-size:9px;padding:2px 6px;letter-spacing:1.5px;font-family:'Oswald',sans-serif;font-weight:700;border-radius:2px">NEW</span>`
+        : '';
+      return `<div id="fb-row-${r.id}" data-read="${isUnread ? '0' : '1'}" style="${cardStyle}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0">
+            <span style="${badgeStyle}">${escHtml(cat)}</span>
+            ${newPill}
+            ${r.tab ? `<span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">ON: ${escHtml(r.tab).toUpperCase()}</span>` : ''}
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
             <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${date}</span>
-            ${!r.read
-              ? `<button onclick="markFeedbackRead('${r.id}')" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">\u2713 Mark read</button>`
-              : '<span style="font-size:10px;color:var(--text-muted)">Read</span>'}
+            ${isUnread
+              ? `<button onclick="markFeedbackRead('${r.id}')" style="background:none;border:1px solid var(--border-light);color:var(--text);font-size:10px;padding:3px 9px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;border-radius:2px" onmouseover="this.style.borderColor='${catColor}';this.style.color='${catColor}'" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text)'">\u2713 MARK READ</button>`
+              : '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>'}
           </div>
         </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap">${escHtml(r.message)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--border)">
+          <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">FROM</span>
+          <span style="font-size:12px;color:var(--text);font-family:'JetBrains Mono',monospace;word-break:break-all">${escHtml(r.user_email || 'unknown')}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.65;white-space:pre-wrap;font-family:'Barlow',sans-serif;border:1px solid var(--border-light, var(--border));border-radius:3px;padding:10px 12px;background:rgba(255,255,255,0.015)">${escHtml(r.message)}</div>
         ${r.screenshot_base64 ? `
-        <details style="margin-top:10px">
-          <summary style="font-size:11px;color:var(--amber-dim);cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
+        <details style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">
+          <summary style="font-size:11px;color:${catColor};cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;list-style:none;display:inline-flex;align-items:center;gap:5px">
             <span style="font-size:9px">&#x25B6;</span> SCREENSHOT ATTACHED
           </summary>
           <div style="margin-top:8px">
@@ -9275,7 +10138,7 @@ async function loadFeedbackInbox() {
           </div>
         </details>` : ''}
       </div>`;
-    }).join('');
+    }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = `<div style="padding:16px;color:#e07070;font-size:13px">Failed to load: ${e.message}</div>`;
   }
@@ -9290,15 +10153,21 @@ async function markFeedbackRead(id) {
     });
     const row = document.getElementById(`fb-row-${id}`);
     if (row) {
-      row.style.opacity = '0.45';
+      row.style.opacity = '0.6';
+      row.style.background = 'var(--bg)';
+      row.style.boxShadow = 'none';
+      row.setAttribute('data-read', '1');
       const btn = row.querySelector('button');
-      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted)">Read</span>';
+      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>';
+      // Remove the NEW pill once the message is marked read
+      row.querySelectorAll('span').forEach(s => { if (s.textContent.trim() === 'NEW') s.remove(); });
     }
-    // Update badge count
+    // Update badge count — count rows that have NOT been marked read
     const badge = document.getElementById('fb-inbox-badge');
     if (badge) {
-      const unread = document.querySelectorAll('[id^="fb-row-"]').length -
-        document.querySelectorAll('[id^="fb-row-"][style*="opacity:0.45"]').length;
+      const total  = document.querySelectorAll('[id^="fb-row-"]').length;
+      const read   = document.querySelectorAll('[id^="fb-row-"][data-read="1"]').length;
+      const unread = total - read;
       badge.textContent = unread > 0 ? ` (${unread} unread)` : '';
     }
   } catch(e) { console.warn('Mark read failed:', e.message); }
@@ -9612,19 +10481,55 @@ function showTrialExpiredScreen(email) {
   el.id = 'trial-expired-screen';
   el.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
   el.innerHTML = `
-    <div style="text-align:center;max-width:420px;padding:40px 32px">
+    <div style="text-align:center;max-width:480px;padding:40px 32px">
       <div style="font-size:48px;margin-bottom:20px">⏳</div>
       <div style="font-family:'Oswald',sans-serif;font-size:24px;letter-spacing:3px;color:var(--text);margin-bottom:12px">TRIAL EXPIRED</div>
-      <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:28px">
-        Your trial period for <strong style="color:var(--text)">${email}</strong> has ended.<br>
-        Contact us to continue using Cutlist Pro.
+      <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:24px">
+        Your trial period for <strong style="color:var(--text)">${email}</strong> has ended.
       </div>
-      <button onclick="doLogout()"
-        style="background:var(--amber);color:#111;border:none;padding:10px 28px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+        <button id="tes-extend-btn"
+          style="padding:16px 12px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
+            color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'Barlow',sans-serif">
+          <span style="font-size:26px">📅</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">REQUEST EXTENSION</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Ask for more time</span>
+        </button>
+        <button id="tes-subscribe-btn"
+          style="padding:16px 12px;border:2px solid var(--amber);background:rgba(212,145,58,0.15);
+            color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:'Barlow',sans-serif">
+          <span style="font-size:26px">🚀</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px">SUBSCRIBE</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:normal">Get full access</span>
+        </button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">
+        Or contact us directly to continue using Cutlist Pro.
+      </div>
+
+      <button id="tes-signout-btn"
+        style="background:none;color:var(--text-muted);border:1px solid var(--border);padding:8px 24px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">
         SIGN OUT
       </button>
     </div>`;
   document.body.appendChild(el);
+
+  // Wire buttons (CSP-safe — no inline onclick)
+  const extendBtn    = document.getElementById('tes-extend-btn');
+  const subscribeBtn = document.getElementById('tes-subscribe-btn');
+  const signoutBtn   = document.getElementById('tes-signout-btn');
+
+  if (extendBtn) extendBtn.addEventListener('click', async () => {
+    await openTrialContactModal('expired');
+    _setTrialRequestType('extend');
+  });
+  if (subscribeBtn) subscribeBtn.addEventListener('click', async () => {
+    await openTrialContactModal('expired');
+    _setTrialRequestType('subscribe');
+  });
+  if (signoutBtn) signoutBtn.addEventListener('click', () => doLogout());
 }
 
 // ── Trial Countdown Badge ─────────────────────────────────────────────────────
@@ -9739,7 +10644,7 @@ async function openTrialContactModal(state) {
 
   const overlay = document.createElement('div');
   overlay.id = 'trial-contact-modal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100000;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
 
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;
@@ -10224,8 +11129,8 @@ function openTemplateBrowser() {
   ];
 
   // Include saved custom templates (admin/superuser's own database) alongside
-  // the built-in UNITS array so users can copy any template they've defined.
-  const allAdminUnits = [...UNITS, ...customUnits];
+  // the live template library so users can copy any template they've defined.
+  const allAdminUnits = [...getUnitTemplates(), ...customUnits];
   let tabsHtml = adminSections.map((s,i) => {
     const count = allAdminUnits.filter(u => u.section === s.id).length;
     return `<button class="tab ${i===0?'active':''}" onclick="switchTplTab(this,'${s.id}')"
@@ -10246,6 +11151,13 @@ function openTemplateBrowser() {
         <button onclick="document.getElementById('template-browser-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
       </div>
       <div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 12px;background:var(--bg2)">${tabsHtml}</div>
+      <div style="padding:10px 20px;background:rgba(212,145,58,0.08);border-bottom:1px solid var(--amber-dim);flex-shrink:0;display:flex;align-items:flex-start;gap:10px">
+        <div style="color:var(--amber);font-size:14px;line-height:1.2;flex-shrink:0">&#9432;</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.5;font-style:italic">
+          Template units are for reference only. Always verify dimensions and parts suit your specific project before use.
+        </div>
+      </div>
+      <div id="tpl-copy-toast" style="display:none;padding:8px 20px;background:rgba(212,145,58,0.18);border-bottom:1px solid var(--amber-dim);flex-shrink:0;font-size:11px;color:var(--amber);text-align:center;letter-spacing:0.5px"></div>
       <div id="tpl-unit-list" style="flex:1;overflow-y:auto;padding:12px 20px"></div>
       <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;font-size:11px;color:var(--text-muted)">
         Click any unit to copy it. You can copy as many as you need and edit them afterwards in the Unit Editor.
@@ -10264,7 +11176,7 @@ function switchTplTab(btn, sectionId) {
 function renderTplTab(sectionId) {
   // Include saved customUnits so users can copy from the full template database,
   // not just the hardcoded built-ins.
-  const units = [...UNITS, ...customUnits].filter(u => u.section === sectionId);
+  const units = [...getUnitTemplates(), ...customUnits].filter(u => u.section === sectionId);
   const list = document.getElementById('tpl-unit-list');
   if (!list) return;
 
@@ -10287,9 +11199,9 @@ function renderTplTab(sectionId) {
 }
 
 function copyTemplateUnit(templateUnitId) {
-  // Look up in UNITS first, then fall back to customUnits so admin/superuser
-  // templates are also copyable from the browser.
-  const template = UNITS.find(u => u.id === templateUnitId)
+  // Look up in the live template library first, then fall back to customUnits
+  // so admin/superuser templates are also copyable from the browser.
+  const template = getUnitTemplates().find(u => u.id === templateUnitId)
                 || customUnits.find(u => u.id === templateUnitId);
   if (!template) return;
   const id = 'uu_' + Date.now() + '_' + Math.floor(Math.random()*1000);
@@ -10306,6 +11218,23 @@ function copyTemplateUnit(templateUnitId) {
   if (activeTab) renderTplTab(activeTab.dataset.tpltab);
   renderPanel();
   scheduleAutoSave();
+
+  // First-copy-per-session inline notice — gentle reminder to verify the template
+  const toast = document.getElementById('tpl-copy-toast');
+  if (toast) {
+    if (!window._tplCopyNoticeShown) {
+      toast.textContent = '✓ Template unit added. Remember to check dimensions and parts for your project.';
+      window._tplCopyNoticeShown = true;
+    } else {
+      toast.textContent = '✓ Template unit added.';
+    }
+    toast.style.display = 'block';
+    clearTimeout(window._tplCopyToastTimer);
+    window._tplCopyToastTimer = setTimeout(() => {
+      const t = document.getElementById('tpl-copy-toast');
+      if (t) t.style.display = 'none';
+    }, 4000);
+  }
 }
 
 // ── applyRoleRestrictions: merged ─────────────────────────────────────────────
@@ -10316,6 +11245,13 @@ function applyRoleRestrictions() {
   // Users button: admin only
   const usersBtn = document.getElementById('users-btn');
   if (usersBtn) usersBtn.style.display = canManageUsers() ? 'block' : 'none';
+
+  // Unit Templates tab inside Users modal: admin + superuser
+  const tplTab = document.getElementById('um-tab-templates');
+  if (tplTab) tplTab.style.display = isAdmin() ? '' : 'none';
+  // Seed-from-code button: superuser only
+  const seedBtn = document.getElementById('tpl-seed-btn');
+  if (seedBtn) seedBtn.style.display = isSuperuser() ? '' : 'none';
 
   // ── Supplier role ─────────────────────────────────────────────────────────────
   if (isSupplier()) {
@@ -10331,7 +11267,7 @@ function applyRoleRestrictions() {
       if (dividers[0]) dividers[0].style.display = 'none';
     }, 50);
     // Hide tools tabs supplier doesn't need
-    ['cutlist-tab','summary-tab','editor-tab','quote-price-tab',
+    ['cutlist-tab','optimize-tab','summary-tab','editor-tab','quote-price-tab',
      'costing-tab','materials-tab','builder-tab','pl-tab'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
@@ -10526,9 +11462,9 @@ function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
-  const isBuiltin = isBuiltinHint || (!unit && !!UNITS.find(u => u.id === unitId));
+  const isBuiltin = isBuiltinHint || (!unit && !!getUnitTemplates().find(u => u.id === unitId));
   if (!unit) {
-    const tmpl = UNITS.find(u => u.id === unitId);
+    const tmpl = getUnitTemplates().find(u => u.id === unitId);
     if (!tmpl) return;
     unit = JSON.parse(JSON.stringify({ ...tmpl, ...(unitOverrides[unitId] || {}) }));
     source = 'new_custom';
@@ -10651,11 +11587,11 @@ function saveUnitParts(unitId) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
-  // Built-in UNITS template: use unitOverrides so the original id/quantity is
+  // Built-in template: use unitOverrides so the original id/quantity is
   // preserved and no duplicate entry appears in the picker after refresh.
   let isBuiltin = false;
   if (!unit) {
-    const tmpl = UNITS.find(u => u.id === unitId);
+    const tmpl = getUnitTemplates().find(u => u.id === unitId);
     if (!tmpl) return;
     // Start from any existing override so we don't drop name/section changes
     unit = { ...tmpl, ...(unitOverrides[unitId] || {}) };
@@ -10822,6 +11758,7 @@ async function loadSupplierPrices() {
     costingPrices.matSpecialOrder = {};
     costingPrices.matMinSheets    = {};
     costingPrices.matPriceDates   = {};
+    costingPrices.matSheetDims    = {};
 
     rows.forEach(row => {
       if (row.category === 'board') {
@@ -10835,6 +11772,10 @@ async function loadSupplierPrices() {
           if (m.minSheets != null)      costingPrices.matMinSheets[row.name]    = m.minSheets;
           if (m.priceUpdatedAt)         costingPrices.matPriceDates[row.name]   = m.priceUpdatedAt;
           else if (row.updated_at)      costingPrices.matPriceDates[row.name]   = row.updated_at;
+          // Supplier-set sheet dimensions (mm)
+          const _sL = parseInt(m.sheetL) || 0;
+          const _sW = parseInt(m.sheetW) || 0;
+          if (_sL > 0 && _sW > 0) costingPrices.matSheetDims[row.name] = { l: _sL, w: _sW };
         } else if (row.updated_at) {
           costingPrices.matPriceDates[row.name] = row.updated_at;
         }
@@ -11091,6 +12032,492 @@ async function reloadSupplierPrices() {
   }
 }
 
+// ─── Bulk Price Adjustment ────────────────────────────────────────────────────
+let _bulkAdjCats = { boards: true, edges: true, services: true };
+
+function openBulkAdjustModal() {
+  _bulkAdjCats = { boards: true, edges: true, services: true };
+  document.getElementById('bulk-adjust-pct').value = '0';
+  document.getElementById('bulk-adjust-error').style.display = 'none';
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+  document.getElementById('bulk-adjust-modal').style.display = 'flex';
+}
+
+function closeBulkAdjustModal() {
+  document.getElementById('bulk-adjust-modal').style.display = 'none';
+}
+
+function toggleBulkCat(cat) {
+  _bulkAdjCats[cat] = !_bulkAdjCats[cat];
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+}
+
+function setBulkAllCats(val) {
+  _bulkAdjCats = { boards: val, edges: val, services: val };
+  updateBulkToggleStyles();
+  updateBulkAdjustPreview();
+}
+
+function updateBulkToggleStyles() {
+  const labels = { boards: 'BOARDS', edges: 'EDGING', services: 'SERVICES' };
+  ['boards', 'edges', 'services'].forEach(cat => {
+    const btn = document.getElementById('bulk-tog-' + cat);
+    if (!btn) return;
+    const on = _bulkAdjCats[cat];
+    btn.style.border = `1px solid ${on ? 'var(--amber)' : 'var(--border)'}`;
+    btn.style.background = on ? 'rgba(212,145,58,0.15)' : 'var(--bg4)';
+    btn.style.color = on ? 'var(--amber)' : 'var(--text-muted)';
+    btn.textContent = (on ? '✓ ' : '') + labels[cat];
+  });
+}
+
+function _buildBulkItems(pct) {
+  const mult = 1 + pct / 100;
+  const round2 = v => Math.round(v * 100) / 100;
+  const items = [];
+  if (_bulkAdjCats.boards) {
+    Object.entries(costingPrices.mat).forEach(([name, price]) => {
+      if (price > 0) items.push({ cat: 'board', label: name, before: price, after: round2(price * mult), name });
+    });
+  }
+  if (_bulkAdjCats.edges) {
+    Object.entries(costingPrices.edge).forEach(([name, price]) => {
+      if (price > 0) items.push({ cat: 'edge', label: name, before: price, after: round2(price * mult), name });
+    });
+  }
+  if (_bulkAdjCats.services) {
+    [
+      { key: 'cutLabel',         label: 'Cut & Label – Boards',   dbName: 'Cut & Label - Boards' },
+      { key: 'cutLabelMasonite', label: 'Cut & Label – Masonite', dbName: 'Cut & Label - Masonite' },
+      { key: 'drilling',         label: 'Hinge Drilling',         dbName: 'Hinge Drilling' },
+      { key: 'hPrice',           label: 'Supplier Handling',      dbName: 'Supplier HPrice' },
+    ].forEach(({ key, label, dbName }) => {
+      const price = costingPrices.extras[key] || 0;
+      if (price > 0) items.push({ cat: 'service', label, before: price, after: round2(price * mult), name: dbName, extrasKey: key });
+    });
+    costingPrices.specialServices.forEach(svc => {
+      if (svc.price > 0) items.push({ cat: 'special_service', label: svc.name, before: svc.price, after: round2(svc.price * mult), name: svc.id, svcRef: svc });
+    });
+  }
+  return items;
+}
+
+let _bulkAdjTimer = null;
+function updateBulkAdjustPreview() {
+  clearTimeout(_bulkAdjTimer);
+  _bulkAdjTimer = setTimeout(() => {
+    const pct = parseFloat(document.getElementById('bulk-adjust-pct').value) || 0;
+    const items = _buildBulkItems(pct);
+    const noneSelected = !_bulkAdjCats.boards && !_bulkAdjCats.edges && !_bulkAdjCats.services;
+    const disabled = pct === 0 || noneSelected;
+    const applyBtn = document.getElementById('bulk-adjust-apply-btn');
+    if (applyBtn) {
+      applyBtn.disabled = disabled;
+      applyBtn.style.opacity = disabled ? '0.4' : '1';
+      applyBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    }
+    const rows = items.map(it => {
+      const diff = it.after - it.before;
+      const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
+      const diffColor = diff >= 0 ? '#e07070' : '#5dba6e';
+      return `<div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:12px;color:var(--text)">${escHtml(it.label)}</span>
+        <span style="font-size:11px;color:var(--text-muted);padding:0 16px;font-family:'JetBrains Mono',monospace">R${it.before.toFixed(2)}</span>
+        <span style="font-size:11px;color:var(--text);padding:0 16px;font-family:'JetBrains Mono',monospace;font-weight:600">R${it.after.toFixed(2)}</span>
+        <span style="font-size:10px;color:${diffColor};font-family:'JetBrains Mono',monospace;width:60px;text-align:right">${diffStr}</span>
+      </div>`;
+    }).join('');
+    const header = `<div style="display:grid;grid-template-columns:1fr auto auto auto;padding:5px 12px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">ITEM</span>
+      <span style="font-size:10px;color:var(--text-muted);padding:0 16px;font-family:'Oswald',sans-serif;letter-spacing:1px">BEFORE</span>
+      <span style="font-size:10px;color:var(--text-muted);padding:0 16px;font-family:'Oswald',sans-serif;letter-spacing:1px">AFTER</span>
+      <span style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px;text-align:right">CHANGE</span>
+    </div>`;
+    const preview = document.getElementById('bulk-adjust-preview');
+    const count = document.getElementById('bulk-adjust-count');
+    if (preview) preview.innerHTML = items.length ? header + rows : `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">No items selected with price &gt; 0</div>`;
+    if (count) count.textContent = items.length ? `${items.length} item${items.length !== 1 ? 's' : ''} will be updated` : '';
+  }, 200);
+}
+
+async function applyBulkPriceAdjustment() {
+  const pct = parseFloat(document.getElementById('bulk-adjust-pct').value) || 0;
+  if (pct === 0) return;
+  const items = _buildBulkItems(pct);
+  if (!items.length) return;
+  const applyBtn = document.getElementById('bulk-adjust-apply-btn');
+  const errEl = document.getElementById('bulk-adjust-error');
+  errEl.style.display = 'none';
+  applyBtn.disabled = true;
+  applyBtn.textContent = 'APPLYING…';
+
+  const now = new Date().toISOString();
+  const batchPayload = [];
+
+  items.forEach(it => {
+    if (it.cat === 'board') {
+      costingPrices.mat[it.name] = it.after;
+      costingPrices.matPriceDates[it.name] = now;
+      const bm = {};
+      if (costingPrices.matFullSheet?.[it.name])    bm.fullSheet    = true;
+      if (costingPrices.matSpecialOrder?.[it.name]) bm.specialOrder = true;
+      if (costingPrices.matMinSheets?.[it.name] != null) bm.minSheets = costingPrices.matMinSheets[it.name];
+      bm.priceUpdatedAt = now;
+      batchPayload.push({ category: 'board', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify(bm) });
+    } else if (it.cat === 'edge') {
+      costingPrices.edge[it.name] = it.after;
+      batchPayload.push({ category: 'edge', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+    } else if (it.cat === 'service') {
+      costingPrices.extras[it.extrasKey] = it.after;
+      batchPayload.push({ category: 'service', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+    } else if (it.cat === 'special_service') {
+      it.svcRef.price = it.after;
+      batchPayload.push({ category: 'special_service', name: String(it.name), price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify({ name: it.svcRef.name, category: it.svcRef.category, unit: it.svcRef.unit }) });
+    }
+  });
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?on_conflict=supplier_id,name`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(batchPayload)
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { const j = JSON.parse(body); msg = j.message || j.hint || j.details || msg; } catch(e2) {}
+      throw new Error(msg);
+    }
+    saveCostingPrices();
+    refreshCostingResults();
+    sbSyncStatus = 'ok';
+    sbLastSyncTime = new Date();
+    sbLastSyncError = null;
+    renderSyncBadge();
+    closeBulkAdjustModal();
+    renderPricesView();
+  } catch(e) {
+    await loadSupplierPrices();
+    sbSyncStatus = 'error';
+    sbLastSyncError = e.message;
+    renderSyncBadge();
+    errEl.textContent = `Failed to apply: ${e.message}`;
+    errEl.style.display = 'block';
+    applyBtn.disabled = false;
+    applyBtn.textContent = 'APPLY TO DATABASE';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPLIER PRICE IMPORT — CSV / XLSX upload → bulk update supplier_prices
+// ─────────────────────────────────────────────────────────────────────────────
+let _importParsedRows = [];
+
+function openImportPricesModal() {
+  if (!canEditPrices()) return;
+  _importParsedRows = [];
+  document.getElementById('import-file-name').textContent = '';
+  document.getElementById('import-error').style.display = 'none';
+  document.getElementById('import-summary').style.display = 'none';
+  document.getElementById('import-preview-wrap').style.display = 'none';
+  document.getElementById('import-preview').innerHTML = '';
+  const btn = document.getElementById('import-prices-confirm-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  btn.style.cursor = 'not-allowed';
+  btn.textContent = 'IMPORT';
+  const inp = document.getElementById('import-file-input');
+  if (inp) inp.value = '';
+  document.getElementById('import-prices-modal').style.display = 'flex';
+}
+
+function closeImportPricesModal() {
+  document.getElementById('import-prices-modal').style.display = 'none';
+}
+
+function downloadPriceTemplate() {
+  const header = 'name,type,price,sheet_l,sheet_w,min_sheets,full_sheet,special_order';
+  const examples = [
+    'White Melamine 18mm,board,1760,2750,1830,0.25,false,false',
+    'Dunblane Edging 1mm White,edge,18,,,,,',
+    'CNC Cut-out Round,service,85,,,,,'
+  ].join('\n');
+  const blob = new Blob([header + '\n' + examples], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'price-list-template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function handleImportFileSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (file) processImportFile(file);
+}
+
+function handleImportFileDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('import-drop-zone');
+  if (dz) { dz.style.background = 'var(--bg3)'; dz.style.borderColor = 'var(--amber-dim)'; }
+  const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+  if (file) processImportFile(file);
+}
+
+async function processImportFile(file) {
+  const errEl = document.getElementById('import-error');
+  errEl.style.display = 'none';
+  document.getElementById('import-file-name').textContent = file.name;
+  try {
+    const rows = await parsePriceFile(file);
+    if (!rows || !rows.length) throw new Error('File contains no data rows.');
+    _importParsedRows = rows;
+    renderImportPreview(rows);
+  } catch (e) {
+    _importParsedRows = [];
+    errEl.textContent = e.message || String(e);
+    errEl.style.display = 'block';
+    document.getElementById('import-summary').style.display = 'none';
+    document.getElementById('import-preview-wrap').style.display = 'none';
+    const btn = document.getElementById('import-prices-confirm-btn');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+async function parsePriceFile(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'csv') return parsePriceCsv(await file.text());
+  if (ext === 'xlsx' || ext === 'xls') return parsePriceXlsx(file);
+  throw new Error('Unsupported file type. Use CSV or XLSX.');
+}
+
+function _splitCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQ = false; }
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function parsePriceCsv(text) {
+  const lines = text.replace(/\r/g, '').trim().split('\n').filter(l => l.trim());
+  if (!lines.length) return [];
+  const headers = _splitCsvLine(lines[0]).map(h => h.toLowerCase().trim());
+  return lines.slice(1).map(line => {
+    const cols = _splitCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+    return row;
+  });
+}
+
+async function parsePriceXlsx(file) {
+  if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS not loaded — cannot parse XLSX.');
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await file.arrayBuffer());
+  const ws = workbook.worksheets[0];
+  if (!ws) throw new Error('No worksheet found in file.');
+  const headers = [];
+  const rows = [];
+  ws.eachRow((row, ri) => {
+    if (ri === 1) {
+      row.eachCell((c, ci) => { headers[ci - 1] = String(c.value ?? '').toLowerCase().trim(); });
+      return;
+    }
+    const obj = {};
+    row.eachCell((c, ci) => {
+      const key = headers[ci - 1];
+      if (key) {
+        let v = c.value;
+        if (v && typeof v === 'object' && 'result' in v) v = v.result;
+        if (v && typeof v === 'object' && 'text' in v) v = v.text;
+        obj[key] = v == null ? '' : String(v).trim();
+      }
+    });
+    if (Object.values(obj).some(v => v !== '')) rows.push(obj);
+  });
+  return rows;
+}
+
+function _classifyImportRow(row) {
+  const type = (row.type || '').toLowerCase().trim();
+  const name = (row.name || '').trim();
+  const price = parseFloat(row.price);
+  if (!name) return { status: 'invalid', reason: 'missing name' };
+  if (!['board', 'edge', 'service'].includes(type)) return { status: 'unrecognised', reason: 'bad type' };
+  if (isNaN(price) || price <= 0) return { status: 'invalid', reason: 'bad price' };
+  // Match by case-insensitive name against existing pools
+  const lcName = name.toLowerCase();
+  const existing =
+    (type === 'board' && Object.keys(costingPrices.mat || {}).some(k => k.toLowerCase() === lcName)) ||
+    (type === 'edge'  && Object.keys(costingPrices.edge || {}).some(k => k.toLowerCase() === lcName));
+  return { status: existing ? 'matched' : 'new', type, name, price };
+}
+
+function renderImportPreview(rows) {
+  let matched = 0, isNew = 0, unrecognised = 0, invalid = 0;
+  const classed = rows.map(r => ({ row: r, info: _classifyImportRow(r) }));
+  classed.forEach(c => {
+    if (c.info.status === 'matched') matched++;
+    else if (c.info.status === 'new') isNew++;
+    else if (c.info.status === 'unrecognised') unrecognised++;
+    else invalid++;
+  });
+
+  const previewRows = classed.slice(0, 10).map(c => {
+    const r = c.row;
+    const colorMap = {
+      matched: '#5dba6e',
+      new: 'var(--amber)',
+      unrecognised: '#e07070',
+      invalid: '#e07070',
+    };
+    const labelMap = {
+      matched: 'MATCH',
+      new: 'NEW',
+      unrecognised: 'BAD TYPE',
+      invalid: 'INVALID',
+    };
+    const c1 = colorMap[c.info.status];
+    return `<div style="display:grid;grid-template-columns:60px 1.6fr 0.7fr 0.7fr 0.8fr 0.8fr;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;font-family:'JetBrains Mono',monospace">
+      <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:${c1}">${labelMap[c.info.status]}</span>
+      <span style="color:var(--text)">${escHtml(r.name || '')}</span>
+      <span style="color:var(--text-muted)">${escHtml((r.type || '').toLowerCase())}</span>
+      <span style="color:var(--text);text-align:right;padding-right:10px">${escHtml(r.price || '')}</span>
+      <span style="color:var(--text-muted);text-align:right;padding-right:10px">${escHtml(r.sheet_l || '')}</span>
+      <span style="color:var(--text-muted);text-align:right;padding-right:10px">${escHtml(r.sheet_w || '')}</span>
+    </div>`;
+  }).join('');
+
+  const header = `<div style="display:grid;grid-template-columns:60px 1.6fr 0.7fr 0.7fr 0.8fr 0.8fr;padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted)">
+    <span>STATUS</span>
+    <span>NAME</span>
+    <span>TYPE</span>
+    <span style="text-align:right;padding-right:10px">PRICE</span>
+    <span style="text-align:right;padding-right:10px">SHEET L</span>
+    <span style="text-align:right;padding-right:10px">SHEET W</span>
+  </div>`;
+
+  document.getElementById('import-preview').innerHTML = header + previewRows
+    + (rows.length > 10 ? `<div style="padding:6px 10px;font-size:10px;color:var(--text-muted);font-style:italic;text-align:center">… and ${rows.length - 10} more rows</div>` : '');
+  document.getElementById('import-preview-wrap').style.display = 'block';
+
+  const skipped = unrecognised + invalid;
+  const importable = matched + isNew;
+  const summary = document.getElementById('import-summary');
+  summary.innerHTML = `
+    <span style="color:#5dba6e">Matched: ${matched}</span>
+    <span style="color:var(--text-muted);margin:0 10px">|</span>
+    <span style="color:var(--amber)">New: ${isNew}</span>
+    <span style="color:var(--text-muted);margin:0 10px">|</span>
+    <span style="color:#e07070">Skipped: ${skipped}</span>
+  `;
+  summary.style.display = 'block';
+
+  const btn = document.getElementById('import-prices-confirm-btn');
+  if (importable > 0) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.textContent = `IMPORT ${importable} ROW${importable !== 1 ? 'S' : ''}`;
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'NOTHING TO IMPORT';
+  }
+}
+
+async function confirmImportPrices() {
+  if (!_importParsedRows.length) return;
+  const btn = document.getElementById('import-prices-confirm-btn');
+  const errEl = document.getElementById('import-error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = 'IMPORTING…';
+  try {
+    const result = await importPriceRows(_importParsedRows);
+    closeImportPricesModal();
+    alert(`Imported ${result.imported} row${result.imported !== 1 ? 's' : ''}, skipped ${result.skipped}.`);
+  } catch (e) {
+    errEl.textContent = `Import failed: ${e.message || e}`;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = 'RETRY IMPORT';
+  }
+}
+
+async function importPriceRows(rows) {
+  let imported = 0, skipped = 0;
+  for (const row of rows) {
+    const info = _classifyImportRow(row);
+    if (info.status !== 'matched' && info.status !== 'new') { skipped++; continue; }
+    const { type, name, price } = info;
+    let meta = {};
+    if (type === 'board') {
+      const sheetL = parseInt(row.sheet_l);
+      const sheetW = parseInt(row.sheet_w);
+      const minSheets = parseFloat(row.min_sheets);
+      if (!isNaN(sheetL) && sheetL > 0) meta.sheetL = sheetL;
+      if (!isNaN(sheetW) && sheetW > 0) meta.sheetW = sheetW;
+      if (!isNaN(minSheets)) meta.minSheets = minSheets;
+      const fullSheet = String(row.full_sheet || '').toLowerCase() === 'true';
+      const specialOrder = String(row.special_order || '').toLowerCase() === 'true';
+      if (fullSheet) meta.fullSheet = true;
+      if (specialOrder) meta.specialOrder = true;
+
+      // Update local stores so pushSupplierPrice picks them up
+      costingPrices.mat[name] = price;
+      if (meta.sheetL && meta.sheetW) {
+        costingPrices.matSheetDims = costingPrices.matSheetDims || {};
+        costingPrices.matSheetDims[name] = { l: meta.sheetL, w: meta.sheetW };
+      }
+      if ('minSheets' in meta) {
+        costingPrices.matMinSheets = costingPrices.matMinSheets || {};
+        costingPrices.matMinSheets[name] = meta.minSheets;
+      }
+      costingPrices.matFullSheet = costingPrices.matFullSheet || {};
+      costingPrices.matSpecialOrder = costingPrices.matSpecialOrder || {};
+      costingPrices.matFullSheet[name] = fullSheet;
+      costingPrices.matSpecialOrder[name] = specialOrder;
+    } else if (type === 'edge') {
+      costingPrices.edge[name] = price;
+    }
+    try {
+      await pushSupplierPrice(type, name, price, type === 'board' ? meta : undefined);
+      imported++;
+    } catch (e) {
+      console.warn('[Import] push failed for', name, e);
+      skipped++;
+    }
+  }
+  try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+  await loadSupplierPrices();
+  renderPricesView();
+  return { imported, skipped };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function pushSupplierPrice(category, name, price, meta) {
   if (!sbUser) {
     sbSyncStatus = 'error';
@@ -11110,6 +12537,15 @@ async function pushSupplierPrice(category, name, price, meta) {
       else                                        delete boardMeta.specialOrder;
       if (costingPrices.matMinSheets?.[name] != null) boardMeta.minSheets = costingPrices.matMinSheets[name];
       else                                             delete boardMeta.minSheets;
+      // Sheet dimensions (mm) — supplier-set per board
+      const _dims = costingPrices.matSheetDims?.[name];
+      if (_dims && _dims.l > 0 && _dims.w > 0) {
+        boardMeta.sheetL = _dims.l;
+        boardMeta.sheetW = _dims.w;
+      } else {
+        delete boardMeta.sheetL;
+        delete boardMeta.sheetW;
+      }
       boardMeta.priceUpdatedAt = now;
       payload.meta = JSON.stringify(boardMeta);
       // Also record locally so the timestamp shows without waiting for a reload
@@ -12308,6 +13744,31 @@ function _renderPricesView() {
       ? `<span title="Price last updated ${priceDateStr}" style="font-size:9px;color:${priceAgeColor};font-family:'JetBrains Mono',monospace;white-space:nowrap">↻ ${priceDateStr}</span>`
       : '';
 
+    // ── Sheet dimension defaults (supplier-set → MATERIAL_SHEET_DEFAULTS → 2750×1830)
+    const _supplierDims = costingPrices.matSheetDims?.[mat];
+    let _defaultDims = null;
+    const _lowerMat = (mat || '').toLowerCase();
+    for (const _key of Object.keys(MATERIAL_SHEET_DEFAULTS)) {
+      if (_lowerMat.includes(_key)) { _defaultDims = MATERIAL_SHEET_DEFAULTS[_key]; break; }
+    }
+    const sheetL = _supplierDims?.l || _defaultDims?.l || 2750;
+    const sheetW = _supplierDims?.w || _defaultDims?.w || 1830;
+    const sheetDimHtml = admin
+      ? `<div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+          <span style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">SHEET</span>
+          <input type="number" value="${sheetL}" placeholder="L" min="100" max="6000"
+            style="width:54px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;text-align:center"
+            onchange="updateMatSheetDim('${safeMatJS}','l',this.value)"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <span style="font-size:9px;color:var(--text-muted)">×</span>
+          <input type="number" value="${sheetW}" placeholder="W" min="100" max="4000"
+            style="width:54px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;text-align:center"
+            onchange="updateMatSheetDim('${safeMatJS}','w',this.value)"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <span style="font-size:9px;color:var(--text-muted)">mm</span>
+        </div>`
+      : `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Sheet ${sheetL} × ${sheetW} mm</div>`;
+
     // ── Board cell (left) ────────────────────────────────────────────────────
     const boardCell = `
       <div style="display:flex;flex-direction:column;gap:5px;${ROW_PAD}">
@@ -12325,6 +13786,7 @@ function _renderPricesView() {
           <button onclick="${delFn}" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
           ${minHtml}
         </div>
+        ${sheetDimHtml}
         ${admin ? stockPill : ''}
         ${!admin && isFullSheet ? `<div style="font-size:10px;color:#7ab0ff">🟦 Full sheet billed — offcuts included</div>` : ''}
         ${!admin && isSpecial  ? `<div style="font-size:10px;color:var(--amber-dim)">🛒 Special order — minimum 1 full sheet</div>` : ''}
@@ -12405,7 +13867,9 @@ function _renderPricesView() {
         <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
         <div style="display:flex;align-items:center;gap:10px">
           <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:2px">● Not yet synced</span>
+          ${canEditPrices() ? `<button onclick="openBulkAdjustModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">↑ BULK ADJUST</button>` : ''}
           ${canEditPrices() ? `<button onclick="openBoardCleanupModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">🗃 MANAGE BOARDS</button>` : ''}
+          ${canEditPrices() ? `<button onclick="openImportPricesModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">⇪ IMPORT PRICES</button>` : ''}
           <button onclick="loadSupplierPrices()" ${roBtn}
             style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
         </div>
@@ -14485,12 +15949,13 @@ function renderImportPreview() {
     </div>`;
   }
 
+  const totalQty = parts.reduce((s,p) => s + (parseInt(p.qty)||0), 0);
   return `
   <div style="background:var(--bg2);border:1px solid var(--border);padding:18px;margin-bottom:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <span style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--text)">PREVIEW</span>
-        <span style="font-size:12px;color:var(--text-muted);margin-left:10px">${parts.length} parts total</span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:10px">${parts.length} rows · ${totalQty} parts</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="openImportedCutlist()"
@@ -14500,6 +15965,11 @@ function renderImportPreview() {
         <button onclick="openSaveAsUnitModal(importState.parsed, importState.label)"
           style="background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
           🪵 SAVE AS UNIT
+        </button>
+        <button onclick="downloadImportedXLSX(importState.parsed, importState.label)"
+          style="background:rgba(29,111,66,0.15);border:1px solid #1D6F42;color:#4caf82;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer"
+          title="Download as Excel (same format as a normal cutlist export)">
+          ⬇ DOWNLOAD AS CUTLIST
         </button>
         <button onclick="importIntoPanels()"
           style="background:var(--amber);color:#111;border:none;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1.5px;cursor:pointer">
@@ -14901,7 +16371,7 @@ function renderImportedCutlistView() {
           style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--amber);background:none;border:none;border-bottom:1px solid transparent;outline:none;padding:0 2px"
           onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='transparent'">
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
-          ${parts.length} parts
+          ${parts.length} lines · ${parts.reduce((s,p) => s + (parseInt(p.qty)||0), 0)} parts
           ${importedCutlistData._changed ? ' · <span style="color:var(--amber-dim)">Unsaved changes</span>' : ''}
           ${savedAt ? ` · Saved ${savedAt}` : ''}
         </div>
@@ -14951,6 +16421,109 @@ function renderImportedCutlistView() {
   </div>`;
 }
 
+// ── Download imported cutlist as XLSX ────────────────────────────────────────
+// Builds a _lastCutlist-shaped object from importedCutlistData and calls the
+// existing downloadXLSX() so the supplier's file is byte-for-byte the same
+// format users get when exporting their own cutlist.
+async function downloadImportedXLSX(partsArg, labelArg) {
+  // Accept explicit (parts, label) so this works from both:
+  //  • the post-import Preview (importState.parsed)
+  //  • the fully opened imported cutlist view (importedCutlistData)
+  const srcParts = partsArg
+    || importedCutlistData?.parts
+    || importState?.parsed
+    || null;
+  const srcLabel = labelArg
+    || importedCutlistData?.label
+    || importState?.label
+    || 'Imported Cutlist';
+
+  if (!srcParts || !srcParts.length) {
+    alert('No imported cutlist to export.');
+    return;
+  }
+
+  const label = srcLabel;
+
+  // Normalise parts — strip the '?' prefix from unrecognised edges so the
+  // exported file doesn't carry the warning marker into the Excel cells.
+  const cleanEdge = v => (v && v.startsWith('?')) ? v.slice(1) : (v || '');
+
+  // Build the same shape generateCutlist produces (consolidated, byCat, catOrder, …).
+  const allParts = srcParts.map(p => {
+    const part = {
+      partName: p.name || '',
+      unitName: p.group || label,
+      qty: parseInt(p.qty) || 0,
+      l: parseFloat(p.l) || 0,
+      w: parseFloat(p.w) || 0,
+      mat: p.mat || '',
+      el1: cleanEdge(p.el1), el2: cleanEdge(p.el2),
+      ew1: cleanEdge(p.ew1), ew2: cleanEdge(p.ew2),
+      holes: p.holes || '',
+    };
+    part.category = (typeof getCategory === 'function') ? getCategory(part) : (part.mat || 'Other');
+    return part;
+  }).filter(p => p.qty > 0);
+
+  // Consolidate identical rows (same dims + mat + edges + category + holes/notes).
+  // Including holes/notes in the key prevents two parts with the same size
+  // but different hole specs (e.g. plain vs hinge-bored doors) from
+  // collapsing into a single row and dropping the hole information.
+  const consolidated = {};
+  allParts.forEach(p => {
+    const holesNorm = (p.holes||'').trim();
+    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${holesNorm}`;
+    if (consolidated[key]) {
+      consolidated[key].qty += p.qty;
+      consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
+    } else {
+      consolidated[key] = { ...p, _key: key, sources: [p.unitName + ' × ' + p.qty] };
+    }
+  });
+
+  // Build catOrder the same way generateCutlist does.
+  const allCats  = [...new Set(Object.values(consolidated).map(p => p.category))];
+  const doorCats = allCats.filter(c => c.startsWith('Door — ')).sort();
+  const faceCats = allCats.filter(c => c.startsWith('Drawer Faces — ')).sort();
+  const wmCats   = allCats.filter(c => c.startsWith('White Melamine Peen')).sort();
+  const matCats  = allCats.filter(c => !c.startsWith('Door — ') && !c.startsWith('Drawer Faces — ')
+                                    && !c.startsWith('White Melamine — ') && !c.startsWith('White Melamine Peen')
+                                    && c !== 'Backing').sort();
+  const catOrder = ['Backing', ...doorCats, ...faceCats, ...wmCats, ...matCats]
+                     .filter(c => allCats.includes(c));
+
+  const byCat = {};
+  catOrder.forEach(c => byCat[c] = []);
+  Object.values(consolidated).forEach(p => {
+    if (!byCat[p.category]) { byCat[p.category] = []; catOrder.push(p.category); }
+    byCat[p.category].push(p);
+  });
+
+  // Sort within each category: L desc, then W desc.
+  catOrder.forEach(c => {
+    byCat[c].sort((a, b) => (b.l - a.l) || (b.w - a.w));
+  });
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-ZA', { day:'numeric', month:'long', year:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-ZA', { hour:'2-digit', minute:'2-digit' });
+  const dateTimeStr = `${dateStr} at ${timeStr}`;
+
+  // Preserve any existing _lastCutlist (user could have a real one); restore after.
+  const prev = window._lastCutlist;
+  window._lastCutlist = {
+    consolidated, byCat, catOrder, dateTimeStr,
+    jobClient: label, jobHouse: '', jobAddress: '', jobNotes: '',
+    matSummaryText: '', matSummaryLines: [],
+  };
+  try {
+    await downloadXLSX();
+  } finally {
+    window._lastCutlist = prev;
+  }
+}
+
 function updateImportedPart(idx, field, value) {
   if (!importedCutlistData) return;
   _pushImportedHistory();
@@ -14965,7 +16538,10 @@ function updateImportedPart(idx, field, value) {
   // Update just the part count header without full re-render
   const el = document.getElementById('imported-cutlist-view');
   const meta = el?.querySelector('div[style*="12px;color:var(--text-muted)"]');
-  if (meta) meta.innerHTML = `${importedCutlistData.parts.length} parts · <span style="color:var(--amber-dim)">Unsaved changes</span>`;
+  if (meta) {
+    const _totParts = importedCutlistData.parts.reduce((s,p) => s + (parseInt(p.qty)||0), 0);
+    meta.innerHTML = `${importedCutlistData.parts.length} lines · ${_totParts} parts · <span style="color:var(--amber-dim)">Unsaved changes</span>`;
+  }
 }
 
 function deleteImportedPart(idx) {
@@ -18833,7 +20409,46 @@ const OPTIMIZER_STATE = {
   kerf: 3,           // mm — saw kerf
   trim: 10,          // mm — edge trim per sheet side
   allowRotation: true,
+  stackIdentical: true,           // Phase 4 — pre-group identical parts into stacks
+  materialSheets: {},             // Phase 3 — { [matName]: { l, w, grainLocked } }
+  scraps: [],                     // Phase 5 — [{ l, w }]
 };
+
+// Phase 3 — Per-material default sheet dimensions.
+// Match by case-insensitive substring on part.mat. Anything not matched
+// falls back to the global sheet size with grain locked (safer default
+// for melamine, veneered ply, oak ply, etc.).
+const MATERIAL_SHEET_DEFAULTS = {
+  'masonite': { l: 2440, w: 1220, grainLocked: false },
+  '3mm':      { l: 2440, w: 1220, grainLocked: false },
+};
+
+function getMaterialSheetSpec(matName) {
+  const st = OPTIMIZER_STATE;
+  // 1. User-set optimizer override wins
+  if (st.materialSheets && st.materialSheets[matName]) {
+    return st.materialSheets[matName];
+  }
+  // 2. Supplier-set dims from the Supplier Prices tab (per-board L × W in mm)
+  const supplierDims = costingPrices.matSheetDims?.[matName];
+  if (supplierDims?.l && supplierDims?.w) {
+    // Preserve grainLocked semantics from the substring default if one applies,
+    // otherwise treat it as locked (the safer default for melamine / veneer).
+    const lower = (matName || '').toLowerCase();
+    let grainLocked = true;
+    for (const key of Object.keys(MATERIAL_SHEET_DEFAULTS)) {
+      if (lower.includes(key)) { grainLocked = !!MATERIAL_SHEET_DEFAULTS[key].grainLocked; break; }
+    }
+    return { l: supplierDims.l, w: supplierDims.w, grainLocked };
+  }
+  // 3. Hardcoded default lookup
+  const lower = (matName || '').toLowerCase();
+  for (const key of Object.keys(MATERIAL_SHEET_DEFAULTS)) {
+    if (lower.includes(key)) return { ...MATERIAL_SHEET_DEFAULTS[key] };
+  }
+  // 4. Global fallback — grain locked by default for solid/veneered stock
+  return { l: st.sheetW, w: st.sheetH, grainLocked: true };
+}
 
 // Deterministic colour from a string — used to tint part groups.
 function optColor(seed, alpha) {
@@ -18863,12 +20478,17 @@ function collectOptimizerParts() {
     // Normalise: long edge = L, short edge = W for readable layout
     const L = Math.max(p.l, p.w);
     const W = Math.min(p.l, p.w);
+    const mat = p.mat || 'Unknown';
+    const spec = getMaterialSheetSpec(mat);
     for (let i = 0; i < p.qty; i++) {
       parts.push({
         l: L, w: W,
-        mat: p.mat || 'Unknown',
+        mat,
         category: p.category || 'Other',
         label: p.partName || '',
+        grainLocked: !!spec.grainLocked,
+        sheetL: spec.l,
+        sheetW: spec.w,
       });
     }
   });
@@ -18876,127 +20496,340 @@ function collectOptimizerParts() {
 }
 
 /**
- * Shelf-bin-packing with rotation. Allocates pieces to a single sheet.
- * Returns { placed:[{x,y,w,h,rotated,part}], leftover:[parts] }.
- * The sheet usable area is reduced by edge trim on all sides.
+ * Guillotine bin packer — best short-side fit with shorter-axis split rule.
+ * Returns { placed:[{x,y,w,h,rotated,part}], unplaced:[parts], leftovers:[{x,y,w,h}] }.
+ * Coordinates are relative to the usable area (caller adds trim offset for rendering).
+ * Each part must expose .w and .h (mapped from .l/.w by the wrapper).
  */
-function packOneSheet(parts, sheetW, sheetH, kerf, trim, allowRotation) {
-  const usableW = sheetW - trim * 2;
-  const usableH = sheetH - trim * 2;
-
-  // Sort: tallest side first (classic shelf heuristic)
-  const queue = parts.slice().sort((a, b) => {
-    const aMax = Math.max(a.l, a.w);
-    const bMax = Math.max(b.l, b.w);
-    if (bMax !== aMax) return bMax - aMax;
-    return (b.l * b.w) - (a.l * a.w);
-  });
-
+function guillotinePack(parts, usableW, usableH, kerf, allowRotation) {
+  let freeRects = [{ x: 0, y: 0, w: usableW, h: usableH }];
   const placed = [];
-  const leftover = [];
-  let shelfY = 0;
-  let shelfH = 0;
-  let shelfX = 0;
+  const unplaced = [];
 
-  for (const part of queue) {
-    // Try two orientations. "Long side along shelf" = w along X, h = W.
-    const orientations = [];
-    // Orientation A: piece length along X (w=L, h=W)
-    orientations.push({ w: part.l, h: part.w, rotated: false });
-    if (allowRotation && part.l !== part.w) {
-      // Orientation B: piece length along Y (w=W, h=L)
-      orientations.push({ w: part.w, h: part.l, rotated: true });
-    }
+  for (const part of parts) {
+    let bestScore = Infinity, bestRect = null, bestRotated = false;
 
-    let placedThis = false;
-
-    // Prefer orientation that fits on current shelf without starting a new one
-    for (const o of orientations) {
-      if (o.w > usableW || o.h > usableH) continue;
-      const needW = o.w + (shelfX > 0 ? kerf : 0);
-      const fitsOnCurrent = (shelfX + needW <= usableW) && (o.h <= shelfH || shelfH === 0);
-      if (fitsOnCurrent) {
-        const x = shelfX + (shelfX > 0 ? kerf : 0);
-        if (shelfH === 0) shelfH = o.h;
-        // Height of the current shelf is locked to the first piece's height;
-        // later pieces must be <= that height.
-        if (o.h > shelfH) continue;
-        placed.push({
-          x: trim + x, y: trim + shelfY,
-          w: o.w, h: o.h,
-          rotated: o.rotated, part,
-        });
-        shelfX = x + o.w;
-        placedThis = true;
-        break;
+    for (const rect of freeRects) {
+      // Try normal orientation
+      if (part.w <= rect.w && part.h <= rect.h) {
+        const score = Math.min(rect.w - part.w, rect.h - part.h); // best short-side fit
+        if (score < bestScore) { bestScore = score; bestRect = rect; bestRotated = false; }
+      }
+      // Try rotated
+      if (allowRotation && !part.grainLocked && part.h <= rect.w && part.w <= rect.h) {
+        const score = Math.min(rect.w - part.h, rect.h - part.w);
+        if (score < bestScore) { bestScore = score; bestRect = rect; bestRotated = true; }
       }
     }
-    if (placedThis) continue;
 
-    // Start a new shelf. Pick orientation with the smaller height that still fits the sheet.
-    const candidates = orientations.filter(o => o.w <= usableW && (shelfY + (shelfH > 0 ? shelfH + kerf : 0) + o.h <= usableH));
-    if (candidates.length === 0) {
-      leftover.push(part);
-      continue;
+    if (!bestRect) { unplaced.push(part); continue; }
+
+    const bw = bestRotated ? part.h : part.w;
+    const bh = bestRotated ? part.w : part.h;
+    placed.push({ x: bestRect.x, y: bestRect.y, w: bw, h: bh, rotated: bestRotated, part });
+
+    // Split the used free rect into two new ones (shorter-axis rule)
+    freeRects = freeRects.filter(r => r !== bestRect);
+    const rightW = bestRect.w - bw - kerf;
+    const belowH = bestRect.h - bh - kerf;
+    if (rightW > bw && belowH > 0) {
+      // Horizontal split first
+      if (rightW > 0) freeRects.push({ x: bestRect.x + bw + kerf, y: bestRect.y, w: rightW, h: bh });
+      if (belowH > 0) freeRects.push({ x: bestRect.x, y: bestRect.y + bh + kerf, w: bestRect.w, h: belowH });
+    } else {
+      // Vertical split first
+      if (belowH > 0) freeRects.push({ x: bestRect.x, y: bestRect.y + bh + kerf, w: bw, h: belowH });
+      if (rightW > 0) freeRects.push({ x: bestRect.x + bw + kerf, y: bestRect.y, w: rightW, h: bestRect.h });
     }
-    // Choose orientation that leaves most remaining width (so later pieces fit)
-    candidates.sort((a, b) => a.h - b.h);
-    const o = candidates[0];
-    const newShelfY = shelfY + (shelfH > 0 ? shelfH + kerf : 0);
-    shelfY = newShelfY;
-    shelfH = o.h;
-    shelfX = 0;
-    placed.push({
-      x: trim + 0, y: trim + shelfY,
-      w: o.w, h: o.h,
-      rotated: o.rotated, part,
-    });
-    shelfX = o.w;
+
+    // Prune useless slivers
+    freeRects = freeRects.filter(r => r.w > kerf * 2 && r.h > kerf * 2);
   }
 
-  return { placed, leftover };
+  // Merge remaining free rects as leftovers
+  return { placed, unplaced, leftovers: freeRects };
+}
+
+/**
+ * Multi-strategy wrapper. Maps part .l/.w → .w/.h internally, runs three presort
+ * orders, picks the highest-efficiency result. Returns the same packer contract
+ * with an added .eff field.
+ */
+function packOneSheet(parts, usableW, usableH, kerf, allowRotation) {
+  // Map cutlist parts (.l/.w) → packer parts (.w/.h, long edge along W).
+  const mapped = parts.map(p => ({
+    w: Math.max(p.l, p.w),
+    h: Math.min(p.l, p.w),
+    grainLocked: !!p.grainLocked,
+    _src: p,
+  }));
+
+  const strategies = [
+    [...mapped].sort((a, b) => (b.w * b.h) - (a.w * a.h)),                   // area DESC
+    [...mapped].sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h)),     // longest side DESC
+    [...mapped].sort((a, b) => (b.w + b.h) - (a.w + a.h)),                   // perimeter DESC
+  ];
+
+  let best = null;
+  for (const sorted of strategies) {
+    const result = guillotinePack(sorted, usableW, usableH, kerf, allowRotation);
+    const eff = result.placed.reduce((s, p) => s + p.w * p.h, 0) / (usableW * usableH);
+    if (!best || eff > best.eff) best = { ...result, eff };
+  }
+
+  // Re-attach the original cutlist part reference on each placement / unplaced entry.
+  return {
+    placed: best.placed.map(p => ({ x: p.x, y: p.y, w: p.w, h: p.h, rotated: p.rotated, part: p.part._src })),
+    unplaced: best.unplaced.map(p => p._src),
+    leftovers: best.leftovers,
+    eff: best.eff,
+  };
+}
+
+/**
+ * Phase 4 — SuperBox stacking.
+ * Pre-groups identical parts (same L × W × mat × grainLocked) into stacks so a
+ * saw operator can cut the whole stack in one pass. Stack height is bounded by
+ * usableH so a stack always fits the sheet.
+ */
+function stackIdenticalParts(parts, usableH, kerf) {
+  const groups = {};
+  parts.forEach(p => {
+    const key = `${p.l}|${p.w}|${p.mat}|${p.grainLocked ? 1 : 0}`;
+    (groups[key] = groups[key] || []).push(p);
+  });
+
+  const result = [];
+  Object.values(groups).forEach(group => {
+    let stack = [], stackH = 0;
+    const flush = () => {
+      if (!stack.length) return;
+      if (stack.length === 1) {
+        result.push(stack[0]);
+      } else {
+        // Combined block: l = shared long edge of every part in the stack,
+        // w = sum of short edges + kerfs between them. _stack keeps the
+        // originals so the SVG renderer can draw dividers and per-row labels.
+        // _partL/_partW preserve the single-part dims for axis detection
+        // after the packer's L/W normalization.
+        const base = stack[0];
+        result.push({
+          ...base,
+          l: base.l,
+          w: stackH - kerf,
+          _stack: stack.slice(),
+          _partL: base.l,
+          _partW: base.w,
+        });
+      }
+      stack = []; stackH = 0;
+    };
+    group.forEach(p => {
+      const addH = p.w + (stack.length ? kerf : 0);
+      if (stackH + addH > usableH) flush();
+      stack.push(p); stackH += addH;
+    });
+    flush();
+  });
+  return result;
 }
 
 function optimizeMaterial(parts, opts) {
-  // Pack onto successive sheets until all placed.
+  // Phase 3 — pull sheet dims from the first part of this material group.
+  // collectOptimizerParts() tags every part with sheetL/sheetW so the group is
+  // homogeneous by definition.
+  const sheetL = (parts[0] && parts[0].sheetL) || opts.sheetW;
+  const sheetW = (parts[0] && parts[0].sheetW) || opts.sheetH;
+  const usableW = sheetL - opts.trim * 2;
+  const usableH = sheetW - opts.trim * 2;
+
+  // Phase 4 — stack identical parts before packing
+  const workParts = (opts.stackIdentical !== false)
+    ? stackIdenticalParts(parts, usableH, opts.kerf)
+    : parts.slice();
+
   const sheets = [];
-  let remaining = parts.slice();
-  // Sanity cap
+  let remaining = workParts;
+
+  // Phase 5 — try to fit on user-supplied scraps before opening new sheets.
+  // Scraps are sorted largest-first to use up big offcuts before slivers.
+  const scraps = (opts.scraps || []).slice().sort((a, b) => (b.l * b.w) - (a.l * a.w));
+  for (const scrap of scraps) {
+    if (!remaining.length) break;
+    const sUW = scrap.l - opts.trim * 2;
+    const sUH = scrap.w - opts.trim * 2;
+    if (sUW <= 0 || sUH <= 0) continue;
+    const res = packOneSheet(remaining, sUW, sUH, opts.kerf, opts.allowRotation);
+    if (res.placed.length) {
+      sheets.push({
+        placed: res.placed,
+        leftovers: res.leftovers,
+        isScrap: true,
+        sheetL: scrap.l,
+        sheetW: scrap.w,
+      });
+      remaining = res.unplaced;
+    }
+  }
+
+  // Standard sheets for whatever's left
   for (let guard = 0; guard < 500 && remaining.length > 0; guard++) {
-    const res = packOneSheet(remaining, opts.sheetW, opts.sheetH, opts.kerf, opts.trim, opts.allowRotation);
+    const res = packOneSheet(remaining, usableW, usableH, opts.kerf, opts.allowRotation);
     if (res.placed.length === 0) {
       // Part is too big for the sheet — drop to oversize bucket
       break;
     }
-    sheets.push({ placed: res.placed });
-    remaining = res.leftover;
+    sheets.push({
+      placed: res.placed,
+      leftovers: res.leftovers,
+      sheetL,
+      sheetW,
+    });
+    remaining = res.unplaced;
   }
-  return { sheets, oversized: remaining };
+  return { sheets, oversized: remaining, sheetL, sheetW };
 }
 
-function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM) {
+// Derive guillotine cut lines from placed part edges. xs/ys are interior cuts
+// in usable-area coordinates; render adds trim offset.
+function deriveCutLines(placed, kerf, usableW, usableH) {
+  const xs = new Set(), ys = new Set();
+  placed.forEach(p => {
+    if (p.x > 0) xs.add(p.x);
+    xs.add(p.x + p.w + kerf);
+    if (p.y > 0) ys.add(p.y);
+    ys.add(p.y + p.h + kerf);
+  });
+  return {
+    xs: [...xs].filter(x => x > 0 && x < usableW),
+    ys: [...ys].filter(y => y > 0 && y < usableH),
+  };
+}
+
+function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts) {
   const px = pxPerMM || 0.18;
+  const trim = (opts && opts.trim != null) ? opts.trim : OPTIMIZER_STATE.trim;
+  const kerf = (opts && opts.kerf != null) ? opts.kerf : OPTIMIZER_STATE.kerf;
+  const usableW = sheetW - trim * 2;
+  const usableH = sheetH - trim * 2;
   const svgW = Math.round(sheetW * px);
   const svgH = Math.round(sheetH * px);
+
+  const defs = `<defs>
+    <pattern id="opt-hatch" patternUnits="userSpaceOnUse" width="8" height="8">
+      <path d="M0,8 L8,0" stroke="rgba(150,150,150,0.35)" stroke-width="0.8"/>
+    </pattern>
+  </defs>`;
+
+  // Waste / leftover rects — render BEFORE parts so parts sit on top.
+  const wasteRects = (sheet.leftovers || [])
+    .filter(r => r.w > 10 && r.h > 10)
+    .map(r => `<rect x="${(trim + r.x) * px}" y="${(trim + r.y) * px}" width="${r.w * px}" height="${r.h * px}" fill="url(#opt-hatch)" stroke="rgba(120,120,120,0.3)" stroke-width="0.5"/>`)
+    .join('');
+
+  // Cut lines — derived from placed part edges.
+  const cuts = deriveCutLines(sheet.placed, kerf, usableW, usableH);
+  const cutLines = [
+    ...cuts.ys.map(y => `<line x1="${trim*px}" y1="${(trim+y)*px}" x2="${(trim+usableW)*px}" y2="${(trim+y)*px}" stroke="rgba(180,180,180,0.6)" stroke-width="0.6" stroke-dasharray="5,3"/>`),
+    ...cuts.xs.map(x => `<line x1="${(trim+x)*px}" y1="${trim*px}" x2="${(trim+x)*px}" y2="${(trim+usableH)*px}" stroke="rgba(180,180,180,0.6)" stroke-width="0.6" stroke-dasharray="5,3"/>`),
+  ].join('');
+
   const pieces = sheet.placed.map(p => {
-    const x = p.x * px, y = p.y * px;
-    const w = p.w * px, h = p.h * px;
+    const x = (trim + p.x) * px, y = (trim + p.y) * px;
+    const pxW = p.w * px, pxH = p.h * px;
     const seed = colorKey === 'category' ? p.part.category : (p.part.label || p.part.category);
     const fill = optColor(seed, 0.88);
     const stroke = 'rgba(0,0,0,0.55)';
-    const showLabel = (w > 40 && h > 22);
-    const fontSize = Math.max(8, Math.min(11, Math.round(h / 5)));
-    const dim1 = Math.round(p.part.l);
-    const dim2 = Math.round(p.part.w);
-    const label = showLabel
-      ? `<text class="opt-piece-label" x="${x + w/2}" y="${y + h/2 + fontSize/3}" font-size="${fontSize}" text-anchor="middle">${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}</text>`
-      : '';
-    const title = `<title>${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}</title>`;
-    return `<g>${title}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${label}</g>`;
+
+    // Phase 4 — stacked block: draw dividers perpendicular to stack axis
+    // and label each row instead of the whole block.
+    let stackContent = '';
+    if (p.part._stack && p.part._stack.length > 1) {
+      const stack = p.part._stack;
+      const partL = p.part._partL;
+      // Stack axis = whichever placed dim does NOT match the shared long edge.
+      // Tolerance accounts for floating-point drift after rotation mapping.
+      const stackAlongH = Math.abs(p.w - partL) < 0.5;
+      const dividers = [];
+      let acc = 0;
+      for (let i = 0; i < stack.length - 1; i++) {
+        acc += stack[i].w + kerf;
+        if (stackAlongH) {
+          const yLine = y + acc * px;
+          dividers.push(`<line x1="${x}" y1="${yLine}" x2="${x + pxW}" y2="${yLine}" stroke="rgba(0,0,0,0.7)" stroke-width="0.7" stroke-dasharray="3,2"/>`);
+        } else {
+          const xLine = x + acc * px;
+          dividers.push(`<line x1="${xLine}" y1="${y}" x2="${xLine}" y2="${y + pxH}" stroke="rgba(0,0,0,0.7)" stroke-width="0.7" stroke-dasharray="3,2"/>`);
+        }
+      }
+      // Per-row labels
+      const rowLabels = [];
+      let acc2 = 0;
+      for (let i = 0; i < stack.length; i++) {
+        const part = stack[i];
+        const rowSpan = part.w; // mm along stack axis
+        let rx, ry, rw, rh;
+        if (stackAlongH) {
+          rx = x; ry = y + acc2 * px; rw = pxW; rh = rowSpan * px;
+        } else {
+          rx = x + acc2 * px; ry = y; rw = rowSpan * px; rh = pxH;
+        }
+        acc2 += rowSpan + kerf;
+        const showRow = rw > 24 && rh > 14;
+        if (!showRow) continue;
+        const fs = Math.min(11, Math.max(7, rh * 0.28));
+        const rowClipId = `clip-sr-${sheet.sheetIdx != null ? sheet.sheetIdx : 0}-${i}`;
+        rowLabels.push(`<defs><clipPath id="${rowClipId}"><rect x="${rx + 2}" y="${ry + 2}" width="${rw - 4}" height="${rh - 4}"/></clipPath></defs><text x="${rx + rw/2}" y="${ry + rh/2}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${rowClipId})" style="pointer-events:none">${part.l}×${part.w}</text>`);
+      }
+      stackContent = dividers.join('') + rowLabels.join('');
+    }
+
+    // Only show a label when the rect is large enough.
+    // clipPath clips overflow naturally — no textLength/lengthAdjust distortion.
+    const showLabel = pxW > 24 && pxH > 14;
+    let label = '';
+    if (!stackContent && showLabel) {
+      const cx = x + pxW / 2;
+      const cy = y + pxH / 2;
+      const fs = Math.min(11, Math.max(7, pxH * 0.28));
+      const dim1 = Math.round(p.part.l);
+      const dim2 = Math.round(p.part.w);
+      const placedIdx = sheet.placed.indexOf(p);
+      const clipId = `clip-p-${sheet.sheetIdx != null ? sheet.sheetIdx : 0}-${placedIdx}`;
+      const clipDef = `<defs><clipPath id="${clipId}"><rect x="${x + 2}" y="${y + 2}" width="${pxW - 4}" height="${pxH - 4}"/></clipPath></defs>`;
+      // If rect is tall enough for two lines, split dim1 and dim2.
+      if (pxH > fs * 2.4) {
+        label = clipDef
+          + `<text x="${cx}" y="${cy - fs * 0.55}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">${dim1}</text>`
+          + `<text x="${cx}" y="${cy + fs * 0.65}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">×${dim2}${p.rotated ? ' ⟲' : ''}</text>`;
+      } else {
+        const text = `${dim1}×${dim2}${p.rotated ? ' ⟲' : ''}`;
+        label = clipDef
+          + `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="${fs}px" fill="rgba(255,255,255,0.85)" font-family="'Barlow',sans-serif" clip-path="url(#${clipId})" style="pointer-events:none">${text}</text>`;
+      }
+    }
+    const titleText = p.part._stack && p.part._stack.length > 1
+      ? `${p.part._stack.length}× ${p.part.label || p.part.category} — stacked`
+      : `${p.part.label || p.part.category} — ${p.part.l}×${p.part.w}mm${p.rotated ? ' (rotated)' : ''}`;
+    const title = `<title>${titleText}</title>`;
+    return `<g>${title}<rect x="${x}" y="${y}" width="${pxW}" height="${pxH}" fill="${fill}" stroke="${stroke}" stroke-width="0.6"/>${stackContent}${label}</g>`;
   }).join('');
+
+  // Phase 5 — scrap sheets get an amber border and a SCRAP badge.
+  const isScrap = !!sheet.isScrap;
+  const sheetStroke = isScrap ? 'var(--amber)' : 'rgba(0,0,0,0.35)';
+  const sheetStrokeW = isScrap ? 2 : 1;
+  const scrapBadge = isScrap
+    ? `<g><rect x="6" y="6" width="58" height="18" fill="var(--amber)" stroke="rgba(0,0,0,0.5)" stroke-width="0.6"/><text x="35" y="19" text-anchor="middle" font-size="11px" font-weight="700" fill="#000" font-family="'Barlow',sans-serif" style="pointer-events:none">SCRAP</text></g>`
+    : '';
+
   return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+    ${defs}
+    <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="${sheetStroke}" stroke-width="${sheetStrokeW}"/>
+    ${wasteRects}
+    ${cutLines}
     ${pieces}
+    ${scrapBadge}
   </svg>`;
 }
 
@@ -19011,7 +20844,7 @@ function renderOptimizer() {
     <div class="opt-header">
       <div>
         <h2 class="opt-title">▦ Sheet Optimizer</h2>
-        <div class="opt-sub">Guillotine shelf-packing · grouped by material · rotation ${st.allowRotation ? 'on' : 'off'}</div>
+        <div class="opt-sub">Guillotine packing · multi-strategy · grouped by material · rotation ${st.allowRotation ? 'on' : 'off'}</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="renderOptimizer()">↻ Recalculate</button>
@@ -19042,6 +20875,11 @@ function renderOptimizer() {
           <option value="3050x1525">3050 × 1525 (10×5 ft)</option>
           <option value="2400x1200">2400 × 1200 (metric)</option>
         </select></div>
+      <div class="opt-ctrl"><label>Stack identical</label>
+        <select onchange="updateOptimizerSetting('stackIdentical', this.value === 'true')">
+          <option value="true" ${st.stackIdentical ? 'selected' : ''}>On</option>
+          <option value="false" ${!st.stackIdentical ? 'selected' : ''}>Off</option>
+        </select></div>
     </div>
   `;
 
@@ -19059,8 +20897,13 @@ function renderOptimizer() {
   const byMat = {};
   parts.forEach(p => { (byMat[p.mat] = byMat[p.mat] || []).push(p); });
 
-  const opts = { sheetW: st.sheetW, sheetH: st.sheetH, kerf: st.kerf, trim: st.trim, allowRotation: st.allowRotation };
-  const sheetArea = st.sheetW * st.sheetH;
+  const opts = {
+    sheetW: st.sheetW, sheetH: st.sheetH,
+    kerf: st.kerf, trim: st.trim,
+    allowRotation: st.allowRotation,
+    stackIdentical: st.stackIdentical,
+    scraps: st.scraps,
+  };
 
   let totalSheets = 0;
   let totalUsedArea = 0;
@@ -19072,13 +20915,62 @@ function renderOptimizer() {
     const res = optimizeMaterial(byMat[mat], opts);
     const usedArea = byMat[mat].reduce((s, p) => s + p.l * p.w, 0);
     const sheetCount = res.sheets.length;
-    const matSheetArea = sheetCount * sheetArea;
+    // Per-sheet area — scrap sheets count their own dims
+    const matSheetArea = res.sheets.reduce((s, sh) => {
+      const sl = sh.sheetL || res.sheetL || st.sheetW;
+      const sw = sh.sheetW || res.sheetW || st.sheetH;
+      return s + sl * sw;
+    }, 0);
     totalSheets += sheetCount;
     totalUsedArea += usedArea;
     totalSheetArea += matSheetArea;
     totalOversized += res.oversized.length;
     matResults.push({ mat, res, usedArea, sheetCount, matSheetArea, pieceCount: byMat[mat].length });
   });
+
+  // Phase 3 — Material Sheets UI: one row per detected material.
+  const matSheetsUI = Object.keys(byMat).sort().map(mat => {
+    const spec = getMaterialSheetSpec(mat);
+    // Escape for embedding inside a JS single-quoted string inside an HTML attribute.
+    const safe = mat.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return `<div class="opt-matrow" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;font-weight:600;font-size:12px">${mat}</div>
+      <label style="font-size:11px;color:var(--text-muted)">L</label>
+      <input type="number" value="${spec.l}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'l', this.value)">
+      <label style="font-size:11px;color:var(--text-muted)">W</label>
+      <input type="number" value="${spec.w}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'w', this.value)">
+      <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">
+        <input type="checkbox" ${spec.grainLocked ? 'checked' : ''} onchange="updateMaterialSheet('${safe}', 'grainLocked', this.checked)"> grain locked
+      </label>
+    </div>`;
+  }).join('');
+  const materialSheetsHtml = `
+    <div class="opt-section" style="margin:14px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;letter-spacing:0.5px">MATERIAL SHEETS</div>
+      ${matSheetsUI || '<div style="font-size:12px;color:var(--text-muted)">Run optimizer to populate.</div>'}
+    </div>
+  `;
+
+  // Phase 5 — Scrap inventory UI
+  const scrapRowsHtml = (st.scraps || []).map((s, idx) =>
+    `<div class="opt-scrap-row" style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12px">
+      <span style="flex:1">${s.l} × ${s.w} mm</span>
+      <button class="btn btn-ghost" style="padding:2px 8px" onclick="removeScrap(${idx})">×</button>
+    </div>`
+  ).join('');
+  const scrapsHtml = `
+    <div class="opt-section" style="margin:14px 0;padding:10px 12px;background:var(--bg2);border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;letter-spacing:0.5px">SCRAP SHEETS</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <label style="font-size:11px;color:var(--text-muted)">L</label>
+        <input type="number" id="opt-scrap-l" min="100" placeholder="length" style="width:100px">
+        <label style="font-size:11px;color:var(--text-muted)">W</label>
+        <input type="number" id="opt-scrap-w" min="100" placeholder="width" style="width:100px">
+        <button class="btn btn-ghost" onclick="addScrap()">+ Add</button>
+      </div>
+      ${scrapRowsHtml || '<div style="font-size:12px;color:var(--text-muted)">No scraps registered.</div>'}
+    </div>
+  `;
 
   const efficiency = totalSheetArea > 0 ? (totalUsedArea / totalSheetArea) * 100 : 0;
   const waste = 100 - efficiency;
@@ -19104,13 +20996,16 @@ function renderOptimizer() {
 
     const sheetsHtml = res.sheets.map((sheet, idx) => {
       const used = sheet.placed.reduce((s, p) => s + p.w * p.h, 0);
-      const eff = (used / sheetArea) * 100;
+      const sl = sheet.sheetL || res.sheetL || st.sheetW;
+      const sw = sheet.sheetW || res.sheetW || st.sheetH;
+      const eff = (used / (sl * sw)) * 100;
+      const tag = sheet.isScrap ? '<span style="color:var(--amber);font-weight:700">SCRAP</span> ' : '';
       return `<div class="opt-sheet">
         <div class="opt-sheet-head">
-          <span>Sheet ${idx + 1} / ${sheetCount}</span>
+          <span>${tag}Sheet ${idx + 1} / ${sheetCount} · ${sl}×${sw}</span>
           <span class="eff">${eff.toFixed(1)}% used</span>
         </div>
-        ${renderOptimizerSheetSVG(sheet, st.sheetW, st.sheetH, 'category')}
+        ${renderOptimizerSheetSVG(sheet, sl, sw, 'category', null, { trim: st.trim, kerf: st.kerf })}
       </div>`;
     }).join('');
 
@@ -19132,17 +21027,45 @@ function renderOptimizer() {
     </div>`;
   }).join('');
 
-  view.innerHTML = `<div class="opt-wrap">${controlsHtml}${summaryHtml}${matBlocksHtml}</div>`;
+  view.innerHTML = `<div class="opt-wrap">${controlsHtml}${materialSheetsHtml}${scrapsHtml}${summaryHtml}${matBlocksHtml}</div>`;
   showWipBanner('optimizer', 'optimize-view');
 }
 
 function updateOptimizerSetting(key, value) {
-  const num = Number(value);
-  if (key === 'allowRotation') {
-    OPTIMIZER_STATE.allowRotation = !!value;
-  } else if (!isNaN(num) && num >= 0) {
-    OPTIMIZER_STATE[key] = num;
+  if (key === 'allowRotation' || key === 'stackIdentical') {
+    OPTIMIZER_STATE[key] = !!value;
+  } else {
+    const num = Number(value);
+    if (!isNaN(num) && num >= 0) OPTIMIZER_STATE[key] = num;
   }
+  renderOptimizer();
+}
+
+function updateMaterialSheet(mat, field, value) {
+  const st = OPTIMIZER_STATE;
+  const current = st.materialSheets[mat] || getMaterialSheetSpec(mat);
+  if (field === 'grainLocked') {
+    current.grainLocked = !!value;
+  } else {
+    const num = Number(value);
+    if (!isNaN(num) && num > 0) current[field] = num;
+  }
+  st.materialSheets[mat] = { l: current.l, w: current.w, grainLocked: !!current.grainLocked };
+  renderOptimizer();
+}
+
+function addScrap() {
+  const lEl = document.getElementById('opt-scrap-l');
+  const wEl = document.getElementById('opt-scrap-w');
+  const l = Number(lEl && lEl.value);
+  const w = Number(wEl && wEl.value);
+  if (!l || !w || l < 1 || w < 1) return;
+  OPTIMIZER_STATE.scraps.push({ l, w });
+  renderOptimizer();
+}
+
+function removeScrap(idx) {
+  OPTIMIZER_STATE.scraps.splice(idx, 1);
   renderOptimizer();
 }
 
@@ -19176,14 +21099,14 @@ function printOptimizer() { window.print(); }
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-04-23 20:14 UTC</div>
+" title="Build version">LIVE 2026-04-26 17:36 UTC</div>
 <script>
 (function() {
   const chip = document.getElementById('version-chip');
   if (!chip) return;
   const raw = chip.textContent.trim();
   // If workflow already stamped it, show as-is
-  if (raw !== 'LIVE 2026-04-23 20:14 UTC') return;
+  if (raw !== 'LIVE 2026-04-26 17:36 UTC') return;
   // Fallback: use document.lastModified
   try {
     const d = new Date(document.lastModified);
