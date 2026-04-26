@@ -19670,12 +19670,15 @@ async function plProcessPDFFile(file, jobId) {
   const cats = plInvoiceCategories().join(', ');
   const systemPrompt = `You are reading a supplier invoice or delivery note for a cabinet-making business.
 Extract every line item that represents a cost. Return ONLY a valid JSON array (no markdown, no explanation):
-[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "amount": 123.45 }]
+[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "qty": 1.67, "unit_price": 1104.69, "amount": 1844.83 }]
 
 Use these categories where possible: ${cats}
 
 Rules:
-- amount must be a plain number (no currency symbols, no commas)
+- qty is the quantity ordered — can be a decimal (e.g. 1.67 sheets). Use 1 if not shown.
+- unit_price is the price per single unit/item. Use 0 if not shown.
+- amount is the total line price (qty × unit_price). This is what was actually paid for that line.
+- All numeric fields must be plain numbers (no currency symbols, no commas)
 - If VAT is a separate line include it as category "VAT"
 - If a subtotal or total line exists include it as category "Total" so the user can verify
 - Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
