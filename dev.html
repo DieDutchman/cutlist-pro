@@ -11064,7 +11064,7 @@ function openMoveUnitPopup(unitId, anchorEl) {
 
 function moveUnitToRoom(unitId, targetSectionId) {
   document.getElementById('move-unit-popup')?.remove();
-  const _isUserMode = !isAdmin() && userRooms.length > 0;
+  const _isUserMode = usesUserUnits() && userRooms.length > 0;
   if (_isUserMode) {
     const idx = userUnits.findIndex(u => u.id === unitId);
     if (idx >= 0) userUnits[idx] = { ...userUnits[idx], section: targetSectionId };
