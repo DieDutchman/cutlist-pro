@@ -11071,9 +11071,9 @@ function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
-  const isBuiltin = isBuiltinHint || (!unit && !!UNITS.find(u => u.id === unitId));
+  const isBuiltin = isBuiltinHint || (!unit && !!getUnitTemplates().find(u => u.id === unitId));
   if (!unit) {
-    const tmpl = UNITS.find(u => u.id === unitId);
+    const tmpl = getUnitTemplates().find(u => u.id === unitId);
     if (!tmpl) return;
     unit = JSON.parse(JSON.stringify({ ...tmpl, ...(unitOverrides[unitId] || {}) }));
     source = 'new_custom';
