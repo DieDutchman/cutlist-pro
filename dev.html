@@ -9462,17 +9462,23 @@ function showUsersTab(tab) {
   const isUsers     = tab === 'users';
   const isFeedback  = tab === 'feedback';
   const isSuppliers = tab === 'suppliers';
+  const isTemplates = tab === 'templates';
   document.getElementById('um-panel-users').style.display     = isUsers     ? 'flex' : 'none';
   document.getElementById('um-panel-feedback').style.display  = isFeedback  ? 'flex' : 'none';
   const supPanel = document.getElementById('um-panel-suppliers');
   if (supPanel) supPanel.style.display = isSuppliers ? 'flex' : 'none';
+  const tplPanel = document.getElementById('um-panel-templates');
+  if (tplPanel) tplPanel.style.display = isTemplates ? 'flex' : 'none';
   const styleFor = (active) => `flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
   document.getElementById('um-tab-users').style.cssText    = styleFor(isUsers);
   document.getElementById('um-tab-feedback').style.cssText = styleFor(isFeedback);
   const supTab = document.getElementById('um-tab-suppliers');
   if (supTab) supTab.style.cssText = styleFor(isSuppliers);
+  const tplTab = document.getElementById('um-tab-templates');
+  if (tplTab) tplTab.style.cssText = styleFor(isTemplates);
   if (isFeedback) { clearFeedbackDot(); loadFeedbackInbox(); }
   if (isSuppliers && typeof loadSuppliersTab === 'function') loadSuppliersTab();
+  if (isTemplates) loadTemplatesAdmin();
 }
 function openUsersModal() {
   document.getElementById('users-modal').style.display = 'flex';
