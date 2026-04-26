@@ -4598,8 +4598,8 @@ function _renderPanel() {
     // For user mode: routes to userUnits. For admin/superuser: routes to customUnits
     // Standard template units (no id prefix match) still get Edit/Parts for dimension tweaks
     const isCustomUnit = u.id && (u.id.startsWith('uu_') || u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_'));
-    const canRemoveUnit = isUserMode || (isAdmin() && isCustomUnit);
-    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isAdmin() && isCustomUnit && sections.length > 1);
+    const canRemoveUnit = isUserMode || (isSuperuser() && isCustomUnit);
+    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isSuperuser() && isCustomUnit && sections.length > 1);
     const userBtns = `
       <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
       <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
