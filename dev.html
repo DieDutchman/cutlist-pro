@@ -10769,8 +10769,8 @@ function openTemplateBrowser() {
   ];
 
   // Include saved custom templates (admin/superuser's own database) alongside
-  // the built-in UNITS array so users can copy any template they've defined.
-  const allAdminUnits = [...UNITS, ...customUnits];
+  // the live template library so users can copy any template they've defined.
+  const allAdminUnits = [...getUnitTemplates(), ...customUnits];
   let tabsHtml = adminSections.map((s,i) => {
     const count = allAdminUnits.filter(u => u.section === s.id).length;
     return `<button class="tab ${i===0?'active':''}" onclick="switchTplTab(this,'${s.id}')"
