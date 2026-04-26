@@ -11196,11 +11196,11 @@ function saveUnitParts(unitId) {
   let unit = userUnits.find(u => u.id === unitId);
   let source = unit ? 'user' : null;
   if (!unit) { unit = customUnits.find(u => u.id === unitId); if (unit) source = 'custom'; }
-  // Built-in UNITS template: use unitOverrides so the original id/quantity is
+  // Built-in template: use unitOverrides so the original id/quantity is
   // preserved and no duplicate entry appears in the picker after refresh.
   let isBuiltin = false;
   if (!unit) {
-    const tmpl = UNITS.find(u => u.id === unitId);
+    const tmpl = getUnitTemplates().find(u => u.id === unitId);
     if (!tmpl) return;
     // Start from any existing override so we don't drop name/section changes
     unit = { ...tmpl, ...(unitOverrides[unitId] || {}) };
