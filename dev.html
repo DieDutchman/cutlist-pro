@@ -19814,33 +19814,37 @@ function renderPLPDFResults(items, jobId) {
   results.innerHTML = `
     <div style="border:1px solid var(--border);margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
-        <span style="width:20px"></span>
-        <span style="flex:2">DESCRIPTION</span>
-        <span style="width:130px">CATEGORY</span>
-        <span style="width:70px;text-align:right">QTY</span>
-        <span style="width:90px;text-align:right">UNIT PRICE</span>
-        <span style="width:100px;text-align:right">TOTAL</span>
+        <span style="width:20px;flex-shrink:0"></span>
+        <span style="flex:2;min-width:0">DESCRIPTION</span>
+        <span style="flex:1;min-width:0">SUPPLIER</span>
+        <span style="width:130px;flex-shrink:0">CATEGORY</span>
+        <span style="width:70px;flex-shrink:0;text-align:right">QTY</span>
+        <span style="width:90px;flex-shrink:0;text-align:right">UNIT PRICE</span>
+        <span style="width:100px;flex-shrink:0;text-align:right">TOTAL</span>
       </div>
       ${items.map((item, i) => {
         const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
         return `
         <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
-          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
+          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;flex-shrink:0;accent-color:var(--amber)">
           <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
             id="pl-pdf-desc-${i}"
-            style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
-          <select id="pl-pdf-cat-${i}" style="width:130px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
+            style="flex:2;min-width:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <input type="text" value="${(item.supplier||'').replace(/"/g,'&quot;')}"
+            id="pl-pdf-sup-${i}"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <select id="pl-pdf-cat-${i}" style="width:130px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
             ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
           </select>
           <input type="number" value="${parseFloat(item.qty)||1}" id="pl-pdf-qty-${i}"
             step="0.01" min="0"
-            style="width:70px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:70px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
           <input type="number" value="${parseFloat(item.unit_price)||0}" id="pl-pdf-uprice-${i}"
             step="0.01" min="0"
-            style="width:90px;background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:90px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
           <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
             step="0.01" min="0"
-            style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:100px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
         </div>`;
       }).join('')}
     </div>
