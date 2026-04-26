@@ -10901,7 +10901,7 @@ function renderUserRoomsNav() {
 function openAddRoomModal() {
   // If user has no rooms and is on a tool view, navigate back to quote-view first
   // so after the modal closes the welcome screen is visible
-  if (!isAdmin() && userRooms.length === 0) {
+  if (usesUserUnits() && userRooms.length === 0) {
     const qv = document.getElementById('quote-view');
     if (qv && qv.style.display === 'none') {
       ['cutlist-view','summary-view','editor-view','quote-price-view','costing-view',
