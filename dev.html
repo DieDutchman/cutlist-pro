@@ -8582,6 +8582,27 @@ function setMatSpecialOrder(mat, isSpecial) {
   renderPricesView();
 }
 
+// Update the supplier-set sheet dimension (L or W, in mm) for a material
+// Pushes to Supabase so the new dimension reaches all users via meta.
+async function updateMatSheetDim(matName, axis, value) {
+  const val = parseInt(value) || 0;
+  if (val <= 0) return;
+  if (!costingPrices.matSheetDims) costingPrices.matSheetDims = {};
+  if (!costingPrices.matSheetDims[matName]) costingPrices.matSheetDims[matName] = { l: 2750, w: 1830 };
+  costingPrices.matSheetDims[matName][axis] = val;
+  saveCostingPrices();
+  const dims = costingPrices.matSheetDims[matName];
+  const meta = {
+    fullSheet:    costingPrices.matFullSheet?.[matName]    || false,
+    specialOrder: costingPrices.matSpecialOrder?.[matName] || false,
+    minSheets:    costingPrices.matMinSheets?.[matName]    || 0,
+    sheetL:       dims.l,
+    sheetW:       dims.w,
+  };
+  await pushSupplierPrice('board', matName, costingPrices.mat[matName] || 0, meta);
+  refreshCostingResults();
+}
+
 // Toggle full-sheet-purchase flag for a material
 // When set: billing always rounds up to whole sheets, supplier supplies offcuts
 function setMatFullSheet(mat, isFullSheet) {
