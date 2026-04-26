@@ -3542,6 +3542,258 @@ function getEffectiveUnits() {
   return [...base, ...customUnits];
 }
 
+// ── Admin: Unit Template Library CRUD ─────────────────────────────────────────
+window._adminTemplates = []; // raw rows, includes inactive
+
+function _setTplStatus(msg, isError) {
+  const el = document.getElementById('tpl-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = isError ? '#e05252' : 'var(--text-muted)';
+}
+
+async function loadTemplatesAdmin() {
+  if (!isAdmin()) return;
+  const list = document.getElementById('tpl-admin-list');
+  if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>';
+  _setTplStatus('Loading…');
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/unit_templates?select=*&order=category,subcategory,name`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    window._adminTemplates = rows;
+    if (!list) return;
+    if (!rows.length) {
+      list.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px">
+        <div style="font-size:28px;margin-bottom:10px">📋</div>
+        <div>No templates yet. Use <strong style="color:var(--amber)">+ ADD TEMPLATE</strong>${isSuperuser() ? ' or <strong style="color:var(--amber)">⚙ SEED FROM CODE</strong>' : ''} to populate the library.</div>
+      </div>`;
+    } else {
+      list.innerHTML = rows.map(renderTemplateRow).join('');
+    }
+    _setTplStatus(`${rows.length} template${rows.length===1?'':'s'} (${rows.filter(r=>r.active).length} active)`);
+  } catch(e) {
+    if (list) list.innerHTML = `<div style="padding:24px;text-align:center;color:#e05252;font-size:13px">Load failed: ${e.message}</div>`;
+    _setTplStatus(e.message, true);
+  }
+}
+
+function renderTemplateRow(t) {
+  const partCount = Array.isArray(t.parts) ? t.parts.length : 0;
+  const cat = (t.category || '').toString();
+  const sub = (t.subcategory || '').toString();
+  const safeName = (t.name || '').replace(/'/g,"\\'");
+  return `<div style="display:flex;align-items:center;gap:10px;padding:9px 20px;border-bottom:1px solid var(--border);${t.active ? '' : 'opacity:0.55;'}">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name || '(unnamed)'}</div>
+      <div style="font-size:11px;color:var(--text-muted)">
+        <span style="color:var(--amber-dim)">${cat}</span>${sub ? ' · ' + sub : ''} · ${partCount} part${partCount===1?'':'s'}${t.active ? '' : ' · <span style="color:#e05252">INACTIVE</span>'}
+      </div>
+    </div>
+    <button onclick="openTemplateEditor('${t.id}')" title="Edit"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">EDIT</button>
+    <button onclick="toggleTemplateActive('${t.id}', ${!t.active})" title="${t.active ? 'Deactivate' : 'Activate'}"
+      style="background:${t.active?'var(--bg3)':'rgba(212,145,58,0.15)'};border:1px solid ${t.active?'var(--border)':'var(--amber-dim)'};color:${t.active?'var(--text-muted)':'var(--amber)'};padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">${t.active ? 'OFF' : 'ON'}</button>
+    <button onclick="deleteTemplate('${t.id}','${safeName}')" title="Delete"
+      style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;cursor:pointer">DEL</button>
+  </div>`;
+}
+
+async function saveTemplate(payload) {
+  // payload may include id (PATCH) or no id (POST)
+  const { id, ...body } = payload;
+  body.updated_at = new Date().toISOString();
+  try {
+    let res;
+    if (id) {
+      res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+      });
+    } else {
+      res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify(body),
+      });
+    }
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error(`HTTP ${res.status} ${txt}`);
+    }
+    await loadUnitTemplates(); // refresh live cache
+    await loadTemplatesAdmin();
+    return true;
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    return false;
+  }
+}
+
+async function toggleTemplateActive(id, makeActive) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ active: !!makeActive, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    alert('Toggle failed: ' + e.message);
+  }
+}
+
+async function deleteTemplate(id, name) {
+  if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+async function seedUnitTemplates() {
+  if (!isSuperuser()) { alert('Superuser only.'); return; }
+  if (!confirm(`This will insert all ${UNITS.length} hardcoded unit templates into the database. Existing rows are not modified. Continue?`)) return;
+  const rows = UNITS.map(u => ({
+    name: u.name,
+    category: u.section || u.category || 'custom',
+    subcategory: u.subcategory || u.group || '',
+    parts: u.parts || [],
+    meta: {
+      width:  u.width  ?? null,
+      height: u.height ?? null,
+      depth:  u.depth  ?? null,
+      icon:   u.icon   ?? null,
+      tags:   u.tags || [],
+      sortOrder: u.sortOrder || 0,
+      legacyId: u.id || null,
+      price:  u.price ?? null,
+    },
+    active: true,
+  }));
+  _setTplStatus(`Seeding ${rows.length} templates…`);
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error(`HTTP ${res.status} ${txt}`);
+    }
+    alert(`Seeded ${rows.length} templates successfully.`);
+    await loadUnitTemplates();
+    await loadTemplatesAdmin();
+  } catch(e) {
+    _setTplStatus(e.message, true);
+    alert('Seed failed: ' + e.message);
+  }
+}
+
+function openTemplateEditor(id) {
+  if (!isAdmin()) return;
+  const existing = id ? (window._adminTemplates || []).find(t => t.id === id) : null;
+  document.getElementById('tpl-edit-modal')?.remove();
+
+  const data = existing || { name:'', category:'custom', subcategory:'', parts:[], meta:{}, active:true };
+  const partsJson = JSON.stringify(data.parts || [], null, 2);
+  const metaJson  = JSON.stringify(data.meta  || {}, null, 2);
+
+  const modal = document.createElement('div');
+  modal.id = 'tpl-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9600;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:2.5px;color:var(--text)">${existing ? '✏ EDIT TEMPLATE' : '+ NEW TEMPLATE'}</div>
+        <button onclick="document.getElementById('tpl-edit-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:18px 20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">NAME</span>
+            <input id="tpl-f-name" type="text" value="${(data.name||'').replace(/"/g,'&quot;')}"
+              style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">CATEGORY</span>
+            <select id="tpl-f-cat" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;outline:none">
+              ${['kitchen','mainbedroom','sparebedroom','linnekast','bathroom','custom','fillers','floor','wall','bedroom']
+                .map(c => `<option value="${c}" ${c===(data.category||'custom')?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">SUBCATEGORY</span>
+            <input id="tpl-f-sub" type="text" value="${(data.subcategory||'').replace(/"/g,'&quot;')}" placeholder="e.g. Base Units"
+              style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          </label>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">PARTS (JSON ARRAY)</span>
+          <textarea id="tpl-f-parts" rows="14"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical">${partsJson}</textarea>
+          <span style="font-size:10px;color:var(--text-muted)">Each part: {name, qty, l, w, mat, el1, el2, ew1, ew2, holes}</span>
+        </label>
+
+        <label style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">META (JSON OBJECT)</span>
+          <textarea id="tpl-f-meta" rows="6"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical">${metaJson}</textarea>
+          <span style="font-size:10px;color:var(--text-muted)">{ width, height, depth, icon, tags, sortOrder }</span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">
+          <input id="tpl-f-active" type="checkbox" ${data.active ? 'checked' : ''}>
+          <span>Active (visible to all users)</span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <span id="tpl-edit-err" style="font-size:11px;color:#e05252;flex:1"></span>
+        <button onclick="document.getElementById('tpl-edit-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+        <button onclick="submitTemplateEditor(${existing ? `'${existing.id}'` : 'null'})" style="background:var(--amber);color:#111;border:none;padding:8px 22px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">💾 SAVE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('tpl-f-name').focus();
+}
+
+async function submitTemplateEditor(id) {
+  const errEl = document.getElementById('tpl-edit-err');
+  if (errEl) errEl.textContent = '';
+  const name = document.getElementById('tpl-f-name').value.trim();
+  const category = document.getElementById('tpl-f-cat').value;
+  const subcategory = document.getElementById('tpl-f-sub').value.trim();
+  const partsTxt = document.getElementById('tpl-f-parts').value.trim() || '[]';
+  const metaTxt  = document.getElementById('tpl-f-meta').value.trim()  || '{}';
+  const active   = document.getElementById('tpl-f-active').checked;
+
+  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; return; }
+  let parts, meta;
+  try { parts = JSON.parse(partsTxt); if (!Array.isArray(parts)) throw new Error('parts must be a JSON array'); }
+  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; return; }
+  try { meta  = JSON.parse(metaTxt); if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) throw new Error('meta must be a JSON object'); }
+  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; return; }
+
+  const payload = { id, name, category, subcategory, parts, meta, active };
+  const ok = await saveTemplate(payload);
+  if (ok) document.getElementById('tpl-edit-modal')?.remove();
+}
+
 // Quantities — seed from all effective units
 const quantities = {};
 getEffectiveUnits().forEach(u => quantities[u.id] = 0);
