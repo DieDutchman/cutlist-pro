@@ -19862,11 +19862,13 @@ function plImportSelectedLines(jobId, count) {
   for (let i = 0; i < count; i++) {
     const chk = document.getElementById('pl-pdf-chk-' + i);
     if (!chk || !chk.checked) continue;
-    const desc   = document.getElementById('pl-pdf-desc-' + i)?.value.trim() || '';
-    const cat    = document.getElementById('pl-pdf-cat-'  + i)?.value || 'Other';
-    const amount = parseFloat(document.getElementById('pl-pdf-amt-' + i)?.value) || 0;
+    const desc       = document.getElementById('pl-pdf-desc-'   + i)?.value.trim() || '';
+    const cat        = document.getElementById('pl-pdf-cat-'    + i)?.value || 'Other';
+    const qty        = parseFloat(document.getElementById('pl-pdf-qty-'    + i)?.value) || 1;
+    const unit_price = parseFloat(document.getElementById('pl-pdf-uprice-' + i)?.value) || 0;
+    const amount     = parseFloat(document.getElementById('pl-pdf-amt-'    + i)?.value) || 0;
     if (!desc && !amount) continue;
-    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier:'', category:cat, amount });
+    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier:'', category:cat, qty, unit_price, amount });
     added++;
   }
   plSave();
