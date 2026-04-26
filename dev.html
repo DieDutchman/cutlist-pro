@@ -3458,12 +3458,63 @@ function pushTemplatesToCloud() {
 }
 const saveDeletedUnits = saveCustomUnits;
 
+// ── Cloud-backed Unit Template Library ────────────────────────────────────────
+// Live library lives in the unit_templates table. The hardcoded UNITS array is
+// kept as an offline fallback so the app still works if the DB is empty or the
+// fetch fails. DB rows are normalised into the legacy shape (id, section,
+// name, parts, …) so the rest of the code does not need to know the source.
+window._dbUnitTemplates = null; // null = not yet attempted, [] = empty/failed, [...] = loaded
+
+function _normalizeDbTemplate(row) {
+  const meta = (row && typeof row.meta === 'object' && row.meta) ? row.meta : {};
+  return {
+    id:       row.id,
+    section:  row.category || row.subcategory || 'custom',
+    name:     row.name,
+    parts:    Array.isArray(row.parts) ? row.parts : [],
+    width:    meta.width,
+    height:   meta.height,
+    depth:    meta.depth,
+    icon:     meta.icon,
+    tags:     Array.isArray(meta.tags) ? meta.tags : [],
+    sortOrder: typeof meta.sortOrder === 'number' ? meta.sortOrder : 0,
+    _dbRow:   row, // keep raw row for admin edits
+  };
+}
+
+async function loadUnitTemplates() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/unit_templates?active=eq.true&select=*&order=category,subcategory`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    if (Array.isArray(rows) && rows.length > 0) {
+      window._dbUnitTemplates = rows.map(_normalizeDbTemplate);
+      console.log('[Templates] Loaded', rows.length, 'unit templates from DB');
+    } else {
+      window._dbUnitTemplates = [];
+    }
+  } catch(e) {
+    console.warn('[Supabase] Could not load unit templates:', e.message);
+    window._dbUnitTemplates = [];
+  }
+}
+
+function getUnitTemplates() {
+  if (window._dbUnitTemplates && window._dbUnitTemplates.length > 0) {
+    return window._dbUnitTemplates;
+  }
+  return UNITS; // hardcoded fallback
+}
+
 function getEffectiveUnits() {
   // Non-admin/superuser users always use their own units (empty array if none created yet)
   if (!isAdmin()) {
     return userUnits;
   }
-  const base = UNITS
+  const base = getUnitTemplates()
     .filter(u => !deletedUnits.has(u.id))
     .map(u => unitOverrides[u.id] ? {...u, ...unitOverrides[u.id]} : u);
   return [...base, ...customUnits];
