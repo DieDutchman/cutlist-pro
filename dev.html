@@ -11037,7 +11037,7 @@ function openMoveUnitPopup(unitId, anchorEl) {
   document.getElementById('move-unit-popup')?.remove();
   const unit = getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
-  const _isUserMode = !isAdmin() && userRooms.length > 0;
+  const _isUserMode = usesUserUnits() && userRooms.length > 0;
   const roomList = _isUserMode ? userRooms.map(r => ({id: r.id, label: r.name})) : sections;
   const otherRooms = roomList.filter(r => r.id !== unit.section);
   if (!otherRooms.length) return;
