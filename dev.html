@@ -4702,7 +4702,7 @@ function setQty(id, input) {
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
-  const roomList = (!isAdmin() && userRooms.length > 0)
+  const roomList = (usesUserUnits() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   roomList.forEach(sec => {
