@@ -10809,7 +10809,7 @@ function switchTplTab(btn, sectionId) {
 function renderTplTab(sectionId) {
   // Include saved customUnits so users can copy from the full template database,
   // not just the hardcoded built-ins.
-  const units = [...UNITS, ...customUnits].filter(u => u.section === sectionId);
+  const units = [...getUnitTemplates(), ...customUnits].filter(u => u.section === sectionId);
   const list = document.getElementById('tpl-unit-list');
   if (!list) return;
 
