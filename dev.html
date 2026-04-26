@@ -16938,11 +16938,11 @@ function saveImportAsUnit(groupNames, groups) {
 
     const id = 'imp_unit_' + Date.now() + '_' + gi;
 
-    if (!isAdmin() && userRooms.length > 0) {
-      // Regular user — save to userUnits
+    if (usesUserUnits() && userRooms.length > 0) {
+      // User mode (admin + user) — save to userUnits
       userUnits.push({ id, name, section, parts, price: 0 });
     } else {
-      // Admin — save to customUnits
+      // Superuser — save to shared customUnits
       customUnits.push({ id, name, section, parts, price: 0 });
     }
     if (!(id in quantities)) quantities[id] = 0;
