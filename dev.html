@@ -7366,9 +7366,9 @@ function createCustomBuilderUnit() {
     return clean;
   });
 
-  const id = (!isAdmin() ? 'uu_cb_' : 'custom_cb_') + Date.now();
+  const id = (usesUserUnits() ? 'uu_cb_' : 'custom_cb_') + Date.now();
   const section = currentSection;
-  if (!isAdmin() && userRooms.length > 0) {
+  if (usesUserUnits() && userRooms.length > 0) {
     userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
     if (!(id in quantities)) quantities[id] = 0;
     scheduleAutoSave();
