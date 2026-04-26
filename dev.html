@@ -11302,8 +11302,8 @@ function applyRoleRestrictions() {
   const plTab = document.getElementById('pl-tab');
   if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
 
-  // User rooms nav
-  if (!isAdmin()) {
+  // User rooms nav (admin + regular user — superuser keeps the static rooms row)
+  if (usesUserUnits()) {
     if (userRooms.length > 0) {
       renderUserRoomsNav();
     } else {
