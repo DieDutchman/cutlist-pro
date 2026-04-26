@@ -4502,10 +4502,14 @@ function generateCutlist() {
     });
   });
 
-  // Consolidate identical parts (same dims + mat + edges)
+  // Consolidate identical parts (same dims + mat + edges + holes/notes).
+  // Holes/notes MUST be part of the key — otherwise parts with different
+  // per-unit holes (e.g. 3 plain doors + 2 with hinge holes at the same
+  // size) get merged into one row and the hole spec is lost.
   const consolidated = {};
   allParts.forEach(p => {
-    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${p._panelKey||''}`;
+    const holesNorm = (p.holes||'').trim();
+    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${p._panelKey||''}|${holesNorm}`;
     if (consolidated[key]) {
       consolidated[key].qty += p.qty;
       consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
