@@ -15708,10 +15708,14 @@ async function downloadImportedXLSX(partsArg, labelArg) {
     return part;
   }).filter(p => p.qty > 0);
 
-  // Consolidate identical rows (same dims + mat + edges + category).
+  // Consolidate identical rows (same dims + mat + edges + category + holes/notes).
+  // Including holes/notes in the key prevents two parts with the same size
+  // but different hole specs (e.g. plain vs hinge-bored doors) from
+  // collapsing into a single row and dropping the hole information.
   const consolidated = {};
   allParts.forEach(p => {
-    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}`;
+    const holesNorm = (p.holes||'').trim();
+    const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${holesNorm}`;
     if (consolidated[key]) {
       consolidated[key].qty += p.qty;
       consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
