@@ -2888,6 +2888,49 @@
     </div>
   </div>
 
+  <div id="import-prices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
+        <button onclick="closeImportPricesModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;flex:1">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="font-size:12px;color:var(--text-muted)">Need a starting point?</span>
+          <button onclick="downloadPriceTemplate()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:5px 12px;cursor:pointer">↓ CSV TEMPLATE</button>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:auto">Accepts .csv, .xlsx, .xls</span>
+        </div>
+
+        <div id="import-drop-zone"
+          ondragover="event.preventDefault();this.style.background='rgba(212,145,58,0.12)';this.style.borderColor='var(--amber)'"
+          ondragleave="this.style.background='var(--bg3)';this.style.borderColor='var(--amber-dim)'"
+          ondrop="handleImportFileDrop(event)"
+          onclick="document.getElementById('import-file-input').click()"
+          style="border:2px dashed var(--amber-dim);background:var(--bg3);padding:32px 16px;text-align:center;cursor:pointer;margin-bottom:12px">
+          <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--amber)">DROP FILE HERE OR CLICK TO BROWSE</div>
+          <div id="import-file-name" style="font-size:11px;color:var(--text-muted);margin-top:6px;font-family:'JetBrains Mono',monospace"></div>
+        </div>
+        <input id="import-file-input" type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFileSelect(event)">
+
+        <div id="import-error" style="display:none;background:rgba(224,82,82,0.12);border:1px solid #e05252;color:#e05252;padding:8px 12px;font-size:12px;margin-bottom:12px"></div>
+
+        <div id="import-summary" style="display:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;margin-bottom:8px"></div>
+
+        <div id="import-preview-wrap" style="display:none">
+          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin-bottom:6px">PREVIEW (first 10 rows)</div>
+          <div id="import-preview" style="border:1px solid var(--border);overflow:auto;max-height:300px"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
+        <button onclick="closeImportPricesModal()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 20px;cursor:pointer">CANCEL</button>
+        <button id="import-prices-confirm-btn" onclick="confirmImportPrices()" disabled
+          style="background:var(--amber);color:#111;border:none;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:not-allowed;font-weight:600;opacity:0.4">
+          IMPORT
+        </button>
+      </div>
+    </div>
+  </div>
+
     <div id="board-cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
