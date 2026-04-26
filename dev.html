@@ -10890,6 +10890,13 @@ function applyRoleRestrictions() {
   const usersBtn = document.getElementById('users-btn');
   if (usersBtn) usersBtn.style.display = canManageUsers() ? 'block' : 'none';
 
+  // Unit Templates tab inside Users modal: admin + superuser
+  const tplTab = document.getElementById('um-tab-templates');
+  if (tplTab) tplTab.style.display = isAdmin() ? '' : 'none';
+  // Seed-from-code button: superuser only
+  const seedBtn = document.getElementById('tpl-seed-btn');
+  if (seedBtn) seedBtn.style.display = isSuperuser() ? '' : 'none';
+
   // ── Supplier role ─────────────────────────────────────────────────────────────
   if (isSupplier()) {
     // Light theme
