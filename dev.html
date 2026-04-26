@@ -19403,10 +19403,10 @@ function drawerCalcParts() {
 function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
-  const id    = (!isAdmin() ? 'uu_drw_' : 'drw_') + Date.now();
+  const id    = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
   const unit  = { id, name, section: drawerState.section, parts, price: 0 };
-  if (!isAdmin() && userRooms.length > 0) {
-    // Regular user — save to their own units list
+  if (usesUserUnits() && userRooms.length > 0) {
+    // User mode (admin + user) — save to their own units list
     userUnits.push(unit);
     scheduleAutoSave();
   } else {
