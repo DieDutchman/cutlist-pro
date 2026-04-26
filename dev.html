@@ -12173,6 +12173,314 @@ async function applyBulkPriceAdjustment() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPLIER PRICE IMPORT — CSV / XLSX upload → bulk update supplier_prices
+// ─────────────────────────────────────────────────────────────────────────────
+let _importParsedRows = [];
+
+function openImportPricesModal() {
+  if (!canEditPrices()) return;
+  _importParsedRows = [];
+  document.getElementById('import-file-name').textContent = '';
+  document.getElementById('import-error').style.display = 'none';
+  document.getElementById('import-summary').style.display = 'none';
+  document.getElementById('import-preview-wrap').style.display = 'none';
+  document.getElementById('import-preview').innerHTML = '';
+  const btn = document.getElementById('import-prices-confirm-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  btn.style.cursor = 'not-allowed';
+  btn.textContent = 'IMPORT';
+  const inp = document.getElementById('import-file-input');
+  if (inp) inp.value = '';
+  document.getElementById('import-prices-modal').style.display = 'flex';
+}
+
+function closeImportPricesModal() {
+  document.getElementById('import-prices-modal').style.display = 'none';
+}
+
+function downloadPriceTemplate() {
+  const header = 'name,type,price,sheet_l,sheet_w,min_sheets,full_sheet,special_order';
+  const examples = [
+    'White Melamine 18mm,board,1760,2750,1830,0.25,false,false',
+    'Dunblane Edging 1mm White,edge,18,,,,,',
+    'CNC Cut-out Round,service,85,,,,,'
+  ].join('\n');
+  const blob = new Blob([header + '\n' + examples], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'price-list-template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function handleImportFileSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (file) processImportFile(file);
+}
+
+function handleImportFileDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('import-drop-zone');
+  if (dz) { dz.style.background = 'var(--bg3)'; dz.style.borderColor = 'var(--amber-dim)'; }
+  const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+  if (file) processImportFile(file);
+}
+
+async function processImportFile(file) {
+  const errEl = document.getElementById('import-error');
+  errEl.style.display = 'none';
+  document.getElementById('import-file-name').textContent = file.name;
+  try {
+    const rows = await parsePriceFile(file);
+    if (!rows || !rows.length) throw new Error('File contains no data rows.');
+    _importParsedRows = rows;
+    renderImportPreview(rows);
+  } catch (e) {
+    _importParsedRows = [];
+    errEl.textContent = e.message || String(e);
+    errEl.style.display = 'block';
+    document.getElementById('import-summary').style.display = 'none';
+    document.getElementById('import-preview-wrap').style.display = 'none';
+    const btn = document.getElementById('import-prices-confirm-btn');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+  }
+}
+
+async function parsePriceFile(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'csv') return parsePriceCsv(await file.text());
+  if (ext === 'xlsx' || ext === 'xls') return parsePriceXlsx(file);
+  throw new Error('Unsupported file type. Use CSV or XLSX.');
+}
+
+function _splitCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQ = false; }
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function parsePriceCsv(text) {
+  const lines = text.replace(/\r/g, '').trim().split('\n').filter(l => l.trim());
+  if (!lines.length) return [];
+  const headers = _splitCsvLine(lines[0]).map(h => h.toLowerCase().trim());
+  return lines.slice(1).map(line => {
+    const cols = _splitCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+    return row;
+  });
+}
+
+async function parsePriceXlsx(file) {
+  if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS not loaded — cannot parse XLSX.');
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(await file.arrayBuffer());
+  const ws = workbook.worksheets[0];
+  if (!ws) throw new Error('No worksheet found in file.');
+  const headers = [];
+  const rows = [];
+  ws.eachRow((row, ri) => {
+    if (ri === 1) {
+      row.eachCell((c, ci) => { headers[ci - 1] = String(c.value ?? '').toLowerCase().trim(); });
+      return;
+    }
+    const obj = {};
+    row.eachCell((c, ci) => {
+      const key = headers[ci - 1];
+      if (key) {
+        let v = c.value;
+        if (v && typeof v === 'object' && 'result' in v) v = v.result;
+        if (v && typeof v === 'object' && 'text' in v) v = v.text;
+        obj[key] = v == null ? '' : String(v).trim();
+      }
+    });
+    if (Object.values(obj).some(v => v !== '')) rows.push(obj);
+  });
+  return rows;
+}
+
+function _classifyImportRow(row) {
+  const type = (row.type || '').toLowerCase().trim();
+  const name = (row.name || '').trim();
+  const price = parseFloat(row.price);
+  if (!name) return { status: 'invalid', reason: 'missing name' };
+  if (!['board', 'edge', 'service'].includes(type)) return { status: 'unrecognised', reason: 'bad type' };
+  if (isNaN(price) || price <= 0) return { status: 'invalid', reason: 'bad price' };
+  // Match by case-insensitive name against existing pools
+  const lcName = name.toLowerCase();
+  const existing =
+    (type === 'board' && Object.keys(costingPrices.mat || {}).some(k => k.toLowerCase() === lcName)) ||
+    (type === 'edge'  && Object.keys(costingPrices.edge || {}).some(k => k.toLowerCase() === lcName));
+  return { status: existing ? 'matched' : 'new', type, name, price };
+}
+
+function renderImportPreview(rows) {
+  let matched = 0, isNew = 0, unrecognised = 0, invalid = 0;
+  const classed = rows.map(r => ({ row: r, info: _classifyImportRow(r) }));
+  classed.forEach(c => {
+    if (c.info.status === 'matched') matched++;
+    else if (c.info.status === 'new') isNew++;
+    else if (c.info.status === 'unrecognised') unrecognised++;
+    else invalid++;
+  });
+
+  const previewRows = classed.slice(0, 10).map(c => {
+    const r = c.row;
+    const colorMap = {
+      matched: '#5dba6e',
+      new: 'var(--amber)',
+      unrecognised: '#e07070',
+      invalid: '#e07070',
+    };
+    const labelMap = {
+      matched: 'MATCH',
+      new: 'NEW',
+      unrecognised: 'BAD TYPE',
+      invalid: 'INVALID',
+    };
+    const c1 = colorMap[c.info.status];
+    return `<div style="display:grid;grid-template-columns:60px 1.6fr 0.7fr 0.7fr 0.8fr 0.8fr;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;font-family:'JetBrains Mono',monospace">
+      <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:${c1}">${labelMap[c.info.status]}</span>
+      <span style="color:var(--text)">${escHtml(r.name || '')}</span>
+      <span style="color:var(--text-muted)">${escHtml((r.type || '').toLowerCase())}</span>
+      <span style="color:var(--text);text-align:right;padding-right:10px">${escHtml(r.price || '')}</span>
+      <span style="color:var(--text-muted);text-align:right;padding-right:10px">${escHtml(r.sheet_l || '')}</span>
+      <span style="color:var(--text-muted);text-align:right;padding-right:10px">${escHtml(r.sheet_w || '')}</span>
+    </div>`;
+  }).join('');
+
+  const header = `<div style="display:grid;grid-template-columns:60px 1.6fr 0.7fr 0.7fr 0.8fr 0.8fr;padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1.5px;color:var(--text-muted)">
+    <span>STATUS</span>
+    <span>NAME</span>
+    <span>TYPE</span>
+    <span style="text-align:right;padding-right:10px">PRICE</span>
+    <span style="text-align:right;padding-right:10px">SHEET L</span>
+    <span style="text-align:right;padding-right:10px">SHEET W</span>
+  </div>`;
+
+  document.getElementById('import-preview').innerHTML = header + previewRows
+    + (rows.length > 10 ? `<div style="padding:6px 10px;font-size:10px;color:var(--text-muted);font-style:italic;text-align:center">… and ${rows.length - 10} more rows</div>` : '');
+  document.getElementById('import-preview-wrap').style.display = 'block';
+
+  const skipped = unrecognised + invalid;
+  const importable = matched + isNew;
+  const summary = document.getElementById('import-summary');
+  summary.innerHTML = `
+    <span style="color:#5dba6e">Matched: ${matched}</span>
+    <span style="color:var(--text-muted);margin:0 10px">|</span>
+    <span style="color:var(--amber)">New: ${isNew}</span>
+    <span style="color:var(--text-muted);margin:0 10px">|</span>
+    <span style="color:#e07070">Skipped: ${skipped}</span>
+  `;
+  summary.style.display = 'block';
+
+  const btn = document.getElementById('import-prices-confirm-btn');
+  if (importable > 0) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.textContent = `IMPORT ${importable} ROW${importable !== 1 ? 'S' : ''}`;
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'NOTHING TO IMPORT';
+  }
+}
+
+async function confirmImportPrices() {
+  if (!_importParsedRows.length) return;
+  const btn = document.getElementById('import-prices-confirm-btn');
+  const errEl = document.getElementById('import-error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = 'IMPORTING…';
+  try {
+    const result = await importPriceRows(_importParsedRows);
+    closeImportPricesModal();
+    alert(`Imported ${result.imported} row${result.imported !== 1 ? 's' : ''}, skipped ${result.skipped}.`);
+  } catch (e) {
+    errEl.textContent = `Import failed: ${e.message || e}`;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = 'RETRY IMPORT';
+  }
+}
+
+async function importPriceRows(rows) {
+  let imported = 0, skipped = 0;
+  for (const row of rows) {
+    const info = _classifyImportRow(row);
+    if (info.status !== 'matched' && info.status !== 'new') { skipped++; continue; }
+    const { type, name, price } = info;
+    let meta = {};
+    if (type === 'board') {
+      const sheetL = parseInt(row.sheet_l);
+      const sheetW = parseInt(row.sheet_w);
+      const minSheets = parseFloat(row.min_sheets);
+      if (!isNaN(sheetL) && sheetL > 0) meta.sheetL = sheetL;
+      if (!isNaN(sheetW) && sheetW > 0) meta.sheetW = sheetW;
+      if (!isNaN(minSheets)) meta.minSheets = minSheets;
+      const fullSheet = String(row.full_sheet || '').toLowerCase() === 'true';
+      const specialOrder = String(row.special_order || '').toLowerCase() === 'true';
+      if (fullSheet) meta.fullSheet = true;
+      if (specialOrder) meta.specialOrder = true;
+
+      // Update local stores so pushSupplierPrice picks them up
+      costingPrices.mat[name] = price;
+      if (meta.sheetL && meta.sheetW) {
+        costingPrices.matSheetDims = costingPrices.matSheetDims || {};
+        costingPrices.matSheetDims[name] = { l: meta.sheetL, w: meta.sheetW };
+      }
+      if ('minSheets' in meta) {
+        costingPrices.matMinSheets = costingPrices.matMinSheets || {};
+        costingPrices.matMinSheets[name] = meta.minSheets;
+      }
+      costingPrices.matFullSheet = costingPrices.matFullSheet || {};
+      costingPrices.matSpecialOrder = costingPrices.matSpecialOrder || {};
+      costingPrices.matFullSheet[name] = fullSheet;
+      costingPrices.matSpecialOrder[name] = specialOrder;
+    } else if (type === 'edge') {
+      costingPrices.edge[name] = price;
+    }
+    try {
+      await pushSupplierPrice(type, name, price, type === 'board' ? meta : undefined);
+      imported++;
+    } catch (e) {
+      console.warn('[Import] push failed for', name, e);
+      skipped++;
+    }
+  }
+  try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+  await loadSupplierPrices();
+  renderPricesView();
+  return { imported, skipped };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function pushSupplierPrice(category, name, price, meta) {
   if (!sbUser) {
     sbSyncStatus = 'error';
