@@ -4718,7 +4718,7 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  const roomList = (!isAdmin() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
+  const roomList = (usesUserUnits() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
   roomList.forEach(sec => {
     const count = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
