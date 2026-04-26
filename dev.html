@@ -9043,6 +9043,7 @@ async function onLoginSuccess() {
   await loadUserJobs();
   if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
+  await loadUnitTemplates();
   checkFeedbackUnread();
   // Start trial countdown badge for users with a trial expiry
   initTrialCountdown();
