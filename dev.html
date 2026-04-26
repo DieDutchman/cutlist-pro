@@ -6256,7 +6256,7 @@ function saveUnit(id) {
 function copyUnit(id) {
   const source = getEffectiveUnits().find(u => u.id === id);
   if (!source) return;
-  const newId = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
+  const newId = (usesUserUnits() ? 'uu_' : 'custom_') + Date.now();
   const copy = {
     id: newId,
     section: source.section,
@@ -6264,7 +6264,7 @@ function copyUnit(id) {
     price: source.price || 0,
     parts: (source.parts || []).map(p => ({...p})),
   };
-  if (!isAdmin()) {
+  if (usesUserUnits()) {
     userUnits.push(copy);
   } else {
     customUnits.push(copy);
@@ -6275,13 +6275,13 @@ function copyUnit(id) {
   editorSection = copy.section;
   editingUnitId = newId;
   renderEditor();
-  if (!isAdmin()) scheduleAutoSave();
+  if (usesUserUnits()) scheduleAutoSave();
 }
 
 function newUnit() {
-  const id = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
+  const id = (usesUserUnits() ? 'uu_' : 'custom_') + Date.now();
   const unit = { id, section: editorSection, name: 'New Unit', price: 0, parts: [] };
-  if (!isAdmin()) {
+  if (usesUserUnits()) {
     userUnits.push(unit);
   } else {
     customUnits.push(unit);
@@ -6291,7 +6291,7 @@ function newUnit() {
   save();
   editingUnitId = id;
   renderEditor();
-  if (!isAdmin()) scheduleAutoSave();
+  if (usesUserUnits()) scheduleAutoSave();
 }
 
 function editorDeleteUserUnit(id) {
