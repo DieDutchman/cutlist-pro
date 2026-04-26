@@ -3612,8 +3612,10 @@ function getUnitTemplates() {
 }
 
 function getEffectiveUnits() {
-  // Non-admin/superuser users always use their own units (empty array if none created yet)
-  if (!isAdmin()) {
+  // Non-superuser users (admin, user, supplier) always use their own units
+  // (empty array if none created yet) — admins go through the same fresh-account
+  // onboarding flow as regular users; only superuser sees the seeded template library.
+  if (usesUserUnits()) {
     return userUnits;
   }
   const base = getUnitTemplates()
