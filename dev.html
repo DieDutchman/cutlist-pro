@@ -10832,9 +10832,9 @@ function renderTplTab(sectionId) {
 }
 
 function copyTemplateUnit(templateUnitId) {
-  // Look up in UNITS first, then fall back to customUnits so admin/superuser
-  // templates are also copyable from the browser.
-  const template = UNITS.find(u => u.id === templateUnitId)
+  // Look up in the live template library first, then fall back to customUnits
+  // so admin/superuser templates are also copyable from the browser.
+  const template = getUnitTemplates().find(u => u.id === templateUnitId)
                 || customUnits.find(u => u.id === templateUnitId);
   if (!template) return;
   const id = 'uu_' + Date.now() + '_' + Math.floor(Math.random()*1000);
