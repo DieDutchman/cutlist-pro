@@ -4470,14 +4470,14 @@ function switchTab(btn, section) {
 
 function renderPanel() { withScrollLock(_renderPanel); }
 function _renderPanel() {
-  // Non-admin with no rooms yet — show welcome screen and ensure nav button is visible
-  if (!isAdmin() && userRooms.length === 0) {
+  // Non-superuser with no rooms yet — show welcome screen and ensure nav button is visible
+  if (usesUserUnits() && userRooms.length === 0) {
     applyRoleRestrictions();
     return;
   }
 
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
-  const isUserMode = !isAdmin() && userRooms.length > 0;
+  const isUserMode = usesUserUnits() && userRooms.length > 0;
   const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
   const sec = userRoom
     ? {id: userRoom.id, label: userRoom.name}
