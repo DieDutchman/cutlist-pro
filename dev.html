@@ -6225,8 +6225,8 @@ function saveUnit(id) {
 
   if (!name) { alert('Unit name cannot be empty.'); return; }
 
-  // Non-admin: save into userUnits
-  if (!isAdmin()) {
+  // User mode (admin + user): save into userUnits. Only superuser writes to shared customUnits/overrides.
+  if (usesUserUnits()) {
     const idx = userUnits.findIndex(u => u.id === id);
     if (idx >= 0) userUnits[idx] = { ...userUnits[idx], name, section, parts };
     editorSection = section;
