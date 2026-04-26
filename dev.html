@@ -6024,9 +6024,10 @@ let EDGES = ['','Dunblane Edging 1mm','White Edging 1mm','Iceberg White Edging 1
 
 function renderEditor() {
   const ev = document.getElementById('editor-view');
-  const isUserMode = !isAdmin();
+  const isUserMode = usesUserUnits();
 
-  // For non-admin: use userRooms as sections, userUnits as units
+  // For user mode (admin + user): use userRooms as sections, userUnits as units.
+  // Only superuser edits the shared template library.
   const roomList  = isUserMode ? userRooms.map(r => ({id: r.id, label: r.name})) : sections;
   const isUserUnit = id => isUserMode ? userUnits.some(u => u.id === id) : customUnits.some(u => u.id === id);
 
