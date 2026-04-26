@@ -11138,6 +11138,23 @@ function copyTemplateUnit(templateUnitId) {
   if (activeTab) renderTplTab(activeTab.dataset.tpltab);
   renderPanel();
   scheduleAutoSave();
+
+  // First-copy-per-session inline notice — gentle reminder to verify the template
+  const toast = document.getElementById('tpl-copy-toast');
+  if (toast) {
+    if (!window._tplCopyNoticeShown) {
+      toast.textContent = '✓ Template unit added. Remember to check dimensions and parts for your project.';
+      window._tplCopyNoticeShown = true;
+    } else {
+      toast.textContent = '✓ Template unit added.';
+    }
+    toast.style.display = 'block';
+    clearTimeout(window._tplCopyToastTimer);
+    window._tplCopyToastTimer = setTimeout(() => {
+      const t = document.getElementById('tpl-copy-toast');
+      if (t) t.style.display = 'none';
+    }, 4000);
+  }
 }
 
 // ── applyRoleRestrictions: merged ─────────────────────────────────────────────
