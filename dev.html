@@ -8783,7 +8783,7 @@ function downloadQuoteXLSX() {
   rows.push(['Qty', 'Unit', '', 'Unit Price', 'Line Total']);
 
   let grandSub = 0;
-  const _qxlsxSecs = (!isAdmin() && userRooms.length > 0)
+  const _qxlsxSecs = (usesUserUnits() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   _qxlsxSecs.forEach(sec => {
