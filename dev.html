@@ -9587,6 +9587,8 @@ async function restoreLastJob(jobId) {
       const el = document.getElementById(id);
       if (el) el.value = job[id.replace('job-','')] || '';
     });
+    currentClientId = job.client_id || null;
+    _updateClientButtonsVisibility();
     if (job.state) applyState(job.state);
     renderPanel(); updateCounts();
   } catch(e) {
