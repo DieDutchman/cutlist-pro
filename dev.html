@@ -9718,6 +9718,8 @@ async function loadJobFromSelect() {
     if (document.getElementById('job-house'))   document.getElementById('job-house').value   = job.house   || '';
     if (document.getElementById('job-address')) document.getElementById('job-address').value = job.address || '';
     if (document.getElementById('job-notes'))   document.getElementById('job-notes').value   = job.notes   || '';
+    currentClientId = job.client_id || null;
+    _updateClientButtonsVisibility();
 
     // Apply full state
     if (job.state) applyState(job.state);
