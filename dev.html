@@ -9744,6 +9744,8 @@ function newJob() {
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  currentClientId = null;
+  _updateClientButtonsVisibility();
   // Reset quantities and state — wipe every key so nothing from old job persists
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
