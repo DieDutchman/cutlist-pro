@@ -2514,10 +2514,22 @@
   </select>
   <!-- Inline job detail fields — always accessible regardless of tab -->
   <div id="job-bar-details" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <input id="job-client" type="text" placeholder="Client name"
-      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:130px;outline:none;font-family:'Barlow',sans-serif"
-      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-      oninput="saveJobDetails()">
+    <!-- Client picker wrapper — combo input + dropdown + action buttons -->
+    <div id="client-picker-wrap" style="position:relative;display:flex;align-items:center;gap:4px">
+      <input id="job-client" type="text" placeholder="Client name" autocomplete="off"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:130px;outline:none;font-family:'Barlow',sans-serif"
+        onfocus="this.style.borderColor='var(--amber)'; clientPickerShow();"
+        onblur="this.style.borderColor=''"
+        oninput="saveJobDetails(); clientPickerShow();"
+        onkeydown="clientPickerKey(event)">
+      <button id="client-clear-btn" type="button" onclick="clientClear()" title="Clear linked client"
+        style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✕</button>
+      <button id="client-edit-btn" type="button" onclick="clientEditOpen()" title="Edit client details"
+        style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✏</button>
+      <button id="client-history-btn" type="button" onclick="clientHistoryOpen()" title="Show all jobs for this client"
+        style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">🕐</button>
+      <div id="client-picker-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);width:240px;max-height:240px;overflow-y:auto;z-index:9000;box-shadow:0 4px 12px rgba(0,0,0,0.4);font-family:'Barlow',sans-serif"></div>
+    </div>
     <input id="job-house" type="text" placeholder="Stand / nr"
       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;width:90px;outline:none;font-family:'Barlow',sans-serif"
       onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
