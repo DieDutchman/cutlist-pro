@@ -9418,6 +9418,7 @@ async function onLoginSuccess() {
   applyStoredTheme();
   _updateThemeToggleIcon();
   await fetchLastJobId();
+  await loadClientsCache();
   await loadUserJobs();
   if (sbLastJobId) await restoreLastJob(sbLastJobId);
   await loadSupplierPrices();
