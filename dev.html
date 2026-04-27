@@ -9156,6 +9156,10 @@ let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let autoSaveTimer = null;
+// ── Client management ───────────────────────────────────────────────────────
+let clientsCache = [];        // [{ id, name, phone, email, address, notes }]
+let currentClientId = null;   // UUID of client linked to the current job, if any
+let clientPickerActive = -1;  // keyboard-highlighted index in dropdown
 
 // ── Auth headers (uses user token after login) ────────────────────────────────
 function authHeaders() {
