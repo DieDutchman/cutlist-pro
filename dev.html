@@ -9609,6 +9609,337 @@ async function persistLastJobId(jobId) {
   }
 }
 
+// ─── Client Management ──────────────────────────────────────────────────────
+async function loadClientsCache() {
+  if (!sbUser) return;
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients?select=*&order=name`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    clientsCache = await res.json();
+  } catch(e) {
+    clientsCache = [];
+    console.warn('[Clients] Could not load:', e.message);
+  }
+}
+
+async function _autoSaveClient(name, address, notes) {
+  if (!sbUser || !name) return null;
+  // Skip if a client with same name (case-insensitive) already exists
+  const existing = clientsCache.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    currentClientId = existing.id;
+    return existing;
+  }
+  const body = {
+    user_id: sbUser.id,
+    name,
+    address: address || '',
+    notes:   notes   || '',
+    phone:   '',
+    email:   '',
+  };
+  const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients`, {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status} ${errBody}`);
+  }
+  const rows = await res.json();
+  if (rows && rows[0]) {
+    clientsCache.push(rows[0]);
+    clientsCache.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    currentClientId = rows[0].id;
+    return rows[0];
+  }
+  return null;
+}
+
+function _updateClientButtonsVisibility() {
+  const has = !!currentClientId;
+  const clr = document.getElementById('client-clear-btn');
+  const edt = document.getElementById('client-edit-btn');
+  const hist = document.getElementById('client-history-btn');
+  if (clr)  clr.style.display  = has ? 'inline-block' : 'none';
+  if (edt)  edt.style.display  = has ? 'inline-block' : 'none';
+  if (hist) hist.style.display = has ? 'inline-block' : 'none';
+}
+
+function clientPickerShow() {
+  const input = document.getElementById('job-client');
+  const dd    = document.getElementById('client-picker-dropdown');
+  if (!input || !dd) return;
+  const q = (input.value || '').trim().toLowerCase();
+  let matches = clientsCache;
+  if (q) {
+    matches = clientsCache.filter(c => (c.name || '').toLowerCase().includes(q));
+  }
+  matches = matches.slice(0, 6);
+  let html = '';
+  if (matches.length === 0 && q) {
+    html += `<div class="cp-item cp-new" data-action="new" style="padding:8px 10px;font-size:12px;color:var(--amber);cursor:pointer;border-bottom:1px solid var(--border);min-height:36px">+ Save "${_esc(q)}" as new client</div>`;
+  } else {
+    matches.forEach((c, i) => {
+      const sub = [c.phone, c.address].filter(Boolean).join(' · ');
+      html += `<div class="cp-item" data-id="${c.id}" data-idx="${i}" style="padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);min-height:36px">
+        <div style="font-weight:600">${_esc(c.name)}</div>
+        ${sub ? `<div style="font-size:11px;color:var(--text-muted)">${_esc(sub)}</div>` : ''}
+      </div>`;
+    });
+    if (q && !matches.find(m => (m.name || '').toLowerCase() === q)) {
+      html += `<div class="cp-item cp-new" data-action="new" style="padding:8px 10px;font-size:12px;color:var(--amber);cursor:pointer;min-height:36px">+ Save "${_esc(q)}" as new client</div>`;
+    }
+  }
+  if (!html) { dd.style.display = 'none'; return; }
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+  clientPickerActive = -1;
+  // Wire item clicks (use mousedown so blur on input doesn't kill it first)
+  Array.from(dd.querySelectorAll('.cp-item')).forEach(el => {
+    el.addEventListener('mousedown', (ev) => {
+      ev.preventDefault();
+      if (el.dataset.action === 'new') {
+        clientPickerCreateNew();
+      } else if (el.dataset.id) {
+        clientPickerSelect(el.dataset.id);
+      }
+    });
+  });
+}
+
+function clientPickerHide() {
+  const dd = document.getElementById('client-picker-dropdown');
+  if (dd) dd.style.display = 'none';
+  clientPickerActive = -1;
+}
+
+function clientPickerKey(ev) {
+  const dd = document.getElementById('client-picker-dropdown');
+  if (!dd || dd.style.display === 'none') return;
+  const items = Array.from(dd.querySelectorAll('.cp-item'));
+  if (ev.key === 'Escape') { clientPickerHide(); ev.preventDefault(); return; }
+  if (ev.key === 'ArrowDown') {
+    clientPickerActive = Math.min(items.length - 1, clientPickerActive + 1);
+    _cpHighlight(items);
+    ev.preventDefault();
+  } else if (ev.key === 'ArrowUp') {
+    clientPickerActive = Math.max(0, clientPickerActive - 1);
+    _cpHighlight(items);
+    ev.preventDefault();
+  } else if (ev.key === 'Enter' && clientPickerActive >= 0) {
+    const el = items[clientPickerActive];
+    if (el) {
+      if (el.dataset.action === 'new') clientPickerCreateNew();
+      else if (el.dataset.id) clientPickerSelect(el.dataset.id);
+      ev.preventDefault();
+    }
+  }
+}
+
+function _cpHighlight(items) {
+  items.forEach((el, i) => {
+    el.style.background = i === clientPickerActive ? 'var(--bg3)' : '';
+  });
+}
+
+function clientPickerSelect(id) {
+  const c = clientsCache.find(x => x.id === id);
+  if (!c) return;
+  currentClientId = c.id;
+  const setVal = (eid, v) => { const el = document.getElementById(eid); if (el) el.value = v || ''; };
+  setVal('job-client',  c.name);
+  setVal('job-address', c.address);
+  setVal('job-notes',   c.notes);
+  saveJobDetails();
+  _updateClientButtonsVisibility();
+  clientPickerHide();
+}
+
+async function clientPickerCreateNew() {
+  const input = document.getElementById('job-client');
+  const name = (input?.value || '').trim();
+  if (!name) return;
+  const address = document.getElementById('job-address')?.value || '';
+  const notes   = document.getElementById('job-notes')?.value   || '';
+  try {
+    setJobSyncStatus('↻ Saving client…', 'var(--amber-dim)');
+    const c = await _autoSaveClient(name, address, notes);
+    if (c) {
+      _updateClientButtonsVisibility();
+      setJobSyncStatus('✓ Client saved', '#5dba6e');
+      setTimeout(() => setJobSyncStatus(''), 2500);
+    }
+  } catch(e) {
+    setJobSyncStatus('✕ Client save failed', '#e07070');
+    console.warn('[Clients] save failed:', e.message);
+  }
+  clientPickerHide();
+}
+
+function clientClear() {
+  currentClientId = null;
+  ['job-client','job-address','job-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  _updateClientButtonsVisibility();
+  saveJobDetails();
+}
+
+// ── Hide picker on outside click
+document.addEventListener('mousedown', (ev) => {
+  const wrap = document.getElementById('client-picker-wrap');
+  if (!wrap) return;
+  if (!wrap.contains(ev.target)) clientPickerHide();
+});
+
+function _esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── Client edit mini-modal ─────────────────────────────────────────────────
+function clientEditOpen() {
+  if (!currentClientId) return;
+  const c = clientsCache.find(x => x.id === currentClientId);
+  if (!c) return;
+  // Build modal if not present
+  let m = document.getElementById('client-edit-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'client-edit-modal';
+    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;font-family:Barlow,sans-serif';
+    m.innerHTML = `
+      <div style="background:var(--bg2);border:1px solid var(--border);width:min(420px,92vw);padding:18px;color:var(--text)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-family:Oswald,sans-serif;letter-spacing:2px;font-size:14px;color:var(--amber)">EDIT CLIENT</h3>
+          <button onclick="clientEditClose()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;min-width:32px;min-height:32px">✕</button>
+        </div>
+        <div style="display:grid;gap:8px">
+          <label style="font-size:11px;color:var(--text-muted)">Name<br><input id="ce-name" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:13px"></label>
+          <label style="font-size:11px;color:var(--text-muted)">Phone<br><input id="ce-phone" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:13px"></label>
+          <label style="font-size:11px;color:var(--text-muted)">Email<br><input id="ce-email" type="email" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:13px"></label>
+          <label style="font-size:11px;color:var(--text-muted)">Address<br><input id="ce-address" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:13px"></label>
+          <label style="font-size:11px;color:var(--text-muted)">Notes<br><textarea id="ce-notes" rows="3" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:13px;resize:vertical"></textarea></label>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button onclick="clientEditClose()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;min-height:44px">CANCEL</button>
+          <button onclick="clientEditSave()" style="background:var(--amber);border:none;color:#111;padding:8px 14px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;min-height:44px">SAVE</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('ce-name').value    = c.name    || '';
+  document.getElementById('ce-phone').value   = c.phone   || '';
+  document.getElementById('ce-email').value   = c.email   || '';
+  document.getElementById('ce-address').value = c.address || '';
+  document.getElementById('ce-notes').value   = c.notes   || '';
+  m.style.display = 'flex';
+}
+
+function clientEditClose() {
+  const m = document.getElementById('client-edit-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function clientEditSave() {
+  if (!currentClientId) return;
+  const body = {
+    name:    document.getElementById('ce-name').value.trim(),
+    phone:   document.getElementById('ce-phone').value.trim(),
+    email:   document.getElementById('ce-email').value.trim(),
+    address: document.getElementById('ce-address').value.trim(),
+    notes:   document.getElementById('ce-notes').value,
+    updated_at: new Date().toISOString(),
+  };
+  if (!body.name) { alert('Client name is required.'); return; }
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients?id=eq.${currentClientId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const upd = rows && rows[0];
+    if (upd) {
+      const i = clientsCache.findIndex(c => c.id === currentClientId);
+      if (i >= 0) clientsCache[i] = upd;
+      // Sync the job-bar fields if name/address changed
+      const inp = document.getElementById('job-client');  if (inp)  inp.value = upd.name    || '';
+      const ad  = document.getElementById('job-address'); if (ad)   ad.value  = upd.address || '';
+      saveJobDetails();
+    }
+    clientEditClose();
+    setJobSyncStatus('✓ Client updated', '#5dba6e');
+    setTimeout(() => setJobSyncStatus(''), 2500);
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+  }
+}
+
+// ── Client history modal ──────────────────────────────────────────────────
+async function clientHistoryOpen() {
+  if (!currentClientId) return;
+  let m = document.getElementById('client-history-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'client-history-modal';
+    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;font-family:Barlow,sans-serif';
+    m.innerHTML = `
+      <div style="background:var(--bg2);border:1px solid var(--border);width:min(520px,92vw);max-height:80vh;display:flex;flex-direction:column;color:var(--text)">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)">
+          <h3 style="margin:0;font-family:Oswald,sans-serif;letter-spacing:2px;font-size:14px;color:var(--amber)">CLIENT JOB HISTORY</h3>
+          <button onclick="clientHistoryClose()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;min-width:32px;min-height:32px">✕</button>
+        </div>
+        <div id="ch-body" style="padding:8px 4px;overflow-y:auto;flex:1"></div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  const body = document.getElementById('ch-body');
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">↻ Loading…</div>';
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?client_id=eq.${currentClientId}&select=id,client,house,address,updated_at&order=updated_at.desc`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    if (!rows.length) {
+      body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">No previous jobs for this client.</div>';
+      return;
+    }
+    let html = '';
+    rows.forEach(j => {
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const sub = [j.house, j.address].filter(Boolean).join(' · ') || 'Untitled';
+      html += `<div onclick="clientHistoryLoad('${j.id}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;min-height:44px"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <div style="font-size:13px;color:var(--text);font-weight:600">${_esc(sub)}</div>
+          <div style="font-size:11px;color:var(--text-muted);white-space:nowrap">${_esc(date)}</div>
+        </div>
+      </div>`;
+    });
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:#e07070;font-size:12px">Failed to load: ${_esc(e.message)}</div>`;
+  }
+}
+
+function clientHistoryClose() {
+  const m = document.getElementById('client-history-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function clientHistoryLoad(jobId) {
+  if (!jobId) return;
+  clientHistoryClose();
+  const sel = document.getElementById('job-select');
+  if (sel) sel.value = jobId;
+  await loadJobFromSelect();
+}
+
 function setJobSyncStatus(msg, color) {
   const el = document.getElementById('job-sync-status');
   if (el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
