@@ -3612,8 +3612,10 @@ function getUnitTemplates() {
 }
 
 function getEffectiveUnits() {
-  // Non-admin/superuser users always use their own units (empty array if none created yet)
-  if (!isAdmin()) {
+  // Non-superuser users (admin, user, supplier) always use their own units
+  // (empty array if none created yet) — admins go through the same fresh-account
+  // onboarding flow as regular users; only superuser sees the seeded template library.
+  if (usesUserUnits()) {
     return userUnits;
   }
   const base = getUnitTemplates()
@@ -4468,14 +4470,14 @@ function switchTab(btn, section) {
 
 function renderPanel() { withScrollLock(_renderPanel); }
 function _renderPanel() {
-  // Non-admin with no rooms yet — show welcome screen and ensure nav button is visible
-  if (!isAdmin() && userRooms.length === 0) {
+  // Non-superuser with no rooms yet — show welcome screen and ensure nav button is visible
+  if (usesUserUnits() && userRooms.length === 0) {
     applyRoleRestrictions();
     return;
   }
 
   const units = getEffectiveUnits().filter(u => u.section === currentSection);
-  const isUserMode = !isAdmin() && userRooms.length > 0;
+  const isUserMode = usesUserUnits() && userRooms.length > 0;
   const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
   const sec = userRoom
     ? {id: userRoom.id, label: userRoom.name}
@@ -4596,8 +4598,8 @@ function _renderPanel() {
     // For user mode: routes to userUnits. For admin/superuser: routes to customUnits
     // Standard template units (no id prefix match) still get Edit/Parts for dimension tweaks
     const isCustomUnit = u.id && (u.id.startsWith('uu_') || u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_'));
-    const canRemoveUnit = isUserMode || (isAdmin() && isCustomUnit);
-    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isAdmin() && isCustomUnit && sections.length > 1);
+    const canRemoveUnit = isUserMode || (isSuperuser() && isCustomUnit);
+    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isSuperuser() && isCustomUnit && sections.length > 1);
     const userBtns = `
       <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
       <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
@@ -4700,7 +4702,7 @@ function setQty(id, input) {
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
-  const roomList = (!isAdmin() && userRooms.length > 0)
+  const roomList = (usesUserUnits() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   roomList.forEach(sec => {
@@ -4716,7 +4718,7 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  const roomList = (!isAdmin() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
+  const roomList = (usesUserUnits() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
   roomList.forEach(sec => {
     const count = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
@@ -4788,15 +4790,15 @@ function clearAll() {
     importState.status = 'idle';
     importState.error = null;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    // For user mode, activate first user room; for admin, activate kitchen
-    if (!isAdmin() && userRooms.length > 0) {
+    // For user mode (admin + user), activate first user room; for superuser, activate kitchen
+    if (usesUserUnits() && userRooms.length > 0) {
       currentSection = userRooms[0].id;
     } else {
       currentSection = 'kitchen';
     }
     const _caTab = document.querySelector('[data-section="' + currentSection + '"]');
     if (_caTab) _caTab.classList.add('active');
-    if (!isAdmin()) applyRoleRestrictions(); // re-show Add Room button for users
+    if (usesUserUnits()) applyRoleRestrictions(); // re-show Add Room button for non-superuser
     renderPanel();
     window._lastCutlist = null;
     window._lastSummary = null;
@@ -6022,9 +6024,10 @@ let EDGES = ['','Dunblane Edging 1mm','White Edging 1mm','Iceberg White Edging 1
 
 function renderEditor() {
   const ev = document.getElementById('editor-view');
-  const isUserMode = !isAdmin();
+  const isUserMode = usesUserUnits();
 
-  // For non-admin: use userRooms as sections, userUnits as units
+  // For user mode (admin + user): use userRooms as sections, userUnits as units.
+  // Only superuser edits the shared template library.
   const roomList  = isUserMode ? userRooms.map(r => ({id: r.id, label: r.name})) : sections;
   const isUserUnit = id => isUserMode ? userUnits.some(u => u.id === id) : customUnits.some(u => u.id === id);
 
@@ -6081,7 +6084,7 @@ function buildUnitForm(id) {
   if (!unit) return '<div class="editor-placeholder">Unit not found</div>';
   const isCustom = customUnits.some(u => u.id === id);
 
-  const roomList = (!isAdmin())
+  const roomList = usesUserUnits()
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   const sectionOpts = roomList.map(s =>
@@ -6141,7 +6144,7 @@ function buildUnitForm(id) {
     <div class="editor-actions">
       <button class="btn btn-primary" onclick="saveUnit('${id}')">💾 Save Unit</button>
       <button class="btn btn-ghost" onclick="editingUnitId=null;renderEditor()">Cancel</button>
-      ${!isAdmin()
+      ${usesUserUnits()
         ? `<button class="btn btn-danger-soft" onclick="editorDeleteUserUnit('${id}')">🗑 Delete Unit</button>`
         : isCustom
           ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')">⧉ Copy Unit</button>
@@ -6222,8 +6225,8 @@ function saveUnit(id) {
 
   if (!name) { alert('Unit name cannot be empty.'); return; }
 
-  // Non-admin: save into userUnits
-  if (!isAdmin()) {
+  // User mode (admin + user): save into userUnits. Only superuser writes to shared customUnits/overrides.
+  if (usesUserUnits()) {
     const idx = userUnits.findIndex(u => u.id === id);
     if (idx >= 0) userUnits[idx] = { ...userUnits[idx], name, section, parts };
     editorSection = section;
@@ -6253,7 +6256,7 @@ function saveUnit(id) {
 function copyUnit(id) {
   const source = getEffectiveUnits().find(u => u.id === id);
   if (!source) return;
-  const newId = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
+  const newId = (usesUserUnits() ? 'uu_' : 'custom_') + Date.now();
   const copy = {
     id: newId,
     section: source.section,
@@ -6261,7 +6264,7 @@ function copyUnit(id) {
     price: source.price || 0,
     parts: (source.parts || []).map(p => ({...p})),
   };
-  if (!isAdmin()) {
+  if (usesUserUnits()) {
     userUnits.push(copy);
   } else {
     customUnits.push(copy);
@@ -6272,13 +6275,13 @@ function copyUnit(id) {
   editorSection = copy.section;
   editingUnitId = newId;
   renderEditor();
-  if (!isAdmin()) scheduleAutoSave();
+  if (usesUserUnits()) scheduleAutoSave();
 }
 
 function newUnit() {
-  const id = (!isAdmin() ? 'uu_' : 'custom_') + Date.now();
+  const id = (usesUserUnits() ? 'uu_' : 'custom_') + Date.now();
   const unit = { id, section: editorSection, name: 'New Unit', price: 0, parts: [] };
-  if (!isAdmin()) {
+  if (usesUserUnits()) {
     userUnits.push(unit);
   } else {
     customUnits.push(unit);
@@ -6288,7 +6291,7 @@ function newUnit() {
   save();
   editingUnitId = id;
   renderEditor();
-  if (!isAdmin()) scheduleAutoSave();
+  if (usesUserUnits()) scheduleAutoSave();
 }
 
 function editorDeleteUserUnit(id) {
@@ -7363,9 +7366,9 @@ function createCustomBuilderUnit() {
     return clean;
   });
 
-  const id = (!isAdmin() ? 'uu_cb_' : 'custom_cb_') + Date.now();
+  const id = (usesUserUnits() ? 'uu_cb_' : 'custom_cb_') + Date.now();
   const section = currentSection;
-  if (!isAdmin() && userRooms.length > 0) {
+  if (usesUserUnits() && userRooms.length > 0) {
     userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
     if (!(id in quantities)) quantities[id] = 0;
     scheduleAutoSave();
@@ -8780,7 +8783,7 @@ function downloadQuoteXLSX() {
   rows.push(['Qty', 'Unit', '', 'Unit Price', 'Line Total']);
 
   let grandSub = 0;
-  const _qxlsxSecs = (!isAdmin() && userRooms.length > 0)
+  const _qxlsxSecs = (usesUserUnits() && userRooms.length > 0)
     ? userRooms.map(r => ({id: r.id, label: r.name}))
     : sections;
   _qxlsxSecs.forEach(sec => {
@@ -9327,6 +9330,11 @@ function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; 
 function isSupplier()    { return sbRole === 'supplier'; }
 function canEditPrices() { return sbCanEditPrices; }
 function canManageUsers(){ return sbRole === 'superuser'; }
+// Unit/room rendering mode: everyone EXCEPT superuser uses the userRooms/userUnits
+// onboarding flow (empty rooms list, welcome screen, "+ Add Your First Room").
+// Admins go through the same first-time experience as regular users so they can
+// guide them; only superuser sees the full hardcoded sections + template library.
+function usesUserUnits()  { return !isSuperuser(); }
 
 
 
@@ -10893,7 +10901,7 @@ function renderUserRoomsNav() {
 function openAddRoomModal() {
   // If user has no rooms and is on a tool view, navigate back to quote-view first
   // so after the modal closes the welcome screen is visible
-  if (!isAdmin() && userRooms.length === 0) {
+  if (usesUserUnits() && userRooms.length === 0) {
     const qv = document.getElementById('quote-view');
     if (qv && qv.style.display === 'none') {
       ['cutlist-view','summary-view','editor-view','quote-price-view','costing-view',
@@ -11029,7 +11037,7 @@ function openMoveUnitPopup(unitId, anchorEl) {
   document.getElementById('move-unit-popup')?.remove();
   const unit = getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
-  const _isUserMode = !isAdmin() && userRooms.length > 0;
+  const _isUserMode = usesUserUnits() && userRooms.length > 0;
   const roomList = _isUserMode ? userRooms.map(r => ({id: r.id, label: r.name})) : sections;
   const otherRooms = roomList.filter(r => r.id !== unit.section);
   if (!otherRooms.length) return;
@@ -11056,7 +11064,7 @@ function openMoveUnitPopup(unitId, anchorEl) {
 
 function moveUnitToRoom(unitId, targetSectionId) {
   document.getElementById('move-unit-popup')?.remove();
-  const _isUserMode = !isAdmin() && userRooms.length > 0;
+  const _isUserMode = usesUserUnits() && userRooms.length > 0;
   if (_isUserMode) {
     const idx = userUnits.findIndex(u => u.id === unitId);
     if (idx >= 0) userUnits[idx] = { ...userUnits[idx], section: targetSectionId };
@@ -11294,13 +11302,28 @@ function applyRoleRestrictions() {
   const plTab = document.getElementById('pl-tab');
   if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
 
-  // User rooms nav
-  if (!isAdmin()) {
+  // User rooms nav (admin + regular user — superuser keeps the static rooms row)
+  if (usesUserUnits()) {
     if (userRooms.length > 0) {
       renderUserRoomsNav();
     } else {
-      // New user / no rooms — hide static rooms row, show welcome nav button
+      // New user / no rooms — hide static rooms row, show welcome nav button.
+      // NOTE: this runs in a setTimeout to allow the DOM to settle, so by the
+      // time it fires, an in-flight restoreLastJob() → applyState() may have
+      // populated userRooms. Re-check inside the timer and abort the welcome
+      // takeover if rooms are now present (otherwise we'd wipe the user's
+      // restored rooms and force the onboarding screen on top of a real job).
       setTimeout(() => {
+        // Bail out if rooms got restored asynchronously (job load, snapshot, etc.)
+        // Without this guard, the welcome-takeover below would wipe the freshly
+        // restored rooms row AND replace the unit panel with the onboarding screen.
+        if (userRooms.length > 0) {
+          renderUserRoomsNav();
+          // Re-render panel: _renderPanel may have early-returned earlier when
+          // userRooms was still empty, leaving unit-panel with stale content.
+          try { renderPanel(); } catch(e) {}
+          return;
+        }
         const navTabs = document.getElementById('navTabs');
         if (!navTabs) return;
         // ── Hide ONLY the static admin rooms row and its divider ─────────────
@@ -16930,11 +16953,11 @@ function saveImportAsUnit(groupNames, groups) {
 
     const id = 'imp_unit_' + Date.now() + '_' + gi;
 
-    if (!isAdmin() && userRooms.length > 0) {
-      // Regular user — save to userUnits
+    if (usesUserUnits() && userRooms.length > 0) {
+      // User mode (admin + user) — save to userUnits
       userUnits.push({ id, name, section, parts, price: 0 });
     } else {
-      // Admin — save to customUnits
+      // Superuser — save to shared customUnits
       customUnits.push({ id, name, section, parts, price: 0 });
     }
     if (!(id in quantities)) quantities[id] = 0;
@@ -19005,11 +19028,11 @@ function renderDrawerBuilderHTML() {
   // Build section list — standard rooms + any user-created rooms
   const _stdSecs = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
   const _userSecs = userRooms.filter(r => !_stdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
-  const _allSecs  = !isAdmin() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
+  const _allSecs  = usesUserUnits() && userRooms.length > 0 ? _userSecs : [..._stdSecs, ..._userSecs];
   const secOpts   = _allSecs.map(s=>`<option value="${s.id}" ${ds.section===s.id?'selected':''}>${s.label}</option>`).join('');
 
-  // For regular users, ensure drawerState.section is one of their actual rooms
-  if (!isAdmin() && userRooms.length > 0) {
+  // For user-mode (admin + user), ensure drawerState.section is one of their actual rooms
+  if (usesUserUnits() && userRooms.length > 0) {
     const validIds = _allSecs.map(s => s.id);
     if (!validIds.includes(ds.section)) drawerState.section = _allSecs[0]?.id || ds.section;
   }
@@ -19395,10 +19418,10 @@ function drawerCalcParts() {
 function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
-  const id    = (!isAdmin() ? 'uu_drw_' : 'drw_') + Date.now();
+  const id    = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
   const unit  = { id, name, section: drawerState.section, parts, price: 0 };
-  if (!isAdmin() && userRooms.length > 0) {
-    // Regular user — save to their own units list
+  if (usesUserUnits() && userRooms.length > 0) {
+    // User mode (admin + user) — save to their own units list
     userUnits.push(unit);
     scheduleAutoSave();
   } else {
@@ -19605,7 +19628,7 @@ function plOpenPDFImport(jobId) {
   overlay.id = 'pl-pdf-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:880px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">📄 IMPORT INVOICE PDF</div>
         <button onclick="document.getElementById('pl-pdf-overlay').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
@@ -19662,12 +19685,15 @@ async function plProcessPDFFile(file, jobId) {
   const cats = plInvoiceCategories().join(', ');
   const systemPrompt = `You are reading a supplier invoice or delivery note for a cabinet-making business.
 Extract every line item that represents a cost. Return ONLY a valid JSON array (no markdown, no explanation):
-[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "amount": 123.45 }]
+[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "qty": 1.67, "unit_price": 1104.69, "amount": 1844.83 }]
 
 Use these categories where possible: ${cats}
 
 Rules:
-- amount must be a plain number (no currency symbols, no commas)
+- qty is the quantity ordered — can be a decimal (e.g. 1.67 sheets). Use 1 if not shown.
+- unit_price is the price per single unit/item. Use 0 if not shown.
+- amount is the total line price (qty × unit_price). This is what was actually paid for that line.
+- All numeric fields must be plain numbers (no currency symbols, no commas)
 - If VAT is a separate line include it as category "VAT"
 - If a subtotal or total line exists include it as category "Total" so the user can verify
 - Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
@@ -19803,24 +19829,37 @@ function renderPLPDFResults(items, jobId) {
   results.innerHTML = `
     <div style="border:1px solid var(--border);margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
-        <span style="width:20px"></span>
-        <span style="flex:2">DESCRIPTION</span>
-        <span style="width:140px">CATEGORY</span>
-        <span style="width:100px;text-align:right">AMOUNT</span>
+        <span style="width:20px;flex-shrink:0"></span>
+        <span style="flex:2;min-width:0">DESCRIPTION</span>
+        <span style="flex:1;min-width:0">SUPPLIER</span>
+        <span style="width:130px;flex-shrink:0">CATEGORY</span>
+        <span style="width:70px;flex-shrink:0;text-align:right">QTY</span>
+        <span style="width:90px;flex-shrink:0;text-align:right">UNIT PRICE</span>
+        <span style="width:100px;flex-shrink:0;text-align:right">TOTAL</span>
       </div>
       ${items.map((item, i) => {
         const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
         return `
         <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
-          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;accent-color:var(--amber)">
+          <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;flex-shrink:0;accent-color:var(--amber)">
           <input type="text" value="${(item.desc||'').replace(/"/g,'&quot;')}"
             id="pl-pdf-desc-${i}"
-            style="flex:2;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
-          <select id="pl-pdf-cat-${i}" style="width:140px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
+            style="flex:2;min-width:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <input type="text" value="${(item.supplier||'').replace(/"/g,'&quot;')}"
+            id="pl-pdf-sup-${i}"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;font-family:'Barlow',sans-serif">
+          <select id="pl-pdf-cat-${i}" style="width:130px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none">
             ${plInvoiceCategories().map(c=>`<option value="${c}" ${c===(item.category||'')?'selected':''}>${c}</option>`).join('')}
           </select>
+          <input type="number" value="${parseFloat(item.qty)||1}" id="pl-pdf-qty-${i}"
+            step="0.01" min="0"
+            style="width:70px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+          <input type="number" value="${parseFloat(item.unit_price)||0}" id="pl-pdf-uprice-${i}"
+            step="0.01" min="0"
+            style="width:90px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
           <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
-            style="width:100px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            step="0.01" min="0"
+            style="width:100px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
         </div>`;
       }).join('')}
     </div>
@@ -19842,11 +19881,14 @@ function plImportSelectedLines(jobId, count) {
   for (let i = 0; i < count; i++) {
     const chk = document.getElementById('pl-pdf-chk-' + i);
     if (!chk || !chk.checked) continue;
-    const desc   = document.getElementById('pl-pdf-desc-' + i)?.value.trim() || '';
-    const cat    = document.getElementById('pl-pdf-cat-'  + i)?.value || 'Other';
-    const amount = parseFloat(document.getElementById('pl-pdf-amt-' + i)?.value) || 0;
+    const desc       = document.getElementById('pl-pdf-desc-'   + i)?.value.trim() || '';
+    const supplier   = document.getElementById('pl-pdf-sup-'    + i)?.value.trim() || '';
+    const cat        = document.getElementById('pl-pdf-cat-'    + i)?.value || 'Other';
+    const qty        = parseFloat(document.getElementById('pl-pdf-qty-'    + i)?.value) || 1;
+    const unit_price = parseFloat(document.getElementById('pl-pdf-uprice-' + i)?.value) || 0;
+    const amount     = parseFloat(document.getElementById('pl-pdf-amt-'    + i)?.value) || 0;
     if (!desc && !amount) continue;
-    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier:'', category:cat, amount });
+    plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier, category:cat, qty, unit_price, amount });
     added++;
   }
   plSave();
@@ -19923,33 +19965,41 @@ function _renderPLView() {
   // Invoice rows HTML
   const invRowsHtml = invs.length === 0
     ? `<div style="padding:16px;font-size:12px;color:var(--text-muted);font-style:italic;text-align:center">No invoices added yet — add your actual costs below</div>`
-    : invs.map((inv,i) => `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.08))" id="pl-inv-${inv.id}">
-        <input type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
-          style="flex:2;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
-          onblur="plInvoiceBlur('${selJobId}')">
-        <input type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
-          onblur="plInvoiceBlur('${selJobId}')">
-        <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
-          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
-          onblur="plInvoiceBlur('${selJobId}')">
-          ${plInvoiceCategories().map(c =>
-            `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-        <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
-          style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
-          onblur="plInvoiceBlur('${selJobId}')">
-        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')"
-          style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>
-      </div>`).join('');
+    : invs.map((inv,i) => {
+      const hasQtyDetail = inv.qty && inv.unit_price && inv.qty !== 1;
+      return `
+      <div style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.08))" id="pl-inv-${inv.id}">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
+          <input type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
+            style="flex:2;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
+            onblur="plInvoiceBlur('${selJobId}')">
+          <input type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
+            style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
+            onblur="plInvoiceBlur('${selJobId}')">
+          <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
+            onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
+            onblur="plInvoiceBlur('${selJobId}')">
+            ${plInvoiceCategories().map(c =>
+              `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <span style="font-size:11px;color:var(--text-muted)">R</span>
+          <input type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
+            style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+            oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
+            onblur="plInvoiceBlur('${selJobId}')">
+          <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')"
+            style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>
+        </div>
+        ${hasQtyDetail ? `<div style="padding:0 12px 7px 12px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">
+          ${inv.qty} × R ${parseFloat(inv.unit_price).toFixed(2)} = R ${parseFloat(inv.amount).toFixed(2)}
+        </div>` : ''}
+      </div>`;
+    }).join('');
 
   // Category summary
   const catTotals = {};
@@ -21099,14 +21149,14 @@ function printOptimizer() { window.print(); }
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-04-26 17:36 UTC</div>
+" title="Build version">LIVE 2026-04-27 05:43 UTC</div>
 <script>
 (function() {
   const chip = document.getElementById('version-chip');
   if (!chip) return;
   const raw = chip.textContent.trim();
   // If workflow already stamped it, show as-is
-  if (raw !== 'LIVE 2026-04-26 17:36 UTC') return;
+  if (raw !== 'LIVE 2026-04-27 05:43 UTC') return;
   // Fallback: use document.lastModified
   try {
     const d = new Date(document.lastModified);
