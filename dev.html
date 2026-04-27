@@ -9346,11 +9346,12 @@ function isAdmin()       { return sbRole === 'admin' || sbRole === 'superuser'; 
 function isSupplier()    { return sbRole === 'supplier'; }
 function canEditPrices() { return sbCanEditPrices; }
 function canManageUsers(){ return sbRole === 'superuser'; }
-// Unit/room rendering mode: everyone EXCEPT superuser uses the userRooms/userUnits
+// Unit/room rendering mode: admin/user/supplier always use the userRooms/userUnits
 // onboarding flow (empty rooms list, welcome screen, "+ Add Your First Room").
-// Admins go through the same first-time experience as regular users so they can
-// guide them; only superuser sees the full hardcoded sections + template library.
-function usesUserUnits()  { return !isSuperuser(); }
+// Superuser is dynamic: when a job with rooms is loaded they use user-rooms mode
+// so their saved job rooms/units display correctly; when no rooms are loaded they
+// use the template library so they can still manage the seeded unit templates.
+function usesUserUnits() { return !isSuperuser() || userRooms.length > 0; }
 
 
 
