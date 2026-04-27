@@ -9650,7 +9650,11 @@ async function saveJobToCloud() {
   document.getElementById('job-save-btn').disabled = true;
 
   try {
-    const body = { user_id: sbUser.id, client, house, address, notes, state, updated_at: new Date().toISOString() };
+    // If client name is filled but no client linked, auto-create the client first
+    if (!currentClientId && client.trim()) {
+      try { await _autoSaveClient(client.trim(), address, notes); } catch(e) { console.warn('[Clients] auto-create failed:', e.message); }
+    }
+    const body = { user_id: sbUser.id, client, house, address, notes, state, client_id: currentClientId || null, updated_at: new Date().toISOString() };
     let res;
     if (currentJobId) {
       res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${currentJobId}`, {
@@ -9682,6 +9686,7 @@ async function saveJobToCloud() {
       await loadUserJobs();
     }
     persistLastJobId(currentJobId);
+    _updateClientButtonsVisibility();
     setJobSyncStatus('✓ Saved', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
   } catch(e) {
