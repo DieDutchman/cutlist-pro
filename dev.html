@@ -11315,8 +11315,13 @@ function applyRoleRestrictions() {
       // restored rooms and force the onboarding screen on top of a real job).
       setTimeout(() => {
         // Bail out if rooms got restored asynchronously (job load, snapshot, etc.)
+        // Without this guard, the welcome-takeover below would wipe the freshly
+        // restored rooms row AND replace the unit panel with the onboarding screen.
         if (userRooms.length > 0) {
           renderUserRoomsNav();
+          // Re-render panel: _renderPanel may have early-returned earlier when
+          // userRooms was still empty, leaving unit-panel with stale content.
+          try { renderPanel(); } catch(e) {}
           return;
         }
         const navTabs = document.getElementById('navTabs');
