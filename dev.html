@@ -21508,6 +21508,516 @@ function applyOptimizerPreset(preset) {
 }
 
 function printOptimizer() { window.print(); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PDF PLAN IMPORT (AI VISION) — [BETA]
+// Upload an architect's floor plan; Groq vision extracts rooms + wall lengths;
+// user reviews and applies → auto-creates rooms with suggested floor unit qtys.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const PLAN_VALID_ROOM_TYPES = ['Kitchen','Main Bedroom','Spare Bedroom','Bathroom','Linne Kas','Custom'];
+const PLAN_FLOOR_UNIT_WIDTH_MM = 600;   // standard floor unit width
+const PLAN_MAX_FILE_MB = 10;
+
+// In-memory state for the modal session (extracted rooms list)
+let _planImportRooms = [];
+
+function openPlanImportModal() {
+  _planImportRooms = [];
+  const modal = document.getElementById('plan-import-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderPlanImportState('upload');
+}
+
+function closePlanImportModal() {
+  const modal = document.getElementById('plan-import-modal');
+  if (modal) modal.style.display = 'none';
+  _planImportRooms = [];
+}
+
+function renderPlanImportState(state, extra) {
+  const body = document.getElementById('plan-import-body');
+  if (!body) return;
+
+  if (state === 'upload') {
+    body.innerHTML = `
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:14px">
+        Upload an architect's PDF or image — AI reads dimension annotations and suggests room layouts. Works best with dimensioned 2D plans.
+      </div>
+      <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber);padding:10px 14px;font-size:12px;line-height:1.5;margin-bottom:18px">
+        ⚠ <b>BETA</b> — AI extraction may miss rooms or misread dimensions. Always review before applying.
+      </div>
+      <label for="plan-file-input"
+        style="display:block;border:2px dashed var(--border);background:var(--bg3);padding:36px 20px;text-align:center;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:2px;color:var(--text-muted);font-size:13px"
+        onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+        📐 DROP PDF / IMAGE OR CLICK TO BROWSE
+        <div style="font-size:10px;color:var(--text-muted);margin-top:8px;letter-spacing:1px">PDF, JPG, PNG &middot; max ${PLAN_MAX_FILE_MB} MB</div>
+      </label>
+      <input id="plan-file-input" type="file" accept="application/pdf,image/jpeg,image/jpg,image/png"
+        style="display:none" onchange="handlePlanFile(this.files[0])">
+      <div id="plan-upload-err" style="display:none;color:#e07070;font-size:12px;margin-top:14px"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:18px">
+        <button onclick="closePlanImportModal()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">CANCEL</button>
+      </div>
+    `;
+    return;
+  }
+
+  if (state === 'processing') {
+    body.innerHTML = `
+      <div style="text-align:center;padding:46px 20px">
+        <div style="font-size:30px;margin-bottom:16px;animation:spin 1.2s linear infinite;display:inline-block">⟳</div>
+        <div id="plan-status-text" style="font-family:'Oswald',sans-serif;letter-spacing:2px;font-size:14px;color:var(--amber)">${extra || 'Reading plan…'}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:10px">This may take 10-30 seconds</div>
+      </div>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    `;
+    return;
+  }
+
+  if (state === 'review') {
+    body.innerHTML = renderPlanReview();
+    return;
+  }
+
+  if (state === 'error') {
+    body.innerHTML = `
+      <div style="background:rgba(224,82,82,0.1);border:1px solid #5a2a2a;color:#e07070;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px">
+        ${extra || 'Something went wrong.'}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="renderPlanImportState('upload')"
+          style="background:var(--amber);color:#111;border:none;padding:9px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">↺ TRY AGAIN</button>
+        <button onclick="closePlanImportModal()"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">CLOSE</button>
+      </div>
+    `;
+    return;
+  }
+}
+
+function _planSetStatus(msg) {
+  const el = document.getElementById('plan-status-text');
+  if (el) el.textContent = msg;
+}
+
+async function handlePlanFile(file) {
+  if (!file) return;
+  const errEl = document.getElementById('plan-upload-err');
+  const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display='block'; } };
+  if (errEl) errEl.style.display = 'none';
+
+  if (file.size > PLAN_MAX_FILE_MB * 1024 * 1024) {
+    showErr(`File too large — please upload a file under ${PLAN_MAX_FILE_MB} MB.`);
+    return;
+  }
+  const okType = file.type === 'application/pdf' || /^image\/(jpeg|jpg|png)$/i.test(file.type);
+  if (!okType) {
+    showErr('Unsupported file type — please upload a PDF, JPG, or PNG.');
+    return;
+  }
+
+  renderPlanImportState('processing', 'Reading plan…');
+
+  const systemPrompt = `You are a floor plan analyser. The user has uploaded an architect's floor plan PDF or image.
+Extract every room and its wall dimensions. Return ONLY valid JSON in this exact format:
+{
+  "rooms": [
+    {
+      "name": "Kitchen",
+      "walls": [
+        { "label": "North wall", "length_mm": 3600 },
+        { "label": "East wall",  "length_mm": 1800 }
+      ]
+    }
+  ]
+}
+Rules:
+- Convert all dimensions to millimetres. If plan uses metres, multiply by 1000.
+- Room names must be one of: Kitchen, Main Bedroom, Spare Bedroom, Bathroom, Linne Kas, Custom — pick the closest match.
+- Only include rooms likely to have built-in cabinetry.
+- If a wall has a door or window annotated, still include it but note it in label e.g. "South wall (window)".
+- If dimensions are unclear or missing, omit that wall.
+- Return only the JSON object, no explanation.`;
+
+  try {
+    let aiText = '';
+
+    if (file.type === 'application/pdf') {
+      // ── PDF: extract text via pdf.js, then send raw text ────────────────────
+      _planSetStatus('Extracting text from PDF…');
+      if (!window.pdfjsLib) {
+        throw new Error('PDF reader not loaded yet — please wait a moment and try again, or upload the plan as a JPG/PNG image.');
+      }
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pageTexts = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page    = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pageTexts.push(content.items.map(item => item.str).join(' '));
+      }
+      const rawText = pageTexts.join('\n\n');
+      if (!rawText.trim()) {
+        throw new Error('No text found in PDF — this looks like a scanned image plan. Please re-upload as a JPG or PNG so the AI vision model can read it.');
+      }
+      _planSetStatus('Analysing with AI…');
+      const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}` },
+        body: JSON.stringify({ rawText, systemPrompt })
+      });
+      if (!response.ok) {
+        const txt = await response.text();
+        let msg = `Error ${response.status}`;
+        try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
+        throw new Error(msg);
+      }
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || data.error);
+      aiText = (data.content || []).map(b => b.text || '').join('');
+
+    } else {
+      // ── Image: base64 → vision model ────────────────────────────────────────
+      _planSetStatus('Reading image…');
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload  = () => res(reader.result.split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const mediaType = file.type || 'image/jpeg';
+      _planSetStatus('Analysing with AI…');
+      const response = await fetch(`${SB_URL}/functions/v1/read-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}` },
+        body: JSON.stringify({ base64, mediaType, systemPrompt, isImage: true })
+      });
+      if (!response.ok) {
+        const txt = await response.text();
+        let msg = `Error ${response.status}`;
+        try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
+        throw new Error(msg);
+      }
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || data.error);
+      aiText = (data.content || []).map(b => b.text || '').join('');
+    }
+
+    // ── Parse JSON ────────────────────────────────────────────────────────────
+    let parsed;
+    try {
+      const clean = (aiText || '').replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('Could not read plan — try a clearer PDF or image.');
+    }
+
+    const rooms = Array.isArray(parsed) ? parsed : (parsed.rooms || []);
+    if (!rooms.length) {
+      renderPlanImportState('error', 'No rooms detected — try a plan with written dimension annotations.');
+      return;
+    }
+
+    // Normalise + assign internal ids for editable rows
+    _planImportRooms = rooms.map((r, i) => {
+      const name = PLAN_VALID_ROOM_TYPES.includes(r.name) ? r.name : 'Custom';
+      const walls = Array.isArray(r.walls) ? r.walls
+        .map((w, j) => ({
+          _id: 'w_' + i + '_' + j + '_' + Date.now(),
+          label: String(w.label || `Wall ${j+1}`),
+          length_mm: Number(w.length_mm) || 0
+        }))
+        .filter(w => w.length_mm > 0) : [];
+      return { _id: 'r_' + i + '_' + Date.now(), name, walls };
+    }).filter(r => r.walls.length > 0);
+
+    if (!_planImportRooms.length) {
+      renderPlanImportState('error', 'No usable rooms detected — try a plan with clearer dimension annotations.');
+      return;
+    }
+
+    renderPlanImportState('review');
+
+  } catch(e) {
+    renderPlanImportState('error', (e && e.message) || 'Could not read plan — try a clearer PDF or image.');
+  }
+}
+
+// ── Suggest unit count for a room from its walls ──────────────────────────────
+function suggestPlanUnitsForRoom(room) {
+  if (!room || !room.walls || !room.walls.length) return { floor: 0, corner: 0 };
+  let totalLen = 0;
+  let longestWall = 0;
+  for (const w of room.walls) {
+    totalLen += w.length_mm || 0;
+    if ((w.length_mm || 0) > longestWall) longestWall = w.length_mm;
+  }
+  const floor = Math.max(0, Math.floor(totalLen / PLAN_FLOOR_UNIT_WIDTH_MM));
+  const corner = (room.walls.length >= 2 && longestWall >= 900) ? 1 : 0;
+  return { floor, corner };
+}
+
+function renderPlanReview() {
+  if (!_planImportRooms.length) {
+    return `<div style="color:var(--text-muted);padding:20px;text-align:center">No rooms.</div>`;
+  }
+
+  const roomTypeOpts = PLAN_VALID_ROOM_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  const blocks = _planImportRooms.map((room, ri) => {
+    const sugg = suggestPlanUnitsForRoom(room);
+    const userQty = (typeof room._suggestedQty === 'number') ? room._suggestedQty : sugg.floor;
+    room._suggestedQty = userQty;
+
+    const wallRows = room.walls.map(w => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)">
+        <input type="text" value="${(w.label || '').replace(/"/g,'&quot;')}"
+          oninput="updatePlanWallField('${room._id}','${w._id}','label',this.value)"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif">
+        <input type="number" min="0" step="10" value="${w.length_mm}"
+          oninput="updatePlanWallField('${room._id}','${w._id}','length_mm',this.value)"
+          style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;text-align:right">
+        <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;width:24px">mm</span>
+        <button onclick="removePlanWall('${room._id}','${w._id}')"
+          title="Remove wall"
+          style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:11px;cursor:pointer;line-height:1">×</button>
+      </div>
+    `).join('');
+
+    return `
+      <div style="border:1px solid var(--border);background:var(--bg3);padding:14px 16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">ROOM</span>
+          <select onchange="updatePlanRoomName('${room._id}',this.value)"
+            style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+            ${PLAN_VALID_ROOM_TYPES.map(t => `<option value="${t}"${room.name===t?' selected':''}>${t}</option>`).join('')}
+          </select>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">
+            ${room.walls.length} wall${room.walls.length===1?'':'s'} &middot; total ${room.walls.reduce((a,w)=>a+(w.length_mm||0),0)} mm
+          </span>
+          <button onclick="removePlanRoom('${room._id}')"
+            title="Remove room"
+            style="background:none;border:1px solid #5a2a2a;color:#e07070;padding:4px 9px;font-size:11px;cursor:pointer;letter-spacing:1px;font-family:'Oswald',sans-serif">REMOVE</button>
+        </div>
+        <div>
+          ${wallRows || '<div style="color:var(--text-muted);font-size:12px;padding:8px">No walls. Add some or remove this room.</div>'}
+        </div>
+        <div style="margin-top:8px">
+          <button onclick="addPlanWall('${room._id}')"
+            style="background:none;border:1px dashed var(--border);color:var(--text-muted);padding:6px 12px;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:'Oswald',sans-serif">+ ADD WALL</button>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">SUGGESTED FLOOR UNITS (600mm)</span>
+          <input type="number" min="0" step="1" value="${userQty}"
+            oninput="updatePlanRoomQty('${room._id}',this.value)"
+            style="width:70px;background:var(--bg2);border:1px solid var(--amber);color:var(--text);padding:5px 8px;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right">
+          <span style="font-size:11px;color:var(--text-muted)">
+            (auto: ${sugg.floor} floor${sugg.corner ? ' + 1 corner' : ''})
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:var(--text);margin-bottom:6px">REVIEW EXTRACTED ROOMS</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+      Edit room names, wall lengths and suggested unit counts before applying. Existing non-zero quantities in your job will not be overwritten.
+    </div>
+    <div style="background:rgba(212,145,58,0.06);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 12px;font-size:11px;line-height:1.5;margin-bottom:14px">
+      ⚠ BETA — verify every dimension against the original plan.
+    </div>
+    ${blocks}
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button onclick="addPlanRoom()"
+        style="background:var(--bg3);border:1px dashed var(--border);color:var(--text-muted);padding:9px 16px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">+ ADD ROOM</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+      <button onclick="closePlanImportModal()"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 18px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">✕ CANCEL</button>
+      <button onclick="applyPlanToJob()"
+        style="background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">✓ APPLY TO JOB</button>
+    </div>
+  `;
+}
+
+function _findPlanRoom(roomId) { return _planImportRooms.find(r => r._id === roomId); }
+function _findPlanWall(room, wallId) { return room && room.walls.find(w => w._id === wallId); }
+
+function updatePlanRoomName(roomId, val) {
+  const r = _findPlanRoom(roomId); if (!r) return;
+  r.name = PLAN_VALID_ROOM_TYPES.includes(val) ? val : 'Custom';
+  // No re-render needed for select change (DOM is in sync)
+}
+
+function updatePlanWallField(roomId, wallId, field, val) {
+  const r = _findPlanRoom(roomId); if (!r) return;
+  const w = _findPlanWall(r, wallId); if (!w) return;
+  if (field === 'length_mm') w.length_mm = Math.max(0, Number(val) || 0);
+  else w[field] = String(val || '');
+  // Don't re-render on each keystroke — would lose focus. The "auto" suggestion
+  // text stays slightly stale until the next full re-render, which is acceptable.
+}
+
+function updatePlanRoomQty(roomId, val) {
+  const r = _findPlanRoom(roomId); if (!r) return;
+  r._suggestedQty = Math.max(0, Number(val) || 0);
+}
+
+function removePlanWall(roomId, wallId) {
+  const r = _findPlanRoom(roomId); if (!r) return;
+  r.walls = r.walls.filter(w => w._id !== wallId);
+  renderPlanImportState('review');
+}
+
+function addPlanWall(roomId) {
+  const r = _findPlanRoom(roomId); if (!r) return;
+  r.walls.push({
+    _id: 'w_new_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    label: `Wall ${r.walls.length + 1}`,
+    length_mm: 0
+  });
+  renderPlanImportState('review');
+}
+
+function removePlanRoom(roomId) {
+  _planImportRooms = _planImportRooms.filter(r => r._id !== roomId);
+  renderPlanImportState('review');
+}
+
+function addPlanRoom() {
+  _planImportRooms.push({
+    _id: 'r_new_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    name: 'Custom',
+    walls: [{
+      _id: 'w_new_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      label: 'Wall 1', length_mm: 0
+    }]
+  });
+  renderPlanImportState('review');
+}
+
+// ── Apply review state to the live job ────────────────────────────────────────
+function applyPlanToJob() {
+  if (!_planImportRooms.length) { closePlanImportModal(); return; }
+
+  // Only meaningful when in user-units mode (cabinet maker workflow)
+  const userMode = (typeof usesUserUnits === 'function') && usesUserUnits();
+
+  let createdRooms = 0;
+  let createdUnits = 0;
+
+  // Pick a default icon per room name
+  const ICON_BY_NAME = {
+    'Kitchen': '🍳',
+    'Main Bedroom': '🛏',
+    'Spare Bedroom': '🛏',
+    'Bathroom': '🚿',
+    'Linne Kas': '🚪',
+    'Custom': '🏠'
+  };
+
+  _planImportRooms.forEach((planRoom, i) => {
+    const qty = Math.max(0, Number(planRoom._suggestedQty) || 0);
+    const wantedName = planRoom.name || 'Custom';
+
+    if (userMode) {
+      // ── User-rooms mode ──────────────────────────────────────────────────────
+      let room = userRooms.find(r => r.name.toLowerCase() === wantedName.toLowerCase());
+      if (!room) {
+        const id = 'ur_' + Date.now() + '_' + i;
+        const icon = ICON_BY_NAME[wantedName] || '🏠';
+        room = { id, name: wantedName, icon };
+        userRooms.push(room);
+        if (typeof MAT_GROUPS !== 'undefined' && !MAT_GROUPS.find(g => g.id === id)) {
+          MAT_GROUPS.push({ id, label: wantedName, section: id });
+          if (typeof materialConfig !== 'undefined') {
+            materialConfig[id] = { wood: 'Dunblane', edging: 'Dunblane' };
+          }
+        }
+        if (typeof bedroomAddons !== 'undefined' && !bedroomAddons[id] && typeof defaultAddon === 'function' && typeof defaultSpacer === 'function') {
+          bedroomAddons[id] = {
+            plantOn: { enabled: false, items: [defaultAddon()] },
+            spacers: { enabled: false, items: [defaultSpacer()] }
+          };
+        }
+        createdRooms++;
+      }
+
+      if (qty > 0) {
+        const id = 'uu_plan_' + Date.now() + '_' + i;
+        const unitName = `Floor unit 600mm`;
+        userUnits.push({ id, section: room.id, name: unitName, parts: [], price: 0 });
+        // Don't overwrite existing nonzero quantities — this is a new unit so just set it
+        if (!quantities[id] || quantities[id] === 0) quantities[id] = qty;
+        createdUnits++;
+      }
+    } else {
+      // ── Admin/template mode: map plan room name to existing section id ──────
+      const SECTION_MAP = {
+        'Kitchen': 'kitchen',
+        'Main Bedroom': 'mainbedroom',
+        'Spare Bedroom': 'sparebedroom',
+        'Bathroom': 'bathroom',
+        'Linne Kas': 'linnekast',
+        'Custom': 'custom'
+      };
+      const sectionId = SECTION_MAP[wantedName] || 'custom';
+
+      if (qty > 0) {
+        // Try to find an existing 600mm floor unit in this section
+        const allUnits = (typeof getEffectiveUnits === 'function') ? getEffectiveUnits() : [];
+        const candidate = allUnits.find(u =>
+          u.section === sectionId &&
+          /floor|base/i.test(u.name || '') &&
+          !/wall|tall|corner/i.test(u.name || '')
+        );
+        if (candidate) {
+          const existing = quantities[candidate.id] || 0;
+          if (existing === 0) {
+            quantities[candidate.id] = qty;
+            createdUnits++;
+          }
+        }
+      }
+    }
+  });
+
+  // Persist & re-render
+  try {
+    if (typeof save === 'function') save();
+    if (typeof scheduleAutoSave === 'function') scheduleAutoSave();
+    if (typeof renderUserRoomsNav === 'function') renderUserRoomsNav();
+    if (typeof renderPanel === 'function') renderPanel();
+    if (typeof updateCounts === 'function') updateCounts();
+  } catch(e) { /* best-effort render */ }
+
+  closePlanImportModal();
+
+  // Inline toast (no global toast helper exists)
+  const msg = userMode
+    ? `✓ Plan applied — ${createdRooms} room${createdRooms===1?'':'s'} created, ${createdUnits} unit${createdUnits===1?'':'s'} added. Review quantities and adjust as needed.`
+    : `✓ Plan applied — quantities set on ${createdUnits} unit${createdUnits===1?'':'s'}. Review and adjust as needed.`;
+  _showPlanToast(msg);
+}
+
+function _showPlanToast(message) {
+  document.getElementById('plan-toast')?.remove();
+  const t = document.createElement('div');
+  t.id = 'plan-toast';
+  t.style.cssText = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--amber);color:var(--text);padding:14px 22px;font-family:'Barlow',sans-serif;font-size:13px;line-height:1.5;z-index:9999;box-shadow:0 6px 22px rgba(0,0,0,0.5);max-width:560px";
+  t.textContent = message;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.transition='opacity 0.6s'; t.style.opacity='0'; }, 4400);
+  setTimeout(() => t.remove(), 5200);
+}
+
 </script>
 
 <!-- Version chip — shows file's last-modified timestamp -->
