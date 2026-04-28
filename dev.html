@@ -9265,7 +9265,9 @@ async function fetchUserRole() {
     sbCanEditPrices = sbRole === 'supplier'
       || sbRole === 'admin'
       || rows[0]?.can_edit_prices === true;
-    sbLastJobId = rows[0]?.last_job_id || null;
+    // Note: last_job_id is fetched separately by fetchLastJobId() — it lives in
+    // a column that may not exist yet on older Supabase deployments, so we keep
+    // it isolated from this query to avoid breaking role/supplier resolution.
     // Load available suppliers for this user (and pick active row)
     await _loadAvailableSuppliers(rows[0]?.supplier_ids || [], rows[0]?.active_supplier_id || null);
   } catch(e) {
