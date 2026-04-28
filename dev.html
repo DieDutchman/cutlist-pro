@@ -4755,11 +4755,16 @@ function setQty(id, input) {
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
+  // Superuser rooms map to a templateSection — units have section === 'kitchen'
+  // (template id) but room.id is `ur_<ts>`. Match BOTH so counts pick up
+  // template units shown inside the custom room as well as userUnits assigned
+  // directly to the room.
   const roomList = (usesUserUnits() && userRooms.length > 0)
-    ? userRooms.map(r => ({id: r.id, label: r.name}))
-    : sections;
+    ? userRooms.map(r => ({id: r.id, label: r.name, matchIds: [r.id, r.templateSection].filter(Boolean)}))
+    : sections.map(s => ({id: s.id, label: s.label, matchIds: [s.id]}));
   roomList.forEach(sec => {
-    const selected = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const ids = sec.matchIds || [sec.id];
+    const selected = getEffectiveUnits().filter(u => ids.includes(u.section) && (quantities[u.id]||0) > 0);
     if (!selected.length) return;
     const count = selected.reduce((s,u) => s + (quantities[u.id]||0), 0);
     totalUnits += count;
@@ -4771,9 +4776,15 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  const roomList = (usesUserUnits() && userRooms.length > 0) ? userRooms.map(r=>({id:r.id})) : sections;
+  // Superuser rooms map to a templateSection — units have section === 'kitchen'
+  // (template id) but room.id is `ur_<ts>`. Match BOTH so the badge reflects
+  // both template units AND userUnits assigned to the room.
+  const roomList = (usesUserUnits() && userRooms.length > 0)
+    ? userRooms.map(r => ({id: r.id, matchIds: [r.id, r.templateSection].filter(Boolean)}))
+    : sections.map(s => ({id: s.id, matchIds: [s.id]}));
   roomList.forEach(sec => {
-    const count = getEffectiveUnits().filter(u => u.section === sec.id && (quantities[u.id]||0) > 0).length;
+    const ids = sec.matchIds || [sec.id];
+    const count = getEffectiveUnits().filter(u => ids.includes(u.section) && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
     if (el) el.textContent = count;
   });
