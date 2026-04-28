@@ -11419,6 +11419,7 @@ function renameRoomPrompt(roomId) {
     renderUserRoomsNav();
     renderPanel();
     scheduleAutoSave();
+    if (isSuperuser() && sbUser) pushTemplatesToCloud();
   }
 }
 
@@ -11436,8 +11437,13 @@ function deleteRoomPrompt(roomId) {
   if (userRooms.length > 0) {
     const btn = document.querySelector(`button[data-section="${userRooms[0].id}"]`);
     if (btn) switchTab(btn, userRooms[0].id);
+  } else {
+    // Superuser dropped back to zero rooms — re-render so template section
+    // tabs (Kitchen, Main Bedroom, …) become visible again.
+    renderPanel();
   }
   scheduleAutoSave();
+  if (isSuperuser() && sbUser) pushTemplatesToCloud();
 }
 
 // ── Delete user unit ──────────────────────────────────────────────────────────
