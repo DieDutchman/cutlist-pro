@@ -15944,10 +15944,11 @@ function applyState(state) {
   // unitOverrides, customUnits, deletedUnits are global template settings — not restored from job state
   if (state.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  state.unitSpecialServices); }
   if (state.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, state.panelSpecialServices); }
-  // Superuser rooms/units are profile-scoped (persisted via templates blob),
-  // so do NOT let job-state overwrite them — preserve the persistent rooms
-  // restored from loadTemplatesFromCloud(). For all other roles, userRooms +
-  // userUnits remain job-scoped and load from job state as before.
+  // Superuser rooms/units have a hybrid scope: persisted to the profile
+  // templates blob (so they survive logout) AND saved per-job (so reopening a
+  // job shows that job's rooms). When loading a job, prefer the job's rooms if
+  // present — otherwise keep the profile blob rooms already restored by
+  // loadTemplatesFromCloud(). Other roles keep rooms strictly job-scoped.
   if (!isSuperuser()) {
     if (state.userRooms?.length) {
       userRooms = [...state.userRooms];
@@ -15960,8 +15961,38 @@ function applyState(state) {
       });
     }
     if (state.userUnits?.length) { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
+  } else {
+    // Superuser: if the job has rooms, restore them (job-load behavior). If not
+    // (older job, or profile-only rooms), preserve whatever loadTemplatesFromCloud
+    // already loaded into userRooms — do not clobber it.
+    if (state.userRooms?.length) {
+      userRooms = [...state.userRooms];
+      userRooms.forEach(room => {
+        if (!MAT_GROUPS.find(g => g.id === room.id)) {
+          MAT_GROUPS.push({ id: room.id, label: room.name, section: room.id });
+        }
+        if (!materialConfig[room.id]) materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+        if (!bedroomAddons[room.id]) bedroomAddons[room.id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+      });
+    }
+    if (state.userUnits?.length) {
+      userUnits = [...state.userUnits];
+      state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; });
+    }
+    // After loading a job, sync the (possibly merged) room set back to the
+    // profile blob so future logins see the latest set.
+    if (sbUser && (state.userRooms?.length || state.userUnits?.length)) {
+      pushTemplatesToCloud();
+    }
   }
-  if (userRooms.length > 0) { renderUserRoomsNav(); }
+  // If we now have rooms, make sure currentSection points at one of them so
+  // _renderPanel() picks the right section after a job/profile load.
+  if (userRooms.length > 0) {
+    if (!userRooms.find(r => r.id === currentSection)) {
+      currentSection = userRooms[0].id;
+    }
+    renderUserRoomsNav();
+  }
   if (state.job) {
     ['client','house','address','notes'].forEach(f => {
       const el = document.getElementById('job-' + f);
