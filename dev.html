@@ -9631,12 +9631,18 @@ async function restoreLastJob(jobId) {
 
 async function persistLastJobId(jobId) {
   if (!sbUser) return;
+  if (sbLastJobIdColumnMissing) return; // don't bother PATCHing a column that doesn't exist
   try {
-    await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
       method: 'PATCH',
       headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ last_job_id: jobId }),
     });
+    // PATCH may return 400 if the column doesn't exist — latch and stop trying.
+    if (res && !res.ok && res.status === 400) {
+      sbLastJobIdColumnMissing = true;
+      console.warn('[Supabase] profiles.last_job_id column missing — last-job persistence disabled for this session.');
+    }
   } catch(e) {
     console.warn('[Supabase] Could not persist last_job_id:', e.message);
   }
