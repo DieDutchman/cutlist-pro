@@ -11387,7 +11387,12 @@ function confirmAddRoom() {
   if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return; }
   const id = 'ur_' + Date.now();
   const icon = getSelectedRoomIcon();
-  userRooms.push({ id, name, icon });
+  // Superuser: capture which template section's units this room shows
+  const tplSel = document.getElementById('new-room-tpl-section');
+  const templateSection = (isSuperuser() && tplSel) ? tplSel.value : null;
+  const room = { id, name, icon };
+  if (templateSection) room.templateSection = templateSection;
+  userRooms.push(room);
   // Register in MAT_GROUPS so material selector works
   if (!MAT_GROUPS.find(g => g.id === id)) {
     MAT_GROUPS.push({ id, label: name, section: id });
@@ -11401,6 +11406,8 @@ function confirmAddRoom() {
   const btn = document.querySelector(`button[data-section="${id}"]`);
   if (btn) switchTab(btn, id);
   scheduleAutoSave();
+  // Superuser: persist rooms across sessions via the profile templates blob
+  if (isSuperuser() && sbUser) pushTemplatesToCloud();
 }
 
 function renameRoomPrompt(roomId) {
