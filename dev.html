@@ -9482,6 +9482,9 @@ async function onLoginSuccess() {
   // Start trial countdown badge for users with a trial expiry
   initTrialCountdown();
   // Re-render panel now that real role is known (clears admin units for regular users)
+  // Superuser may have rooms restored from the templates blob — render the
+  // dynamic rooms nav so they show up immediately on login.
+  if (userRooms.length > 0) renderUserRoomsNav();
   renderPanel();
 }
 
