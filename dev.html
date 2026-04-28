@@ -4515,9 +4515,16 @@ function _renderPanel() {
     return;
   }
 
-  const units = getEffectiveUnits().filter(u => u.section === currentSection);
   const isUserMode = usesUserUnits() && userRooms.length > 0;
   const userRoom = isUserMode ? userRooms.find(r => r.id === currentSection) : null;
+  // For superuser with custom rooms: each room maps to a template section via
+  // room.templateSection (chosen at creation). Template units shown in that room
+  // are filtered by templateSection; userUnits assigned to the room are matched
+  // by their section === room.id.
+  const units = (isSuperuser() && isUserMode && userRoom)
+    ? getEffectiveUnits().filter(u =>
+        u.section === userRoom.templateSection || u.section === userRoom.id)
+    : getEffectiveUnits().filter(u => u.section === currentSection);
   const sec = userRoom
     ? {id: userRoom.id, label: userRoom.name}
     : (sections.find(s => s.id === currentSection) || {label: currentSection});
