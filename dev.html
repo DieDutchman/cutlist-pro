@@ -3568,17 +3568,24 @@ function pushTemplatesToCloud() {
   _templatePushTimer = setTimeout(async () => {
     if (!sbUser) return;
     try {
+      const blob = {
+        customUnits,
+        unitOverrides,
+        deletedUnits:   [...deletedUnits],
+        customHardware: costingPrices.customHardware,
+      };
+      // Superuser only: persist their custom rooms + room-scoped userUnits in
+      // the same profile templates blob so they survive logout. Other roles
+      // keep userRooms/userUnits job-scoped (saved per-job), so we deliberately
+      // skip them here to avoid overwriting per-job state.
+      if (isSuperuser()) {
+        blob.userRooms = userRooms;
+        blob.userUnits = userUnits;
+      }
       const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          templates: {
-            customUnits,
-            unitOverrides,
-            deletedUnits:   [...deletedUnits],
-            customHardware: costingPrices.customHardware,
-          }
-        }),
+        body: JSON.stringify({ templates: blob }),
       });
       if (!res.ok) {
         const body = await res.text().catch(()=>'');
