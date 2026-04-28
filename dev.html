@@ -9518,6 +9518,34 @@ async function loadTemplatesFromCloud() {
       saveAddonPresetsLocal();
       console.log('[Templates] Loaded addonPresets:', t.addonPresets.length, 'presets');
     }
+    // Superuser only: restore custom rooms + their userUnits from the profile
+    // blob so the rooms persist across sessions independently of job auto-restore.
+    // Other roles keep these per-job and load them via applyState().
+    if (isSuperuser()) {
+      if (Array.isArray(t.userRooms)) {
+        userRooms = t.userRooms.slice();
+        // Re-register each restored room in MAT_GROUPS / materialConfig /
+        // bedroomAddons so material selectors and addon panels work after reload.
+        userRooms.forEach(room => {
+          if (!MAT_GROUPS.find(g => g.id === room.id)) {
+            MAT_GROUPS.push({ id: room.id, label: room.name, section: room.id });
+          }
+          if (!materialConfig[room.id]) materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+          if (!bedroomAddons[room.id]) bedroomAddons[room.id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+        });
+        console.log('[Templates] Loaded userRooms:', userRooms.length, 'rooms');
+      }
+      if (Array.isArray(t.userUnits)) {
+        userUnits = t.userUnits.slice();
+        userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; });
+        console.log('[Templates] Loaded userUnits:', userUnits.length, 'units');
+      }
+      // Make the restored rooms visible — switch to the first one so the panel
+      // renders the right section.
+      if (userRooms.length > 0) {
+        currentSection = userRooms[0].id;
+      }
+    }
     // Sync back to localStorage
     try {
       localStorage.setItem('cutlist_custom_units',    JSON.stringify(customUnits));
