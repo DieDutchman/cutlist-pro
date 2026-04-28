@@ -11333,6 +11333,16 @@ function openAddRoomModal() {
       >${ic}</button>`
   ).join('');
 
+  // Superuser only: template-section picker so each new room maps to a template
+  // section (kitchen, bedroom, etc.). The room then shows that section's template
+  // units, preserving the seeded library inside the user's custom rooms.
+  const tplSectionPickerHtml = isSuperuser() ? `
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Template Section <span style="color:var(--text-muted);text-transform:none;letter-spacing:0;font-style:italic">(which library units to show)</span></label>
+      <select id="new-room-tpl-section" autocomplete="off"
+        style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px">
+        ${sections.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+      </select>` : '';
+
   const modal = document.createElement('div');
   modal.id = 'add-room-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
@@ -11344,6 +11354,7 @@ function openAddRoomModal() {
         style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
         onkeydown="if(event.key==='Enter')confirmAddRoom()">
+      ${tplSectionPickerHtml}
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px">Icon</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px" id="room-icon-picker">${icons}</div>
       <div id="add-room-err" style="display:none;color:#e07070;font-size:12px;margin-bottom:12px"></div>
