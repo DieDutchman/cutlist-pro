@@ -3646,13 +3646,21 @@ function getEffectiveUnits() {
   // Non-superuser users (admin, user, supplier) always use their own units
   // (empty array if none created yet) — admins go through the same fresh-account
   // onboarding flow as regular users; only superuser sees the seeded template library.
-  if (usesUserUnits()) {
+  if (usesUserUnits() && !isSuperuser()) {
     return userUnits;
   }
+  // Superuser always gets template library + custom units. When superuser also
+  // has custom rooms, the template units are remapped per-room via
+  // room.templateSection in _renderPanel(); userUnits (custom-built additions)
+  // are layered on top so they show in their assigned room too.
   const base = getUnitTemplates()
     .filter(u => !deletedUnits.has(u.id))
     .map(u => unitOverrides[u.id] ? {...u, ...unitOverrides[u.id]} : u);
-  return [...base, ...customUnits];
+  const tpl = [...base, ...customUnits];
+  if (isSuperuser() && userRooms.length > 0) {
+    return [...tpl, ...userUnits];
+  }
+  return tpl;
 }
 
 // ── Admin: Unit Template Library CRUD ─────────────────────────────────────────
