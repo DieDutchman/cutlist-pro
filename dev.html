@@ -9281,12 +9281,23 @@ async function fetchUserRole() {
 
 async function fetchLastJobId() {
   if (!sbUser) return;
+  if (sbLastJobIdColumnMissing) return; // column known-missing for this session — skip
   try {
     const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${sbUser.id}&select=last_job_id`, { headers: authHeaders() });
-    if (!res.ok) return;
+    if (!res.ok) {
+      // 400 typically means the column does not exist on this Supabase deployment.
+      // Latch a session flag so we stop emitting noisy 400s on every login/save.
+      if (res.status === 400) {
+        sbLastJobIdColumnMissing = true;
+        console.warn('[Supabase] profiles.last_job_id column missing — last-job restore disabled for this session. Run a migration to enable it.');
+      }
+      sbLastJobId = null;
+      return;
+    }
     const rows = await res.json();
     sbLastJobId = rows[0]?.last_job_id || null;
   } catch(e) {
+    sbLastJobId = null;
     console.warn('[Supabase] Could not fetch last_job_id — column may not exist yet:', e.message);
   }
 }
