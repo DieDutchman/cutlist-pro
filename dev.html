@@ -3529,6 +3529,7 @@ const deletedUnits = new Set();
 // ── Declared early so getEffectiveUnits() can safely read it at startup ───────
 let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
 let sbLastJobId = null; // restored from profiles.last_job_id on login
+let sbLastJobIdColumnMissing = false; // set true after first 400 so we stop hammering Supabase for a column that hasn't been migrated yet
 // ── Multi-supplier support ────────────────────────────────────────────────────
 let activeSupplierRow = null;   // { id: UUID|null, name: string } — null id = "Default"
 let availableSuppliers = [];    // [{ id, name }]
