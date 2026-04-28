@@ -4176,7 +4176,7 @@ function buildMatSelector(groupIds) {
           <div class="mat-row">
             <span class="mat-row-label">Wood</span>
             <div class="mat-swatch" id="swatch_${g.id}_wood" style="background:${COLOR_SWATCHES[cfg.wood]||'#888'}"></div>
-            <select class="mat-select" onchange="setMaterial('${g.id}','wood',this.value)">
+            <select autocomplete="off" class="mat-select" onchange="setMaterial('${g.id}','wood',this.value)">
               ${colOpts(cfg.wood, COLORS)}
             </select>
           </div>
@@ -4607,14 +4607,14 @@ function _renderPanel() {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:10px;color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">CUSTOM MATERIAL</span>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)">Wood
-            <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
+            <select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
               onchange="setUnitMatOverride('${u.id}','wood',this.value);renderPanel()"
               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
               ${colOpts(curWood, COLORS)}
             </select>
           </label>
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)">Edging
-            <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
+            <select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
               onchange="setUnitMatOverride('${u.id}','edging',this.value);renderPanel()"
               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
               ${colOpts(curEdge, EDGE_COLORS)}
@@ -4691,7 +4691,7 @@ function _renderPanel() {
     </tr>` : '';
 
     html += `<tr class="unit-row">
-      <td><input class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
+      <td><input autocomplete="off" class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
       <td class="unit-name">${expandBtn}<span style="${nameStyle};cursor:${hasParts?'pointer':'default'}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
     </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
@@ -5099,7 +5099,7 @@ function generateCutlist() {
         <td class="dim">${p.w.toLocaleString()} mm</td>
         <td class="material">${p.mat}</td>
         <td class="edge">${edgesHtml}</td>
-        <td class="holes-cell"><input class="holes-input" type="text" value="${(p.holes||'').replace(/"/g,'&quot;')}"
+        <td class="holes-cell"><input autocomplete="off" class="holes-input" type="text" value="${(p.holes||'').replace(/"/g,'&quot;')}"
           placeholder="Add note…"
           onchange="setHolesNote('${p._key.replace(/'/g,"\\'")}', this.value)"
           oninput="setHolesNote('${p._key.replace(/'/g,"\\'")}', this.value)"></td>
@@ -5471,7 +5471,7 @@ function generateSummary() {
         <td class="s-dim">${resolved.w.toLocaleString()} mm</td>
         <td class="s-mat">${resolved.mat}</td>
         <td class="s-edge">${edges || '—'}</td>
-        <td class="s-holes"><input class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
+        <td class="s-holes"><input autocomplete="off" class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
           placeholder="Add note…"
           onchange="setHolesNote('${holesKey.replace(/'/g,"\\'")}', this.value)"
           oninput="setHolesNote('${holesKey.replace(/'/g,"\\'")}', this.value)"></td>
@@ -5534,7 +5534,7 @@ function generateSummary() {
         <td class="s-dim">${p.w.toLocaleString()} mm</td>
         <td class="s-mat">${p.mat}</td>
         <td class="s-edge">${edges || '—'}</td>
-        <td class="s-holes"><input class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
+        <td class="s-holes"><input autocomplete="off" class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
           placeholder="Add note…"
           onchange="setHolesNote('${holesKey}', this.value)"
           oninput="setHolesNote('${holesKey}', this.value)"></td>
@@ -5651,7 +5651,7 @@ function generateSummary() {
           <td class="s-dim">${resolved.w.toLocaleString()} mm</td>
           <td class="s-mat">${resolved.mat}</td>
           <td class="s-edge">${edges || '—'}</td>
-          <td class="s-holes"><input class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
+          <td class="s-holes"><input autocomplete="off" class="holes-input" type="text" value="${holesVal.replace(/"/g,'&quot;')}"
             placeholder="Add note…"
             onchange="setHolesNote('${holesKey.replace(/'/g,"\\'")}', this.value)"
             oninput="setHolesNote('${holesKey.replace(/'/g,"\\'")}', this.value)"></td>
@@ -6090,7 +6090,7 @@ function renderEditor() {
   ev.innerHTML = `<div class="editor-layout">
     <div class="editor-sidebar">
       <div class="editor-sidebar-head">
-        <select class="editor-section-select" onchange="editorSection=this.value;editingUnitId=null;renderEditor()">
+        <select autocomplete="off" class="editor-section-select" onchange="editorSection=this.value;editingUnitId=null;renderEditor()">
           ${sectionOpts}
         </select>
         ${isUserMode ? '' : `<button class="btn btn-primary" style="white-space:nowrap;font-size:12px;padding:6px 10px" onclick="newUnit()">+ New</button>`}
@@ -6198,16 +6198,16 @@ function edgeOpts(selected) {
 function buildPartRow(p, i) {
   return `<tr data-idx="${i}">
     <td style="color:var(--text-muted);text-align:center;font-size:11px;padding:3px 6px">${i+1}</td>
-    <td><input class="part-cell-input" data-f="name" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="Part name"></td>
-    <td><input class="part-cell-input num" data-f="qty" type="number" min="0" value="${p.qty||1}" style="width:46px"></td>
-    <td><input class="part-cell-input num" data-f="l" type="number" min="0" value="${p.l||0}" style="width:65px"></td>
-    <td><input class="part-cell-input num" data-f="w" type="number" min="0" value="${p.w||0}" style="width:65px"></td>
-    <td><select class="editor-mat-select" data-f="mat">${matOpts(p.mat||'White Melamine')}</select></td>
-    <td><select class="editor-mat-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
-    <td><select class="editor-mat-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
-    <td><select class="editor-mat-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
-    <td><select class="editor-mat-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
-    <td><input class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
+    <td><input autocomplete="off" class="part-cell-input" data-f="name" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="Part name"></td>
+    <td><input autocomplete="off" class="part-cell-input num" data-f="qty" type="number" min="0" value="${p.qty||1}" style="width:46px"></td>
+    <td><input autocomplete="off" class="part-cell-input num" data-f="l" type="number" min="0" value="${p.l||0}" style="width:65px"></td>
+    <td><input autocomplete="off" class="part-cell-input num" data-f="w" type="number" min="0" value="${p.w||0}" style="width:65px"></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="mat">${matOpts(p.mat||'White Melamine')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><input autocomplete="off" class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
     <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part">×</button></td>
   </tr>`;
 }
@@ -6756,19 +6756,19 @@ function buildPlantOnCard(secId) {
       <div class="addon-row">
         <div class="addon-field">
           <label>Qty</label>
-          <input type="number" min="1" value="${item.qty}"
+          <input autocomplete="off" type="number" min="1" value="${item.qty}"
             onchange="${ref}.qty=parseInt(this.value)||1;${save}"
             onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Width (mm)</label>
-          <input type="number" min="0" value="${item.w||''}" placeholder="e.g. 600"
+          <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 600"
             onchange="${ref}.w=parseInt(this.value)||0;${save}"
             onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Height (mm)</label>
-          <input type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
+          <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
             onchange="${ref}.h=parseInt(this.value)||0;${save}"
             onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
@@ -6776,14 +6776,14 @@ function buildPlantOnCard(secId) {
       <div class="addon-row">
         <div class="addon-field wide">
           <label>Material</label>
-          <select onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
         </div>
       </div>
       <div class="addon-row">
-        <div class="addon-field"><label>L1</label><select onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
-        <div class="addon-field"><label>L2</label><select onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
-        <div class="addon-field"><label>W1</label><select onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field"><label>W2</label><select onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
       </div>
       ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
     </div>`;
@@ -6856,19 +6856,19 @@ function buildSpacersCard(secId) {
       <div class="addon-row">
         <div class="addon-field">
           <label>Qty</label>
-          <input type="number" min="1" value="${item.qty}"
+          <input autocomplete="off" type="number" min="1" value="${item.qty}"
             onchange="${ref}.qty=parseInt(this.value)||1;${save}"
             onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Width (mm)</label>
-          <input type="number" min="0" value="${item.w||''}" placeholder="e.g. 100"
+          <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 100"
             onchange="${ref}.w=parseInt(this.value)||0;${save}"
             onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Height (mm)</label>
-          <input type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
+          <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
             onchange="${ref}.h=parseInt(this.value)||0;${save}"
             onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
@@ -6876,14 +6876,14 @@ function buildSpacersCard(secId) {
       <div class="addon-row">
         <div class="addon-field wide">
           <label>Material</label>
-          <select onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
         </div>
       </div>
       <div class="addon-row">
-        <div class="addon-field"><label>L1</label><select onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
-        <div class="addon-field"><label>L2</label><select onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
-        <div class="addon-field"><label>W1</label><select onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field"><label>W2</label><select onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
       </div>
       ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
     </div>`;
@@ -7005,7 +7005,7 @@ function renderWidthBuilder() {
         <div class="wb-controls">
           <div class="wb-field">
             <label>Base Unit</label>
-            <select class="wb-select" onchange="wbState.baseUnitId=this.value;wbState.customName=undefined;renderWidthBuilder()">
+            <select autocomplete="off" class="wb-select" onchange="wbState.baseUnitId=this.value;wbState.customName=undefined;renderWidthBuilder()">
               ${unitOpts}
             </select>
           </div>
@@ -7019,7 +7019,7 @@ function renderWidthBuilder() {
 
         <div class="wb-width-row">
           <span class="wb-width-label">Target Width</span>
-          <input type="range" class="wb-slider" min="${minW}" max="${maxW}" step="10"
+          <input autocomplete="off" type="range" class="wb-slider" min="${minW}" max="${maxW}" step="10"
             value="${newWidth}"
             oninput="wbState.width=parseInt(this.value);wbState.customName=undefined;
               document.getElementById('wb-width-num').value=this.value;
@@ -7263,7 +7263,7 @@ function renderCustomBuilder() {
         <div class="wb-controls" style="margin-bottom:14px">
           <div class="wb-field">
             <label>Base Unit</label>
-            <select class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
+            <select autocomplete="off" class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
               ${unitOpts}
             </select>
           </div>
@@ -7489,7 +7489,7 @@ function renderHeightBuilder() {
         <div class="wb-controls">
           <div class="wb-field">
             <label>Base Unit</label>
-            <select class="wb-select" onchange="hbState.baseUnitId=this.value;hbState.customName=undefined;renderHeightBuilder()">
+            <select autocomplete="off" class="wb-select" onchange="hbState.baseUnitId=this.value;hbState.customName=undefined;renderHeightBuilder()">
               ${unitOpts}
             </select>
           </div>
@@ -7502,7 +7502,7 @@ function renderHeightBuilder() {
         </div>
         <div class="wb-width-row">
           <span class="wb-width-label">Target Height</span>
-          <input type="range" class="wb-slider" min="${minH}" max="${maxH}" step="10"
+          <input autocomplete="off" type="range" class="wb-slider" min="${minH}" max="${maxH}" step="10"
             value="${newHeight}"
             oninput="hbState.height=parseInt(this.value);hbState.customName=undefined;
               document.getElementById('hb-height-num').value=this.value;
@@ -7939,14 +7939,14 @@ function _renderQuoteView() {
   ${quoteState.topsOpen ? `<div style="padding:12px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div class="qv-tops-row">
         <span class="qv-tops-label">Type</span>
-        <select class="qv-tops-input" style="width:200px;font-family:'Barlow',sans-serif;font-size:13px"
+        <select autocomplete="off" class="qv-tops-input" style="width:200px;font-family:'Barlow',sans-serif;font-size:13px"
           onchange="const t=this.options[this.selectedIndex];quoteState.tops.type=t.value;quoteState.tops.pricePerM2=parseInt(t.dataset.price);saveQuoteState();refreshQuoteTotals()">
           ${topsOpts}
         </select>
       </div>
       <div class="qv-tops-row">
         <span class="qv-tops-label">m²</span>
-        <input class="qv-tops-input" type="number" min="0" step="0.1" value="${quoteState.tops.m2||''}"
+        <input autocomplete="off" class="qv-tops-input" type="number" min="0" step="0.1" value="${quoteState.tops.m2||''}"
           placeholder="0.0"
           oninput="quoteState.tops.m2=parseFloat(this.value)||0;saveQuoteState();refreshQuoteTotals()">
       </div>
@@ -8091,13 +8091,13 @@ function _renderQuoteView() {
   </div>
   ${quoteState.feesOpen ? `<div style="padding:14px 0;display:flex;flex-direction:column;gap:12px">
     <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none">
-      <input type="checkbox" ${quoteState.consultFee ? 'checked' : ''}
+      <input autocomplete="off" type="checkbox" ${quoteState.consultFee ? 'checked' : ''}
         onchange="quoteState.consultFee=this.checked;saveQuoteState();refreshQuoteTotals()"
         style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
       <span style="font-size:13px;color:var(--text-dim);flex:1">Consultation fee</span>
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input type="number" min="0" value="${quoteState.consultFeeAmt||500}"
+        <input autocomplete="off" type="number" min="0" value="${quoteState.consultFeeAmt||500}"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.consultFeeAmt=parseFloat(this.value)||500;saveQuoteState();refreshQuoteTotals()">
@@ -8105,26 +8105,26 @@ function _renderQuoteView() {
       </span>
     </label>
     <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none">
-      <input type="checkbox" ${quoteState.dieselFee ? 'checked' : ''}
+      <input autocomplete="off" type="checkbox" ${quoteState.dieselFee ? 'checked' : ''}
         onchange="quoteState.dieselFee=this.checked;saveQuoteState();refreshQuoteTotals()"
         style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
       <span style="font-size:13px;color:var(--text-dim);flex:1">Diesel</span>
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input type="number" min="0" value="${quoteState.dieselFeeAmt||1800}"
+        <input autocomplete="off" type="number" min="0" value="${quoteState.dieselFeeAmt||1800}"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.dieselFeeAmt=parseFloat(this.value)||1800;saveQuoteState();refreshQuoteTotals()">
       </span>
     </label>
     <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none">
-      <input type="checkbox" ${quoteState.deliveryFee ? 'checked' : ''}
+      <input autocomplete="off" type="checkbox" ${quoteState.deliveryFee ? 'checked' : ''}
         onchange="quoteState.deliveryFee=this.checked;saveQuoteState();refreshQuoteTotals()"
         style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
       <span style="font-size:13px;color:var(--text-dim);flex:1">Delivery <span style="font-size:11px;color:var(--text-muted)">(material delivery fee)</span></span>
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input type="number" min="0" value="${quoteState.deliveryFeeAmt||0}"
+        <input autocomplete="off" type="number" min="0" value="${quoteState.deliveryFeeAmt||0}"
           placeholder="0"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
@@ -8175,7 +8175,7 @@ function _renderQuoteView() {
   const sideHtml = `
     <div class="qv-card-title">Markup</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <input type="range" class="wb-slider" min="20" max="100" step="1"
+      <input autocomplete="off" type="range" class="wb-slider" min="20" max="100" step="1"
         value="${markupPct}" style="flex:1"
         oninput="quoteState.markup=parseInt(this.value)/100;saveQuoteState();
           document.getElementById('qv-markup-pct').textContent=this.value+'%';
@@ -8421,7 +8421,7 @@ function buildBaseExtraRow(e, i) {
       : `<span style="color:var(--text-muted);font-size:11px">${hw.name} @ R${hw.pricePerUnit}/set</span>`;
     fields = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--text-muted)">Sets:</span>
-      <input class="qv-extra-input num" type="number" min="1" value="${e.baseQty||1}" style="width:60px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="1" value="${e.baseQty||1}" style="width:60px"
         oninput="quoteState.extras[${i}].baseQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
       ${warn}
       <span id="qv-base-cost-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)">${fmt(e.amount||0)}</span>
@@ -8432,13 +8432,13 @@ function buildBaseExtraRow(e, i) {
       ? `<span style="color:#e07070;font-size:11px">⚠ Set Shutterply price on Costing tab</span>` : '';
     fields = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--text-muted)">W(mm):</span>
-      <input class="qv-extra-input num" type="number" min="0" value="${e.baseL||''}" placeholder="width" style="width:70px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.baseL||''}" placeholder="width" style="width:70px"
         oninput="quoteState.extras[${i}].baseL=parseInt(this.value)||0;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
       <span style="font-size:12px;color:var(--text-muted)">D(mm):</span>
-      <input class="qv-extra-input num" type="number" min="0" value="${e.baseW||''}" placeholder="depth" style="width:70px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.baseW||''}" placeholder="depth" style="width:70px"
         oninput="quoteState.extras[${i}].baseW=parseInt(this.value)||0;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
       <span style="font-size:12px;color:var(--text-muted)">Qty:</span>
-      <input class="qv-extra-input num" type="number" min="1" value="${e.basePcs||1}" style="width:55px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="1" value="${e.basePcs||1}" style="width:55px"
         oninput="quoteState.extras[${i}].basePcs=parseInt(this.value)||1;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
       ${noPrice}
       <span id="qv-base-cost-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)">${fmt(cost)}</span>
@@ -8477,12 +8477,12 @@ function buildSkirtingExtraRow(e, i) {
       ? `<span style="color:#e07070;font-size:11px">⚠ Add "Plinth ${(e.plinthSize||'100x3000').split('x')[0]}mm" to Custom Hardware on Costing tab</span>`
       : `<span style="color:var(--text-muted);font-size:11px">${hw.name} @ R${hw.pricePerUnit}/length</span>`;
     fields = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <select class="qv-extra-input" style="padding:3px 6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text)"
+      <select autocomplete="off" class="qv-extra-input" style="padding:3px 6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text)"
         onchange="quoteState.extras[${i}].plinthSize=this.value;quoteState.extras[${i}].amount=_calcSkirtingExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
         ${sizeOpts}
       </select>
       <span style="font-size:12px;color:var(--text-muted)">Qty:</span>
-      <input class="qv-extra-input num" type="number" min="1" value="${e.plinthQty||1}" style="width:60px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="1" value="${e.plinthQty||1}" style="width:60px"
         oninput="quoteState.extras[${i}].plinthQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=_calcSkirtingExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-sk-cost-${i}').textContent=fmt(_calcSkirtingExtraCost(quoteState.extras[${i}]))">
       ${warn}
       <span id="qv-sk-cost-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)">${fmt(e.amount||0)}</span>
@@ -8495,12 +8495,12 @@ function buildSkirtingExtraRow(e, i) {
     const cost = _calcSkirtingExtraCost(e);
     fields = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--text-muted)">H(mm):</span>
-      <input class="qv-extra-input num" type="number" min="0" value="${e.skirtingHeight||100}" style="width:60px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.skirtingHeight||100}" style="width:60px"
         oninput="quoteState.extras[${i}].skirtingHeight=parseInt(this.value)||0;saveQuoteState()">
       <span style="font-size:12px;color:var(--text-muted)">Length(mm):</span>
-      <input class="qv-extra-input num" type="number" min="0" value="${e.skirtingLength||''}" placeholder="e.g. 4500" style="width:80px"
+      <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.skirtingLength||''}" placeholder="e.g. 4500" style="width:80px"
         oninput="quoteState.extras[${i}].skirtingLength=parseInt(this.value)||0;quoteState.extras[${i}].amount=_calcSkirtingExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-sk-cost-${i}').textContent=fmt(_calcSkirtingExtraCost(quoteState.extras[${i}]))">
-      <select class="qv-extra-input" style="padding:3px 6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text)"
+      <select autocomplete="off" class="qv-extra-input" style="padding:3px 6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text)"
         onchange="quoteState.extras[${i}].skirtingMat=this.value;saveQuoteState()">${matOpts}</select>
       ${noRate}
       <span id="qv-sk-cost-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)">${fmt(cost)}</span>
@@ -8554,14 +8554,14 @@ function buildExtraRow(e, i) {
     return `<tr>
       <td>
         ${staleName ? `<div style="font-size:10px;color:var(--amber);margin-bottom:3px">⚠ "${escHtml(staleName)}" not found — please re-select:</div>` : ''}
-        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid ${staleName?'var(--amber)':'var(--border)'};color:var(--text);cursor:pointer"
+        <select autocomplete="off" class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid ${staleName?'var(--amber)':'var(--border)'};color:var(--text);cursor:pointer"
           onchange="quoteState.extras[${i}].otherType=this.value;quoteState.extras[${i}].amount=(quoteState.extras[${i}].otherQty||1)*_otherUnitPrice(this.value)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
           ${staleName ? `<option value="" disabled selected>— select item —</option>` : ''}
           ${selectOpts}
         </select>
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
-        <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
+        <input autocomplete="off" class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
           oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
@@ -8579,13 +8579,13 @@ function buildExtraRow(e, i) {
     const total = qty * unitPrice * (1 + HW_HANDLING);
     return `<tr>
       <td>
-        <select class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer"
+        <select autocomplete="off" class="qv-extra-input" style="padding:3px 4px;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer"
           onchange="quoteState.extras[${i}].hwType=this.value;quoteState.extras[${i}].amount=(quoteState.extras[${i}].hwQty||1)*_hwUnitPrice(this.value)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();renderQuoteView()">
           ${selectOpts}
         </select>
       </td>
       <td style="white-space:nowrap;display:flex;align-items:center;gap:6px;padding:5px 6px">
-        <input class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
+        <input autocomplete="off" class="qv-extra-input num" type="number" min="1" step="1" value="${qty}" style="width:64px"
           oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
@@ -8594,10 +8594,10 @@ function buildExtraRow(e, i) {
   }
   // Custom free-form row
   return `<tr>
-    <td><input class="qv-extra-input" type="text" value="${(e.desc||'').replace(/"/g,'&quot;')}"
+    <td><input autocomplete="off" class="qv-extra-input" type="text" value="${(e.desc||'').replace(/"/g,'&quot;')}"
       placeholder="Description…"
       oninput="quoteState.extras[${i}].desc=this.value;saveQuoteState()"></td>
-    <td><input class="qv-extra-input num" type="number" min="0" value="${e.amount||''}"
+    <td><input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.amount||''}"
       placeholder="0"
       oninput="quoteState.extras[${i}].amount=parseFloat(this.value)||0;saveQuoteState();refreshQuoteTotals()"></td>
     <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
@@ -10669,7 +10669,7 @@ function renderSupplierRow(s, ownerEmail) {
   return `
   <div id="sup-row-${s.id}" style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
     <div style="flex:1;min-width:140px">
-      <input
+      <input autocomplete="off"
         value="${s.name}"
         onfocus="this.style.borderColor='var(--amber)'"
         onblur="this.style.borderColor='var(--border)';renameSupplier('${s.id}', this.value)"
@@ -10775,7 +10775,7 @@ function renderUserRow(u) {
   const supplierSelect = (u.role === 'user' || u.role === 'admin' || u.role === 'superuser') && (_allSuppliersCache || []).length > 0 ? `
     <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">SUPPLIERS</label>
-      <select multiple onchange="updateUserSuppliers('${u.id}', this)" size="3"
+      <select autocomplete="off" multiple onchange="updateUserSuppliers('${u.id}', this)" size="3"
         style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none;min-width:140px">
         ${supplierOptions}
       </select>
@@ -10789,7 +10789,7 @@ function renderUserRow(u) {
       </div>
       <div style="font-size:11px;color:${roleColor};font-family:'Oswald',sans-serif;letter-spacing:1px;margin-top:2px;text-transform:uppercase">${u.role}</div>
     </div>
-    <select onchange="updateUserRole('${u.id}', this.value, this)" ${isMe ? 'disabled title="Cannot change your own role"' : ''}
+    <select autocomplete="off" onchange="updateUserRole('${u.id}', this.value, this)" ${isMe ? 'disabled title="Cannot change your own role"' : ''}
       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer;outline:none;${isMe ? 'opacity:0.4;cursor:not-allowed' : ''}">
       <option value="user"      ${u.role === 'user'      ? 'selected' : ''}>User</option>
       <option value="supplier"  ${u.role === 'supplier'  ? 'selected' : ''}>Supplier</option>
@@ -10801,7 +10801,7 @@ function renderUserRow(u) {
     ${!isPermanent ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
       <label style="font-size:9px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px">TRIAL EXPIRES</label>
       <div style="display:flex;align-items:center;gap:5px">
-        <input type="date" value="${trialDate}"
+        <input autocomplete="off" type="date" value="${trialDate}"
           onchange="updateTrialExpiry('${u.id}', this.value)"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:11px;outline:none;font-family:'Barlow',sans-serif"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
@@ -13969,7 +13969,7 @@ function _renderPricesView() {
       const safeKey   = edgeKey.replace(/'/g, "\\\\'");
       return `<div class="cv-extra-row" style="padding:4px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.06)">
         <span class="cv-extra-label" style="font-size:12px;color:var(--text-dim)">↳ <em style="font-style:normal;color:var(--text-muted)">${edgeKey.replace(/ Edging.*$/, '')} edging</em> <span style="color:var(--amber-dim);font-size:11px">${sizeLabel}</span></span>
-        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
+        <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
           onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
           onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
@@ -13993,7 +13993,7 @@ function _renderPricesView() {
             return `<span title="Price last updated ${_ds}" style="font-size:9px;color:${_col};font-family:'JetBrains Mono',monospace;margin-left:6px;vertical-align:middle">↻ ${_ds}</span>`;
           })()}
         </span>
-        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
+        <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
           onchange="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
           onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/sh</span>
@@ -14020,7 +14020,7 @@ function _renderPricesView() {
         </button>
         ${!costingPrices.matSpecialOrder?.[mat] && !costingPrices.matFullSheet?.[mat] ? `
         <span style="font-size:10px;color:var(--text-muted);margin-left:4px">min:
-          <input type="number" min="0.05" max="1" step="0.05"
+          <input autocomplete="off" type="number" min="0.05" max="1" step="0.05"
             value="${costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25}"
             class="no-spin" style="width:${Math.max(3, String(costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25).length + 1)}ch;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;-moz-appearance:textfield;appearance:textfield"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
@@ -14052,7 +14052,7 @@ function _renderPricesView() {
     <div class="cv-price-grid">${orphanEdges.map(e => `
       <div class="cv-price-item">
         <span class="cv-price-label">${e}</span>
-        <input class="cv-price-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
+        <input autocomplete="off" class="cv-price-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
           onblur="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span class="cv-unit">/m</span>
@@ -14145,7 +14145,7 @@ function _renderPricesView() {
     const minVal  = costingPrices.matMinSheets?.[mat] != null ? costingPrices.matMinSheets[mat] : 0.25;
     const minHtml = admin && activeStock
       ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap">min
-           <input type="number" min="0.05" max="1" step="0.05" value="${minVal}"
+           <input autocomplete="off" type="number" min="0.05" max="1" step="0.05" value="${minVal}"
              style="width:40px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:1px 4px;font-size:10px;outline:none;font-family:'JetBrains Mono',monospace"
              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
              oninput="setMatMinSheets('${safeMatJS}',this.value)"> sh
@@ -14177,12 +14177,12 @@ function _renderPricesView() {
     const sheetDimHtml = admin
       ? `<div style="display:flex;align-items:center;gap:4px;margin-top:4px">
           <span style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">SHEET</span>
-          <input type="number" value="${sheetL}" placeholder="L" min="100" max="6000"
+          <input autocomplete="off" type="number" value="${sheetL}" placeholder="L" min="100" max="6000"
             style="width:54px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;text-align:center"
             onchange="updateMatSheetDim('${safeMatJS}','l',this.value)"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
           <span style="font-size:9px;color:var(--text-muted)">×</span>
-          <input type="number" value="${sheetW}" placeholder="W" min="100" max="4000"
+          <input autocomplete="off" type="number" value="${sheetW}" placeholder="W" min="100" max="4000"
             style="width:54px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;text-align:center"
             onchange="updateMatSheetDim('${safeMatJS}','w',this.value)"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
@@ -14199,7 +14199,7 @@ function _renderPricesView() {
           ${timestampHtml}
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
+          <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.mat[mat]||0}" ${ro}
             onchange="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('board','${mat}',this.value)"
             onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/sheet</span>
@@ -14231,7 +14231,7 @@ function _renderPricesView() {
         const safeKey   = edgeKey.replace(/'/g, "\\\\'");
         return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))' : ''}">
           <span style="font-size:12px;color:var(--text-muted);width:32px;flex-shrink:0">${sizeLabel}</span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
+          <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
             onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
             onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
@@ -14271,7 +14271,7 @@ function _renderPricesView() {
       </div>
       ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
         <span style="flex:1;font-size:12px;color:var(--amber-dim)">${e}</span>
-        <input class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
+        <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()"
           onblur="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:11px;color:var(--text-muted)">/m</span>
@@ -14371,28 +14371,28 @@ function _renderPricesView() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Cut &amp; Label – boards <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
+            <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabel}" ${ro}
               onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
               onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
             <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
-            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
+            <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.cutLabelMasonite}" ${ro}
               onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
               onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
           <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
-            <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
+            <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.drilling}" ${ro}
               onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
               onblur="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
           <div class="cv-extra-row" style="padding:8px 12px">
             <span class="cv-extra-label">Supplier Handling <span style="font-size:10px;color:var(--text-muted)">(per line)</span></span>
-            <input class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}" ${ro}
+            <input autocomplete="off" class="cv-extra-input" type="number" min="0" step="0.01" value="${costingPrices.extras.hPrice||0}" ${ro}
               onchange="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Supplier HPrice',this.value)"
               onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -14411,11 +14411,11 @@ function _renderPricesView() {
             ? `<div style="padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic">${admin ? 'No special services added yet — add one below' : 'No special services configured yet'}</div>`
             : costingPrices.specialServices.map(svc => `
               <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))" id="svc-row-${svc.id}">
-                <input type="text" value="${escHtml(svc.name)}"
+                <input autocomplete="off" type="text" value="${escHtml(svc.name)}"
                   style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','name',this.value)"`}>
                 ${(()=>{ const kc=['CNC','Cut-out','Shaker','Routing','Drilling','Wrapping','Other']; const isCust=!kc.includes(svc.category); return `
-                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                <select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;width:130px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'disabled' : `onchange="handleSvcCategoryChange(this,'${svc.id}')" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
                   ${kc.map(c=>`<option value="${c}" ${!isCust&&svc.category===c?'selected':''}>${c}</option>`).join('')}
                   <option value="__custom__" ${isCust?'selected':''}>＋ Custom…</option>
@@ -14425,10 +14425,10 @@ function _renderPricesView() {
                   style="width:110px;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif;display:${isCust?'block':'none'}"
                   ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--amber-dim)'" oninput="updateSpecialService('${svc.id}','category',this.value)"`}>
                 `; })()}
-                <input type="number" min="0" step="0.01" value="${svc.price||0}"
+                <input autocomplete="off" type="number" min="0" step="0.01" value="${svc.price||0}"
                   style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'readonly' : `onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''" oninput="updateSpecialService('${svc.id}','price',this.value)"`}>
-                <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:90px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
+                <select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:90px;${!admin?'pointer-events:none;cursor:default;background:var(--bg2)':''}"
                   ${!admin ? 'disabled' : `onchange="updateSpecialService('${svc.id}','unit',this.value)" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"`}>
                   ${['per unit','per door','per panel','per m','per m²','each'].map(u =>
                     `<option value="${u}" ${svc.unit===u?'selected':''}>${u}</option>`).join('')}
@@ -14688,7 +14688,7 @@ function renderSpecialServicesWidget(targetId, targetType) {
           <div style="font-size:10px;color:var(--amber-dim);letter-spacing:1px;font-family:'Oswald',sans-serif">CUT-OUT DETAILS</div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Border (each side)
-              <input type="number" min="0" max="200" step="1" value="${border}"
+              <input autocomplete="off" type="number" min="0" max="200" step="1" value="${border}"
                 style="width:60px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none;margin-left:6px;font-family:'JetBrains Mono',monospace"
                 onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
                 oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','border',this.value)"> mm
@@ -14697,7 +14697,7 @@ function renderSpecialServicesWidget(targetId, targetType) {
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">Edging around hole
-              <select onchange="updateSvcField('${targetType}','${targetId}','${svc.id}','edgeType',this.value)"
+              <select autocomplete="off" onchange="updateSvcField('${targetType}','${targetId}','${svc.id}','edgeType',this.value)"
                 style="background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:11px;outline:none;margin-left:6px"
                 onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
                 <option value="">— none —</option>
@@ -14717,7 +14717,7 @@ function renderSpecialServicesWidget(targetId, targetType) {
 
     return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
       <div style="display:flex;align-items:center;gap:8px">
-        <input type="checkbox" ${active ? 'checked' : ''} style="cursor:pointer;flex-shrink:0"
+        <input autocomplete="off" type="checkbox" ${active ? 'checked' : ''} style="cursor:pointer;flex-shrink:0"
           onchange="${toggleFn}('${targetId}','${svc.id}',this.checked?1:0)">
         <span style="flex:1;font-size:12px;color:${active?'var(--text)':'var(--text-muted)'}">
           ${escHtml(svc.name)}
@@ -14726,7 +14726,7 @@ function renderSpecialServicesWidget(targetId, targetType) {
         ${active ? `
           <label style="font-size:11px;color:var(--text-muted);white-space:nowrap">
             ${isCutout ? 'Cut-outs:' : 'Qty:'}
-            <input type="number" min="1" value="${sel.qty}"
+            <input autocomplete="off" type="number" min="1" value="${sel.qty}"
               style="width:44px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:2px 4px;font-size:11px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace;margin-left:4px"
               ${canEdit ? `oninput="updateSvcField('${targetType}','${targetId}','${svc.id}','qty',this.value)"` : 'readonly style="pointer-events:none;opacity:0.7"'}
               onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
@@ -14842,7 +14842,7 @@ function _renderMaterialsView() {
   const fixedRow = (label, unit, key, obj) => `
     <div class="cv-extra-row">
       <span class="cv-extra-label">${label} <span style="font-size:10px;color:var(--amber-dim)">★</span> <span style="font-size:10px;color:var(--text-muted)">(${unit})</span></span>
-      <input class="cv-extra-input" type="number" min="0" value="${obj[key]||0}"
+      <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${obj[key]||0}"
         onchange="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
         onblur="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices()">
       <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -14852,11 +14852,11 @@ function _renderMaterialsView() {
     .filter(h => (h.category||'other') === cat)
     .map(h => `
     <div class="cv-extra-row" style="gap:5px">
-      <input type="text" value="${(h.name||'').replace(/"/g,'&quot;')}"
+      <input autocomplete="off" type="text" value="${(h.name||'').replace(/"/g,'&quot;')}"
         style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='';updateCustomHardware('${h.id}','name',this.value)"
         onkeydown="if(event.key==='Enter')this.blur()">
-      <input class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
+      <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
         onchange="updateCustomHardware('${h.id}','pricePerUnit',this.value)"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
       <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -14913,7 +14913,7 @@ function _renderMaterialsView() {
         ${section('Other Services')}
         <div class="cv-extra-row">
           <span class="cv-extra-label">Skirting <span style="font-size:10px;color:var(--text-muted)">(per m)</span></span>
-          <input class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.skirtingPerM||0}"
+          <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.extras.skirtingPerM||0}"
             onchange="costingPrices.extras.skirtingPerM=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
             onblur="costingPrices.extras.skirtingPerM=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -14929,11 +14929,11 @@ function _renderMaterialsView() {
         ${suggestions('other', ['Plinth Clip', 'SS Leg', 'Cabinet Lock', 'Magnetic Catch', 'Door Damper', 'Lazy Susan Fitting', 'Waste Bin', 'Drawer Divider', 'Shelf Pin', 'Back Panel Clip'])}
         ${otherItems.length > 0 ? otherItems.map(h => `
         <div class="cv-extra-row" style="gap:5px">
-          <input type="text" value="${(h.name||'').replace(/"/g,'&quot;')}"
+          <input autocomplete="off" type="text" value="${(h.name||'').replace(/"/g,'&quot;')}"
             style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='';updateCustomHardware('${h.id}','name',this.value)"
             onkeydown="if(event.key==='Enter')this.blur()">
-          <input class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
+          <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${h.pricePerUnit||0}"
             onchange="updateCustomHardware('${h.id}','pricePerUnit',this.value)"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
           <span style="font-size:10px;color:var(--text-muted)">R</span>
@@ -16665,7 +16665,7 @@ function renderImportedCutlistView() {
   const matOpts  = MATS;
 
   const sel = (val, opts, onchange, w) =>
-    `<select onchange="${onchange}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'100%'};max-width:${w||'160px'}"
+    `<select autocomplete="off" onchange="${onchange}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'100%'};max-width:${w||'160px'}"
        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
        ${opts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
      </select>`;
@@ -16676,7 +16676,7 @@ function renderImportedCutlistView() {
     const displayVal = isUnknown ? '' : (val || '');
     const unknownLabel = isUnknown ? val.slice(1) : null;
     return `<div style="display:flex;flex-direction:column;gap:1px">
-      <select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'90px'};max-width:${w||'90px'}"
+      <select autocomplete="off" onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'90px'};max-width:${w||'90px'}"
          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='${isUnknown?'#e05252':''}'" >
          ${edgeOpts.map(o => `<option value="${escHtml(o)}" ${o===displayVal?'selected':''}>${o ? escHtml(o.replace(/ Edging.*$/,'')) : '—'}</option>`).join('')}
       </select>
@@ -16687,7 +16687,7 @@ function renderImportedCutlistView() {
   // Material select — highlights materials not in MATS list
   const matSel = (val, onchange, w) => {
     const isUnknown = val && !matOpts.includes(val);
-    return `<select onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'140px'};max-width:${w||'140px'}"
+    return `<select autocomplete="off" onchange="${onchange}" style="background:${isUnknown?'rgba(224,82,82,0.15)':'var(--bg3)'};border:1px solid ${isUnknown?'#e05252':'var(--border)'};color:var(--text);padding:2px 4px;font-size:11px;outline:none;width:${w||'140px'};max-width:${w||'140px'}"
        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
        ${matOpts.map(o => `<option value="${escHtml(o)}" ${o===val?'selected':''}>${escHtml(o)}</option>`).join('')}
        ${isUnknown ? `<option value="${escHtml(val)}" selected style="color:#e05252">⚠ ${escHtml(val)}</option>` : ''}
@@ -16695,7 +16695,7 @@ function renderImportedCutlistView() {
   };
 
   const inp = (val, type, onchange, w, align) =>
-    `<input type="${type}" value="${escHtml(String(val??''))}"
+    `<input autocomplete="off" type="${type}" value="${escHtml(String(val??''))}"
        onchange="${onchange}"
        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-size:12px;outline:none;width:${w||'100%'};text-align:${align||'left'};font-family:'Barlow',sans-serif"
        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
@@ -16788,7 +16788,7 @@ function renderImportedCutlistView() {
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
       <div>
-        <input value="${escHtml(label)}" oninput="importedCutlistData.label=this.value"
+        <input autocomplete="off" value="${escHtml(label)}" oninput="importedCutlistData.label=this.value"
           style="font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:2px;color:var(--amber);background:none;border:none;border-bottom:1px solid transparent;outline:none;padding:0 2px"
           onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='transparent'">
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
@@ -17447,14 +17447,14 @@ function _renderPanelsView() {
   const edgeOptsHtml = ['', ...EDGES.filter(e=>e)].map(e => `<option value="${e}">${e||'— no edging —'}</option>`).join('');
 
   const inp = (type, val, onchange, style='') =>
-    `<input type="${type}" value="${val}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" oninput="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
+    `<input autocomplete="off" type="${type}" value="${val}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" oninput="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
 
   const sel = (val, opts, onchange, style='') => {
     const options = opts.replace(/(<option value="[^"]*")>/g, (m, p1) => {
       const v = p1.match(/value="([^"]*)"/)?.[1];
       return v === val ? `${p1} selected>` : `${p1}>`;
     });
-    return `<select style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" onchange="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">${options}</select>`;
+    return `<select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" onchange="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">${options}</select>`;
   };
 
   const rowsHtml = panelsState.items.map(p => `
@@ -17496,7 +17496,7 @@ function _renderPanelsView() {
           <div style="font-size:12px;color:var(--text-muted);margin-top:3px">Quote individual panels, shelves, or pieces of board — not full units</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" placeholder="Label / description (optional)" value="${(panelsState.label||'').replace(/"/g,'&quot;')}"
+          <input autocomplete="off" type="text" placeholder="Label / description (optional)" value="${(panelsState.label||'').replace(/"/g,'&quot;')}"
             style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;width:240px"
             oninput="panelsState.label=this.value;savePanelsState()"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
@@ -18079,13 +18079,13 @@ function builderDoorsHTML() {
 
   if (!d.enabled) return `
     <label class="bldr-check-row">
-      <input type="checkbox" onchange="builderInput('doors.enabled',this.checked)">
+      <input autocomplete="off" type="checkbox" onchange="builderInput('doors.enabled',this.checked)">
       Include doors
     </label>`;
 
   return `
     <label class="bldr-check-row">
-      <input type="checkbox" checked onchange="builderInput('doors.enabled',this.checked)">
+      <input autocomplete="off" type="checkbox" checked onchange="builderInput('doors.enabled',this.checked)">
       Include doors
     </label>
     <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px">Door Style per Bay</div>
@@ -18105,13 +18105,13 @@ function builderDoorsHTML() {
     <div style="font-size:10px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1.5px;text-transform:uppercase;margin-top:6px">Gap Spacing</div>
     <div style="font-size:10px;color:var(--text-muted);padding:2px 0 4px">Bottom always flush — no gap</div>
     <div class="bldr-row"><span class="bldr-label">Top gap</span>
-      <input class="bldr-input" type="number" value="${d.gapTop}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapTop',this.value)">
+      <input autocomplete="off" class="bldr-input" type="number" value="${d.gapTop}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapTop',this.value)">
       <span class="bldr-unit">mm</span></div>
     <div class="bldr-row"><span class="bldr-label">Side gap</span>
-      <input class="bldr-input" type="number" value="${d.gapSide}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapSide',this.value)">
+      <input autocomplete="off" class="bldr-input" type="number" value="${d.gapSide}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapSide',this.value)">
       <span class="bldr-unit">mm</span></div>
     ${needsMiddleGap ? `<div class="bldr-row"><span class="bldr-label">Middle gap</span>
-      <input class="bldr-input" type="number" value="${d.gapMiddle}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapMiddle',this.value)">
+      <input autocomplete="off" class="bldr-input" type="number" value="${d.gapMiddle}" min="0" max="50" step="0.5" oninput="builderNum('doors.gapMiddle',this.value)">
       <span class="bldr-unit">mm</span></div>` : ''}`;
 }
 function builderInfoTable() {
@@ -18264,30 +18264,30 @@ function builderBackingHTML() {
 
   const railInputs = () => `
     <div class="bldr-row"><span class="bldr-label">Rail height</span>
-      <input class="bldr-input" type="number" value="${bk.supportHeight}" min="50" max="300" oninput="builderNum('backing.supportHeight',this.value)">
+      <input autocomplete="off" class="bldr-input" type="number" value="${bk.supportHeight}" min="50" max="300" oninput="builderNum('backing.supportHeight',this.value)">
       <span class="bldr-unit">mm</span></div>
     ${placementBtns()}`;
 
   return `
     <label class="bldr-check-row">
-      <input type="checkbox" ${bk.enabled?'checked':''} onchange="builderInput('backing.enabled',this.checked)">
+      <input autocomplete="off" type="checkbox" ${bk.enabled?'checked':''} onchange="builderInput('backing.enabled',this.checked)">
       Add backing panel
     </label>
     ${bk.enabled ? `
     <div class="bldr-row"><span class="bldr-label">Type</span>
-      <select class="bldr-input" onchange="builderInput('backing.type',this.value)">
+      <select autocomplete="off" class="bldr-input" onchange="builderInput('backing.type',this.value)">
         <option value="masonite" ${bk.type==='masonite'?'selected':''}>Masonite (3mm)</option>
         <option value="solid" ${bk.type==='solid'?'selected':''}>Solid (same as carcass)</option>
       </select></div>
     ${bk.type === 'masonite' ? `
     <label class="bldr-check-row">
-      <input type="checkbox" ${bk.supports?'checked':''} onchange="builderInput('backing.supports',this.checked)">
+      <input autocomplete="off" type="checkbox" ${bk.supports?'checked':''} onchange="builderInput('backing.supports',this.checked)">
       Add support rails (top &amp; bottom)
     </label>
     ${bk.supports ? railInputs() : ''}` : ''}
     ` : ''}
     <label class="bldr-check-row" style="margin-top:4px">
-      <input type="checkbox" ${bs.supportsNoBack?'checked':''} onchange="builderInput('supportsNoBack',this.checked)">
+      <input autocomplete="off" type="checkbox" ${bs.supportsNoBack?'checked':''} onchange="builderInput('supportsNoBack',this.checked)">
       Supports without backing
     </label>
     ${bs.supportsNoBack ? railInputs() : ''}`;
@@ -18298,7 +18298,7 @@ function builderSplitsHTML() {
   const hasShelves = bs.shelves.length > 0;
   return `
     <div class="bldr-row"><span class="bldr-label">Dividers</span>
-      <input class="bldr-input" type="number" value="${bs.dividers}" min="0" max="5" oninput="builderNum('dividers',this.value)">
+      <input autocomplete="off" class="bldr-input" type="number" value="${bs.dividers}" min="0" max="5" oninput="builderNum('dividers',this.value)">
       <span class="bldr-unit">dividers</span></div>
     ${bs.dividers > 0 && hasShelves ? `
     <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">Stop each divider at</div>
@@ -18330,7 +18330,7 @@ function builderDividerStopsHTML() {
 
     return `<div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;min-width:60px;flex-shrink:0">DIV ${i+1}</span>
-      <select class="bldr-input" style="flex:1" onchange="builderSetDividerStop(${i},this.value)">
+      <select autocomplete="off" class="bldr-input" style="flex:1" onchange="builderSetDividerStop(${i},this.value)">
         <option value="full" ${current==='full'?'selected':''}>Full height</option>
         ${shelfOpts}
       </select>
@@ -18351,7 +18351,7 @@ function builderShelfListHTML() {
     const bayCheckboxes = nBays > 1 && sh.span === 'bays'
       ? Array.from({length: nBays}, (_, b) =>
           `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);cursor:pointer">
-            <input type="checkbox" ${sh.bays.includes(b)?'checked':''} onchange="builderShelfBay('${sh.id}',${b},this.checked)" style="accent-color:var(--amber)">
+            <input autocomplete="off" type="checkbox" ${sh.bays.includes(b)?'checked':''} onchange="builderShelfBay('${sh.id}',${b},this.checked)" style="accent-color:var(--amber)">
             Bay ${b+1}
           </label>`
         ).join('')
@@ -18362,7 +18362,7 @@ function builderShelfListHTML() {
       <!-- Header row: label + span + clone + delete -->
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--amber-dim);font-family:'Oswald',sans-serif;letter-spacing:1px;min-width:50px;flex-shrink:0">SHELF ${i+1}</span>
-        <select class="bldr-input" style="flex:1;min-width:0;${spansCrossDiv?'border-color:#c07020':''}" onchange="builderShelfSpan('${sh.id}',this.value)">
+        <select autocomplete="off" class="bldr-input" style="flex:1;min-width:0;${spansCrossDiv?'border-color:#c07020':''}" onchange="builderShelfSpan('${sh.id}',this.value)">
           <option value="full" ${sh.span==='full'?'selected':''}>Full width</option>
           ${nBays > 1 ? `<option value="bays" ${sh.span==='bays'?'selected':''}>Specific bays</option>` : ''}
         </select>
@@ -18391,14 +18391,14 @@ function builderShelfListHTML() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-left:58px">
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Y from top</span>
-          <input class="bldr-input" type="number" style="width:100%;box-sizing:border-box"
+          <input autocomplete="off" class="bldr-input" type="number" style="width:100%;box-sizing:border-box"
             placeholder="auto (${Math.round(resolvedY)}mm)"
             value="${sh.y !== null ? sh.y : ''}"
             oninput="builderShelfY('${sh.id}',this.value)">
         </div>
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Depth −mm <span style="color:var(--amber-dim)">(= ${shelfD}mm)</span></span>
-          <input class="bldr-input" type="number" min="0" max="${D}" style="width:100%;box-sizing:border-box"
+          <input autocomplete="off" class="bldr-input" type="number" min="0" max="${D}" style="width:100%;box-sizing:border-box"
             value="${sh.depthReduction ?? 10}"
             oninput="builderShelfDepth('${sh.id}',this.value)">
         </div>
@@ -18407,7 +18407,7 @@ function builderShelfListHTML() {
       <!-- Support rail at shelf -->
       <div style="padding-left:58px;display:flex;flex-direction:column;gap:5px">
         <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);cursor:pointer">
-          <input type="checkbox" ${sh.supportRail?'checked':''} onchange="builderShelfSupportRail('${sh.id}',this.checked)" style="accent-color:var(--amber)">
+          <input autocomplete="off" type="checkbox" ${sh.supportRail?'checked':''} onchange="builderShelfSupportRail('${sh.id}',this.checked)" style="accent-color:var(--amber)">
           Support rail at this shelf
         </label>
         ${sh.supportRail ? `
@@ -18741,16 +18741,16 @@ function _renderBuilderView() {
         <div class="bldr-section-head">📦 Carcass</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Height</span>
-            <input class="bldr-input" type="number" value="${bs.height}" min="100" max="3000" oninput="builderNum('height',this.value)">
+            <input autocomplete="off" class="bldr-input" type="number" value="${bs.height}" min="100" max="3000" oninput="builderNum('height',this.value)">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Width</span>
-            <input class="bldr-input" type="number" value="${bs.width}" min="100" max="2400" oninput="builderNum('width',this.value)">
+            <input autocomplete="off" class="bldr-input" type="number" value="${bs.width}" min="100" max="2400" oninput="builderNum('width',this.value)">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Depth</span>
-            <input class="bldr-input" type="number" value="${bs.depth}" min="100" max="1000" oninput="builderNum('depth',this.value)">
+            <input autocomplete="off" class="bldr-input" type="number" value="${bs.depth}" min="100" max="1000" oninput="builderNum('depth',this.value)">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
-            <input class="bldr-input" type="number" value="${bs.thickness}" min="9" max="25" oninput="builderNum('thickness',this.value)">
+            <input autocomplete="off" class="bldr-input" type="number" value="${bs.thickness}" min="9" max="25" oninput="builderNum('thickness',this.value)">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row" style="align-items:flex-start">
             <span class="bldr-label">Top</span>
@@ -18806,9 +18806,9 @@ function _renderBuilderView() {
         <div class="bldr-section-head">💾 Save as Unit</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Name</span>
-            <input class="bldr-input" type="text" value="${bs.unitName}" oninput="builderState.unitName=this.value"></div>
+            <input autocomplete="off" class="bldr-input" type="text" value="${bs.unitName}" oninput="builderState.unitName=this.value"></div>
           <div class="bldr-row"><span class="bldr-label">Section</span>
-            <select class="bldr-input" onchange="builderState.section=this.value">${sectionOpts}</select></div>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.section=this.value">${sectionOpts}</select></div>
           <button class="bldr-save-btn" onclick="builderSaveUnit()">+ Add to Unit List</button>
         </div>
       </div>
@@ -18844,11 +18844,11 @@ function _renderBuilderView() {
         <div class="bldr-section-head">🪵 Carcass</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Board</span>
-            <select class="bldr-input" onchange="builderState.materials.carcass=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcass=this.value;builderRedraw()">
               ${matOpts(mt.carcass)}
             </select></div>
           <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.carcassEdge)}
             </select></div>
         </div>
@@ -18858,7 +18858,7 @@ function _renderBuilderView() {
         <div class="bldr-section-head">📏 Shelves</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.shelfEdge)}
             </select></div>
         </div>
@@ -18868,7 +18868,7 @@ function _renderBuilderView() {
         <div class="bldr-section-head">⬛ Splits</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.dividerEdge)}
             </select></div>
         </div>
@@ -18879,11 +18879,11 @@ function _renderBuilderView() {
         <div class="bldr-section-head">🚪 Doors</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Board</span>
-            <select class="bldr-input" onchange="builderState.materials.door=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.door=this.value;builderRedraw()">
               ${matOpts(mt.door)}
             </select></div>
           <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.doorEdge)}
             </select></div>
         </div>
@@ -19446,7 +19446,7 @@ function renderDrawerBuilderHTML() {
   const customRows = ds.drawerType === 'custom' ? fh.map((h,i) => `
     <div class="bldr-row">
       <span class="bldr-label" style="font-size:11px">Drawer ${i+1} ${i===0?'(bottom)':i===fh.length-1?'(top)':''}</span>
-      <input class="bldr-input" type="number" min="50" max="800" value="${h}"
+      <input autocomplete="off" class="bldr-input" type="number" min="50" max="800" value="${h}"
         oninput="drawerCustomHeightInput(${i},this.value)"
         onblur="drawerRedraw()">
       <span class="bldr-unit">mm</span>
@@ -19468,19 +19468,19 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-head">📦 Carcass</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Width</span>
-            <input class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNumInput('width',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNumInput('width',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Height</span>
-            <input class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNumInput('height',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNumInput('height',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Depth</span>
-            <input class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNumInput('depth',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNumInput('depth',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
-            <input class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto = carcass depth − back panel − rear gap.">Drawer depth</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
               min="100" max="800"
               placeholder="${drawerAutoDepth()}"
@@ -19492,7 +19492,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Thickness of back panel / support — deducted from carcass depth">Back panel</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.backPanel}"
               min="0" max="50" step="1"
               oninput="drawerState.backPanel=this.value===''?16:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
@@ -19501,7 +19501,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between drawer box rear and back panel">Rear gap</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.rearGap}"
               min="0" max="100" step="1"
               oninput="drawerState.rearGap=this.value===''?18:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
@@ -19526,7 +19526,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-check-row">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-              <input type="checkbox" ${ds.hasBacking?'checked':''} onchange="drawerInput('hasBacking',this.checked)" style="accent-color:var(--amber)">
+              <input autocomplete="off" type="checkbox" ${ds.hasBacking?'checked':''} onchange="drawerInput('hasBacking',this.checked)" style="accent-color:var(--amber)">
               Masonite backing
             </label>
           </div>
@@ -19538,7 +19538,7 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-body">
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between face edge and carcass edge on each side">Side gap</span>
-            <input class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('sideGap',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.sideGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('sideGap',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
@@ -19546,7 +19546,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between drawer faces + gap above top face">Face gap</span>
-            <input class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('faceGap',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.faceGap}" min="0" max="10" step="0.5" oninput="drawerNumInput('faceGap',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
@@ -19569,7 +19569,7 @@ function renderDrawerBuilderHTML() {
           ${ds.drawerType === 'pot' ? `
           <div class="bldr-row" style="margin-top:4px">
             <span class="bldr-label" style="font-size:11px">Top face H</span>
-            <input class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNumInput('potTopHeight',this.value)" onblur="drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number" value="${ds.potTopHeight}" min="50" max="400" oninput="drawerNumInput('potTopHeight',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>` : ''}
           ${customRows}
@@ -19587,7 +19587,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Box anchored this distance above the bottom of the drawer face">Bottom gap</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.bottomGap}"
               min="0" max="200" step="1"
               oninput="drawerState.bottomGap=this.value===''?26:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
@@ -19596,7 +19596,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Free space at top of face for nailers / carcass top">Top clearance</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.topClearance}"
               min="0" max="200" step="1"
               oninput="drawerState.topClearance=this.value===''?30:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
@@ -19609,7 +19609,7 @@ function renderDrawerBuilderHTML() {
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="${ds.drawerType === 'pot' ? 'Pot drawers (large)' : 'All drawers'}">${ds.drawerType === 'pot' ? 'Pot box H' : 'Box height'}</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.boxHeight != null ? ds.boxHeight : ''}"
               min="30" max="600"
               placeholder="${drawerEffectiveBoxH()}"
@@ -19623,7 +19623,7 @@ function renderDrawerBuilderHTML() {
           ${ds.drawerType === 'pot' ? `
           <div class="bldr-row">
             <span class="bldr-label" title="Top (small) drawer box height">Top box H</span>
-            <input class="bldr-input" type="number"
+            <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.topBoxHeight != null ? ds.topBoxHeight : ''}"
               min="30" max="400"
               placeholder="${drawerEffectiveTopBoxH()}"
@@ -19646,24 +19646,24 @@ function renderDrawerBuilderHTML() {
         <div class="bldr-section-head">🎨 Materials</div>
         <div class="bldr-section-body">
           <div class="bldr-row"><span class="bldr-label">Carcass</span>
-            <select class="bldr-input" onchange="drawerInput('materials.carcass',this.value)">${matOpts(ds.materials.carcass)}</select></div>
+            <select autocomplete="off" class="bldr-input" onchange="drawerInput('materials.carcass',this.value)">${matOpts(ds.materials.carcass)}</select></div>
           <div class="bldr-row"><span class="bldr-label">Carc. edge</span>
-            <select class="bldr-input" onchange="drawerInput('materials.carcassEdge',this.value)">${edgeOpts(ds.materials.carcassEdge)}</select></div>
+            <select autocomplete="off" class="bldr-input" onchange="drawerInput('materials.carcassEdge',this.value)">${edgeOpts(ds.materials.carcassEdge)}</select></div>
           <div class="bldr-row"><span class="bldr-label">Faces</span>
-            <select class="bldr-input" onchange="drawerInput('materials.face',this.value)">${matOpts(ds.materials.face)}</select></div>
+            <select autocomplete="off" class="bldr-input" onchange="drawerInput('materials.face',this.value)">${matOpts(ds.materials.face)}</select></div>
           <div class="bldr-row"><span class="bldr-label">Face edge</span>
-            <select class="bldr-input" onchange="drawerInput('materials.faceEdge',this.value)">${edgeOpts(ds.materials.faceEdge)}</select></div>
+            <select autocomplete="off" class="bldr-input" onchange="drawerInput('materials.faceEdge',this.value)">${edgeOpts(ds.materials.faceEdge)}</select></div>
         </div>
       </div>
 
       <div style="padding:12px 16px;border-top:1px solid var(--border)">
         <div class="bldr-row" style="margin-bottom:8px">
           <span class="bldr-label">Name</span>
-          <input class="bldr-input" type="text" value="${ds.unitName}" oninput="drawerState.unitName=this.value" placeholder="Unit name">
+          <input autocomplete="off" class="bldr-input" type="text" value="${ds.unitName}" oninput="drawerState.unitName=this.value" placeholder="Unit name">
         </div>
         <div class="bldr-row" style="margin-bottom:12px">
           <span class="bldr-label">Section</span>
-          <select class="bldr-input" onchange="drawerInput('section',this.value)">${secOpts}</select>
+          <select autocomplete="off" class="bldr-input" onchange="drawerInput('section',this.value)">${secOpts}</select>
         </div>
         <button class="bldr-save-btn" onclick="drawerSaveUnit()">+ Add to Unit List</button>
       </div>
@@ -20368,24 +20368,24 @@ function _renderPLView() {
       return `
       <div style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.08))" id="pl-inv-${inv.id}">
         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
-          <input type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
+          <input autocomplete="off" type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
             style="flex:2;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
             onblur="plInvoiceBlur('${selJobId}')">
-          <input type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
+          <input autocomplete="off" type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
             style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
             onblur="plInvoiceBlur('${selJobId}')">
-          <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
+          <select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 8px;font-size:11px;outline:none;width:150px"
             onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
             onblur="plInvoiceBlur('${selJobId}')">
             ${plInvoiceCategories().map(c =>
               `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
           <span style="font-size:11px;color:var(--text-muted)">R</span>
-          <input type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
+          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
             style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
@@ -20421,7 +20421,7 @@ function _renderPLView() {
     <!-- Job selector -->
     <div style="background:var(--bg2);border:1px solid var(--border);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--text-muted);white-space:nowrap">SELECT JOB</span>
-      <select onchange="plSelectJob(this.value)"
+      <select autocomplete="off" onchange="plSelectJob(this.value)"
         style="flex:1;min-width:220px;max-width:420px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;font-size:13px;outline:none;font-family:'Barlow',sans-serif">
         <option value="">— Choose a job to analyse —</option>
         ${jobOptions}
@@ -20579,7 +20579,7 @@ function _renderPLView() {
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">Total labour paid</span>
         <span style="font-size:13px;color:var(--text-muted)">R</span>
-        <input type="number" min="0" step="0.01" placeholder="0.00"
+        <input autocomplete="off" type="number" min="0" step="0.01" placeholder="0.00"
           value="${labourCost > 0 ? labourCost : ''}"
           style="width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:14px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
@@ -21316,7 +21316,7 @@ function renderOptimizer() {
           <option value="false" ${!st.allowRotation ? 'selected' : ''}>Lock grain</option>
         </select></div>
       <div class="opt-ctrl"><label>Preset</label>
-        <select onchange="applyOptimizerPreset(this.value); this.value=''">
+        <select autocomplete="off" onchange="applyOptimizerPreset(this.value); this.value=''">
           <option value="">—</option>
           <option value="2750x1830">2750 × 1830 (ZA standard)</option>
           <option value="2440x1220">2440 × 1220 (4×8 ft)</option>
@@ -21324,7 +21324,7 @@ function renderOptimizer() {
           <option value="2400x1200">2400 × 1200 (metric)</option>
         </select></div>
       <div class="opt-ctrl"><label>Stack identical</label>
-        <select onchange="updateOptimizerSetting('stackIdentical', this.value === 'true')">
+        <select autocomplete="off" onchange="updateOptimizerSetting('stackIdentical', this.value === 'true')">
           <option value="true" ${st.stackIdentical ? 'selected' : ''}>On</option>
           <option value="false" ${!st.stackIdentical ? 'selected' : ''}>Off</option>
         </select></div>
@@ -21384,11 +21384,11 @@ function renderOptimizer() {
     return `<div class="opt-matrow" style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;font-weight:600;font-size:12px">${mat}</div>
       <label style="font-size:11px;color:var(--text-muted)">L</label>
-      <input type="number" value="${spec.l}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'l', this.value)">
+      <input autocomplete="off" type="number" value="${spec.l}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'l', this.value)">
       <label style="font-size:11px;color:var(--text-muted)">W</label>
-      <input type="number" value="${spec.w}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'w', this.value)">
+      <input autocomplete="off" type="number" value="${spec.w}" min="100" style="width:90px" onchange="updateMaterialSheet('${safe}', 'w', this.value)">
       <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px">
-        <input type="checkbox" ${spec.grainLocked ? 'checked' : ''} onchange="updateMaterialSheet('${safe}', 'grainLocked', this.checked)"> grain locked
+        <input autocomplete="off" type="checkbox" ${spec.grainLocked ? 'checked' : ''} onchange="updateMaterialSheet('${safe}', 'grainLocked', this.checked)"> grain locked
       </label>
     </div>`;
   }).join('');
@@ -21797,10 +21797,10 @@ function renderPlanReview() {
 
     const wallRows = room.walls.map(w => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)">
-        <input type="text" value="${(w.label || '').replace(/"/g,'&quot;')}"
+        <input autocomplete="off" type="text" value="${(w.label || '').replace(/"/g,'&quot;')}"
           oninput="updatePlanWallField('${room._id}','${w._id}','label',this.value)"
           style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'Barlow',sans-serif">
-        <input type="number" min="0" step="10" value="${w.length_mm}"
+        <input autocomplete="off" type="number" min="0" step="10" value="${w.length_mm}"
           oninput="updatePlanWallField('${room._id}','${w._id}','length_mm',this.value)"
           style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;text-align:right">
         <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;width:24px">mm</span>
@@ -21814,7 +21814,7 @@ function renderPlanReview() {
       <div style="border:1px solid var(--border);background:var(--bg3);padding:14px 16px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <span style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">ROOM</span>
-          <select onchange="updatePlanRoomName('${room._id}',this.value)"
+          <select autocomplete="off" onchange="updatePlanRoomName('${room._id}',this.value)"
             style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
             ${PLAN_VALID_ROOM_TYPES.map(t => `<option value="${t}"${room.name===t?' selected':''}>${t}</option>`).join('')}
           </select>
@@ -21834,7 +21834,7 @@ function renderPlanReview() {
         </div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
           <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim)">SUGGESTED FLOOR UNITS (600mm)</span>
-          <input type="number" min="0" step="1" value="${userQty}"
+          <input autocomplete="off" type="number" min="0" step="1" value="${userQty}"
             oninput="updatePlanRoomQty('${room._id}',this.value)"
             style="width:70px;background:var(--bg2);border:1px solid var(--amber);color:var(--text);padding:5px 8px;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right">
           <span style="font-size:11px;color:var(--text-muted)">
