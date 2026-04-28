@@ -10174,10 +10174,14 @@ function newJob() {
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
   Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
-  // Rooms + user units are job-scoped — reset so the "Add Your First Room"
-  // onboarding flow triggers for a fresh job instead of showing leftover rooms.
-  userRooms = [];
-  userUnits = [];
+  // Rooms + user units are job-scoped for non-superuser roles — reset so the
+  // "Add Your First Room" onboarding flow triggers for a fresh job. Superuser
+  // rooms/units are profile-scoped (persisted via templates blob) and must
+  // survive a new-job reset.
+  if (!isSuperuser()) {
+    userRooms = [];
+    userUnits = [];
+  }
   panelsState.items = []; panelsState.label = '';
   Object.keys(quoteState).forEach(k => delete quoteState[k]);
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
