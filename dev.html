@@ -5650,7 +5650,7 @@ function summaryExpandAll(expand) {
 
 function generateSummary() {
   const selectedUnits = getEffectiveUnits().filter(u => (quantities[u.id]||0) > 0);
-  const hasAddons = ADDON_SECTIONS.some(secId => {
+  const hasAddons = getAddonSections().some(secId => {
     const a = bedroomAddons[secId] || {};
     return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       false;
