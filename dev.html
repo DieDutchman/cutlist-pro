@@ -4954,8 +4954,17 @@ function _renderPanel() {
 
   html += `</tbody></table>`;
 
-  // Addons — Plant-on & Spacers available on all sections
-  if (ADDON_SECTIONS.includes(currentSection)) {
+  // Addons — Plant-on & Spacers / Fillers available on all sections
+  // Built-in sections live in ADDON_SECTIONS; user-defined rooms (`ur_*`) need
+  // an on-the-fly addon container so the cards render for them too.
+  const isUserRoom = isUserMode && userRoom && currentSection.startsWith('ur_');
+  if (ADDON_SECTIONS.includes(currentSection) || isUserRoom) {
+    if (!bedroomAddons[currentSection]) {
+      bedroomAddons[currentSection] = {
+        plantOn: { enabled: false, items: [defaultAddon()] },
+        spacers: { enabled: false, items: [defaultSpacer()] },
+      };
+    }
     html += `<div class="addon-section-title">
       <span>Plant-on &amp; Spacers / Fillers</span>
       <span style="font-size:10px;color:var(--text-muted)">Costs included in section total</span>
