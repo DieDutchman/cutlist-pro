@@ -4265,6 +4265,33 @@ const sections = [
 let currentSection = 'kitchen';
 const expandedUnits = new Set(); // tracks which unit IDs have their parts expanded
 
+// ─────── Unit sorting (persists in localStorage) ───────
+// Modes: 'default' | 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'parts_desc'
+let unitSortMode = (() => {
+  try { return localStorage.getItem('cutlist_unit_sort') || 'default'; }
+  catch(e) { return 'default'; }
+})();
+function setUnitSort(mode) {
+  unitSortMode = mode || 'default';
+  try { localStorage.setItem('cutlist_unit_sort', unitSortMode); } catch(e) {}
+  renderPanel();
+}
+function applyUnitSort(units) {
+  if (!units || !units.length || unitSortMode === 'default') return units;
+  const arr = units.slice(); // don't mutate caller
+  const cmpName = (a, b) => (a.name || '').localeCompare(b.name || '', undefined, {numeric: true, sensitivity: 'base'});
+  const priceOf = u => (typeof u.price === 'number' && isFinite(u.price)) ? u.price : 0;
+  const partsOf = u => (u.parts && u.parts.length) || 0;
+  switch (unitSortMode) {
+    case 'name_asc':   arr.sort(cmpName); break;
+    case 'name_desc':  arr.sort((a, b) => cmpName(b, a)); break;
+    case 'price_asc':  arr.sort((a, b) => priceOf(a) - priceOf(b) || cmpName(a, b)); break;
+    case 'price_desc': arr.sort((a, b) => priceOf(b) - priceOf(a) || cmpName(a, b)); break;
+    case 'parts_desc': arr.sort((a, b) => partsOf(b) - partsOf(a) || cmpName(a, b)); break;
+  }
+  return arr;
+}
+
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
