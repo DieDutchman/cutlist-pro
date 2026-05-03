@@ -15437,7 +15437,7 @@ function _renderCostingView() {
   });
 
   // Addon-only sections
-  ADDON_SECTIONS.forEach(secId => {
+  getAddonSections().forEach(secId => {
     const secUnitsSelected = selectedUnits.some(u => u.section === secId);
     if (secUnitsSelected) return;
     const addons = bedroomAddons[secId] || {};
