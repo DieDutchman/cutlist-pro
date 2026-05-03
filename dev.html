@@ -16011,7 +16011,7 @@ function _refreshCostingResults() {
 
   const _hasHwExtras = (quoteState.extras || []).some(e => e.hwType && (e.hwQty || 0) > 0);
   const _hasPanels   = panelsState.items.some(p => p.l > 0 && p.w > 0 && p.qty > 0);
-  const _hasAddonOnly = ADDON_SECTIONS.some(secId => {
+  const _hasAddonOnly = getAddonSections().some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
     return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
