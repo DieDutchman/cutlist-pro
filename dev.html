@@ -16117,19 +16117,33 @@ function applyState(state) {
   if (state.holesOverrides) Object.assign(holesOverrides, state.holesOverrides);
   if (state.materialConfig) Object.assign(materialConfig, state.materialConfig);
   if (state.unitMatOverrides) { Object.assign(unitMatOverrides, state.unitMatOverrides); saveUnitMatOverrides(); }
-  if (state.unitHardware)    { Object.keys(unitHardware).forEach(k => delete unitHardware[k]); Object.assign(sectionHardware, state.unitHardware); saveUnitHardware(); }
+  // Restore section hardware (legacy jobs may still have a `unitHardware` key —
+  // accept either, prefer the canonical `sectionHardware`).
+  Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+  if (state.sectionHardware) Object.assign(sectionHardware, state.sectionHardware);
+  else if (state.unitHardware) Object.assign(sectionHardware, state.unitHardware);
+  saveSectionHardware();
   if (state.quoteState)     Object.assign(quoteState,     state.quoteState);
   if (state.bedroomAddons) {
-    ADDON_SECTIONS.forEach(sec => {
-      if (!state.bedroomAddons[sec]) return;
-      if (state.bedroomAddons[sec].plantOn)
-        Object.assign(bedroomAddons[sec].plantOn, state.bedroomAddons[sec].plantOn);
-      if (state.bedroomAddons[sec].spacers) {
-        const s = state.bedroomAddons[sec].spacers;
+    // Iterate every section present in saved state (covers ADDON_SECTIONS *and*
+    // user rooms with `ur_xxx` ids — those weren't being restored before).
+    Object.keys(state.bedroomAddons).forEach(sec => {
+      const saved = state.bedroomAddons[sec];
+      if (!saved) return;
+      // Ensure container exists (user rooms aren't in ADDON_SECTIONS by default).
+      if (!bedroomAddons[sec]) {
+        bedroomAddons[sec] = {
+          plantOn: { enabled: false, items: [defaultAddon()] },
+          spacers: { enabled: false, items: [defaultSpacer()] },
+        };
+      }
+      if (saved.plantOn)
+        Object.assign(bedroomAddons[sec].plantOn, saved.plantOn);
+      if (saved.spacers) {
+        const s = saved.spacers;
         bedroomAddons[sec].spacers = Array.isArray(s.items)
           ? s : { enabled: s.enabled||false, items: [defaultSpacer()] };
       }
-
     });
   }
   if (state.costingPrices) {
