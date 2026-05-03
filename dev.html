@@ -4605,13 +4605,34 @@ function _renderPanel() {
     }
   }
 
+  // Sort controls — only show when there are at least 2 units to sort
+  const sortOpts = [
+    {v:'default',    label:'Default order'},
+    {v:'name_asc',   label:'Name (A → Z)'},
+    {v:'name_desc',  label:'Name (Z → A)'},
+    {v:'price_asc',  label:'Price (Low → High)'},
+    {v:'price_desc', label:'Price (High → Low)'},
+    {v:'parts_desc', label:'Parts (Most → Fewest)'},
+  ];
+  const sortControl = units.length >= 2 ? `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;flex-wrap:wrap">
+      <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase">Sort</span>
+      <select autocomplete="off" onchange="setUnitSort(this.value)"
+        style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-size:12px;font-family:'Barlow',sans-serif;outline:none;cursor:pointer"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'">
+        ${sortOpts.map(o => `<option value="${o.v}" ${unitSortMode===o.v?'selected':''}>${o.label}</option>`).join('')}
+      </select>
+      <span style="font-size:11px;color:var(--text-muted)">${units.length} unit${units.length===1?'':'s'}</span>
+    </div>` : '';
+
   html += `<div class="section-header">${isUserMode ? '' : sec.label}</div>
+  ${sortControl}
   <table class="units-table">
     <thead><tr>
       <th>Qty</th><th>Unit</th>
     </tr></thead><tbody>`;
 
-  units.forEach(u => {
+  applyUnitSort(units).forEach(u => {
     const qty = quantities[u.id] || 0;
     const hasImg = !!unitImages[u.id];
     const imgBtn = hasImg
