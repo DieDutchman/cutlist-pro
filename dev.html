@@ -6832,6 +6832,13 @@ function scalePartHeight(part, baseHeight, newHeight) {
 
 // ── Bedroom Addons (Plant-on & Spacers) ──────────────────────
 const ADDON_SECTIONS = ['kitchen','mainbedroom','sparebedroom','linnekast','bathroom','custom'];
+// Returns the list of section ids that should participate in addon iteration:
+// built-in ADDON_SECTIONS plus any user-defined room ids. Use this anywhere
+// you'd iterate ADDON_SECTIONS for cutlist/costing/quote totals so user rooms
+// don't get silently skipped.
+function getAddonSections() {
+  return [...ADDON_SECTIONS, ...userRooms.map(r => r.id).filter(id => !ADDON_SECTIONS.includes(id))];
+}
 const SHUTTERPLY_AREA = 2.94; // m² per shutterply board
 
 function defaultAddon() {
