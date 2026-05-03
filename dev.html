@@ -15970,7 +15970,7 @@ function _refreshCostingResults() {
   });
 
   // Addon-only sections (mirrored from renderCostingView)
-  ADDON_SECTIONS.forEach(secId => {
+  getAddonSections().forEach(secId => {
     if (selectedUnits.some(u => u.section === secId)) return;
     const addons = bedroomAddons[secId] || {};
     const activeItems = [];
