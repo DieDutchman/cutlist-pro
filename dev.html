@@ -5827,7 +5827,7 @@ function generateSummary() {
 
   // ── Plant-on / Spacer addons ──────────────────────────────────────────────
   const addonParts = [];
-  ADDON_SECTIONS.forEach(secId => {
+  getAddonSections().forEach(secId => {
     const addons = bedroomAddons[secId] || {};
     [addons.plantOn, addons.spacers].forEach(group => {
       if (!group?.enabled) return;
