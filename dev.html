@@ -20809,6 +20809,19 @@ function _renderPLView() {
   const profitColor  = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
 
+  // ── Material breakdown: expected (costing sheet) vs actual (invoice lines) ──
+  const matBreakdown = (snap.matBreakdown || []).filter(b => b.pricePerSheet > 0 || b.billedSh > 0);
+  const allMatNames  = matBreakdown.map(b => b.mat);
+  // Tally actual Boards invoice lines per assigned material (amounts entered incl. VAT)
+  const matActualInclVAT = {};
+  let unmatchedBoardsInclVAT = 0;
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Boards') return;
+    const amt = parseFloat(inv.amount) || 0;
+    if (inv.mat) matActualInclVAT[inv.mat] = (matActualInclVAT[inv.mat] || 0) + amt;
+    else unmatchedBoardsInclVAT += amt;
+  });
+
   // Invoice rows HTML
   const invRowsHtml = invs.length === 0
     ? `<div style="padding:16px;font-size:12px;color:var(--text-muted);font-style:italic;text-align:center">No invoices added yet — add your actual costs below</div>`
