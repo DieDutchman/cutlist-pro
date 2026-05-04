@@ -5029,15 +5029,10 @@ function updateSummary() {
 }
 
 function updateCounts() {
-  // Superuser rooms map to a templateSection — units have section === 'kitchen'
-  // (template id) but room.id is `ur_<ts>`. Match BOTH so the badge reflects
-  // both template units AND userUnits assigned to the room.
-  const roomList = (usesUserUnits() && userRooms.length > 0)
-    ? userRooms.map(r => ({id: r.id, matchIds: [r.id, r.templateSection].filter(Boolean)}))
-    : sections.map(s => ({id: s.id, matchIds: [s.id]}));
+  const roomList = buildRoomList(false);
+  const allUnits = getEffectiveUnits();
   roomList.forEach(sec => {
-    const ids = sec.matchIds || [sec.id];
-    const count = getEffectiveUnits().filter(u => ids.includes(u.section) && (quantities[u.id]||0) > 0).length;
+    const count = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0).length;
     const el = document.getElementById('cnt-' + sec.id);
     if (el) el.textContent = count;
   });
