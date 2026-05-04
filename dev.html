@@ -9049,6 +9049,65 @@ function computeQuoteTotals() {
   return { unitsTotal, topsTotal, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
 }
 
+// Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
+// Returns [{mat, m2, billedSh, rawSh, pricePerSheet, cost}] sorted by cost desc.
+// Assumes all globals (quantities, panelsState, bedroomAddons, costingPrices …) are in the
+// correct state — call within computeQuoteTotals context or after plCalcFromState restores.
+function computeJobMatBreakdown() {
+  const allMatM2 = {}; // mat -> raw m² (no waste applied yet)
+
+  // 1. All active units
+  const allUnits = getEffectiveUnits();
+  const activeSections = buildRoomList(true);
+  activeSections.forEach(sec => {
+    const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
+    units.forEach(u => {
+      const qty = quantities[u.id] || 0;
+      if (qty <= 0 || !u.parts || u.parts.length === 0) return;
+      // calcUnitCost returns matM2 as raw m² (before waste) per material
+      const c = calcUnitCost(u, qty);
+      Object.entries(c.matM2 || {}).forEach(([mat, m2]) => {
+        allMatM2[mat] = (allMatM2[mat] || 0) + m2;
+      });
+    });
+    // Bedroom addons: plant-on panels + spacers
+    const addons = bedroomAddons[sec.id] || {};
+    [addons.plantOn, addons.spacers].forEach(group => {
+      if (!group?.enabled) return;
+      group.items.forEach(item => {
+        if (!item.w || !item.h) return;
+        const rawM2 = (item.h / 1000) * (item.w / 1000) * (item.qty || 1);
+        const mat = item.mat || 'White Melamine';
+        allMatM2[mat] = (allMatM2[mat] || 0) + rawM2;
+      });
+    });
+  });
+
+  // 2. Standalone panels tab
+  (panelsState.items || []).filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
+    const rawM2 = (p.l / 1000) * (p.w / 1000) * p.qty;
+    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + rawM2;
+  });
+
+  // 3. Convert pooled raw m² to cost breakdown
+  const hPrice = costingPrices.extras.hPrice || 0;
+  return Object.entries(allMatM2)
+    .filter(([, m2]) => m2 > 0)
+    .map(([mat, rawM2]) => {
+      const withWaste     = rawM2 * WASTE_FACTOR;
+      const rawSh         = billSheets(withWaste, SHEET_AREA);
+      const billedSh      = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const wholeSh       = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
+      const pricePerSheet = costingPrices.mat[mat] || 0;
+      const isMas         = mat === '3MM White Masonite';
+      const matCost       = billedSh * pricePerSheet;
+      const cutCost       = wholeSh * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
+      const hpc           = (billedSh + wholeSh) * hPrice;
+      return { mat, m2: rawM2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc };
+    })
+    .sort((a, b) => b.cost - a.cost);
+}
+
 function refreshQuoteTotals() {
   const t = computeQuoteTotals();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
