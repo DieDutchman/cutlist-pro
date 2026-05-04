@@ -11585,11 +11585,22 @@ function renderUserRoomsNav() {
   const existingDivider = document.getElementById('user-rooms-divider');
   if (existingDivider) existingDivider.remove();
 
-  // Hide the static admin rooms row and its divider
-  const rows = navTabs.querySelectorAll('.nav-row');
-  if (rows[0]) rows[0].style.display = 'none';
-  const dividers = navTabs.querySelectorAll('.nav-divider');
-  if (dividers[0]) dividers[0].style.display = 'none';
+  // Hide the static admin rooms row and its divider — but NOT for superusers,
+  // who need continued access to the template sections (Kitchen, Fillers,
+  // Plant-on, etc.) alongside their custom rooms.
+  if (!isSuperuser()) {
+    const rows = navTabs.querySelectorAll('.nav-row');
+    if (rows[0]) rows[0].style.display = 'none';
+    const dividers = navTabs.querySelectorAll('.nav-divider');
+    if (dividers[0]) dividers[0].style.display = 'none';
+  } else {
+    // Superuser may have toggled into user-mode previously; ensure the static
+    // rows are visible again so they can navigate back to template sections.
+    const staticRow = navTabs.querySelector('.nav-row:not(#user-rooms-row)');
+    if (staticRow) staticRow.style.display = '';
+    const staticDivider = navTabs.querySelector('.nav-divider:not(#user-rooms-divider)');
+    if (staticDivider) staticDivider.style.display = '';
+  }
 
   // Build dynamic rooms row
   const row = document.createElement('div');
