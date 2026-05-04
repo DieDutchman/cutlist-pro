@@ -4749,7 +4749,12 @@ function _renderPanel() {
     : (sections.find(s => s.id === currentSection) || {label: currentSection});
 
   // Determine which material groups apply to this section
-  const matGroupIds = currentSection === 'kitchen'
+  // Kitchen splits into wall + floor unit-type sub-groups so hardware can be
+  // toggled separately for each. Superuser custom rooms based on the kitchen
+  // template inherit the same split (templateSection === 'kitchen').
+  const isKitchenRoom = currentSection === 'kitchen'
+    || (userRoom && userRoom.templateSection === 'kitchen');
+  const matGroupIds = isKitchenRoom
     ? ['kitchen_wall', 'kitchen_floor']
     : [currentSection];
 
