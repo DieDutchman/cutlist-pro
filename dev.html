@@ -20827,6 +20827,7 @@ function _renderPLView() {
     ? `<div style="padding:16px;font-size:12px;color:var(--text-muted);font-style:italic;text-align:center">No invoices added yet — add your actual costs below</div>`
     : invs.map((inv,i) => {
       const hasQtyDetail = inv.qty && inv.unit_price && inv.qty !== 1;
+      const isBoardLine  = (inv.category || '') === 'Boards';
       return `
       <div style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.08))" id="pl-inv-${inv.id}">
         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px">
