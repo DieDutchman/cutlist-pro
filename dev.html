@@ -5046,7 +5046,7 @@ function clearAll() {
   panelsState.items = []; panelsState.label = '';
     // Reset bedroom addons (built-ins + user rooms)
     getAddonSections().forEach(sec => {
-      if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+      ensureBedroomAddons(sec);
       bedroomAddons[sec].plantOn  = { enabled: false, items: [defaultAddon()] };
       bedroomAddons[sec].spacers  = { enabled: false, items: [defaultSpacer()] };
     });
