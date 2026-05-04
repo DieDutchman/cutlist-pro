@@ -20834,8 +20834,6 @@ function _renderPLView() {
     // Live job — guaranteed match with Quote tab
     try {
       const t = computeQuoteTotals();
-      const _livePanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
-      const _livePooled = _livePanels.length ? calcPanelsCostPooled(_livePanels) : { matBreakdown: [] };
       snap = {
         costingTotal:   t.unitsTotal,
         unitsTotal:     t.unitsTotal,
@@ -20846,7 +20844,7 @@ function _renderPLView() {
         diesel:         t.dieselTotal,
         extras:         t.extrasTotal,
         markup:         t.markup,
-        matBreakdown:   _livePooled.matBreakdown,
+        matBreakdown:   computeJobMatBreakdown(),
       };
     } catch(e) { console.warn('PL live calc error:', e); }
   } else if (selJob && selJob._state) {
