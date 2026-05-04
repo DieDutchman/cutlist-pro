@@ -16143,7 +16143,18 @@ function captureState() {
 
 function applyState(state) {
   if (!state) return;
+  try {
+    _applyStateInner(state);
+  } catch (err) {
+    // A throw partway through would leave the UI in a half-restored state
+    // (quoteState/quantities applied but rooms/userUnits skipped). Log loudly
+    // and still run the final re-render so whatever did land is visible.
+    console.error('[applyState] failed mid-restore:', err);
+    try { renderPanel(); updateSummary(); updateCounts(); } catch(e) {}
+  }
+}
 
+function _applyStateInner(state) {
   // ── Zero everything first so no old job's data bleeds into the new one ────
   // Quantities — set ALL known units to 0, then overwrite with saved values
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
