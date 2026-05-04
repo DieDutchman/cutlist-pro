@@ -16219,8 +16219,8 @@ function _applyStateInner(state) {
     if (state.costingPrices.extras)       Object.assign(costingPrices.extras,   state.costingPrices.extras);
     if (state.costingPrices.hardware)     Object.assign(costingPrices.hardware, state.costingPrices.hardware);
     if (state.costingPrices.tops)         Object.assign(costingPrices.tops,     state.costingPrices.tops);
-    if (state.costingPrices.customBoards)    costingPrices.customBoards    = state.costingPrices.customBoards;
-    if (state.costingPrices.hiddenMats)      costingPrices.hiddenMats      = state.costingPrices.hiddenMats;
+    if (Array.isArray(state.costingPrices.customBoards)) costingPrices.customBoards = state.costingPrices.customBoards;
+    if (Array.isArray(state.costingPrices.hiddenMats))   costingPrices.hiddenMats   = state.costingPrices.hiddenMats;
     if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
     if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
     if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
