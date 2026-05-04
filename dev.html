@@ -16243,7 +16243,7 @@ function applyState(state) {
           MAT_GROUPS.push({ id: room.id, label: room.name, section: room.id });
         }
         if (!materialConfig[room.id]) materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
-        if (!bedroomAddons[room.id]) bedroomAddons[room.id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+        ensureBedroomAddons(room.id);
       });
     }
     if (state.userUnits?.length) {
