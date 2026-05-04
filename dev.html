@@ -8032,12 +8032,13 @@ function _renderQuoteView() {
   const allUnits = getEffectiveUnits();
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
 
-  // Build section data — include sections that have selected units OR enabled addons
-  const activeSections = userRooms.length > 0
-    ? userRooms.map(r => ({id: r.id, label: r.name}))
-    : sections;
+  // Build section data — include sections that have selected units OR enabled addons.
+  // Use buildRoomList so each room's matchIds include both its own id AND its
+  // templateSection — superuser custom rooms host template units (section ===
+  // 'kitchen') alongside userUnits (section === room.id), and both must show.
+  const activeSections = buildRoomList(true);
   const sectionData = activeSections.map(sec => {
-    const units = allUnits.filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
     const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
