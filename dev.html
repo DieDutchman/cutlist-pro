@@ -20449,9 +20449,6 @@ function plCalcFromState(state) {
 
     // ── Call the canonical calculation — guaranteed identical to Quote tab ────
     const t = computeQuoteTotals();
-    const _snapPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
-    const _snapPooled  = _snapPanels.length ? calcPanelsCostPooled(_snapPanels) : { matBreakdown: [] };
-
     return {
       costingTotal:   t.unitsTotal,       // raw material cost before markup
       unitsTotal:     t.unitsTotal,
@@ -20462,7 +20459,7 @@ function plCalcFromState(state) {
       diesel:         t.dieselTotal,
       extras:         t.extrasTotal,
       markup:         t.markup,
-      matBreakdown:   _snapPooled.matBreakdown,
+      matBreakdown:   computeJobMatBreakdown(),
     };
 
   } finally {
