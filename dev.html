@@ -11768,11 +11768,30 @@ function deleteRoomPrompt(roomId) {
 }
 
 // ── Delete user unit ──────────────────────────────────────────────────────────
+// In superuser custom rooms the unit list mixes userUnits AND template units
+// (filtered by room.templateSection). Remove must work for either source —
+// fall back to deleteCustomUnit (custom units) and to deletedUnits (template
+// units) so the button is never silently inert.
 function deleteUserUnit(unitId) {
-  const unit = userUnits.find(u => u.id === unitId);
-  if (!unit) return;
-  if (!confirm(`Remove unit "${unit.name}"?`)) return;
-  userUnits = userUnits.filter(u => u.id !== unitId);
+  const userUnit = userUnits.find(u => u.id === unitId);
+  if (userUnit) {
+    if (!confirm(`Remove unit "${userUnit.name}"?`)) return;
+    userUnits = userUnits.filter(u => u.id !== unitId);
+    delete quantities[unitId];
+    renderPanel();
+    scheduleAutoSave();
+    if (isSuperuser() && sbUser) pushTemplatesToCloud();
+    return;
+  }
+  // Fall back to custom-unit removal (admin-built units)
+  const customUnit = customUnits.find(u => u.id === unitId);
+  if (customUnit) { deleteCustomUnit(unitId); return; }
+  // Template unit shown in a superuser custom room — soft-delete via deletedUnits
+  const tplUnit = getEffectiveUnits().find(u => u.id === unitId);
+  if (!tplUnit) return;
+  if (!confirm(`Remove unit "${tplUnit.name}" from this room?`)) return;
+  deletedUnits.add(unitId);
+  try { localStorage.setItem('cutlist_deleted_units', JSON.stringify([...deletedUnits])); } catch(e) {}
   delete quantities[unitId];
   renderPanel();
   scheduleAutoSave();
