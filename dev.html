@@ -20884,6 +20884,71 @@ function _renderPLView() {
       <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text)">${R(amt)}</span>
     </div>`).join('');
 
+  // Material comparison table HTML
+  const anyMatActual    = Object.keys(matActualInclVAT).length > 0;
+  const hasUnmatched    = unmatchedBoardsInclVAT > 0;
+  const allBoardsActual = invs.filter(i => i.category === 'Boards').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+
+  const matCompareHtml = matBreakdown.length > 0 ? `
+  <div style="margin-bottom:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">MATERIAL BREAKDOWN — EXPECTED vs ACTUAL</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Per board type: costing estimate vs what you actually paid. Assign board invoice lines below to populate the Actual column.</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-top:none">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">MATERIAL</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">SHEETS</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">R/SHEET</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#6aaad4;font-weight:normal">EXPECTED</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ACTUAL (EX VAT)</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">VARIANCE</th>
+            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">±%</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${matBreakdown.slice().sort((a,b) => b.cost - a.cost).map(b => {
+            const actualInclVAT = matActualInclVAT[b.mat];
+            const hasActual     = actualInclVAT !== undefined;
+            const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
+            const variance      = hasActual ? b.cost - actualExcl : null;
+            const pct           = hasActual && b.cost > 0 ? ((b.cost - actualExcl) / b.cost * 100) : null;
+            return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              <td style="padding:9px 12px;color:var(--text)">${b.mat}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.billedSh.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.pricePerSheet > 0 ? R(b.pricePerSheet) : '—'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(b.cost)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual ? 'var(--text)' : 'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">— unassigned</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance !== null ? `<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct !== null ? `<span style="color:${profitColor(pct)}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+            </tr>`;
+          }).join('')}
+          ${hasUnmatched ? `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));opacity:0.7">
+            <td style="padding:8px 12px;color:var(--text-muted);font-style:italic">Unassigned board invoices</td>
+            <td colspan="3" style="padding:8px 10px"></td>
+            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedBoardsInclVAT / 1.15)}</td>
+            <td colspan="2" style="padding:8px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign above ↑</td>
+          </tr>` : ''}
+        </tbody>
+        ${allBoardsActual > 0 ? `<tfoot>
+          <tr style="border-top:1px solid var(--border);background:var(--bg3)">
+            <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">BOARDS TOTAL</td>
+            <td colspan="2" style="padding:8px 10px"></td>
+            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(matBreakdown.reduce((s,b)=>s+b.cost,0))}</td>
+            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allBoardsActual / 1.15)}</td>
+            <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
+              ${(() => { const v = matBreakdown.reduce((s,b)=>s+b.cost,0) - allBoardsActual/1.15; return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`; })()}
+            </td>
+          </tr>
+        </tfoot>` : ''}
+      </table>
+    </div>
+  </div>` : '';
+
   view.innerHTML = `
   <div class="main" style="max-width:1200px">
     <div style="padding:20px 0 12px;border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
