@@ -9115,11 +9115,11 @@ function downloadQuoteXLSX() {
   rows.push(['Qty', 'Unit', '', 'Unit Price', 'Line Total']);
 
   let grandSub = 0;
-  const _qxlsxSecs = (usesUserUnits() && userRooms.length > 0)
-    ? userRooms.map(r => ({id: r.id, label: r.name}))
-    : sections;
+  // Use buildRoomList so superuser custom rooms also pick up template units
+  // (section === 'kitchen' etc.) via matchIds, matching the on-screen Quote.
+  const _qxlsxSecs = buildRoomList(true);
   _qxlsxSecs.forEach(sec => {
-    const units = allUnits.filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     if (!units.length) return;
     rows.push([sec.label.toUpperCase(), '', '', '', '']);
     let secTotal = 0;
