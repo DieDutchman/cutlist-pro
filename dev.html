@@ -15894,6 +15894,7 @@ function _refreshCostingResults() {
   // Re-render only the main panel results, leaving sidebar inputs untouched
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
+  const addonSections = getAddonSections();
   const main = document.querySelector('.cv-main');
   if (!main) return;
 
