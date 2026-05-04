@@ -15327,6 +15327,7 @@ function _renderCostingView() {
   try {
   const allUnits = getEffectiveUnits();
   const selectedUnits = allUnits.filter(u => (quantities[u.id]||0) > 0);
+  const addonSections = getAddonSections();
 
   // ── Main: unit cost breakdown ──
   const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
