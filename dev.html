@@ -8988,16 +8988,15 @@ function computeQuoteTotals() {
 
   // Use the same per-unit approach as renderQuoteView (not pooled calcSectionCost)
   // so the P&L total always matches what the user sees on the Quote tab.
-  // Use userRooms if any are defined (restored from job state or current user's rooms).
+  // buildRoomList wires up matchIds so superuser template units (section ===
+  // 'kitchen' etc.) are picked up alongside userUnits in custom rooms.
   // Do NOT gate on isAdmin() here — during P&L snapshot the viewer is superuser but
   // the saved job may have been created by a regular user with custom rooms.
-  const activeSections = userRooms.length > 0
-    ? userRooms.map(r => ({ id: r.id, label: r.name }))
-    : sections;
+  const activeSections = buildRoomList(true);
 
   // Build sectionData the same way renderQuoteView does
   const sectionData = activeSections.map(sec => {
-    const units = allUnits.filter(u => u.section === sec.id && (quantities[u.id]||0) > 0);
+    const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
     const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
