@@ -4994,19 +4994,30 @@ function setQty(id, input) {
   updateCounts();
 }
 
+// Returns room list for unit-count iteration. matchIds covers both the room's
+// own id and its templateSection so superuser template units are counted too.
+function buildRoomList(withLabel) {
+  if (usesUserUnits() && userRooms.length > 0) {
+    return userRooms.map(r => ({
+      id: r.id,
+      ...(withLabel ? {label: r.name} : {}),
+      matchIds: [r.id, r.templateSection].filter(Boolean),
+    }));
+  }
+  return sections.map(s => ({
+    id: s.id,
+    ...(withLabel ? {label: s.label} : {}),
+    matchIds: [s.id],
+  }));
+}
+
 function updateSummary() {
   let html = '';
   let totalUnits = 0;
-  // Superuser rooms map to a templateSection — units have section === 'kitchen'
-  // (template id) but room.id is `ur_<ts>`. Match BOTH so counts pick up
-  // template units shown inside the custom room as well as userUnits assigned
-  // directly to the room.
-  const roomList = (usesUserUnits() && userRooms.length > 0)
-    ? userRooms.map(r => ({id: r.id, label: r.name, matchIds: [r.id, r.templateSection].filter(Boolean)}))
-    : sections.map(s => ({id: s.id, label: s.label, matchIds: [s.id]}));
+  const roomList = buildRoomList(true);
+  const allUnits = getEffectiveUnits();
   roomList.forEach(sec => {
-    const ids = sec.matchIds || [sec.id];
-    const selected = getEffectiveUnits().filter(u => ids.includes(u.section) && (quantities[u.id]||0) > 0);
+    const selected = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     if (!selected.length) return;
     const count = selected.reduce((s,u) => s + (quantities[u.id]||0), 0);
     totalUnits += count;
