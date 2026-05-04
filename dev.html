@@ -21153,7 +21153,8 @@ function _renderPLView() {
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <select id="pl-new-cat"
-          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px">
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px"
+          onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
@@ -21166,6 +21167,15 @@ function _renderPLView() {
           + ADD LINE
         </button>
       </div>
+      ${allMatNames.length > 0 ? `<div id="pl-new-mat-wrap" style="display:none;align-items:center;gap:8px;padding:6px 0 2px">
+        <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">BOARD TYPE</span>
+        <select id="pl-new-mat" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:4px 8px;font-size:11px;outline:none;min-width:200px"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <option value="">— unassigned —</option>
+          ${allMatNames.map(m => `<option value="${m}">${m}</option>`).join('')}
+        </select>
+        <span style="font-size:10px;color:var(--text-muted)">optional — links this line to the material comparison table</span>
+      </div>` : ''}
     </div>
 
     <!-- Notes -->
