@@ -15553,7 +15553,7 @@ function _renderCostingView() {
 
   const hasQuoteHwExtras = (quoteState.extras || []).some(e => e.hwType && (e.hwQty || 0) > 0);
   const panelCostItems = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
-  const hasAddonOnlySecs = getAddonSections().some(secId => {
+  const hasAddonOnlySecs = addonSections.some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
     return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
