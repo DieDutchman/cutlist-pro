@@ -11709,7 +11709,7 @@ function confirmAddRoom() {
     materialConfig[id] = { wood: 'Dunblane', edging: 'Dunblane' };
   }
   // Seed bedroomAddons for this room
-  if (!bedroomAddons[id]) bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+  ensureBedroomAddons(id);
   document.getElementById('add-room-modal').remove();
   renderUserRoomsNav();
   // Switch to new room
