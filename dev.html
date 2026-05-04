@@ -6840,6 +6840,13 @@ const ADDON_SECTIONS = ['kitchen','mainbedroom','sparebedroom','linnekast','bath
 function getAddonSections() {
   return [...ADDON_SECTIONS, ...userRooms.map(r => r.id).filter(id => !ADDON_SECTIONS.includes(id))];
 }
+
+function ensureBedroomAddons(id) {
+  if (!bedroomAddons[id]) {
+    bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+  }
+}
+
 const SHUTTERPLY_AREA = 2.94; // m² per shutterply board
 
 function defaultAddon() {
