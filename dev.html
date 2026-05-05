@@ -16243,6 +16243,104 @@ function captureState() {
   };
 }
 
+function checkAndRemapOrphans() {
+  // Collect all material names referenced in current live state that are not in MATS
+  const orphans = new Set();
+  Object.values(materialConfig).forEach(cfg => {
+    if (cfg.wood   && !MATS.includes(cfg.wood))   orphans.add(cfg.wood);
+  });
+  Object.values(unitMatOverrides).forEach(ov => {
+    if (ov.wood   && !MATS.includes(ov.wood))   orphans.add(ov.wood);
+  });
+  (panelsState.items || []).forEach(p => {
+    if (p.mat && !MATS.includes(p.mat)) orphans.add(p.mat);
+  });
+  Object.values(bedroomAddons).forEach(sec => {
+    [sec?.plantOn, sec?.spacers].forEach(group => {
+      (group?.items || []).forEach(item => {
+        if (item.mat && !MATS.includes(item.mat)) orphans.add(item.mat);
+      });
+    });
+  });
+  if (!orphans.size) return;
+
+  const orphanList = [...orphans];
+  const matOpts = MATS.map(m => `<option value="${m.replace(/"/g,'&quot;')}">${m}</option>`).join('');
+  const rows = orphanList.map(old => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:#e07070">${old}</span>
+      <span style="color:var(--text-muted);font-size:14px">→</span>
+      <select id="remap-sel-${old.replace(/[^a-zA-Z0-9]/g,'_')}" style="flex:1;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:12px;font-family:'Barlow',sans-serif">
+        <option value="">(keep as-is)</option>
+        ${matOpts}
+      </select>
+    </div>`).join('');
+
+  const el = document.createElement('div');
+  el.id = 'mat-remap-modal';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  el.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--amber);max-width:540px;width:90%;padding:28px 24px">
+      <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:3px;color:var(--amber);margin-bottom:4px">MATERIAL REMAP REQUIRED</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
+        This job references materials that no longer exist in the supplier price list.<br>
+        Select a replacement for each, or leave blank to keep as-is.
+      </div>
+      <div style="margin-bottom:4px">${rows}</div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+        <button id="remap-cancel-btn"
+          style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 22px;
+                 font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+          KEEP AS-IS
+        </button>
+        <button id="remap-apply-btn"
+          style="background:var(--amber);border:none;color:#111;padding:8px 22px;
+                 font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;font-weight:600">
+          APPLY REMAP
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  document.getElementById('remap-cancel-btn').onclick = () => el.remove();
+
+  document.getElementById('remap-apply-btn').onclick = () => {
+    const mapping = {};
+    orphanList.forEach(old => {
+      const sel = document.getElementById('remap-sel-' + old.replace(/[^a-zA-Z0-9]/g,'_'));
+      if (sel?.value) mapping[old] = sel.value;
+    });
+    el.remove();
+    if (!Object.keys(mapping).length) return;
+
+    Object.values(materialConfig).forEach(cfg => {
+      if (mapping[cfg.wood])   cfg.wood   = mapping[cfg.wood];
+      if (mapping[cfg.edging]) cfg.edging = mapping[cfg.edging];
+    });
+    saveMaterials();
+
+    Object.values(unitMatOverrides).forEach(ov => {
+      if (mapping[ov.wood])   ov.wood   = mapping[ov.wood];
+      if (mapping[ov.edging]) ov.edging = mapping[ov.edging];
+    });
+    saveUnitMatOverrides();
+
+    (panelsState.items || []).forEach(p => {
+      if (mapping[p.mat]) p.mat = mapping[p.mat];
+    });
+
+    Object.values(bedroomAddons).forEach(sec => {
+      [sec?.plantOn, sec?.spacers].forEach(group => {
+        (group?.items || []).forEach(item => {
+          if (mapping[item.mat]) item.mat = mapping[item.mat];
+        });
+      });
+    });
+
+    renderPanel(); updateCounts();
+  };
+}
+
 function applyState(state) {
   if (!state) return;
   try {
