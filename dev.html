@@ -13964,7 +13964,7 @@ function renameMat(oldName) {
   });
   saveUnitMatOverrides();
 
-  // ── Push rename to Supabase: PATCH old name row ──
+  // ── Push rename to Supabase: PATCH board row + delete old edge rows ──
   (async () => {
     try {
       const res = await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldName)}`, {
@@ -13977,6 +13977,11 @@ function renameMat(oldName) {
         let msg = `HTTP ${res.status}`;
         try { const j = JSON.parse(txt); msg = j.message || j.hint || msg; } catch(e2) {}
         throw new Error(msg);
+      }
+      // Delete old edge rows (new ones already upserted by pushSupplierPrice above)
+      for (const oldEdge of _renamedOldEdges) {
+        await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldEdge)}`,
+          { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
       }
       sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
     } catch(e) {
