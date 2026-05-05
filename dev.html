@@ -20894,8 +20894,10 @@ function _renderPLView() {
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
 
   // ── Material breakdown: expected (costing sheet) vs actual (invoice lines) ──
-  const matBreakdown = (snap.matBreakdown || []).filter(b => b.pricePerSheet > 0 || b.billedSh > 0);
-  const allMatNames  = matBreakdown.map(b => b.mat);
+  const matBreakdown  = (snap.matBreakdown  || []).filter(b => b.pricePerSheet > 0 || b.billedSh > 0);
+  const edgeBreakdown = (snap.edgeBreakdown || []).filter(e => e.pricePerM    > 0 || e.billedM  > 0);
+  const allMatNames   = matBreakdown.map(b => b.mat);
+  const allEdgeNames  = edgeBreakdown.map(e => e.edgeKey);
   // Tally actual Boards invoice lines per assigned material (amounts entered incl. VAT)
   const matActualInclVAT = {};
   let unmatchedBoardsInclVAT = 0;
