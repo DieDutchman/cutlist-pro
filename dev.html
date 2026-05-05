@@ -4268,11 +4268,13 @@ function setUnitMatOverride(unitId, type, val) {
   if (!unitMatOverrides[unitId]) unitMatOverrides[unitId] = { wood: null, edging: null };
   unitMatOverrides[unitId][type] = val;
   saveUnitMatOverrides();
+  pushTemplatesToCloud();
 }
 
 function clearUnitMatOverride(unitId) {
   delete unitMatOverrides[unitId];
   saveUnitMatOverrides();
+  pushTemplatesToCloud();
   renderPanel();
 }
 
