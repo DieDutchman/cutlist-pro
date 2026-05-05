@@ -20990,34 +20990,30 @@ function _renderPLView() {
       <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text)">${R(amt)}</span>
     </div>`).join('');
 
-  // Material comparison table HTML
-  const anyMatActual    = Object.keys(matActualInclVAT).length > 0;
-  const hasUnmatched    = unmatchedBoardsInclVAT > 0;
-  const allBoardsActual = invs.filter(i => i.category === 'Boards').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+  // Material + Edging comparison table HTML
+  const hasUnmatched     = unmatchedBoardsInclVAT > 0;
+  const hasUnmatchedEdge = unmatchedEdgeInclVAT > 0;
+  const allBoardsActual  = invs.filter(i => i.category === 'Boards').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+  const allEdgeActual    = invs.filter(i => i.category === 'Edging').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+  const TH = (txt, color) => `<th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:${color||'var(--text-muted)'};font-weight:normal">${txt}</th>`;
 
-  const matCompareHtml = matBreakdown.length > 0 ? `
+  const matCompareHtml = (matBreakdown.length > 0 || edgeBreakdown.length > 0) ? `
   <div style="margin-bottom:24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">MATERIAL BREAKDOWN — EXPECTED vs ACTUAL</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Per board type: costing estimate vs what you actually paid. Assign board invoice lines below to populate the Actual column.</div>
-      </div>
+    <div style="padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
+      <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">MATERIAL &amp; EDGING BREAKDOWN — EXPECTED vs ACTUAL</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Assign invoice lines to specific board/edge types (using the dropdowns in the invoice section below) to populate the Actual column.</div>
     </div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-top:none">
+
+    ${matBreakdown.length > 0 ? `
+    <div style="margin-top:12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">BOARDS</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
-            <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">MATERIAL</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">SHEETS</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">R/SHEET</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:#6aaad4;font-weight:normal">EXPECTED</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ACTUAL (EX VAT)</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">VARIANCE</th>
-            <th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">±%</th>
-          </tr>
-        </thead>
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">BOARD</th>
+          ${TH('SHEETS')}${TH('R/SHEET')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+        </tr></thead>
         <tbody>
-          ${matBreakdown.slice().sort((a,b) => b.cost - a.cost).map(b => {
+          ${matBreakdown.map(b => {
             const actualInclVAT = matActualInclVAT[b.mat];
             const hasActual     = actualInclVAT !== undefined;
             const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
@@ -21028,31 +21024,72 @@ function _renderPLView() {
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.billedSh.toFixed(1)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.pricePerSheet > 0 ? R(b.pricePerSheet) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(b.cost)}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual ? 'var(--text)' : 'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">— unassigned</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance !== null ? `<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct !== null ? `<span style="color:${profitColor(pct)}">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>`;
           }).join('')}
-          ${hasUnmatched ? `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));opacity:0.7">
-            <td style="padding:8px 12px;color:var(--text-muted);font-style:italic">Unassigned board invoices</td>
-            <td colspan="3" style="padding:8px 10px"></td>
-            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedBoardsInclVAT / 1.15)}</td>
-            <td colspan="2" style="padding:8px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign above ↑</td>
+          ${hasUnmatched ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned board invoices</td>
+            <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedBoardsInclVAT/1.15)}</td>
+            <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
           </tr>` : ''}
         </tbody>
-        ${allBoardsActual > 0 ? `<tfoot>
-          <tr style="border-top:1px solid var(--border);background:var(--bg3)">
-            <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">BOARDS TOTAL</td>
-            <td colspan="2" style="padding:8px 10px"></td>
-            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(matBreakdown.reduce((s,b)=>s+b.cost,0))}</td>
-            <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allBoardsActual / 1.15)}</td>
-            <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-              ${(() => { const v = matBreakdown.reduce((s,b)=>s+b.cost,0) - allBoardsActual/1.15; return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`; })()}
-            </td>
-          </tr>
-        </tfoot>` : ''}
+        ${allBoardsActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="2" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(matBreakdown.reduce((s,b)=>s+b.cost,0))}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allBoardsActual/1.15)}</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
+            ${(()=>{const v=matBreakdown.reduce((s,b)=>s+b.cost,0)-allBoardsActual/1.15;return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
+          </td>
+        </tr></tfoot>` : ''}
       </table>
-    </div>
+    </div>` : ''}
+
+    ${edgeBreakdown.length > 0 ? `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">EDGING</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">EDGE TYPE</th>
+          ${TH('METRES')}${TH('R/M')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          ${edgeBreakdown.map(e => {
+            const actualInclVAT = edgeActualInclVAT[e.edgeKey];
+            const hasActual     = actualInclVAT !== undefined;
+            const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
+            const variance      = hasActual ? e.cost - actualExcl : null;
+            const pct           = hasActual && e.cost > 0 ? ((e.cost - actualExcl) / e.cost * 100) : null;
+            return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              <td style="padding:9px 12px;color:var(--text)">${e.edgeKey}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.billedM.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.pricePerM > 0 ? R(e.pricePerM) : '—'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(e.cost)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            </tr>`;
+          }).join('')}
+          ${hasUnmatchedEdge ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned edging invoices</td>
+            <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedEdgeInclVAT/1.15)}</td>
+            <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
+          </tr>` : ''}
+        </tbody>
+        ${allEdgeActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="2" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(edgeBreakdown.reduce((s,e)=>s+e.cost,0))}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allEdgeActual/1.15)}</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
+            ${(()=>{const v=edgeBreakdown.reduce((s,e)=>s+e.cost,0)-allEdgeActual/1.15;return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
+          </td>
+        </tr></tfoot>` : ''}
+      </table>
+    </div>` : ''}
+
   </div>` : '';
 
   view.innerHTML = `
