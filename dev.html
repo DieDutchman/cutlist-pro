@@ -13928,8 +13928,10 @@ function renameMat(oldName) {
   // ── Cascade rename matching edges (e.g. "Iceberg White Edging 1mm" → "Iceberg White Peen Edging 1mm") ──
   const oldEdgePrefix = (oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging');
   const newEdgePrefix = (n       === 'Picco White' ? 'White Edging' : n       + ' Edging');
+  const _renamedOldEdges = [];
   EDGES.forEach((e, i) => {
     if (e && e.startsWith(oldEdgePrefix)) {
+      _renamedOldEdges.push(e);
       const newEdge = newEdgePrefix + e.slice(oldEdgePrefix.length);
       EDGES[i] = newEdge;
       costingPrices.edge[newEdge] = costingPrices.edge[e] || 0;
