@@ -21317,7 +21317,16 @@ function _renderPLView() {
           <option value="">— unassigned —</option>
           ${allMatNames.map(m => `<option value="${m}">${m}</option>`).join('')}
         </select>
-        <span style="font-size:10px;color:var(--text-muted)">optional — links this line to the material comparison table</span>
+        <span style="font-size:10px;color:var(--text-muted)">links to board comparison</span>
+      </div>` : ''}
+      ${allEdgeNames.length > 0 ? `<div id="pl-new-edge-wrap" style="display:none;align-items:center;gap:8px;padding:6px 0 2px">
+        <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">EDGE TYPE</span>
+        <select id="pl-new-edge" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:4px 8px;font-size:11px;outline:none;min-width:200px"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+          <option value="">— unassigned —</option>
+          ${allEdgeNames.map(e => `<option value="${e}">${e}</option>`).join('')}
+        </select>
+        <span style="font-size:10px;color:var(--text-muted)">links to edging comparison</span>
       </div>` : ''}
     </div>
 
