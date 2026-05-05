@@ -9896,6 +9896,14 @@ async function loadTemplatesFromCloud() {
       saveAddonPresetsLocal();
       console.log('[Templates] Loaded addonPresets:', t.addonPresets.length, 'presets');
     }
+    // Restore global material config (wood/edging selections per section group)
+    if (t.materialConfig && typeof t.materialConfig === 'object') {
+      Object.keys(t.materialConfig).forEach(gid => {
+        if (materialConfig[gid]) Object.assign(materialConfig[gid], t.materialConfig[gid]);
+        else materialConfig[gid] = { ...t.materialConfig[gid] };
+      });
+      saveMaterials();
+    }
     // Superuser only: restore custom rooms + their userUnits from the profile
     // blob so the rooms persist across sessions independently of job auto-restore.
     // Other roles keep these per-job and load them via applyState().
