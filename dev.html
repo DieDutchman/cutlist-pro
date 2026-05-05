@@ -20475,6 +20475,7 @@ function plCalcFromState(state) {
 
     // ── Call the canonical calculation — guaranteed identical to Quote tab ────
     const t = computeQuoteTotals();
+    const _snapBreakdown = computeJobMatBreakdown();
     return {
       costingTotal:   t.unitsTotal,       // raw material cost before markup
       unitsTotal:     t.unitsTotal,
@@ -20485,7 +20486,8 @@ function plCalcFromState(state) {
       diesel:         t.dieselTotal,
       extras:         t.extrasTotal,
       markup:         t.markup,
-      matBreakdown:   computeJobMatBreakdown(),
+      matBreakdown:   _snapBreakdown.matBreakdown,
+      edgeBreakdown:  _snapBreakdown.edgeBreakdown,
     };
 
   } finally {
