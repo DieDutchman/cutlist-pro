@@ -4305,6 +4305,9 @@ function setMaterial(groupId, type, val) {
     if (edgeSelect) edgeSelect.value = val;
   }
 
+  // Persist to cloud so material setup survives across devices/sessions/dev→live
+  pushTemplatesToCloud();
+
   // Refresh costing cache and quote totals so cutlist/summary/quote reflects the change
   refreshQuoteTotals();
   const cv = document.getElementById('costing-view');
