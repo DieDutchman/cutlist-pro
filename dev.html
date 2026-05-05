@@ -9101,14 +9101,24 @@ function computeJobMatBreakdown() {
     });
   });
 
-  // 3. Board breakdown
+  // 3. Shutterply base extras from Quote tab (separate mode, not a regular unit)
+  (quoteState.extras || []).forEach(e => {
+    if (e.baseMode !== 'shutterply') return;
+    if (!e.baseL || !e.baseW || !e.basePcs) return;
+    const rawM2 = (e.baseL / 1000) * (e.baseW / 1000) * e.basePcs;
+    allMatM2['Shutterply'] = (allMatM2['Shutterply'] || 0) + rawM2;
+    // Shutterply has no edging
+  });
+
+  // 4. Board breakdown
   const hPrice = costingPrices.extras.hPrice || 0;
   const matBreakdown = Object.entries(allMatM2)
     .filter(([, m2]) => m2 > 0)
     .map(([mat, rawM2]) => {
+      const sheetArea     = mat === 'Shutterply' ? SHUTTERPLY_AREA : SHEET_AREA;
       const withWaste     = rawM2 * WASTE_FACTOR;
-      const rawSh         = billSheets(withWaste, SHEET_AREA);
-      const billedSh      = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+      const rawSh         = billSheets(withWaste, sheetArea);
+      const billedSh      = billedSheetsForMat(mat, withWaste, sheetArea);
       const wholeSh       = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
       const pricePerSheet = costingPrices.mat[mat] || 0;
       const isMas         = mat === '3MM White Masonite';
