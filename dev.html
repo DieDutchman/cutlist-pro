@@ -20907,6 +20907,15 @@ function _renderPLView() {
     if (inv.mat) matActualInclVAT[inv.mat] = (matActualInclVAT[inv.mat] || 0) + amt;
     else unmatchedBoardsInclVAT += amt;
   });
+  // Tally actual Edging invoice lines per assigned edge type
+  const edgeActualInclVAT = {};
+  let unmatchedEdgeInclVAT = 0;
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Edging') return;
+    const amt = parseFloat(inv.amount) || 0;
+    if (inv.edgeKey) edgeActualInclVAT[inv.edgeKey] = (edgeActualInclVAT[inv.edgeKey] || 0) + amt;
+    else unmatchedEdgeInclVAT += amt;
+  });
 
   // Invoice rows HTML
   const invRowsHtml = invs.length === 0
