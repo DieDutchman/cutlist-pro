@@ -10675,16 +10675,34 @@ async function openBoardCleanupModal() {
     const boards  = rows.filter(r => r.category === 'board');
     const edges   = rows.filter(r => r.category === 'edge');
     const svcs    = rows.filter(r => r.category === 'special_service');
-    const renderRow = (r) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-        <span style="flex:1;font-size:13px;color:var(--text)">${r.name}</span>
+    const renderRow = (r) => {
+      let metaObj = {};
+      try { if (r.meta) metaObj = JSON.parse(r.meta); } catch(e) {}
+      const displayName = r.category === 'special_service'
+        ? (metaObj.name || r.name)
+        : r.name;
+      const unitLabel = r.category === 'board' ? '/sheet' : r.category === 'edge' ? '/m'
+        : r.category === 'special_service' ? `/${metaObj.unit||'unit'}` : '';
+      const renameBtn = (r.category === 'board')
+        ? `<button onclick="closeBoardCleanupModal();renameMat('${r.name.replace(/'/g,"\\'")}')"
+             title="Rename board" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">✏</button>`
+        : r.category === 'edge'
+        ? `<button onclick="closeBoardCleanupModal();renameEdge('${r.name.replace(/'/g,"\\'")}')"
+             title="Rename edging" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">✏</button>`
+        : '';
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="flex:1;font-size:13px;color:var(--text)">${displayName}</span>
+        ${r.category === 'special_service' && metaObj.category ? `<span style="font-size:10px;color:var(--text-muted);background:var(--bg3);padding:1px 6px;border:1px solid var(--border)">${metaObj.category}</span>` : ''}
         <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace;width:70px;text-align:right">R ${Number(r.price).toFixed(2)}</span>
-        <span style="font-size:10px;color:var(--text-muted);width:40px">${r.category === 'board' ? '/sheet' : r.category === 'edge' ? '/m' : ''}</span>
+        <span style="font-size:10px;color:var(--text-muted);width:44px">${unitLabel}</span>
+        ${renameBtn}
         <button onclick="cleanupDeleteRow('${r.name.replace(/'/g,"\\'")}', this)"
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 8px;cursor:pointer;flex-shrink:0">
           Delete
         </button>
       </div>`;
+    };
     body.innerHTML = `
       <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin:0 0 8px">BOARDS (${boards.length})</div>
       ${boards.map(renderRow).join('')}
