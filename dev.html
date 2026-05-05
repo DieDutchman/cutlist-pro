@@ -9054,7 +9054,8 @@ function computeQuoteTotals() {
 // Assumes all globals (quantities, panelsState, bedroomAddons, costingPrices …) are in the
 // correct state — call within computeQuoteTotals context or after plCalcFromState restores.
 function computeJobMatBreakdown() {
-  const allMatM2 = {}; // mat -> raw m² (no waste applied yet)
+  const allMatM2  = {}; // mat -> raw m² (no waste applied yet)
+  const allEdgeM  = {}; // edgeKey -> raw metres (calcEdgeMeters output, before finalRoundEdge)
 
   // 1. All active units
   const allUnits = getEffectiveUnits();
@@ -9064,10 +9065,14 @@ function computeJobMatBreakdown() {
     units.forEach(u => {
       const qty = quantities[u.id] || 0;
       if (qty <= 0 || !u.parts || u.parts.length === 0) return;
-      // calcUnitCost returns matM2 as raw m² (before waste) per material
       const c = calcUnitCost(u, qty);
       Object.entries(c.matM2 || {}).forEach(([mat, m2]) => {
         allMatM2[mat] = (allMatM2[mat] || 0) + m2;
+      });
+      // edgeM keys are "edgeType|boardMat" — strip mat to pool by edge type only
+      Object.entries(c.edgeM || {}).forEach(([comboKey, m]) => {
+        const edgeKey = comboKey.split('|')[0];
+        if (edgeKey) allEdgeM[edgeKey] = (allEdgeM[edgeKey] || 0) + m;
       });
     });
     // Bedroom addons: plant-on panels + spacers
@@ -9079,19 +9084,26 @@ function computeJobMatBreakdown() {
         const rawM2 = (item.h / 1000) * (item.w / 1000) * (item.qty || 1);
         const mat = item.mat || 'Picco White';
         allMatM2[mat] = (allMatM2[mat] || 0) + rawM2;
+        const hM = item.h / 1000, wM = item.w / 1000, qty = item.qty || 1;
+        [[item.el1, hM],[item.el2, hM],[item.ew1, wM],[item.ew2, wM]].forEach(([k, l]) => {
+          if (k) allEdgeM[k] = (allEdgeM[k] || 0) + calcEdgeMeters(l, qty);
+        });
       });
     });
   });
 
   // 2. Standalone panels tab
   (panelsState.items || []).filter(p => p.l > 0 && p.w > 0 && p.qty > 0).forEach(p => {
-    const rawM2 = (p.l / 1000) * (p.w / 1000) * p.qty;
-    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + rawM2;
+    const lM = p.l / 1000, wM = p.w / 1000;
+    allMatM2[p.mat] = (allMatM2[p.mat] || 0) + lM * wM * p.qty;
+    [[p.edgeL1, lM],[p.edgeL2, lM],[p.edgeW1, wM],[p.edgeW2, wM]].forEach(([k, l]) => {
+      if (k) allEdgeM[k] = (allEdgeM[k] || 0) + calcEdgeMeters(l, p.qty);
+    });
   });
 
-  // 3. Convert pooled raw m² to cost breakdown
+  // 3. Board breakdown
   const hPrice = costingPrices.extras.hPrice || 0;
-  return Object.entries(allMatM2)
+  const matBreakdown = Object.entries(allMatM2)
     .filter(([, m2]) => m2 > 0)
     .map(([mat, rawM2]) => {
       const withWaste     = rawM2 * WASTE_FACTOR;
@@ -9106,6 +9118,20 @@ function computeJobMatBreakdown() {
       return { mat, m2: rawM2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc };
     })
     .sort((a, b) => b.cost - a.cost);
+
+  // 4. Edge breakdown
+  const edgeBreakdown = Object.entries(allEdgeM)
+    .filter(([k, m]) => k && m > 0)
+    .map(([edgeKey, rawM]) => {
+      const billedM    = finalRoundEdge(rawM);
+      const pricePerM  = costingPrices.edge[edgeKey] || 0;
+      const cost       = billedM * pricePerM;
+      return { edgeKey, rawM, billedM, pricePerM, cost };
+    })
+    .filter(e => e.pricePerM > 0 || e.billedM > 0)
+    .sort((a, b) => b.cost - a.cost);
+
+  return { matBreakdown, edgeBreakdown };
 }
 
 function refreshQuoteTotals() {
