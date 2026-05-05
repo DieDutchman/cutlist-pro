@@ -9908,6 +9908,12 @@ async function loadTemplatesFromCloud() {
       });
       saveMaterials();
     }
+    // Restore per-unit material overrides as global defaults
+    if (t.unitMatOverrides && typeof t.unitMatOverrides === 'object') {
+      Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+      Object.assign(unitMatOverrides, t.unitMatOverrides);
+      saveUnitMatOverrides();
+    }
     // Superuser only: restore custom rooms + their userUnits from the profile
     // blob so the rooms persist across sessions independently of job auto-restore.
     // Other roles keep these per-job and load them via applyState().
