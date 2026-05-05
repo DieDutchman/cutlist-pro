@@ -3758,6 +3758,7 @@ function pushTemplatesToCloud() {
         unitOverrides,
         deletedUnits:   [...deletedUnits],
         customHardware: costingPrices.customHardware,
+        materialConfig: JSON.parse(JSON.stringify(materialConfig)),
       };
       // Superuser only: persist their custom rooms + room-scoped userUnits in
       // the same profile templates blob so they survive logout. Other roles
