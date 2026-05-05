@@ -10521,6 +10521,7 @@ async function loadJobFromSelect() {
 
     // Apply full state
     if (job.state) applyState(job.state);
+    checkAndRemapOrphans();
     renderPanel(); updateCounts();
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
