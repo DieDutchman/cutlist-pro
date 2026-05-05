@@ -21297,7 +21297,7 @@ function _renderPLView() {
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <select id="pl-new-cat"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px"
-          onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';})(this)">
+          onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');const ew=document.getElementById('pl-new-edge-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';if(ew)ew.style.display=s.value==='Edging'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
         <span style="font-size:11px;color:var(--text-muted)">R</span>
