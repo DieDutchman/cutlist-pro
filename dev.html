@@ -21428,10 +21428,11 @@ function plAddInvoice(jobId) {
   const supplier= document.getElementById('pl-new-supplier')?.value.trim()|| '';
   const cat     = document.getElementById('pl-new-cat')?.value             || 'Other';
   const amount  = parseFloat(document.getElementById('pl-new-amount')?.value) || 0;
-  const mat     = cat === 'Boards' ? (document.getElementById('pl-new-mat')?.value || '') : '';
+  const mat     = cat === 'Boards' ? (document.getElementById('pl-new-mat')?.value  || '') : '';
+  const edgeKey = cat === 'Edging' ? (document.getElementById('pl-new-edge')?.value || '') : '';
   if (!desc && !amount) { document.getElementById('pl-new-desc')?.focus(); return; }
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
-  plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, category: cat, amount, mat });
+  plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, category: cat, amount, mat, edgeKey });
   plSave();
   renderPLView();
   // Restore select after re-render
