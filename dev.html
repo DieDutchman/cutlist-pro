@@ -9119,7 +9119,7 @@ function computeJobMatBreakdown() {
       const withWaste     = rawM2 * WASTE_FACTOR;
       const rawSh         = billSheets(withWaste, sheetArea);
       const billedSh      = billedSheetsForMat(mat, withWaste, sheetArea);
-      const wholeSh       = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billedSh));
+      const wholeSh       = Math.max(Math.ceil(withWaste / sheetArea), Math.ceil(billedSh));
       const pricePerSheet = costingPrices.mat[mat] || 0;
       const isMas         = mat === '3MM White Masonite';
       const matCost       = billedSh * pricePerSheet;
