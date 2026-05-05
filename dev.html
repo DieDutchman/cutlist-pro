@@ -10050,6 +10050,7 @@ async function restoreLastJob(jobId) {
     currentClientId = job.client_id || null;
     _updateClientButtonsVisibility();
     if (job.state) applyState(job.state);
+    checkAndRemapOrphans();
     renderPanel(); updateCounts();
   } catch(e) {
     console.warn('[Supabase] Could not restore last job:', e.message);
