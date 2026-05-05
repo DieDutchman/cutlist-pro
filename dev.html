@@ -20963,7 +20963,17 @@ function _renderPLView() {
             <option value="">— unassigned —</option>
             ${allMatNames.map(m => `<option value="${m}" ${(inv.mat||'')=== m?'selected':''}>${m}</option>`).join('')}
           </select>
-          ${inv.mat ? `<span style="font-size:10px;color:var(--green);font-family:'JetBrains Mono',monospace">✓ linked to breakdown</span>` : `<span style="font-size:10px;color:var(--text-muted)">assign to see per-material comparison</span>`}
+          ${inv.mat ? `<span style="font-size:10px;color:var(--green);font-family:'JetBrains Mono',monospace">✓ linked</span>` : `<span style="font-size:10px;color:var(--text-muted)">assign to see per-material comparison</span>`}
+        </div>` : ''}
+        ${isEdgingLine && allEdgeNames.length > 0 ? `<div style="display:flex;align-items:center;gap:8px;padding:2px 12px 8px 16px">
+          <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">EDGE TYPE</span>
+          <select style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:3px 6px;font-size:11px;outline:none;min-width:200px"
+            onchange="plUpdateInvoice('${selJobId}','${inv.id}','edgeKey',this.value);plInvoiceBlur('${selJobId}')"
+            onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+            <option value="">— unassigned —</option>
+            ${allEdgeNames.map(e => `<option value="${e}" ${(inv.edgeKey||'')=== e?'selected':''}>${e}</option>`).join('')}
+          </select>
+          ${inv.edgeKey ? `<span style="font-size:10px;color:var(--green);font-family:'JetBrains Mono',monospace">✓ linked</span>` : `<span style="font-size:10px;color:var(--text-muted)">assign to see per-edge comparison</span>`}
         </div>` : ''}
       </div>`;
     }).join('');
