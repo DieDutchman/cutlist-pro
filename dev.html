@@ -4827,11 +4827,24 @@ function _renderPanel() {
 
   // Determine which material groups apply to this section
   // Kitchen splits into wall + floor unit-type sub-groups so hardware can be
-  // toggled separately for each. Superuser custom rooms based on the kitchen
-  // template inherit the same split (templateSection === 'kitchen').
-  const isKitchenRoom = currentSection === 'kitchen'
-    || (userRoom && userRoom.templateSection === 'kitchen');
-  const matGroupIds = isKitchenRoom
+  // toggled separately for each. The wall/floor split is ONLY used for the
+  // template-library kitchen tab (superuser, no userRooms) — in user-mode,
+  // each custom room owns a single materialConfig keyed by room.id (matching
+  // what getUnitMaterialGroup resolves to) so that selecting Wood/Edging on
+  // the room actually applies to its parts. Without this, a kitchen-derived
+  // custom room's selector would write to the shared kitchen_wall/_floor
+  // config while parts would read from materialConfig[room.id] — the
+  // selection appeared silently ignored.
+  const isTemplateKitchen = currentSection === 'kitchen' && !isUserMode;
+  // Make sure the per-room config slot exists before we wire up the selector.
+  if (isUserMode && userRoom && !materialConfig[userRoom.id]) {
+    materialConfig[userRoom.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+  }
+  // Register the user-room as a MAT_GROUP entry so buildMatSelector finds it.
+  if (isUserMode && userRoom && !MAT_GROUPS.find(g => g.id === userRoom.id)) {
+    MAT_GROUPS.push({ id: userRoom.id, label: userRoom.name, section: userRoom.id });
+  }
+  const matGroupIds = isTemplateKitchen
     ? ['kitchen_wall', 'kitchen_floor']
     : [currentSection];
 
