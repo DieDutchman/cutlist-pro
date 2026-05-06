@@ -2471,11 +2471,6 @@
   button:not(.tab):not(.unit-img-btn):not(.qty-input),
   [role="button"] { min-height: 44px; }
 
-  /* Tables rendered without an explicit wrapper: allow scroll on the table itself */
-  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
-  /* Restore table semantics for layout (display:block disables border-collapse logic) */
-  table thead, table tbody { display: table; width: 100%; table-layout: auto; }
-
   /* Long words / unbroken strings (URLs, AI-extracted names) wrap instead of overflow */
   td, th, .unit-name, .cv-extra-label, .summary-totals-bar { overflow-wrap: anywhere; word-break: break-word; }
 }
