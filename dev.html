@@ -12001,6 +12001,10 @@ function renameRoomPrompt(roomId) {
   const name = prompt('Rename room:', room.name);
   if (name && name.trim()) {
     room.name = name.trim();
+    // Keep MAT_GROUPS label in sync so the material selector header / cutlist
+    // material summary show the renamed room rather than the old name.
+    const mg = MAT_GROUPS.find(g => g.id === room.id);
+    if (mg) mg.label = room.name;
     renderUserRoomsNav();
     renderPanel();
     scheduleAutoSave();
