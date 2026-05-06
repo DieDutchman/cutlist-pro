@@ -4385,6 +4385,9 @@ function getUnitMaterialGroup(unit) {
       if (typeof materialConfig === 'object' && !materialConfig[room.id]) {
         materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
       }
+      if (typeof MAT_GROUPS !== 'undefined' && !MAT_GROUPS.find(g => g.id === room.id)) {
+        MAT_GROUPS.push({ id: room.id, label: room.name || 'Room', section: room.id });
+      }
       return room.id;
     }
   }
