@@ -13104,10 +13104,10 @@ async function applyBulkPriceAdjustment() {
       batchPayload.push({ category: 'board', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify(bm) });
     } else if (it.cat === 'edge') {
       costingPrices.edge[it.name] = it.after;
-      batchPayload.push({ category: 'edge', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+      batchPayload.push({ category: 'edge', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: null });
     } else if (it.cat === 'service') {
       costingPrices.extras[it.extrasKey] = it.after;
-      batchPayload.push({ category: 'service', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null });
+      batchPayload.push({ category: 'service', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: null });
     } else if (it.cat === 'special_service') {
       it.svcRef.price = it.after;
       batchPayload.push({ category: 'special_service', name: String(it.name), price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify({ name: it.svcRef.name, category: it.svcRef.category, unit: it.svcRef.unit }) });
