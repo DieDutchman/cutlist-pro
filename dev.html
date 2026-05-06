@@ -4368,6 +4368,26 @@ function setMaterial(groupId, type, val) {
 }
 
 function getUnitMaterialGroup(unit) {
+  // In user-mode (any role with userRooms), the material context is per-room.
+  // Resolve the unit to its hosting userRoom so the per-room Wood/Edging
+  // selection (materialConfig[room.id]) is honored — both for userUnits
+  // (u.section === room.id) and template units adopted into a custom room
+  // (room.templateSection === u.section). Without this, a custom kitchen-
+  // derived room would silently fall back to the shared kitchen_wall/
+  // kitchen_floor config and ignore the room's own Wood/Edging selection.
+  if (typeof usesUserUnits === 'function' && usesUserUnits()
+      && Array.isArray(userRooms) && userRooms.length > 0) {
+    // 1) user-built unit lives directly inside its room (section === roomId)
+    let room = userRooms.find(r => r.id === unit.section);
+    // 2) template unit shown via a custom room's templateSection
+    if (!room) room = userRooms.find(r => r.templateSection === unit.section);
+    if (room) {
+      if (typeof materialConfig === 'object' && !materialConfig[room.id]) {
+        materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+      }
+      return room.id;
+    }
+  }
   if (unit.section === 'kitchen') {
     return /^W\d/.test(unit.name) ? 'kitchen_wall' : 'kitchen_floor';
   }
