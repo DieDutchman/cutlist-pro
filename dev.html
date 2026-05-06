@@ -9049,6 +9049,14 @@ function computeQuoteTotals() {
   const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
   if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
 
+  // Board surcharge on board material cost only
+  const _bsPct = costingPrices.extras.boardSurcharge || 0;
+  if (_bsPct > 0) {
+    const _bsMatBreakdown = computeJobMatBreakdown().matBreakdown;
+    const _bsMatCostOnly  = _bsMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
+    unitsTotal += _bsMatCostOnly * (_bsPct / 100);
+  }
+
   const topsExcl     = (quoteState.tops?.m2||0) * (quoteState.tops?.pricePerM2||0);
   const topsDelivery = topsExcl > 0 ? 500 : 0;
   const topsHandling = (topsExcl + topsDelivery) * 0.10;
