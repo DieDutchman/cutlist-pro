@@ -8097,10 +8097,11 @@ function _renderQuoteView() {
   unitsTotal += _panelsPooled.total;
 
   // Board surcharge — applies only to board material cost (not cut/handling/hardware/extras)
-  const _boardSurchargePct = costingPrices.extras.boardSurcharge || 0;
-  const _boardMatBreakdown = _boardSurchargePct > 0 ? computeJobMatBreakdown().matBreakdown : [];
-  const _boardMatCostOnly  = _boardMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
-  const boardSurchargeAmt  = _boardMatCostOnly * (_boardSurchargePct / 100);
+  const _boardSurchargePct     = costingPrices.extras.boardSurcharge || 0;
+  const _boardSurchargeEnabled = quoteState.boardSurchargeEnabled !== false; // default on
+  const _boardMatBreakdown     = (_boardSurchargePct > 0 && _boardSurchargeEnabled) ? computeJobMatBreakdown().matBreakdown : [];
+  const _boardMatCostOnly      = _boardMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
+  const boardSurchargeAmt      = _boardMatCostOnly * (_boardSurchargePct / 100);
   unitsTotal += boardSurchargeAmt;
 
   const topsExcl    = (quoteState.tops.m2 || 0) * (quoteState.tops.pricePerM2 || 0);
