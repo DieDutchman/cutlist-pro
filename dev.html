@@ -9060,9 +9060,9 @@ function computeQuoteTotals() {
   const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
   if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
 
-  // Board surcharge on board material cost only
+  // Board surcharge on board material cost only (respects per-job toggle)
   const _bsPct = costingPrices.extras.boardSurcharge || 0;
-  if (_bsPct > 0) {
+  if (_bsPct > 0 && quoteState.boardSurchargeEnabled !== false) {
     const _bsMatBreakdown = computeJobMatBreakdown().matBreakdown;
     const _bsMatCostOnly  = _bsMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
     unitsTotal += _bsMatCostOnly * (_bsPct / 100);
