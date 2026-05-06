@@ -8097,10 +8097,11 @@ function _renderQuoteView() {
   unitsTotal += _panelsPooled.total;
 
   // Board surcharge — applies only to board material cost (not cut/handling/hardware/extras)
-  const _boardSurchargePct = costingPrices.extras.boardSurcharge || 0;
-  const _boardMatBreakdown = _boardSurchargePct > 0 ? computeJobMatBreakdown().matBreakdown : [];
-  const _boardMatCostOnly  = _boardMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
-  const boardSurchargeAmt  = _boardMatCostOnly * (_boardSurchargePct / 100);
+  const _boardSurchargePct     = costingPrices.extras.boardSurcharge || 0;
+  const _boardSurchargeEnabled = quoteState.boardSurchargeEnabled !== false; // default on
+  const _boardMatBreakdown     = (_boardSurchargePct > 0 && _boardSurchargeEnabled) ? computeJobMatBreakdown().matBreakdown : [];
+  const _boardMatCostOnly      = _boardMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
+  const boardSurchargeAmt      = _boardMatCostOnly * (_boardSurchargePct / 100);
   unitsTotal += boardSurchargeAmt;
 
   const topsExcl    = (quoteState.tops.m2 || 0) * (quoteState.tops.pricePerM2 || 0);
@@ -8508,10 +8509,20 @@ function _renderQuoteView() {
         <span class="label">Units Total</span>
         <span class="val" id="qv-val-units">${fmt(unitsTotal)}</span>
       </div>
-      ${boardSurchargeAmt > 0 ? `
-      <div class="qv-total-row" style="border-top:1px solid rgba(255,255,255,0.06)">
-        <span class="label" style="font-size:11px;color:var(--text-muted)">Board Surcharge (${_boardSurchargePct}%)</span>
-        <span class="val" id="qv-val-board-surcharge" style="font-size:11px;color:var(--text-muted)">${fmt(boardSurchargeAmt)}</span>
+      ${_boardSurchargePct > 0 ? `
+      <div class="qv-total-row" style="border-top:1px solid rgba(255,255,255,0.06);gap:6px">
+        <span class="label" style="font-size:11px;${_boardSurchargeEnabled ? 'color:var(--text-muted)' : 'color:rgba(255,255,255,0.25);text-decoration:line-through'}">Board Surcharge (${_boardSurchargePct}%)</span>
+        <button onclick="quoteState.boardSurchargeEnabled=quoteState.boardSurchargeEnabled===false?true:false;saveQuoteState();renderQuoteView();refreshQuoteTotals()"
+          title="${_boardSurchargeEnabled ? 'Disable surcharge for this job' : 'Enable surcharge for this job'}"
+          style="font-size:9px;padding:2px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;flex-shrink:0;border:1px solid;
+                 ${_boardSurchargeEnabled
+                   ? 'background:rgba(224,82,82,0.1);border-color:#5a2a2a;color:#e05252'
+                   : 'background:rgba(76,175,130,0.12);border-color:#2a5a3a;color:#4caf82'}">
+          ${_boardSurchargeEnabled ? 'DISABLE' : 'ENABLE'}
+        </button>
+        <span class="val" id="qv-val-board-surcharge" style="font-size:11px;${_boardSurchargeEnabled ? 'color:var(--text-muted)' : 'color:rgba(255,255,255,0.2)'}">
+          ${_boardSurchargeEnabled ? fmt(boardSurchargeAmt) : '—'}
+        </span>
       </div>` : '<span id="qv-val-board-surcharge" style="display:none"></span>'}
       <div class="qv-total-row" style="border-top:1px solid rgba(212,145,58,0.2)">
         <span class="label" id="qv-markup-line" style="color:var(--amber-dim);font-size:11px">+ ${markupPct}% markup on units</span>
@@ -9049,9 +9060,9 @@ function computeQuoteTotals() {
   const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
   if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
 
-  // Board surcharge on board material cost only
+  // Board surcharge on board material cost only (respects per-job toggle)
   const _bsPct = costingPrices.extras.boardSurcharge || 0;
-  if (_bsPct > 0) {
+  if (_bsPct > 0 && quoteState.boardSurchargeEnabled !== false) {
     const _bsMatBreakdown = computeJobMatBreakdown().matBreakdown;
     const _bsMatCostOnly  = _bsMatBreakdown.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0);
     unitsTotal += _bsMatCostOnly * (_bsPct / 100);
@@ -10465,9 +10476,15 @@ function getJobState() {
     bedroomAddons,
     panelsState: { label: panelsState.label, items: [...panelsState.items] },
     costingPrices: {
-      hardware:       costingPrices.hardware,
-      customBoards:   costingPrices.customBoards,
-      hiddenMats:     costingPrices.hiddenMats,
+      hardware:        costingPrices.hardware,
+      customBoards:    costingPrices.customBoards,
+      hiddenMats:      costingPrices.hiddenMats,
+      mat:             {...costingPrices.mat},
+      edge:            {...costingPrices.edge},
+      extras:          {...costingPrices.extras},
+      matMinSheets:    {...(costingPrices.matMinSheets||{})},
+      matSpecialOrder: {...(costingPrices.matSpecialOrder||{})},
+      matFullSheet:    {...(costingPrices.matFullSheet||{})},
       // NOTE: customHardware is global (My Costs items) — not saved per job
     },
     userRooms:            [...userRooms],
@@ -21110,6 +21127,9 @@ function _renderPLView() {
     try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
 
+  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat
+  const _hasPriceSnapshot = selJobId === currentJobId || !!(selJob?._state?.costingPrices?.mat);
+
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
   const invoiceTotal      = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
@@ -21355,6 +21375,12 @@ function _renderPLView() {
         Pick a job from the dropdown above to compare what you quoted, what the costing sheet estimated, and what you actually paid.
       </div>
     </div>` : `
+
+    ${!_hasPriceSnapshot ? `
+    <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-muted)">
+      <span style="color:var(--amber);font-size:14px">⚠</span>
+      <span>This job was saved before price snapshots were introduced — the <strong style="color:var(--text)">Costing Sheet Estimate</strong> uses <strong style="color:var(--text)">current prices</strong>, not the prices from when the job was quoted. Load and re-save the job to lock in a snapshot.</span>
+    </div>` : ''}
 
     <!-- Three-column summary cards -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
@@ -22992,14 +23018,14 @@ function _showPlanToast(message) {
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-05-06 20:19 UTC</div>
+" title="Build version">LIVE 2026-05-06 21:28 UTC</div>
 <script>
 (function() {
   const chip = document.getElementById('version-chip');
   if (!chip) return;
   const raw = chip.textContent.trim();
   // If workflow already stamped it, show as-is
-  if (raw !== 'LIVE 2026-05-06 20:19 UTC') return;
+  if (raw !== 'LIVE 2026-05-06 21:28 UTC') return;
   // Fallback: use document.lastModified
   try {
     const d = new Date(document.lastModified);
