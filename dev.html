@@ -2423,6 +2423,61 @@
   /* Trial expired card: tighter padding on phone */
   #trial-expired-screen > div { padding: 18px 12px !important; }
 
+  /* Header at phone width: ensure primary actions never overflow row */
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+  .btn { padding: 6px 9px !important; font-size: 10px !important; letter-spacing: 1px !important; }
+
+  /* Section header: smaller on phone so long room/section labels don't push width */
+  .section-header { font-size: 9px !important; padding: 4px 8px 3px 10px !important; word-break: break-word; }
+
+  /* Units table sticky header: lower top so it doesn't get hidden behind wrapped header */
+  .units-table th { top: 0 !important; padding: 5px 8px !important; font-size: 10px; }
+  .units-table td { padding: 6px 8px !important; font-size: 13px; }
+
+  /* Quote view markup grid: 2 cols already; tighten cell padding */
+  .qv-markup-grid > * { padding: 6px !important; }
+
+  /* Force long inline grids (panel cards, materials cards) to single column at phone */
+  #panels-view [style*="grid-template-columns"],
+  #materials-view [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Any element with inline width:Npx beyond viewport — soft cap */
+  [style*="width:680px"], [style*="width: 680px"],
+  [style*="width:720px"], [style*="width: 720px"],
+  [style*="width:760px"], [style*="width: 760px"],
+  [style*="width:600px"], [style*="width: 600px"],
+  [style*="width:520px"], [style*="width: 520px"],
+  [style*="width:500px"], [style*="width: 500px"] {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* ── GLOBAL MOBILE HARDENING (always-on, not media-gated) ─────────────────── */
+/* These are safe at all widths and prevent rare overflow vectors that only
+   manifest when content is unusually long (very long client names, room labels,
+   AI-imported part names with no spaces, etc.). */
+@media (max-width: 768px) {
+  /* Defensive: cap ANY direct child of body at viewport width to defeat
+     any rogue absolute element or stray inline width that escapes wrappers. */
+  body > * { max-width: 100vw; }
+
+  /* Inputs: never shrink below readable on iOS; prevent pinch-zoom auto-fire */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Touch targets: minimum 44px tall for any clickable role */
+  button:not(.tab):not(.unit-img-btn):not(.qty-input),
+  [role="button"] { min-height: 44px; }
+
+  /* Tables rendered without an explicit wrapper: allow scroll on the table itself */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  /* Restore table semantics for layout (display:block disables border-collapse logic) */
+  table thead, table tbody { display: table; width: 100%; table-layout: auto; }
+
+  /* Long words / unbroken strings (URLs, AI-extracted names) wrap instead of overflow */
+  td, th, .unit-name, .cv-extra-label, .summary-totals-bar { overflow-wrap: anywhere; word-break: break-word; }
 }
 </style>
 </head>
