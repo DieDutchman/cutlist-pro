@@ -8509,10 +8509,20 @@ function _renderQuoteView() {
         <span class="label">Units Total</span>
         <span class="val" id="qv-val-units">${fmt(unitsTotal)}</span>
       </div>
-      ${boardSurchargeAmt > 0 ? `
-      <div class="qv-total-row" style="border-top:1px solid rgba(255,255,255,0.06)">
-        <span class="label" style="font-size:11px;color:var(--text-muted)">Board Surcharge (${_boardSurchargePct}%)</span>
-        <span class="val" id="qv-val-board-surcharge" style="font-size:11px;color:var(--text-muted)">${fmt(boardSurchargeAmt)}</span>
+      ${_boardSurchargePct > 0 ? `
+      <div class="qv-total-row" style="border-top:1px solid rgba(255,255,255,0.06);gap:6px">
+        <span class="label" style="font-size:11px;${_boardSurchargeEnabled ? 'color:var(--text-muted)' : 'color:rgba(255,255,255,0.25);text-decoration:line-through'}">Board Surcharge (${_boardSurchargePct}%)</span>
+        <button onclick="quoteState.boardSurchargeEnabled=quoteState.boardSurchargeEnabled===false?true:false;saveQuoteState();renderQuoteView();refreshQuoteTotals()"
+          title="${_boardSurchargeEnabled ? 'Disable surcharge for this job' : 'Enable surcharge for this job'}"
+          style="font-size:9px;padding:2px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px;flex-shrink:0;border:1px solid;
+                 ${_boardSurchargeEnabled
+                   ? 'background:rgba(224,82,82,0.1);border-color:#5a2a2a;color:#e05252'
+                   : 'background:rgba(76,175,130,0.12);border-color:#2a5a3a;color:#4caf82'}">
+          ${_boardSurchargeEnabled ? 'DISABLE' : 'ENABLE'}
+        </button>
+        <span class="val" id="qv-val-board-surcharge" style="font-size:11px;${_boardSurchargeEnabled ? 'color:var(--text-muted)' : 'color:rgba(255,255,255,0.2)'}">
+          ${_boardSurchargeEnabled ? fmt(boardSurchargeAmt) : '—'}
+        </span>
       </div>` : '<span id="qv-val-board-surcharge" style="display:none"></span>'}
       <div class="qv-total-row" style="border-top:1px solid rgba(212,145,58,0.2)">
         <span class="label" id="qv-markup-line" style="color:var(--amber-dim);font-size:11px">+ ${markupPct}% markup on units</span>
