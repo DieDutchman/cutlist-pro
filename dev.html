@@ -14921,6 +14921,13 @@ function _renderPricesView() {
               onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
           </div>
+          <div class="cv-extra-row" style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06)">
+            <span class="cv-extra-label">Board Surcharge <span style="font-size:10px;color:var(--text-muted)">(% on board cost only)</span></span>
+            <input autocomplete="off" class="cv-extra-input" type="number" min="0" max="100" step="0.1" value="${costingPrices.extras.boardSurcharge||0}" ${ro}
+              onchange="costingPrices.extras.boardSurcharge=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();refreshQuoteTotals();pushSupplierPrice('service','Board Surcharge',this.value)"
+              onblur="costingPrices.extras.boardSurcharge=parseFloat(this.value)||0;saveCostingPrices()">
+            <span style="font-size:10px;color:var(--text-muted)">%</span>
+          </div>
         </div>
       </div>
 
