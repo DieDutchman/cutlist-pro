@@ -11762,7 +11762,11 @@ function renderUserRoomsNav() {
     const btn = document.createElement('button');
     btn.className = 'tab' + (currentSection === room.id ? ' active' : '');
     btn.dataset.section = room.id;
-    btn.innerHTML = `${room.icon} ${room.name} <span class="count" id="cnt-${room.id}">0</span>`;
+    // Defensive fallbacks: legacy job state may lack name/icon. Without these,
+    // the .tab CSS uppercases the raw id, producing "UR_177..." in the nav.
+    const _icon = room.icon || '🏠';
+    const _name = (room.name && String(room.name).trim()) || 'Room';
+    btn.innerHTML = `${_icon} ${_name} <span class="count" id="cnt-${room.id}">0</span>`;
     btn.onclick = () => switchTab(btn, room.id);
     row.appendChild(btn);
   });
