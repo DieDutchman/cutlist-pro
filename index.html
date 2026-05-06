@@ -15640,7 +15640,20 @@ function applyState(state) {
   if (state.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]); Object.assign(unitSpecialServices,  state.unitSpecialServices); }
   if (state.panelSpecialServices) { Object.keys(panelSpecialServices).forEach(k=>delete panelSpecialServices[k]); Object.assign(panelSpecialServices, state.panelSpecialServices); }
   if (state.userRooms?.length) {
-    userRooms = [...state.userRooms];
+    // Normalize: legacy jobs may have stored rooms without `name`/`icon`. The
+    // tab CSS uppercases the button text, so a missing name leaves the raw id
+    // (e.g. "ur_177...") rendered as "UR_177...". Coerce string-only entries
+    // into objects and backfill a friendly fallback name + default icon.
+    userRooms = state.userRooms.map(raw => {
+      const r = (typeof raw === 'string') ? { id: raw } : { ...(raw || {}) };
+      if (!r.id) return null;
+      if (!r.name || typeof r.name !== 'string' || !r.name.trim()) {
+        const stripped = String(r.id).replace(/^ur_\d+_?/i, '').replace(/_/g, ' ').trim();
+        r.name = stripped || 'Room';
+      }
+      if (!r.icon) r.icon = '🏠';
+      return r;
+    }).filter(Boolean);
     // Re-register in MAT_GROUPS so material selectors work after reload
     userRooms.forEach(room => {
       if (!MAT_GROUPS.find(g => g.id === room.id)) {
