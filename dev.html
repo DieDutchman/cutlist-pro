@@ -12723,6 +12723,7 @@ async function loadSupplierPrices() {
           'Cut & Label - Masonite': 'cutLabelMasonite',
           'Hinge Drilling':         'drilling',
           'Supplier HPrice':        'hPrice',
+          'Board Surcharge':        'boardSurcharge',
         };
         const key = map[row.name];
         if (key) costingPrices.extras[key] = Number(row.price);
