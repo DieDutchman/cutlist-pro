@@ -10465,9 +10465,15 @@ function getJobState() {
     bedroomAddons,
     panelsState: { label: panelsState.label, items: [...panelsState.items] },
     costingPrices: {
-      hardware:       costingPrices.hardware,
-      customBoards:   costingPrices.customBoards,
-      hiddenMats:     costingPrices.hiddenMats,
+      hardware:        costingPrices.hardware,
+      customBoards:    costingPrices.customBoards,
+      hiddenMats:      costingPrices.hiddenMats,
+      mat:             {...costingPrices.mat},
+      edge:            {...costingPrices.edge},
+      extras:          {...costingPrices.extras},
+      matMinSheets:    {...(costingPrices.matMinSheets||{})},
+      matSpecialOrder: {...(costingPrices.matSpecialOrder||{})},
+      matFullSheet:    {...(costingPrices.matFullSheet||{})},
       // NOTE: customHardware is global (My Costs items) — not saved per job
     },
     userRooms:            [...userRooms],
