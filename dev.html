@@ -21127,6 +21127,9 @@ function _renderPLView() {
     try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
 
+  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat
+  const _hasPriceSnapshot = selJobId === currentJobId || !!(selJob?._state?.costingPrices?.mat);
+
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
   const invoiceTotal      = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
