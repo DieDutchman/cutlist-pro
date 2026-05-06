@@ -8508,6 +8508,11 @@ function _renderQuoteView() {
         <span class="label">Units Total</span>
         <span class="val" id="qv-val-units">${fmt(unitsTotal)}</span>
       </div>
+      ${boardSurchargeAmt > 0 ? `
+      <div class="qv-total-row" style="border-top:1px solid rgba(255,255,255,0.06)">
+        <span class="label" style="font-size:11px;color:var(--text-muted)">Board Surcharge (${_boardSurchargePct}%)</span>
+        <span class="val" id="qv-val-board-surcharge" style="font-size:11px;color:var(--text-muted)">${fmt(boardSurchargeAmt)}</span>
+      </div>` : '<span id="qv-val-board-surcharge" style="display:none"></span>'}
       <div class="qv-total-row" style="border-top:1px solid rgba(212,145,58,0.2)">
         <span class="label" id="qv-markup-line" style="color:var(--amber-dim);font-size:11px">+ ${markupPct}% markup on units</span>
         <span class="val" id="qv-val-markup" style="font-size:11px;color:var(--amber-dim)">+ ${fmt(unitsTotal * quoteState.markup)}</span>
