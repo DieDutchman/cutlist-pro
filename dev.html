@@ -16533,9 +16533,44 @@ function _applyStateInner(state) {
   // job shows that job's rooms). When loading a job, prefer the job's rooms if
   // present — otherwise keep the profile blob rooms already restored by
   // loadTemplatesFromCloud(). Other roles keep rooms strictly job-scoped.
+  // ── Normalize a saved room: legacy jobs may have stored rooms without name,
+  // icon, or templateSection (the templateSection field was added later for
+  // superuser custom rooms). Without these, the nav button shows the raw id
+  // (CSS uppercases it → "UR_177...") and template-unit filtering misses the
+  // saved section, leaving qty inputs empty. Coerce string-only entries into
+  // objects and backfill missing fields so older jobs render correctly.
+  function _normalizeRoom(raw) {
+    const r = (typeof raw === 'string') ? { id: raw } : { ...(raw || {}) };
+    if (!r.id) return null;
+    if (!r.name || typeof r.name !== 'string' || !r.name.trim()) {
+      // Strip the ur_TIMESTAMP prefix to leave a friendlier label, or fall back to the id
+      const stripped = String(r.id).replace(/^ur_\d+_?/i, '').replace(/_/g, ' ').trim();
+      r.name = stripped || 'Room';
+    }
+    if (!r.icon) r.icon = '🏠';
+    return r;
+  }
+  // For superuser rooms missing templateSection, infer from saved quantities:
+  // pick the template section whose unit-ids have the most nonzero quantities.
+  function _inferTemplateSection(savedQty) {
+    if (!savedQty) return null;
+    const counts = {};
+    const tplUnits = getEffectiveUnits();
+    Object.keys(savedQty).forEach(uid => {
+      if ((savedQty[uid] || 0) <= 0) return;
+      const u = tplUnits.find(x => x.id === uid);
+      if (u && u.section && !String(u.id).startsWith('uu_')) {
+        counts[u.section] = (counts[u.section] || 0) + 1;
+      }
+    });
+    let best = null, bestCount = 0;
+    Object.keys(counts).forEach(sec => { if (counts[sec] > bestCount) { best = sec; bestCount = counts[sec]; } });
+    return best;
+  }
+
   if (!isSuperuser()) {
     if (state.userRooms?.length) {
-      userRooms = [...state.userRooms];
+      userRooms = state.userRooms.map(_normalizeRoom).filter(Boolean);
       // Re-register in MAT_GROUPS so material selectors work after reload
       userRooms.forEach(room => {
         if (!MAT_GROUPS.find(g => g.id === room.id)) {
@@ -16550,8 +16585,15 @@ function _applyStateInner(state) {
     // (older job, or profile-only rooms), preserve whatever loadTemplatesFromCloud
     // already loaded into userRooms — do not clobber it.
     if (state.userRooms?.length) {
-      userRooms = [...state.userRooms];
+      userRooms = state.userRooms.map(_normalizeRoom).filter(Boolean);
+      // Backfill templateSection on legacy rooms (added after rooms were already
+      // saved). Without it, _renderPanel's filter excludes all template units
+      // and qty inputs render as 0.
+      const inferred = _inferTemplateSection(state.quantities);
       userRooms.forEach(room => {
+        if (!room.templateSection) {
+          room.templateSection = inferred || (sections[0] && sections[0].id) || 'kitchen';
+        }
         if (!MAT_GROUPS.find(g => g.id === room.id)) {
           MAT_GROUPS.push({ id: room.id, label: room.name, section: room.id });
         }
