@@ -22105,12 +22105,15 @@ function plUpdateInvoice(jobId, invId, field, value) {
   const inv = pd.invoices.find(i => i.id === invId);
   if (!inv) return;
   inv[field] = field === 'amount' ? (parseFloat(value)||0) : value;
+  // Save locally on every keystroke (cheap), defer the server PATCH to blur
+  // (plInvoiceBlur) to avoid a network call per character.
   plSave();
   // Never re-render while typing — update is saved, re-render deferred to blur
 }
 
 function plInvoiceBlur(jobId) {
   // Re-render totals once the user leaves any invoice field
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -22119,7 +22122,7 @@ function plRemoveInvoice(jobId, invId) {
   const pd = plData[jobId];
   if (!pd) return;
   pd.invoices = pd.invoices.filter(i => i.id !== invId);
-  plSave();
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -22127,11 +22130,14 @@ function plRemoveInvoice(jobId, invId) {
 function plUpdateLabour(jobId, value) {
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
   plData[jobId].labourCost = parseFloat(value) || 0;
+  // Defer server PATCH to blur (plUpdateLabourDone) — keystroke-rate PATCHes
+  // would hammer Supabase. Local cache is updated immediately.
   plSave();
 }
 
 function plUpdateLabourDone(jobId) {
   // Only re-render once the user finishes typing (on blur)
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -22139,7 +22145,11 @@ function plUpdateLabourDone(jobId) {
 function plUpdateNotes(jobId, value) {
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
   plData[jobId].notes = value;
+  // Notes typing is keystroke-rate — only write locally; server PATCH happens
+  // on blur via plNotesBlur (see textarea onblur in renderPLView).
   plSave();
+  if (plUpdateNotes._t) clearTimeout(plUpdateNotes._t);
+  plUpdateNotes._t = setTimeout(() => plPersistJob(jobId), 1500);
 }
 
 // ═══════════════════════════════════════════════════════════
