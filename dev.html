@@ -10216,6 +10216,8 @@ async function restoreLastJob(jobId) {
     if (sel) sel.value = currentJobId;
     const deleteBtn = document.getElementById('job-delete-btn');
     if (deleteBtn) deleteBtn.style.display = 'block';
+    const statusWrapR = document.getElementById('job-status-wrap');
+    if (statusWrapR) statusWrapR.style.display = 'flex';
     ['job-client','job-house','job-address','job-notes'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = job[id.replace('job-','')] || '';
