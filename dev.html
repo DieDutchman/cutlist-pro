@@ -14167,6 +14167,172 @@ function deleteStandardBoard(name) {
   })();
 }
 
+// ── Bulk-migrate saved jobs in Supabase when a board or edge is renamed ─────
+// renamesObj: { mat: { oldName: newName, ... }, edge: { oldEdge: newEdge, ... } }
+// Walks every job belonging to the current user, deep-clones state, applies
+// renames anywhere the old names appear, and PATCHes only changed jobs.
+// Skips currentJobId (it'll be saved through the normal save path).
+async function migrateRenamedNamesAcrossJobs(renamesObj) {
+  if (!sbUser || !sbUser.id) return;
+  const matMap  = renamesObj.mat  || {};
+  const edgeMap = renamesObj.edge || {};
+  if (!Object.keys(matMap).length && !Object.keys(edgeMap).length) return;
+
+  const remapMat  = (name) => (name && Object.prototype.hasOwnProperty.call(matMap,  name)) ? matMap[name]  : name;
+  const remapEdge = (name) => (name && Object.prototype.hasOwnProperty.call(edgeMap, name)) ? edgeMap[name] : name;
+
+  // Rename keys on a plain object map ({ oldKey: val } → { newKey: val })
+  const renameKeys = (obj, map) => {
+    if (!obj || typeof obj !== 'object') return false;
+    let changed = false;
+    Object.keys(map).forEach(oldK => {
+      if (Object.prototype.hasOwnProperty.call(obj, oldK)) {
+        const newK = map[oldK];
+        if (newK && newK !== oldK) {
+          // If newK already exists, prefer the existing value (already migrated locally)
+          if (!Object.prototype.hasOwnProperty.call(obj, newK)) obj[newK] = obj[oldK];
+          delete obj[oldK];
+          changed = true;
+        }
+      }
+    });
+    return changed;
+  };
+
+  setJobSyncStatus('↻ Scanning jobs…', 'var(--amber-dim)');
+  let allJobs;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/jobs?select=id,state&user_id=eq.${sbUser.id}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allJobs = await res.json();
+  } catch(e) {
+    console.warn('[Rename migration] fetch jobs failed:', e.message);
+    setJobSyncStatus('✕ Migration scan failed: ' + e.message, '#e07070');
+    setTimeout(() => setJobSyncStatus(''), 4000);
+    return;
+  }
+
+  const candidates = (allJobs || []).filter(j => j && j.state && j.id !== currentJobId);
+  if (!candidates.length) {
+    // Still update sbJobs in memory if needed; nothing to do.
+    return;
+  }
+
+  setJobSyncStatus(`↻ Migrating ${candidates.length} job${candidates.length === 1 ? '' : 's'}…`, 'var(--amber-dim)');
+  let updated = 0, failed = 0;
+
+  for (const job of candidates) {
+    let s;
+    try { s = JSON.parse(JSON.stringify(job.state)); } catch(e) { failed++; continue; }
+    let dirty = false;
+
+    // materialConfig[*].wood / .edging
+    if (s.materialConfig && typeof s.materialConfig === 'object') {
+      Object.values(s.materialConfig).forEach(cfg => {
+        if (!cfg) return;
+        const newWood = remapMat(cfg.wood);
+        if (newWood !== cfg.wood) { cfg.wood = newWood; dirty = true; }
+        // 'edging' may hold an EDGE_COLORS-style short name (mat name) OR a full edge key
+        const edA = remapMat(cfg.edging);
+        if (edA !== cfg.edging) { cfg.edging = edA; dirty = true; }
+        const edB = remapEdge(cfg.edging);
+        if (edB !== cfg.edging) { cfg.edging = edB; dirty = true; }
+      });
+    }
+
+    // unitMatOverrides[*].wood / .edging
+    if (s.unitMatOverrides && typeof s.unitMatOverrides === 'object') {
+      Object.values(s.unitMatOverrides).forEach(ov => {
+        if (!ov) return;
+        const newWood = remapMat(ov.wood);
+        if (newWood !== ov.wood) { ov.wood = newWood; dirty = true; }
+        const edA = remapMat(ov.edging);
+        if (edA !== ov.edging) { ov.edging = edA; dirty = true; }
+        const edB = remapEdge(ov.edging);
+        if (edB !== ov.edging) { ov.edging = edB; dirty = true; }
+      });
+    }
+
+    // panelsState.items[*].mat
+    if (s.panelsState && Array.isArray(s.panelsState.items)) {
+      s.panelsState.items.forEach(p => {
+        if (!p) return;
+        const nm = remapMat(p.mat);
+        if (nm !== p.mat) { p.mat = nm; dirty = true; }
+      });
+    }
+
+    // bedroomAddons[section].plantOn.items[*].mat (and spacers, defensively)
+    if (s.bedroomAddons && typeof s.bedroomAddons === 'object') {
+      Object.values(s.bedroomAddons).forEach(sec => {
+        if (!sec) return;
+        [sec.plantOn, sec.spacers].forEach(group => {
+          if (!group || !Array.isArray(group.items)) return;
+          group.items.forEach(item => {
+            if (!item) return;
+            const nm = remapMat(item.mat);
+            if (nm !== item.mat) { item.mat = nm; dirty = true; }
+          });
+        });
+      });
+    }
+
+    // costingPrices.mat / matMinSheets / matSpecialOrder / matFullSheet — keyed by board name
+    if (s.costingPrices && typeof s.costingPrices === 'object') {
+      ['mat', 'matMinSheets', 'matSpecialOrder', 'matFullSheet', 'matPriceDates'].forEach(k => {
+        if (renameKeys(s.costingPrices[k], matMap)) dirty = true;
+      });
+      // costingPrices.edge — keyed by full edge key
+      if (renameKeys(s.costingPrices.edge, edgeMap)) dirty = true;
+
+      // customBoards array — board/edge name fields
+      if (Array.isArray(s.costingPrices.customBoards)) {
+        s.costingPrices.customBoards.forEach(cb => {
+          if (!cb) return;
+          const nb = remapMat(cb.boardName);
+          if (nb !== cb.boardName) { cb.boardName = nb; dirty = true; }
+          const ne = remapEdge(cb.edgeName);
+          if (ne !== cb.edgeName) { cb.edgeName = ne; dirty = true; }
+        });
+      }
+      // hiddenMats array of board names
+      if (Array.isArray(s.costingPrices.hiddenMats)) {
+        for (let i = 0; i < s.costingPrices.hiddenMats.length; i++) {
+          const nm = remapMat(s.costingPrices.hiddenMats[i]);
+          if (nm !== s.costingPrices.hiddenMats[i]) { s.costingPrices.hiddenMats[i] = nm; dirty = true; }
+        }
+      }
+    }
+
+    if (!dirty) continue;
+
+    try {
+      const pr = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ state: s, updated_at: new Date().toISOString() })
+      });
+      if (!pr.ok) throw new Error(`HTTP ${pr.status}`);
+      updated++;
+      // Update in-memory sbJobs cache if present so the next render sees fresh state
+      if (Array.isArray(sbJobs)) {
+        const cached = sbJobs.find(j => j && j.id === job.id);
+        if (cached) cached.state = s;
+      }
+    } catch(e) {
+      failed++;
+      console.warn('[Rename migration] PATCH job failed:', job.id, e.message);
+    }
+  }
+
+  if (failed) {
+    setJobSyncStatus(`⚠ ${updated} updated, ${failed} failed`, '#e07070');
+  } else {
+    setJobSyncStatus(`✓ ${updated} job${updated === 1 ? '' : 's'} updated`, '#5dba6e');
+  }
+  setTimeout(() => setJobSyncStatus(''), 4000);
+}
+
 function renameMat(oldName) {
   const newName = prompt(`Rename board "${oldName}" to:`, oldName);
   if (!newName || newName.trim() === oldName) return;
