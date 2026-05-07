@@ -9427,9 +9427,23 @@ function downloadQuoteXLSX() {
     rows.push([]);
   }
 
+  // Board surcharge (applies only to board material cost, same logic as quote view)
+  const _xlsxSurchargePct     = costingPrices.extras.boardSurcharge || 0;
+  const _xlsxSurchargeEnabled = quoteState.boardSurchargeEnabled !== false;
+  let boardSurchargeXLSX = 0;
+  if (_xlsxSurchargePct > 0 && _xlsxSurchargeEnabled) {
+    const _xlsxMatBreak = computeJobMatBreakdown().matBreakdown;
+    boardSurchargeXLSX = _xlsxMatBreak.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0) * (_xlsxSurchargePct / 100);
+    rows.push(['SURCHARGE', '', '', '', '']);
+    rows.push(['', `Board Surcharge (${_xlsxSurchargePct}%)`, '', '', boardSurchargeXLSX]);
+    grandSub += boardSurchargeXLSX;
+    rows.push([]);
+  }
+
   // Totals block — markup applies to units only
   const unitsSubtotal = grandSub - (topsTotal || 0) - (consultTotal || 0) - (dieselTotal || 0)
-    - quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    - quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0)
+    - boardSurchargeXLSX;
   const nonMarkupTotal = grandSub - unitsSubtotal;
 
   rows.push(['', 'Units Subtotal (excl. markup)', '', '', unitsSubtotal]);
