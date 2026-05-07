@@ -21996,7 +21996,14 @@ function plSelectJob(jobId) {
   if (!view) return;
 
   if (jobId && !plData[jobId]) {
-    plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
+    // Hydrate from server-side jobs.state.plData if available before falling
+    // back to a fresh object — otherwise opening a job in a new browser
+    // would clobber existing P&L data with empty defaults.
+    const _job = (typeof sbJobs !== 'undefined' && sbJobs) ? sbJobs.find(j => j.id === jobId) : null;
+    const _serverPl = _job && _job._state && _job._state.plData;
+    plData[jobId] = (_serverPl && typeof _serverPl === 'object')
+      ? _serverPl
+      : { invoices: [], notes: '', labourCost: 0 };
     plSave();
   }
 
