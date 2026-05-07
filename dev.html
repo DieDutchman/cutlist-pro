@@ -20872,16 +20872,17 @@ async function plPersistJob(jobId) {
       ? sbJobs.find(j => j.id === jobId)
       : null;
     let baseState = null;
-    if (job && job._state) {
-      // Use the cached server-side state as the base so we don't accidentally
-      // clobber unrelated unsaved Quote/Costing edits the user hasn't saved yet.
+    if (jobId === currentJobId) {
+      // Live-edit job: getJobState() reflects the live globals (which now
+      // include plData). Note this also persists any other in-flight live
+      // edits — that's intentional: P&L is part of the same live job state
+      // and the alternative (a stale cached _state) would lose data.
+      baseState = getJobState();
+    } else if (job && job._state) {
+      // Other job opened in the P&L picker — use the cached server state and
+      // only swap in the new plData. Don't touch any other fields.
       baseState = JSON.parse(JSON.stringify(job._state));
       baseState.plData = plData[jobId] || null;
-    } else if (jobId === currentJobId) {
-      // No cached _state for the live job — fall back to live state. This is
-      // equivalent to a Save click but scoped to a P&L edit; acceptable since
-      // the user is actively editing this job anyway.
-      baseState = getJobState();
     } else {
       // Fetch the row's existing state, then merge in plData and PATCH it back
       const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=state`, { headers: authHeaders() });
