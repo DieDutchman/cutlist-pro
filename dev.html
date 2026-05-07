@@ -10708,6 +10708,8 @@ async function saveJobToCloud() {
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       document.getElementById('job-delete-btn').style.display = 'block';
+      const _swSave = document.getElementById('job-status-wrap');
+      if (_swSave) _swSave.style.display = 'flex';
     } else {
       await loadUserJobs();
     }
