@@ -22090,7 +22090,7 @@ function plAddInvoice(jobId) {
   if (!desc && !amount) { document.getElementById('pl-new-desc')?.focus(); return; }
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
   plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, category: cat, amount, mat, edgeKey });
-  plSave();
+  plPersistJob(jobId);
   renderPLView();
   // Restore select after re-render
   const view = document.getElementById('pl-view');
