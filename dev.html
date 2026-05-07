@@ -10587,6 +10587,50 @@ function setJobSyncStatus(msg, color) {
   if (el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
 }
 
+function _renderJobStatusBadge() {
+  const btn = document.getElementById('job-status-btn');
+  if (!btn) return;
+  const s = JOB_STATUSES.find(x => x.key === currentJobStatus) || JOB_STATUSES[0];
+  btn.textContent = '● ' + s.label.toUpperCase();
+  btn.style.color = s.color;
+  btn.style.borderColor = s.color.replace(')', ', 0.5)').replace('rgb', 'rgba');
+  btn.style.background = s.bg;
+}
+
+function toggleJobStatusMenu() {
+  const menu = document.getElementById('job-status-menu');
+  if (!menu) return;
+  if (menu.style.display === 'none') {
+    menu.innerHTML = JOB_STATUSES.map(s =>
+      `<div onclick="setJobStatus('${s.key}')"
+        style="padding:7px 14px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;color:${s.color};
+               background:${currentJobStatus===s.key ? s.bg : 'transparent'};transition:background 0.1s"
+        onmouseenter="this.style.background='${s.bg}'"
+        onmouseleave="this.style.background='${currentJobStatus===s.key ? s.bg : 'transparent'}'">
+        ● ${s.label.toUpperCase()}
+       </div>`
+    ).join('');
+    menu.style.display = 'block';
+    const close = (e) => {
+      if (!menu.contains(e.target) && e.target.id !== 'job-status-btn') {
+        menu.style.display = 'none';
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  } else {
+    menu.style.display = 'none';
+  }
+}
+
+function setJobStatus(key) {
+  currentJobStatus = key;
+  _renderJobStatusBadge();
+  const menu = document.getElementById('job-status-menu');
+  if (menu) menu.style.display = 'none';
+  if (currentJobId) saveJobToCloud();
+}
+
 function getJobState() {
   return {
     quantities,
