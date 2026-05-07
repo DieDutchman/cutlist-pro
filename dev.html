@@ -13207,13 +13207,24 @@ async function reloadSupplierPrices() {
 // ─── Bulk Price Adjustment ────────────────────────────────────────────────────
 let _bulkAdjCats = { boards: true, edges: true, services: true };
 
-function openBulkAdjustModal() {
+async function openBulkAdjustModal() {
   _bulkAdjCats = { boards: true, edges: true, services: true };
   document.getElementById('bulk-adjust-pct').value = '0';
   document.getElementById('bulk-adjust-error').style.display = 'none';
   updateBulkToggleStyles();
+  // Show modal immediately with current snapshot so the user gets feedback,
+  // then refresh from Supabase so the list reflects the supplier's live
+  // price rows (boards/edges deleted or renamed in the DB are filtered out).
   updateBulkAdjustPreview();
   document.getElementById('bulk-adjust-modal').style.display = 'flex';
+  try {
+    await loadSupplierPrices();
+  } catch(e) {
+    // If the refresh fails we fall back to the snapshot already in memory;
+    // _buildBulkItems still filters against MATS/EDGES below, so renamed/
+    // deleted entries from previous loads stay hidden.
+  }
+  updateBulkAdjustPreview();
 }
 
 function closeBulkAdjustModal() {
