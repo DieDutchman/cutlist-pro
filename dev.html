@@ -13260,13 +13260,23 @@ function _buildBulkItems(pct) {
   const mult = 1 + pct / 100;
   const round2 = v => Math.round(v * 100) / 100;
   const items = [];
+  // Filter against the live MATS/EDGES arrays — loadSupplierPrices() rebuilds
+  // these from supplier_prices on every load, so they exclude boards/edges
+  // that have been deleted or renamed in the DB. costingPrices.mat / .edge
+  // can still hold stale hardcoded defaults or localStorage entries that no
+  // longer exist in the supplier's price list, so iterating those directly
+  // would surface ghost rows in the bulk-adjust dialog.
+  const liveMats  = new Set(MATS);
+  const liveEdges = new Set(EDGES);
   if (_bulkAdjCats.boards) {
     Object.entries(costingPrices.mat).forEach(([name, price]) => {
+      if (!liveMats.has(name)) return;
       if (price > 0) items.push({ cat: 'board', label: name, before: price, after: round2(price * mult), name });
     });
   }
   if (_bulkAdjCats.edges) {
     Object.entries(costingPrices.edge).forEach(([name, price]) => {
+      if (!liveEdges.has(name)) return;
       if (price > 0) items.push({ cat: 'edge', label: name, before: price, after: round2(price * mult), name });
     });
   }
