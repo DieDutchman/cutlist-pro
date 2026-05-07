@@ -10199,6 +10199,8 @@ function rebuildJobSelect() {
   });
   const deleteBtn = document.getElementById('job-delete-btn');
   if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
+  const statusWrap = document.getElementById('job-status-wrap');
+  if (statusWrap) statusWrap.style.display = currentJobId ? 'flex' : 'none';
 }
 
 async function restoreLastJob(jobId) {
