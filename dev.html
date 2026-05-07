@@ -10202,12 +10202,14 @@ function rebuildJobSelect() {
     try { currentJobId = localStorage.getItem('cutlist_current_job_id') || null; } catch(e) {}
   }
   sel.innerHTML = '<option value="">— New Job —</option>';
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
   sbJobs.forEach(j => {
     const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
     const date  = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+    const dot   = _statusDot[j.jobStatus] || '○';
     const opt   = document.createElement('option');
     opt.value       = j.id;
-    opt.textContent = `${label}  (${date})`;
+    opt.textContent = `${dot} ${label}  (${date})`;
     if (j.id === currentJobId) opt.selected = true;
     sel.appendChild(opt);
   });
