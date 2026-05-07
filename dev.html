@@ -20852,6 +20852,55 @@ function plSave() {
 }
 plLoad();
 
+// ── Persist a job's P&L data into Supabase jobs.state.plData ─────────────────
+// Browser localStorage alone is per-device — opening the same job in another
+// browser would show no P&L. This pushes plData[jobId] into the row's state
+// JSON so it's authoritative server-side and survives cross-browser opens.
+//
+// Strategy:
+//  • For the *current* job, leave the heavy lifting to saveJobToCloud()
+//    (getJobState() already includes plData) but also do a lightweight PATCH
+//    so users don't have to click Save explicitly for P&L edits to sync.
+//  • For *other* jobs (superuser P&L picker), PATCH directly into that row's
+//    state.plData without disturbing any other job state.
+async function plPersistJob(jobId) {
+  if (!sbUser || !jobId) return;
+  // Local cache is always written first (fast UI, offline tolerance)
+  plSave();
+  try {
+    const job = (typeof sbJobs !== 'undefined' && sbJobs)
+      ? sbJobs.find(j => j.id === jobId)
+      : null;
+    let baseState = null;
+    if (jobId === currentJobId) {
+      // Authoritative live state — includes the just-edited plData via getJobState()
+      baseState = getJobState();
+    } else if (job && job._state) {
+      baseState = JSON.parse(JSON.stringify(job._state));
+      baseState.plData = plData[jobId] || null;
+    } else {
+      // Fetch the row's existing state, then merge in plData and PATCH it back
+      const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=state`, { headers: authHeaders() });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const rows = await r.json();
+      if (!rows.length) return;
+      baseState = rows[0].state || {};
+      baseState.plData = plData[jobId] || null;
+      if (job) job._state = baseState; // cache for next edit
+    }
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ state: baseState, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Keep the in-memory job._state in sync so subsequent reads don't go stale
+    if (job) job._state = baseState;
+  } catch (e) {
+    console.warn('[P&L] persist failed:', e.message);
+  }
+}
+
 // ── Snapshot: apply job state silently, call computeQuoteTotals(), restore ─────
 function plCalcFromState(state) {
   const zero = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0,
