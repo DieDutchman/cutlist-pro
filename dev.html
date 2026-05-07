@@ -10184,7 +10184,7 @@ async function refreshAccessToken(refreshToken) {
 async function loadUserJobs() {
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at&order=updated_at.desc`,
+      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at,state->>jobStatus&order=updated_at.desc`,
       { headers: authHeaders() }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
