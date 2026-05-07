@@ -9709,6 +9709,15 @@ let sbUser   = null;   // { id, email }
 let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
+let currentJobStatus = 'draft';
+const JOB_STATUSES = [
+  { key: 'draft',         label: 'Draft',         color: '#888888', bg: 'rgba(128,128,128,0.15)' },
+  { key: 'quoted',        label: 'Quoted',        color: '#e8c040', bg: 'rgba(232,192,64,0.12)'  },
+  { key: 'accepted',      label: 'Accepted',      color: '#5ba8f5', bg: 'rgba(91,168,245,0.12)'  },
+  { key: 'in_production', label: 'In Production', color: '#f08848', bg: 'rgba(240,136,72,0.12)'  },
+  { key: 'invoiced',      label: 'Invoiced',      color: '#c090e8', bg: 'rgba(192,144,232,0.12)' },
+  { key: 'complete',      label: 'Complete',      color: '#5dba6e', bg: 'rgba(93,186,110,0.12)'  },
+];
 let autoSaveTimer = null;
 // ── Client management ───────────────────────────────────────────────────────
 let clientsCache = [];        // [{ id, name, phone, email, address, notes }]
