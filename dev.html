@@ -10815,13 +10815,29 @@ function newJob() {
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
   quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
   quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
-  // Clear plant-on panels, fillers, spacers — reset to blank defaults for each section
-  ADDON_SECTIONS.forEach(sec => {
+  // Clear plant-on panels, fillers, spacers — reset to blank defaults.
+  // Iterate Object.keys(bedroomAddons) FIRST so any leftover user-room ids
+  // (ur_xxx) from the previous job are wiped — getAddonSections() alone
+  // misses them for superusers (userRooms preserved) and for non-superusers
+  // whose userRooms were just cleared above. Then union with current
+  // getAddonSections() so built-ins and any surviving rooms are seeded.
+  const _addonResetKeys = new Set([
+    ...Object.keys(bedroomAddons),
+    ...getAddonSections(),
+  ]);
+  _addonResetKeys.forEach(sec => {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
-      spacers:  { enabled: false, items: [defaultSpacer()] },
+      spacers: { enabled: false, items: [defaultSpacer()] },
     };
   });
+  // For non-superusers, userRooms was cleared above so drop any orphaned
+  // ur_xxx addon keys entirely rather than leaving empty stubs behind.
+  if (!isSuperuser()) {
+    Object.keys(bedroomAddons).forEach(k => {
+      if (!ADDON_SECTIONS.includes(k)) delete bedroomAddons[k];
+    });
+  }
   try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
   renderPanel(); updateCounts();
   setJobSyncStatus('New job', 'var(--text-muted)');
