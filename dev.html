@@ -4387,12 +4387,11 @@ function getUnitMaterialGroup(unit) {
       && Array.isArray(userRooms) && userRooms.length > 0) {
     // (a) user-built unit lives directly inside its room (section === roomId)
     let room = userRooms.find(r => r.id === unit.section);
-    // (b) template unit adopted into the currently-viewed custom room
-    if (!room && typeof currentSection !== 'undefined') {
-      const activeRoom = userRooms.find(r => r.id === currentSection);
-      if (activeRoom && activeRoom.templateSection === unit.section) {
-        room = activeRoom;
-      }
+    // (b) template unit — find its hosting custom room by templateSection.
+    // No currentSection guard: cutlist generation processes all units regardless
+    // of which tab is active, so we match by section type not current view.
+    if (!room) {
+      room = userRooms.find(r => r.templateSection === unit.section);
     }
     if (room) {
       if (typeof materialConfig === 'object' && !materialConfig[room.id]) {
