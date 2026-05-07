@@ -10717,6 +10717,9 @@ function newJob() {
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
+  currentJobStatus = 'draft';
+  const _jsWrap = document.getElementById('job-status-wrap');
+  if (_jsWrap) _jsWrap.style.display = 'none';
   // Clear job details
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
