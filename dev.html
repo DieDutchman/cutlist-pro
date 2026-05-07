@@ -4843,16 +4843,17 @@ function _renderPanel() {
 
   // Determine which material groups apply to this section
   // Kitchen splits into wall + floor unit-type sub-groups so hardware can be
-  // toggled separately for each. The wall/floor split is ONLY used for the
-  // template-library kitchen tab (superuser, no userRooms) — in user-mode,
-  // each custom room owns a single materialConfig keyed by room.id (matching
-  // what getUnitMaterialGroup resolves to) so that selecting Wood/Edging on
-  // the room actually applies to its parts. Without this, a kitchen-derived
-  // custom room's selector would write to the shared kitchen_wall/_floor
-  // config while parts would read from materialConfig[room.id] — the
-  // selection appeared silently ignored.
-  const isTemplateKitchen = currentSection === 'kitchen' && !isUserMode;
-  // Make sure the per-room config slot exists before we wire up the selector.
+  // toggled separately for each. The wall/floor split is used for the
+  // template-library kitchen tab regardless of role (superuser without rooms,
+  // or superuser-with-rooms standing on the static Kitchen tab). When viewing
+  // a custom room, each room owns a single materialConfig keyed by room.id
+  // (matching what getUnitMaterialGroup resolves to) so that selecting
+  // Wood/Edging on the room actually applies to its parts.
+  //
+  // Three selector-key cases must stay in sync with getUnitMaterialGroup:
+  //   1. Static Kitchen tab (no active userRoom)        → kitchen_wall + kitchen_floor
+  //   2. Other static template tab (no active userRoom) → [currentSection] e.g. ['mainbedroom']
+  //   3. Custom room tab (userRoom is set)              → [userRoom.id]
   if (isUserMode && userRoom && !materialConfig[userRoom.id]) {
     materialConfig[userRoom.id] = { wood: 'Dunblane', edging: 'Dunblane' };
   }
@@ -4860,9 +4861,10 @@ function _renderPanel() {
   if (isUserMode && userRoom && !MAT_GROUPS.find(g => g.id === userRoom.id)) {
     MAT_GROUPS.push({ id: userRoom.id, label: userRoom.name, section: userRoom.id });
   }
-  const matGroupIds = isTemplateKitchen
+  const isKitchenTemplateTab = currentSection === 'kitchen' && !userRoom;
+  const matGroupIds = isKitchenTemplateTab
     ? ['kitchen_wall', 'kitchen_floor']
-    : [currentSection];
+    : [userRoom ? userRoom.id : currentSection];
 
   // For user mode: material selector only if there are units
   let html = (isUserMode && units.length === 0) ? '' : buildMatSelector(matGroupIds);
