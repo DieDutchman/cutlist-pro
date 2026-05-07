@@ -16647,6 +16647,13 @@ function checkAndRemapOrphans() {
     });
 
     renderPanel(); updateCounts();
+
+    // Persist remapped state to Supabase so the orphan modal doesn't fire again on
+    // next load (and so other devices see the fixed names). Fire and forget — the
+    // user has already accepted the changes locally.
+    if (currentJobId && typeof saveJobToCloud === 'function') {
+      try { saveJobToCloud(); } catch(e) { console.warn('[Remap] save after remap failed:', e); }
+    }
   };
 }
 
