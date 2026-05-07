@@ -14454,6 +14454,19 @@ function renameMat(oldName) {
           { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
       }
       sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+
+      // Bulk-migrate every saved job: replace oldName board references and any
+      // associated edge keys. Without this, jobs saved before the rename keep
+      // pointing at the old name and only get fixed if the user opens them
+      // (triggering checkAndRemapOrphans).
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  { [oldName]: n },
+          edge: _edgeRenameMap
+        });
+      } catch(eMig) {
+        console.warn('[Rename migration] failed:', eMig.message);
+      }
     } catch(e) {
       sbSyncStatus = 'error'; sbLastSyncError = e.message;
       console.warn('[Supabase] Rename failed:', e.message);
