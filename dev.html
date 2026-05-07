@@ -10609,7 +10609,7 @@ function _renderJobStatusBadge() {
   const s = JOB_STATUSES.find(x => x.key === currentJobStatus) || JOB_STATUSES[0];
   btn.textContent = '● ' + s.label.toUpperCase();
   btn.style.color = s.color;
-  btn.style.borderColor = s.color.replace(')', ', 0.5)').replace('rgb', 'rgba');
+  btn.style.borderColor = s.color + '80';
   btn.style.background = s.bg;
 }
 
