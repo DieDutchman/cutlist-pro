@@ -22043,6 +22043,13 @@ function plSelectJob(jobId) {
             existing.client  = rows[0].client;
             existing.house   = rows[0].house;
             existing.address = rows[0].address;
+            // Hydrate P&L from server (per-job state.plData) — this is the
+            // cross-browser source of truth. Local cache may be empty/stale.
+            const serverPl = rows[0].state && rows[0].state.plData;
+            if (serverPl && typeof serverPl === 'object') {
+              plData[jobId] = serverPl;
+              plSave();
+            }
           }
           view._selectedJobId = jobId;
           renderPLView();
