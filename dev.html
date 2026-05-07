@@ -16884,6 +16884,13 @@ function _applyStateInner(state) {
   }
   currentJobStatus = state.jobStatus || 'draft';
   _renderJobStatusBadge();
+  // ── Restore per-job P&L data (actual costs, labour, notes) ──────────────
+  // Server-side jobs.state.plData is the source of truth; merge into local
+  // cache so cross-browser opens see the same reconciliation data.
+  if (currentJobId && state.plData && typeof state.plData === 'object') {
+    plData[currentJobId] = state.plData;
+    plSave();
+  }
   save(); saveHoles(); saveJobDetails(); saveQuoteState();
   saveBedroomAddons(); saveCostingPrices();
   try {
