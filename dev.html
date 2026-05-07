@@ -14397,10 +14397,12 @@ function renameMat(oldName) {
   const oldEdgePrefix = (oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging');
   const newEdgePrefix = (n       === 'Picco White' ? 'White Edging' : n       + ' Edging');
   const _renamedOldEdges = [];
+  const _edgeRenameMap  = {};   // oldEdgeKey → newEdgeKey, for cross-job migration
   EDGES.forEach((e, i) => {
     if (e && e.startsWith(oldEdgePrefix)) {
       _renamedOldEdges.push(e);
       const newEdge = newEdgePrefix + e.slice(oldEdgePrefix.length);
+      _edgeRenameMap[e] = newEdge;
       EDGES[i] = newEdge;
       costingPrices.edge[newEdge] = costingPrices.edge[e] || 0;
       delete costingPrices.edge[e];
