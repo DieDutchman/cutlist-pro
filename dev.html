@@ -14358,9 +14358,13 @@ function renameMat(oldName) {
     const ci2 = COLORS.indexOf(oldName);
     if (ci2 >= 0) COLORS.splice(ci2, 1);
     delete costingPrices.mat[oldName];
-    // Remove old edging rows
-    const oldEdgePfx = oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging';
+    // Remove old edging rows. Track old→new edge keys so jobs that reference
+    // them get migrated to the merged target's edges.
+    const oldEdgePfx  = oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging';
+    const newEdgePfx2 = n       === 'Picco White' ? 'White Edging' : n       + ' Edging';
+    const _mergeEdgeMap = {};
     EDGES.filter(e => e && e.startsWith(oldEdgePfx)).forEach(e => {
+      _mergeEdgeMap[e] = newEdgePfx2 + e.slice(oldEdgePfx.length);
       EDGES.splice(EDGES.indexOf(e), 1);
       delete costingPrices.edge[e];
     });
@@ -14370,7 +14374,7 @@ function renameMat(oldName) {
     saveCostingPrices();
     refreshMatDropdowns();
     refreshPriceViews();
-    // Delete old row from Supabase
+    // Delete old row from Supabase + bulk-migrate saved jobs
     (async () => {
       try {
         await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldName)}`,
@@ -14378,6 +14382,14 @@ function renameMat(oldName) {
         sbSyncStatus = 'ok'; sbLastSyncTime = new Date();
       } catch(e) { sbSyncStatus = 'error'; sbLastSyncError = e.message; }
       renderSyncBadge();
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  { [oldName]: n },
+          edge: _mergeEdgeMap
+        });
+      } catch(eMig) {
+        console.warn('[Merge migration] failed:', eMig.message);
+      }
     })();
     return;
   }
