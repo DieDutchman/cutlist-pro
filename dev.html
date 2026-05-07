@@ -10674,6 +10674,10 @@ function getJobState() {
     panelSpecialServices: {...panelSpecialServices},
     activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
     jobStatus: currentJobStatus,
+    // Per-job P&L (actual cost lines + labour + notes) — must travel with the
+    // job so opening it in another browser shows the same reconciliation data.
+    // Persisted inside jobs.state in Supabase; localStorage is a cache only.
+    plData: (currentJobId && plData[currentJobId]) ? plData[currentJobId] : null,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
