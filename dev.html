@@ -21343,7 +21343,7 @@ function plImportSelectedLines(jobId, count) {
     plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier, category:cat, qty, unit_price, amount });
     added++;
   }
-  plSave();
+  plPersistJob(jobId);
   document.getElementById('pl-pdf-overlay')?.remove();
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
