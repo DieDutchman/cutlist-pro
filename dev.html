@@ -14531,6 +14531,18 @@ function renameEdge(oldKey) {
         throw new Error(msg);
       }
       sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+
+      // Bulk-migrate saved jobs: rename this edge key everywhere it appears
+      // (costingPrices.edge keys, customBoards.edgeName, materialConfig.edging,
+      // unitMatOverrides.edging when stored as full keys).
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  {},
+          edge: { [oldKey]: n }
+        });
+      } catch(eMig) {
+        console.warn('[Edge rename migration] failed:', eMig.message);
+      }
     } catch(e) {
       sbSyncStatus = 'error'; sbLastSyncError = e.message;
       console.warn('[Supabase] Edge rename failed:', e.message);
