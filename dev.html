@@ -16787,6 +16787,8 @@ function _applyStateInner(state) {
       }
     }
   }
+  currentJobStatus = state.jobStatus || 'draft';
+  _renderJobStatusBadge();
   save(); saveHoles(); saveJobDetails(); saveQuoteState();
   saveBedroomAddons(); saveCostingPrices();
   try {
