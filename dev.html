@@ -10804,6 +10804,8 @@ function newJob() {
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
   currentJobStatus = 'draft';
+  // Starting fresh — clear any latched restore-failure flag from a prior load
+  _jobRestoreFailed = false;
   const _jsWrap = document.getElementById('job-status-wrap');
   if (_jsWrap) _jsWrap.style.display = 'none';
   // Clear job details
