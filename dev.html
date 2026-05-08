@@ -16885,6 +16885,45 @@ function checkAndRemapOrphans() {
 }
 
 
+function applyState(state) {
+  if (!state) { _jobRestoreFailed = false; return; }
+  // ── Restore the FRAGILE-but-CRITICAL fields up front, before any code that
+  // could throw. These two (jobStatus, plData) live at the END of
+  // _applyStateInner and were silently skipped if any earlier step threw —
+  // which then caused the next autosave's getJobState() to write back
+  // jobStatus='draft' and plData=null, clobbering the server's good values.
+  // Restoring them here guarantees they're set even if the bulk restore fails.
+  try {
+    if (typeof state.jobStatus === 'string' && state.jobStatus) {
+      currentJobStatus = state.jobStatus;
+    } else {
+      currentJobStatus = 'draft';
+    }
+    if (typeof _renderJobStatusBadge === 'function') _renderJobStatusBadge();
+    if (currentJobId && state.plData && typeof state.plData === 'object') {
+      plData[currentJobId] = state.plData;
+      try { plSave(); } catch(e) {}
+    }
+  } catch(e) {
+    console.warn('[applyState] critical-field pre-restore warned:', e);
+  }
+  // Now do the rest. If this throws, jobStatus + plData are already safe.
+  try {
+    _applyStateInner(state);
+    _jobRestoreFailed = false;
+  } catch (err) {
+    // A throw partway through would leave the UI in a half-restored state
+    // (quoteState/quantities applied but rooms/userUnits skipped). Latch the
+    // failure flag so saveJobToCloud() refuses to write back partial state
+    // and overwrite good server data. Log loudly and still re-render so
+    // whatever did land is visible.
+    _jobRestoreFailed = true;
+    console.error('[applyState] failed mid-restore — autosave to cloud disabled until reload:', err);
+    try { setJobSyncStatus('✕ Load failed — refresh page', '#e07070'); } catch(e) {}
+    try { renderPanel(); updateSummary(); updateCounts(); } catch(e) {}
+  }
+}
+
 function _applyStateInner(state) {
   // ── Zero everything first so no old job's data bleeds into the new one ────
   // Quantities — set ALL known units to 0, then overwrite with saved values
