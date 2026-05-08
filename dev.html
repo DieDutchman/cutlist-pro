@@ -9732,6 +9732,12 @@ let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let currentJobStatus = 'draft';
+// Set true if applyState() threw partway through restoring a job. While this
+// is true, saveJobToCloud() will refuse to overwrite the server row, because
+// the in-memory state is incomplete and a save would clobber good fields
+// (jobStatus, plData, etc.) that never got restored. Cleared on successful
+// applyState() or newJob().
+let _jobRestoreFailed = false;
 const JOB_STATUSES = [
   { key: 'draft',         label: 'Draft',         color: '#888888', bg: 'rgba(128,128,128,0.15)' },
   { key: 'quoted',        label: 'Quoted',        color: '#e8c040', bg: 'rgba(232,192,64,0.12)'  },
