@@ -21137,6 +21137,13 @@ async function plPersistJob(jobId) {
   if (!sbUser || !jobId) return;
   // Local cache is always written first (fast UI, offline tolerance)
   plSave();
+  // If we're persisting the live current job and applyState() failed, the
+  // baseState we'd build via getJobState() would be partial — block the
+  // server PATCH so we don't clobber good fields.
+  if (jobId === currentJobId && _jobRestoreFailed) {
+    console.warn('[plPersistJob] refusing to PATCH live job: prior restore failed.');
+    return;
+  }
   try {
     const job = (typeof sbJobs !== 'undefined' && sbJobs)
       ? sbJobs.find(j => j.id === jobId)
