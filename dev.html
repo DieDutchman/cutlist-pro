@@ -10691,6 +10691,15 @@ function getJobState() {
 
 async function saveJobToCloud() {
   if (!sbUser) return;
+  // If a prior applyState() threw mid-restore, the in-memory state is partial
+  // and writing it back would clobber server fields (jobStatus, plData,
+  // userRooms, etc.) that never made it into globals. Refuse to save until
+  // the user reloads — the server data is the source of truth.
+  if (_jobRestoreFailed) {
+    console.warn('[saveJobToCloud] refusing to save: prior job restore failed. Reload the page to retry.');
+    setJobSyncStatus('✕ Save blocked — reload to recover', '#e07070');
+    return;
+  }
   const client  = document.getElementById('job-client')?.value  || '';
   const house   = document.getElementById('job-house')?.value   || '';
   const address = document.getElementById('job-address')?.value || '';
