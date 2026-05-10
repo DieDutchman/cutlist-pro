@@ -21793,8 +21793,13 @@ function _renderPLView() {
     try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
 
-  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat
-  const _hasPriceSnapshot = selJobId === currentJobId || !!(selJob?._state?.costingPrices?.mat);
+  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat.
+  // For the live current job, the in-memory costingPrices.mat is the active snapshot
+  // (whatever applyState loaded, or current globals if never saved). We only treat it
+  // as "has snapshot" when the job's persisted state actually carries one — otherwise
+  // the user must be able to set/refresh historical prices from the P&L bar.
+  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat)
+    || (selJobId === currentJobId && !!(costingPrices?.mat) && Object.keys(costingPrices.mat).length > 0 && _currentJobHasSavedSnapshot());
 
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
