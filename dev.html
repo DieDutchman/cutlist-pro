@@ -21794,12 +21794,12 @@ function _renderPLView() {
   }
 
   // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat.
-  // For the live current job, the in-memory costingPrices.mat is the active snapshot
-  // (whatever applyState loaded, or current globals if never saved). We only treat it
-  // as "has snapshot" when the job's persisted state actually carries one — otherwise
-  // the user must be able to set/refresh historical prices from the P&L bar.
-  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat)
-    || (selJobId === currentJobId && !!(costingPrices?.mat) && Object.keys(costingPrices.mat).length > 0 && _currentJobHasSavedSnapshot());
+  // Bug fix: previously this was `selJobId === currentJobId || ...` which hid the
+  // "Set historical prices" bar for the currently-loaded live job — even if no
+  // snapshot had ever been persisted for it. The bar must remain available so the
+  // user can capture or refresh the per-job price snapshot from the P&L view.
+  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat
+    && Object.keys(selJob._state.costingPrices.mat).length > 0);
 
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
