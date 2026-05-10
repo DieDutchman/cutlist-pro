@@ -21637,7 +21637,30 @@ function plImportSelectedLines(jobId, count) {
 // ── Historical price snapshot modal ───────────────────────────────────────────
 async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
-  if (!job || !job._state) return;
+  if (!job) return;
+
+  // Hydrate _state if missing — required for the snapshot save below.
+  // For the live current job, fall back to getJobState() so the user can capture
+  // a snapshot for the job they're actively editing without an extra round-trip.
+  // For other jobs, fetch the row from Supabase before opening the modal.
+  if (!job._state) {
+    if (jobId === currentJobId && typeof getJobState === 'function') {
+      try { job._state = JSON.parse(JSON.stringify(getJobState())); }
+      catch(e) { console.warn('[hist-price] live state clone failed:', e); return; }
+    } else {
+      try {
+        const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const rows = await r.json();
+        if (!rows[0]) return;
+        job._state  = rows[0].state;
+        job.client  = rows[0].client;
+        job.house   = rows[0].house;
+        job.address = rows[0].address;
+      } catch(e) { console.warn('[hist-price] state fetch failed:', e); return; }
+    }
+    if (!job._state) return;
+  }
 
   // Build price rows from current MATS (those would have been the boards at job time)
   const mats = MATS.filter(m => m !== '3MM White Masonite');
