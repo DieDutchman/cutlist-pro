@@ -21922,6 +21922,31 @@ function _renderPLView() {
 
   const profitColor  = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
+  // Tooltip text for the cost-variance (Δ COST) cells.
+  //   variance = expected − actual (excl VAT).
+  //   v >= 0  → actual came in at or under what the costing sheet expected (green = in budget).
+  //   v <  0  → actual exceeded the estimate (red = over budget).
+  // Escapes quotes so it's safe inside a title="…" attribute.
+  const escTitle = s => String(s).replace(/"/g,'&quot;');
+  const varTip = v => escTitle(
+    v > 0  ? `Actual cost came in R ${Math.abs(v).toFixed(2)} below the costing sheet estimate — you stayed under budget on this line.`
+  : v < 0 ? `Actual cost ran R ${Math.abs(v).toFixed(2)} over the costing sheet estimate — this line cost more than expected.`
+  :         `Actual cost matched the estimate exactly.`
+  );
+  const pctTip = (pct, v) => escTitle(
+    pct > 0 ? `${pct.toFixed(1)}% under the costing sheet estimate (saved R ${Math.abs(v).toFixed(2)} vs expected).`
+  : pct < 0 ? `${Math.abs(pct).toFixed(1)}% over the costing sheet estimate (R ${Math.abs(v).toFixed(2)} over budget).`
+  :           `Actual cost exactly matches the estimate.`
+  );
+  // Tooltip text for the qty-variance (Δ SHEETS / Δ METRES) cells.
+  //   shVar = actual − expected (INVERTED vs cost variance).
+  //   v > 0 → used more than expected (red).
+  //   v ≤ 0 → used same or fewer (green).
+  const qtyTip = (v, unit) => escTitle(
+    v > 0  ? `Used ${Math.abs(v).toFixed(1)} ${unit} more than the costing sheet expected — more material consumed than planned.`
+  : v < 0 ? `Used ${Math.abs(v).toFixed(1)} ${unit} less than the costing sheet expected — saved material vs the estimate.`
+  :         `Actual quantity matched the estimate exactly.`
+  );
 
   // ── Material breakdown: expected (costing sheet) vs actual (invoice lines) ──
   const matBreakdown  = (snap.matBreakdown  || []).filter(b => b.pricePerSheet > 0 || b.billedSh > 0);
