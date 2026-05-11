@@ -21116,6 +21116,11 @@ function drawerSaveUnit() {
 // In-memory store: { [jobId]: { invoices: [{id,desc,supplier,amount}], notes:'' } }
 let plData = {};
 
+// Per-job historical price snapshot (set by openHistoricalPriceModal save and
+// restored by applyState). Lives outside costingPrices so autosaves do not
+// clobber it with live supplier prices. Shape: { mat:{}, edge:{}, savedAt:'' }.
+let currentJobPriceSnapshot = null;
+
 function plLoad() {
   try { plData = JSON.parse(localStorage.getItem('cutlist_pl_data') || '{}'); } catch(e) { plData = {}; }
 }
