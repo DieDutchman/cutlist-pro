@@ -22217,8 +22217,8 @@ function _renderPLView() {
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
             <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(topsExpected)}</td>
             <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasA?`<span style="color:${profitColor(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasA?`<span style="color:${profitColor(tVar)}" title="${varTip(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}" title="${pctTip(tPct,tVar)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
           </tr>
         </tbody>
       </table>
