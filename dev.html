@@ -21853,8 +21853,18 @@ function _renderPLView() {
   //   3. Else, fall back to plCalcFromState() on the saved Supabase state.
   let snap = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0 };
   if (selJob && _hasPriceSnapshot) {
-    // Job has a price snapshot — Expected must use those prices, not live globals
-    try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap (with prices) error:', e); }
+    // Job has a price snapshot — Expected must use those prices, not live globals.
+    // For the LIVE current job, sbJobs[i].state isn't refreshed by loadUserJobs
+    // (it only selects minimal columns), so selJob._state can be stale or null.
+    // Build a fresh state from live globals + inject the in-memory snapshot.
+    let _stateForCalc = selJob._state;
+    if (selJobId === currentJobId && typeof getJobState === 'function') {
+      try {
+        _stateForCalc = getJobState();
+        if (_selSnap) _stateForCalc.costingPriceSnapshot = _selSnap;
+      } catch(e) { _stateForCalc = selJob._state; }
+    }
+    try { snap = plCalcFromState(_stateForCalc); } catch(e) { console.warn('PL snap (with prices) error:', e); }
   } else if (selJobId && selJobId === currentJobId) {
     // Live job, no snapshot — guaranteed match with Quote tab
     try {
