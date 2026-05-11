@@ -21639,28 +21639,33 @@ async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
   if (!job) return;
 
-  // Hydrate _state if missing — required for the snapshot save below.
-  // For the live current job, fall back to getJobState() so the user can capture
-  // a snapshot for the job they're actively editing without an extra round-trip.
-  // For other jobs, fetch the row from Supabase before opening the modal.
-  if (!job._state) {
-    if (jobId === currentJobId && typeof getJobState === 'function') {
-      try { job._state = JSON.parse(JSON.stringify(getJobState())); }
-      catch(e) { console.warn('[hist-price] live state clone failed:', e); return; }
-    } else {
-      try {
-        const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const rows = await r.json();
-        if (!rows[0]) return;
-        job._state  = rows[0].state;
-        job.client  = rows[0].client;
-        job.house   = rows[0].house;
-        job.address = rows[0].address;
-      } catch(e) { console.warn('[hist-price] state fetch failed:', e); return; }
-    }
-    if (!job._state) return;
+  // Hydrate _state — required for the snapshot save below.
+  // For the live current job, ALWAYS rebuild from getJobState() (do not reuse a
+  // stale `_state` populated by an earlier plSelectJob fetch). Otherwise the
+  // snapshot would carry outdated quantities/rooms/units and Expected sheet
+  // counts would silently shift after save (Bug 1).
+  // For other jobs, fetch the row from Supabase if not already cached.
+  if (jobId === currentJobId && typeof getJobState === 'function') {
+    try { job._state = JSON.parse(JSON.stringify(getJobState())); }
+    catch(e) { console.warn('[hist-price] live state clone failed:', e); return; }
+  } else if (!job._state) {
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const rows = await r.json();
+      if (!rows[0]) return;
+      job._state  = rows[0].state;
+      job.client  = rows[0].client;
+      job.house   = rows[0].house;
+      job.address = rows[0].address;
+    } catch(e) { console.warn('[hist-price] state fetch failed:', e); return; }
   }
+  if (!job._state) return;
+
+  // Pre-fill the modal with the existing snapshot prices (not the live
+  // current-supplier prices) when a snapshot already exists, so the user is
+  // editing the historical values, not re-typing them.
+  const _existingSnap = job._state.costingPriceSnapshot || null;
 
   // Build price rows from current MATS (those would have been the boards at job time).
   // Include ALL boards — Masonite has its own per-sheet price in costingPrices.mat
