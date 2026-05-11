@@ -21279,6 +21279,20 @@ function plCalcFromState(state) {
       if (st.costingPrices.matFullSheet)    costingPrices.matFullSheet    = st.costingPrices.matFullSheet;
       if (st.costingPrices.specialServices) costingPrices.specialServices = st.costingPrices.specialServices;
     }
+    // Historical price snapshot overrides board/edge prices (only) — sheet
+    // counts and billing-mode flags (matFullSheet/matSpecialOrder/matMinSheets)
+    // come from the saved state, not the snapshot, so sheet quantities remain
+    // immutable when only prices change (Bug 1).
+    if (st.costingPriceSnapshot) {
+      if (st.costingPriceSnapshot.mat) {
+        Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+        Object.assign(costingPrices.mat, st.costingPriceSnapshot.mat);
+      }
+      if (st.costingPriceSnapshot.edge) {
+        Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+        Object.assign(costingPrices.edge, st.costingPriceSnapshot.edge);
+      }
+    }
 
     // userUnits & customUnits (for getEffectiveUnits)
     userUnits.length = 0;
