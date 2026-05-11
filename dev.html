@@ -9142,13 +9142,24 @@ function computeQuoteTotals() {
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
   // Per-unit cost cache — same as renderQuoteView
+  // Also accumulate raw (excl HW_HANDLING) hardware costs by category for P&L Expected.
   const unitCostCache = {};
+  const _hwRaw = { hinges: 0, runners: 0, handles: 0, drilling: 0, other: 0 };
   sectionData.forEach(d => d.units.forEach(u => {
     const qty = quantities[u.id] || 0;
     if (STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0) {
       unitCostCache[u.id] = u.price || 0;
+    } else if (qty > 0) {
+      const c = calcUnitCost(u, qty);
+      unitCostCache[u.id] = c.total / qty;
+      // Auto-hardware raw cost per category (only if this unit's section has hardware enabled).
+      // calcUnitCost already zeroes these when includeHardware is false, so we can sum unconditionally.
+      _hwRaw.hinges   += c.hingeCost     || 0;
+      _hwRaw.runners  += c.runnerCost    || 0;
+      _hwRaw.handles  += (c.handle160Cost||0) + (c.handle240Cost||0);
+      _hwRaw.drilling += c.drillingCost  || 0;
     } else {
-      unitCostCache[u.id] = qty > 0 ? calcUnitCost(u, qty).total / qty : 0;
+      unitCostCache[u.id] = 0;
     }
   }));
 
