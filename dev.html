@@ -22402,7 +22402,14 @@ function plSelectJob(jobId) {
 
   // If this is the current live job, skip the Supabase fetch — we'll use
   // computeQuoteTotals() directly in renderPLView for a guaranteed match.
+  // Still populate sbJobs[i]._state from live getJobState() so the snapshot
+  // detection in renderPLView can see costingPriceSnapshot without needing a
+  // round-trip to Supabase.
   if (jobId && jobId === currentJobId) {
+    const _existing = sbJobs.find(j => j.id === jobId);
+    if (_existing && !_existing._state && typeof getJobState === 'function') {
+      try { _existing._state = JSON.parse(JSON.stringify(getJobState())); } catch(e) {}
+    }
     view._selectedJobId = jobId;
     renderPLView();
     return;
