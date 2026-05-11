@@ -8,3 +8,4 @@
 - [Per-job state in jobs.state](project_per_job_state_storage.md) — per-job data must round-trip through getJobState/applyState; localStorage is cache only, never source of truth
 - [P&L live globals leak](project_pl_live_globals_leak.md) — _renderPLView live-job branch uses globals; route through plCalcFromState when job has price snapshot
 - [P&L price snapshot](project_pl_price_snapshot.md) — snapshots live in state.costingPriceSnapshot (dedicated field), not state.costingPrices.mat; survives autosave
+- [plCalcFromState global wipe](project_plcalcfromstate_global_wipe.md) — must guard wipe of customUnits/unitOverrides/deletedUnits; getJobState omits them so unconditional clears empty them mid-calc
