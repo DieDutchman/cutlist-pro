@@ -21297,8 +21297,20 @@ function plCalcFromState(state) {
     // userUnits & customUnits (for getEffectiveUnits)
     userUnits.length = 0;
     if (st.userUnits) st.userUnits.forEach(u => { userUnits.push(u); if (!(u.id in quantities)) quantities[u.id] = 0; });
-    customUnits.length = 0;
-    if (st.customUnits) st.customUnits.forEach(u => customUnits.push(u));
+    // customUnits, unitOverrides and deletedUnits are GLOBAL template settings —
+    // getJobState() deliberately omits them (see comment in getJobState()). Only
+    // wipe-and-replace them when the saved state actually carries them; otherwise
+    // keep the live globals so superuser custom units / template overrides /
+    // template deletions remain in effect during the calc. Wiping unconditionally
+    // here caused the Expected vs Actual sheet counts to shift after saving a
+    // historical price snapshot, because the post-snapshot render path routes the
+    // live job through plCalcFromState(getJobState()) and getJobState() does not
+    // include customUnits — so they were emptied for the duration of the calc,
+    // changing which units computeJobMatBreakdown() iterated over.
+    if (st.customUnits) {
+      customUnits.length = 0;
+      st.customUnits.forEach(u => customUnits.push(u));
+    }
 
     // userRooms
     if (st.userRooms) { userRooms.length = 0; st.userRooms.forEach(r => userRooms.push(r)); }
