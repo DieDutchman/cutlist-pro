@@ -21789,13 +21789,30 @@ function _renderPLView() {
   const pd   = selJobId ? (plData[selJobId] || { invoices: [], notes: '' }) : null;
   const invs = pd ? pd.invoices : [];
 
+  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat.
+  // Bug fix: previously this was `selJobId === currentJobId || ...` which hid the
+  // "Set historical prices" bar for the currently-loaded live job — even if no
+  // snapshot had ever been persisted for it. The bar must remain available so the
+  // user can capture or refresh the per-job price snapshot from the P&L view.
+  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat
+    && Object.keys(selJob._state.costingPrices.mat).length > 0);
+
   // Calc snapshot totals
-  // IMPORTANT: check currentJobId FIRST — if this is the live job, always use
-  // computeQuoteTotals() directly so it matches the Quote tab exactly.
-  // Only fall back to the Supabase snapshot for jobs other than the current one.
+  // Priority order:
+  //   1. If the job carries a saved historical-price snapshot, ALWAYS run the
+  //      calc through plCalcFromState() so Expected reflects those snapshot
+  //      prices — even for the live job. Live globals may have been mutated
+  //      by a supplier-price refresh since the job was loaded, which would
+  //      otherwise leak current prices into Expected.
+  //   2. Else, if this is the live current job, use computeQuoteTotals()
+  //      directly so totals match the Quote tab exactly (no snapshot to honour).
+  //   3. Else, fall back to plCalcFromState() on the saved Supabase state.
   let snap = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0 };
-  if (selJobId && selJobId === currentJobId) {
-    // Live job — guaranteed match with Quote tab
+  if (selJob && _hasPriceSnapshot) {
+    // Job has a price snapshot — Expected must use those prices, not live globals
+    try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap (with prices) error:', e); }
+  } else if (selJobId && selJobId === currentJobId) {
+    // Live job, no snapshot — guaranteed match with Quote tab
     try {
       const t = computeQuoteTotals();
       const _liveBreakdown = computeJobMatBreakdown();
@@ -21814,17 +21831,9 @@ function _renderPLView() {
       };
     } catch(e) { console.warn('PL live calc error:', e); }
   } else if (selJob && selJob._state) {
-    // Different job — use saved state snapshot
+    // Different job, no snapshot — use saved state (prices may be live globals)
     try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
-
-  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat.
-  // Bug fix: previously this was `selJobId === currentJobId || ...` which hid the
-  // "Set historical prices" bar for the currently-loaded live job — even if no
-  // snapshot had ever been persisted for it. The bar must remain available so the
-  // user can capture or refresh the per-job price snapshot from the P&L view.
-  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat
-    && Object.keys(selJob._state.costingPrices.mat).length > 0);
 
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
