@@ -22025,6 +22025,41 @@ function _renderPLView() {
   const allEdgeActual    = invs.filter(i => i.category === 'Edging').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
   const TH = (txt, color) => `<th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:${color||'var(--text-muted)'};font-weight:normal">${txt}</th>`;
 
+  // ── Per-material/edge actual QTY rollups (sheets / metres) ──
+  // We tally inv.qty only when both qty and unit_price are present (>0). Lump-sum
+  // invoices without qty detail show "—" in the Act. Sheets / Act. Metres column.
+  const matActualQty  = {};   // mat -> sum of inv.qty (only counted when qty>0 && unit_price>0)
+  const matHasQty     = {};   // mat -> boolean — at least one linked invoice has qty detail
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Boards') return;
+    if (!inv.mat) return;
+    const q  = parseFloat(inv.qty) || 0;
+    const up = parseFloat(inv.unit_price) || 0;
+    if (q > 0 && up > 0) {
+      matActualQty[inv.mat] = (matActualQty[inv.mat] || 0) + q;
+      matHasQty[inv.mat]    = true;
+    } else if (!(inv.mat in matHasQty)) {
+      matHasQty[inv.mat] = false;
+    }
+  });
+  const edgeActualQty = {};
+  const edgeHasQty    = {};
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Edging') return;
+    if (!inv.edgeKey) return;
+    const q  = parseFloat(inv.qty) || 0;
+    const up = parseFloat(inv.unit_price) || 0;
+    if (q > 0 && up > 0) {
+      edgeActualQty[inv.edgeKey] = (edgeActualQty[inv.edgeKey] || 0) + q;
+      edgeHasQty[inv.edgeKey]    = true;
+    } else if (!(inv.edgeKey in edgeHasQty)) {
+      edgeHasQty[inv.edgeKey] = false;
+    }
+  });
+  // Variance helpers for qty (red if over-used, green if at-or-under)
+  const qtyColor = v => v > 0 ? '#e05252' : '#5dba6e';
+  const qtyArrow = v => v > 0 ? '▲' : '▼';
+
   const matCompareHtml = (matBreakdown.length > 0 || edgeBreakdown.length > 0) ? `
   <div style="margin-bottom:24px">
     <div style="padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
