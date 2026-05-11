@@ -21614,8 +21614,8 @@ function renderPLPDFResults(items, jobId) {
         <span style="flex:1;min-width:0">SUPPLIER</span>
         <span style="width:130px;flex-shrink:0">CATEGORY</span>
         <span style="width:70px;flex-shrink:0;text-align:right">QTY</span>
-        <span style="width:90px;flex-shrink:0;text-align:right">UNIT PRICE</span>
-        <span style="width:100px;flex-shrink:0;text-align:right">TOTAL</span>
+        <span style="width:90px;flex-shrink:0;text-align:right" title="Unit price incl VAT">UNIT (incl VAT)</span>
+        <span style="width:100px;flex-shrink:0;text-align:right" title="Line total incl VAT — the actual paid amount">TOTAL (incl VAT)</span>
       </div>
       ${items.map((item, i) => {
         const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
