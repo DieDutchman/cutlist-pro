@@ -10684,6 +10684,9 @@ function getJobState() {
     // job so opening it in another browser shows the same reconciliation data.
     // Persisted inside jobs.state in Supabase; localStorage is a cache only.
     plData: (currentJobId && plData[currentJobId]) ? plData[currentJobId] : null,
+    // Historical price snapshot (P&L only) — survives autosave by living in a
+    // dedicated top-level field that isn't recomputed from live globals.
+    costingPriceSnapshot: currentJobPriceSnapshot,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
