@@ -22281,31 +22281,16 @@ function _renderPLView() {
 
     ${(()=>{
       // ── HARDWARE comparison ──────────────────────────────────────────────────
-      // Source extras: live job uses live quoteState, saved job uses snapshot.
-      let _extras = [];
-      if (selJobId === currentJobId && Array.isArray(quoteState.extras)) {
-        _extras = quoteState.extras;
-      } else if (selJob?._state?.quoteState?.extras) {
-        _extras = selJob._state.quoteState.extras;
-      }
-      // Group expected amounts by invoice-category bucket
-      const hwExpected = {
-        'Hardware – Hinges':   0,
-        'Hardware – Runners':  0,
-        'Hardware – Handles':  0,
-        'Hinge Drilling':      0,
-        'Hardware – Other':    0,
-      };
-      _extras.forEach(e => {
-        const amt = parseFloat(e.amount) || 0;
-        if (e.hwType === 'hinge')       hwExpected['Hardware – Hinges']  += amt;
-        else if (e.hwType === 'runner') hwExpected['Hardware – Runners'] += amt;
-        else if (e.hwType === 'handle160' || e.hwType === 'handle240')
-                                        hwExpected['Hardware – Handles'] += amt;
-        else if (e.hwType === 'drilling') hwExpected['Hinge Drilling']   += amt;
-        else if (e.otherType !== undefined && typeof e.otherType === 'string' && !e.otherType.startsWith('svc_'))
-                                        hwExpected['Hardware – Other']   += amt;
-      });
+      // Expected = raw supplier cost from snap.hardwareExpected (built in
+      // computeQuoteTotals) — sums auto-calculated unit hardware (hinges /
+      // runners / handles / drilling, respecting sectionHardware toggles) PLUS
+      // manual Quote-tab hardware extras. All values are EXCL the 15% HW
+      // handling markup, so they line up with what the supplier actually
+      // invoices excl VAT.
+      const hwExpected = Object.assign(
+        { 'Hardware – Hinges':0, 'Hardware – Runners':0, 'Hardware – Handles':0, 'Hinge Drilling':0, 'Hardware – Other':0 },
+        snap.hardwareExpected || {}
+      );
       // Group actuals by category (excl VAT)
       const hwActual = {};
       Object.keys(hwExpected).forEach(k => { hwActual[k] = 0; });
@@ -22327,13 +22312,17 @@ function _renderPLView() {
       const totalExp = rows.reduce((s,k) => s + hwExpected[k], 0);
       const totalAct = rows.reduce((s,k) => s + hwActual[k], 0);
       const totalVar = totalExp - totalAct;
+      const _hwExpTip = escTitle(
+        `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
+        `applied on the Quote tab, because that markup is not part of the supplier's invoice cost.`
+      );
       return `
     <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">HARDWARE</div>
     <div style="overflow-x:auto;border:1px solid var(--border)">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">HARDWARE</th>
-          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           ${rows.map(k => {
