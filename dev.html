@@ -21672,8 +21672,11 @@ async function openHistoricalPriceModal(jobId) {
   // and must be capturable as a historical snapshot like any other board.
   const mats = MATS.filter(m => m);
   const edges = EDGES.filter(e => e);
-  const curMat  = costingPrices.mat;
-  const curEdge = costingPrices.edge;
+  // Prefer the saved snapshot values (if any) over the live prices so the user
+  // is editing the historical record they already captured. Fall back to live
+  // prices for the initial snapshot.
+  const curMat  = (_existingSnap && _existingSnap.mat)  ? _existingSnap.mat  : costingPrices.mat;
+  const curEdge = (_existingSnap && _existingSnap.edge) ? _existingSnap.edge : costingPrices.edge;
 
   const matRows = mats.map(m => `
     <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
