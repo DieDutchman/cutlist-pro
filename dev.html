@@ -22348,7 +22348,7 @@ function _renderPLView() {
         <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
           <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
           <td colspan="4" style="padding:8px 10px"></td>
-          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(totalExp)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4" title="${_hwExpTip}">${R(totalExp)}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(totalAct)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
             ${(totalAct > 0 && totalExp > 0)?`<span style="color:${profitColor(totalVar)}" title="${varTip(totalVar)}">${profitArrow(totalVar)} ${R(Math.abs(totalVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}
