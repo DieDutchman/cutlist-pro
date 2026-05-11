@@ -22542,8 +22542,9 @@ function _renderPLView() {
           onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');const ew=document.getElementById('pl-new-edge-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';if(ew)ew.style.display=s.value==='Edging'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
-        <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01"
+        <span style="font-size:11px;color:var(--text-muted)" title="Enter amounts INCLUDING VAT — system strips VAT for comparison against quote">R <span style="font-size:9px;color:var(--amber-dim)">(incl VAT)</span></span>
+        <input id="pl-new-amount" type="number" placeholder="incl VAT" min="0" step="0.01"
+          title="Enter the VAT-inclusive total (what you actually paid)"
           style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
