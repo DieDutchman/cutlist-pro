@@ -21662,8 +21662,10 @@ async function openHistoricalPriceModal(jobId) {
     if (!job._state) return;
   }
 
-  // Build price rows from current MATS (those would have been the boards at job time)
-  const mats = MATS.filter(m => m !== '3MM White Masonite');
+  // Build price rows from current MATS (those would have been the boards at job time).
+  // Include ALL boards — Masonite has its own per-sheet price in costingPrices.mat
+  // and must be capturable as a historical snapshot like any other board.
+  const mats = MATS.filter(m => m);
   const edges = EDGES.filter(e => e);
   const curMat  = costingPrices.mat;
   const curEdge = costingPrices.edge;
