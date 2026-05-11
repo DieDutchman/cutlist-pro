@@ -9201,10 +9201,32 @@ function computeQuoteTotals() {
     else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+
+  // Add manual hardware extras (Quote tab "+ Hardware" / "+ Other") to raw HW totals.
+  // Stored e.amount = qty * unitPrice * (1 + HW_HANDLING); raw cost = amount / 1.15.
+  quoteState.extras.forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    if (!amt) return;
+    const raw = amt / (1 + HW_HANDLING);
+    if      (e.hwType === 'hinge')                                 _hwRaw.hinges   += raw;
+    else if (e.hwType === 'runner')                                _hwRaw.runners  += raw;
+    else if (e.hwType === 'handle160' || e.hwType === 'handle240') _hwRaw.handles  += raw;
+    else if (e.hwType === 'drilling')                              _hwRaw.drilling += raw;
+    else if (typeof e.otherType === 'string' && !e.otherType.startsWith('svc_')) _hwRaw.other += raw;
+  });
+  // Map raw category sums into P&L invoice-category keys for direct comparison.
+  const hardwareExpected = {
+    'Hardware – Hinges':   _hwRaw.hinges,
+    'Hardware – Runners':  _hwRaw.runners,
+    'Hardware – Handles':  _hwRaw.handles,
+    'Hinge Drilling':      _hwRaw.drilling,
+    'Hardware – Other':    _hwRaw.other,
+  };
+
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
   const markup       = quoteState.markup || 0;
   const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
