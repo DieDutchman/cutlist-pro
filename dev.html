@@ -9193,7 +9193,7 @@ function computeQuoteTotals() {
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
   const markup       = quoteState.markup || 0;
   const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
