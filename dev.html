@@ -16918,6 +16918,12 @@ function applyState(state) {
       plData[currentJobId] = state.plData;
       try { plSave(); } catch(e) {}
     }
+    // Historical price snapshot — must round-trip through getJobState() on
+    // every autosave so it isn't wiped. Restore here in the safe block.
+    currentJobPriceSnapshot = (state.costingPriceSnapshot && typeof state.costingPriceSnapshot === 'object'
+      && state.costingPriceSnapshot.mat && Object.keys(state.costingPriceSnapshot.mat).length > 0)
+      ? state.costingPriceSnapshot
+      : null;
   } catch(e) {
     console.warn('[applyState] critical-field pre-restore warned:', e);
   }
