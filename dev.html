@@ -22185,7 +22185,7 @@ function _renderPLView() {
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(edgeBreakdown.reduce((s,e)=>s+e.cost,0))}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allEdgeActual/1.15)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-            ${(()=>{const v=edgeBreakdown.reduce((s,e)=>s+e.cost,0)-allEdgeActual/1.15;return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
+            ${(()=>{const v=edgeBreakdown.reduce((s,e)=>s+e.cost,0)-allEdgeActual/1.15;return `<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
           </td>
         </tr></tfoot>` : ''}
       </table>
