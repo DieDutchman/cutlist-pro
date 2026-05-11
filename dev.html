@@ -21973,8 +21973,9 @@ function _renderPLView() {
             ${plInvoiceCategories().map(c =>
               `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
-          <span style="font-size:11px;color:var(--text-muted)">R</span>
-          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
+          <span style="font-size:11px;color:var(--text-muted)" title="Amount INCLUDING VAT">R</span>
+          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="incl VAT" min="0" step="0.01"
+            title="VAT-inclusive line total (what was paid). System divides by 1.15 to compare against quote excl VAT."
             style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
