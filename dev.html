@@ -21469,10 +21469,12 @@ Use these categories where possible: ${cats}
 
 Rules:
 - qty is the quantity ordered — can be a decimal (e.g. 1.67 sheets). Use 1 if not shown.
-- unit_price is the price per single unit/item. Use 0 if not shown.
-- amount is the total line price (qty × unit_price). This is what was actually paid for that line.
+- unit_price is the price per single unit/item INCLUSIVE of VAT.
+- amount is the total VAT-INCLUSIVE line price (what was actually paid for that line, including its share of VAT). This is CRITICAL.
+- If the invoice shows line items excluding VAT with a separate VAT line at the bottom, you MUST add the proportional VAT back into each line's amount (typically multiply each line by 1.15 for SA 15% VAT, or distribute the VAT line proportionally). Do the same for unit_price.
+- Confirm by checking: sum of all non-VAT/non-Total line amounts should approximately equal the invoice GRAND TOTAL (incl. VAT), NOT the subtotal excl. VAT.
 - All numeric fields must be plain numbers (no currency symbols, no commas)
-- If VAT is a separate line include it as category "VAT"
+- If VAT is a separate line include it as category "VAT" (but its amount is informational — the VAT is already baked into the line items above per the rule above)
 - If a subtotal or total line exists include it as category "Total" so the user can verify
 - Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
 - Return ONLY a JSON array, nothing else`;
