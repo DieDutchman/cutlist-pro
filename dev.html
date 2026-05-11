@@ -22121,7 +22121,7 @@ function _renderPLView() {
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">EDGE TYPE</th>
-          ${TH('METRES')}${TH('R/M')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+          ${TH('EXP. METRES')}${TH('ACT. METRES')}${TH('Δ METRES')}${TH('R/M')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           ${edgeBreakdown.map(e => {
@@ -22130,9 +22130,14 @@ function _renderPLView() {
             const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
             const variance      = hasActual ? e.cost - actualExcl : null;
             const pct           = hasActual && e.cost > 0 ? ((e.cost - actualExcl) / e.cost * 100) : null;
+            const hasQty        = !!edgeHasQty[e.edgeKey];
+            const actualM       = hasQty ? edgeActualQty[e.edgeKey] : null;
+            const mVar          = hasQty ? (actualM - e.billedM) : null;
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${e.edgeKey}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.billedM.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasQty?'var(--text)':'var(--text-muted)'}">${hasQty ? actualM.toFixed(1) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${mVar!==null?`<span style="color:${qtyColor(mVar)}">${qtyArrow(mVar)} ${Math.abs(mVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.pricePerM > 0 ? R(e.pricePerM) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(e.cost)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
@@ -22141,14 +22146,14 @@ function _renderPLView() {
             </tr>`;
           }).join('')}
           ${hasUnmatchedEdge ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
-            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned edging invoices</td>
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="6">Unassigned edging invoices</td>
             <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedEdgeInclVAT/1.15)}</td>
             <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
           </tr>` : ''}
         </tbody>
         ${allEdgeActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
           <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
-          <td colspan="2" style="padding:8px 10px"></td>
+          <td colspan="4" style="padding:8px 10px"></td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(edgeBreakdown.reduce((s,e)=>s+e.cost,0))}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allEdgeActual/1.15)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
@@ -22157,6 +22162,163 @@ function _renderPLView() {
         </tr></tfoot>` : ''}
       </table>
     </div>` : ''}
+
+    ${(()=>{
+      // ── TOPS comparison ──────────────────────────────────────────────────────
+      const topsExpected = snap.topsTotal || 0;
+      const topsActual   = invs.filter(i => (i.category||'') === 'Tops')
+                               .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+      if (topsExpected <= 0 && topsActual <= 0) return '';
+      const tVar = topsExpected - topsActual;
+      const tPct = topsExpected > 0 ? (tVar / topsExpected * 100) : null;
+      const hasA = topsActual > 0;
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">TOPS</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">Tops</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(topsExpected)}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasA?`<span style="color:${profitColor(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+    })()}
+
+    ${(()=>{
+      // ── HARDWARE comparison ──────────────────────────────────────────────────
+      // Source extras: live job uses live quoteState, saved job uses snapshot.
+      let _extras = [];
+      if (selJobId === currentJobId && Array.isArray(quoteState.extras)) {
+        _extras = quoteState.extras;
+      } else if (selJob?._state?.quoteState?.extras) {
+        _extras = selJob._state.quoteState.extras;
+      }
+      // Group expected amounts by invoice-category bucket
+      const hwExpected = {
+        'Hardware – Hinges':   0,
+        'Hardware – Runners':  0,
+        'Hardware – Handles':  0,
+        'Hinge Drilling':      0,
+        'Hardware – Other':    0,
+      };
+      _extras.forEach(e => {
+        const amt = parseFloat(e.amount) || 0;
+        if (e.hwType === 'hinge')       hwExpected['Hardware – Hinges']  += amt;
+        else if (e.hwType === 'runner') hwExpected['Hardware – Runners'] += amt;
+        else if (e.hwType === 'handle160' || e.hwType === 'handle240')
+                                        hwExpected['Hardware – Handles'] += amt;
+        else if (e.hwType === 'drilling') hwExpected['Hinge Drilling']   += amt;
+        else if (e.otherType !== undefined && typeof e.otherType === 'string' && !e.otherType.startsWith('svc_'))
+                                        hwExpected['Hardware – Other']   += amt;
+      });
+      // Group actuals by category (excl VAT)
+      const hwActual = {};
+      Object.keys(hwExpected).forEach(k => { hwActual[k] = 0; });
+      invs.forEach(inv => {
+        const cat = inv.category || '';
+        if (cat in hwExpected) {
+          hwActual[cat] += (parseFloat(inv.amount)||0) / 1.15;
+        }
+      });
+      const labels = {
+        'Hardware – Hinges':  'Hinges',
+        'Hardware – Runners': 'Runners',
+        'Hardware – Handles': 'Handles',
+        'Hinge Drilling':     'Hinge Drilling',
+        'Hardware – Other':   'Other Hardware',
+      };
+      const rows = Object.keys(hwExpected).filter(k => (hwExpected[k] > 0 || hwActual[k] > 0));
+      if (rows.length === 0) return '';
+      const totalExp = rows.reduce((s,k) => s + hwExpected[k], 0);
+      const totalAct = rows.reduce((s,k) => s + hwActual[k], 0);
+      const totalVar = totalExp - totalAct;
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">HARDWARE</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">HARDWARE</th>
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          ${rows.map(k => {
+            const exp = hwExpected[k];
+            const act = hwActual[k];
+            const v   = exp - act;
+            const pct = exp > 0 ? (v / exp * 100) : null;
+            const hasA = act > 0;
+            const hasE = exp > 0;
+            return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              <td style="padding:9px 12px;color:var(--text)">${labels[k]}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="4" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(totalExp)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(totalAct)}</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
+            ${(totalAct > 0 && totalExp > 0)?`<span style="color:${profitColor(totalVar)}">${profitArrow(totalVar)} ${R(Math.abs(totalVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}
+          </td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+    })()}
+
+    ${(()=>{
+      // ── CUT & LABEL comparison ───────────────────────────────────────────────
+      // Expected cut cost is bundled into matBreakdown[].cost (not exposed
+      // separately by computeJobMatBreakdown), so we only show actual here.
+      const cutActual = invs.filter(i => (i.category||'') === 'Cut & Label')
+                            .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+      if (cutActual <= 0) return '';
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">CUT &amp; LABEL</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">Cut &amp; Label</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)" title="Bundled into Boards expected cost"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${R(cutActual)}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:6px 12px;font-size:10px;color:var(--text-muted);font-style:italic;background:var(--bg2)">Expected cut &amp; label cost is bundled into the Boards expected total — compare the Boards section above for combined variance.</div>
+    </div>`;
+    })()}
 
   </div>` : '';
 
