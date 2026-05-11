@@ -22199,20 +22199,33 @@ function _renderPLView() {
 
     ${(()=>{
       // ── TOPS comparison ──────────────────────────────────────────────────────
-      const topsExpected = snap.topsTotal || 0;
+      // Expected here is the RAW supplier cost we expect to be invoiced for:
+      //   topsExcl only (m² × R/m²), excl VAT, excl delivery, excl our 10% handling markup.
+      // Why: topsTotal includes a 10% internal handling markup (user profit) and a flat
+      // R500 delivery estimate. The handling never appears on a supplier invoice, so
+      // comparing topsTotal against invoiceAmount/1.15 always shows a fake profit equal
+      // to the markup. Comparing topsExcl vs invoiceExclVAT is apples-to-apples.
+      const topsExpected = snap.topsExcl || 0;
       const topsActual   = invs.filter(i => (i.category||'') === 'Tops')
                                .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
       if (topsExpected <= 0 && topsActual <= 0) return '';
       const tVar = topsExpected - topsActual;
       const tPct = topsExpected > 0 ? (tVar / topsExpected * 100) : null;
       const hasA = topsActual > 0;
+      const _topsDel = snap.topsDelivery || 0;
+      const _topsHnd = snap.topsHandling || 0;
+      const expTip = escTitle(
+        `Raw supplier estimate (excl VAT): ${R(topsExpected)}. ` +
+        `Excludes delivery (${R(_topsDel)}) and the 10% handling markup (${R(_topsHnd)}) ` +
+        `because those are not part of the supplier invoice cost.`
+      );
       return `
     <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">TOPS</div>
     <div style="overflow-x:auto;border:1px solid var(--border)">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
-          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
@@ -22221,7 +22234,7 @@ function _renderPLView() {
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(topsExpected)}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${expTip}">${R(topsExpected)}</td>
             <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
             <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasA?`<span style="color:${profitColor(tVar)}" title="${varTip(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}" title="${pctTip(tPct,tVar)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
