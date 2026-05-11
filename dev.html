@@ -22073,7 +22073,7 @@ function _renderPLView() {
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">BOARD</th>
-          ${TH('SHEETS')}${TH('R/SHEET')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+          ${TH('EXP. SHEETS')}${TH('ACT. SHEETS')}${TH('Δ SHEETS')}${TH('R/SHEET')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           ${matBreakdown.map(b => {
@@ -22082,9 +22082,14 @@ function _renderPLView() {
             const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
             const variance      = hasActual ? b.cost - actualExcl : null;
             const pct           = hasActual && b.cost > 0 ? ((b.cost - actualExcl) / b.cost * 100) : null;
+            const hasQty        = !!matHasQty[b.mat];
+            const actualSh      = hasQty ? matActualQty[b.mat] : null;
+            const shVar         = hasQty ? (actualSh - b.billedSh) : null;
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${b.mat}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.billedSh.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasQty?'var(--text)':'var(--text-muted)'}">${hasQty ? actualSh.toFixed(1) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${shVar!==null?`<span style="color:${qtyColor(shVar)}">${qtyArrow(shVar)} ${Math.abs(shVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.pricePerSheet > 0 ? R(b.pricePerSheet) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(b.cost)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
@@ -22093,14 +22098,14 @@ function _renderPLView() {
             </tr>`;
           }).join('')}
           ${hasUnmatched ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
-            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned board invoices</td>
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="6">Unassigned board invoices</td>
             <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedBoardsInclVAT/1.15)}</td>
             <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
           </tr>` : ''}
         </tbody>
         ${allBoardsActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
           <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
-          <td colspan="2" style="padding:8px 10px"></td>
+          <td colspan="4" style="padding:8px 10px"></td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(matBreakdown.reduce((s,b)=>s+b.cost,0))}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allBoardsActual/1.15)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
