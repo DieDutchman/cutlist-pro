@@ -21746,14 +21746,18 @@ async function openHistoricalPriceModal(jobId) {
       histEdge[inp.dataset.histEdge] = parseFloat(inp.value) || 0;
     });
 
-    // Deep-copy the job state and inject the price snapshot
+    // Deep-copy the job state and inject the price snapshot into a dedicated
+    // top-level field. We deliberately do NOT overwrite state.costingPrices.mat
+    // / .edge here — those are mirrors of live globals at save time and would
+    // be clobbered by the next autosave's getJobState() pass, destroying the
+    // snapshot. Keeping the snapshot in its own field guarantees survival
+    // across autosaves and page reloads (Bug 2).
     const newState = JSON.parse(JSON.stringify(job._state));
-    if (!newState.costingPrices) newState.costingPrices = {};
-    newState.costingPrices.mat  = histMat;
-    newState.costingPrices.edge = histEdge;
-    // Preserve other costingPrices fields already in the state
-    if (!newState.costingPrices.extras)    newState.costingPrices.extras    = {...costingPrices.extras};
-    if (!newState.costingPrices.hardware)  newState.costingPrices.hardware  = {...costingPrices.hardware};
+    newState.costingPriceSnapshot = {
+      mat:  histMat,
+      edge: histEdge,
+      savedAt: new Date().toISOString(),
+    };
 
     try {
       const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}`, {
