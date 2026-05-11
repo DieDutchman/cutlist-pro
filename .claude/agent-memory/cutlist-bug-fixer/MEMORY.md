@@ -7,3 +7,4 @@
 - [costingPrices.mat ghost keys](project_costingprices_stale_keys.md) — costingPrices.mat is never cleared on reload; UIs enumerating it must filter via MATS/EDGES
 - [Per-job state in jobs.state](project_per_job_state_storage.md) — per-job data must round-trip through getJobState/applyState; localStorage is cache only, never source of truth
 - [P&L live globals leak](project_pl_live_globals_leak.md) — _renderPLView live-job branch uses globals; route through plCalcFromState when job has price snapshot
+- [P&L price snapshot](project_pl_price_snapshot.md) — snapshots live in state.costingPriceSnapshot (dedicated field), not state.costingPrices.mat; survives autosave
