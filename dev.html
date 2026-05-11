@@ -22308,7 +22308,7 @@ function _renderPLView() {
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(totalExp)}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(totalAct)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-            ${(totalAct > 0 && totalExp > 0)?`<span style="color:${profitColor(totalVar)}">${profitArrow(totalVar)} ${R(Math.abs(totalVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}
+            ${(totalAct > 0 && totalExp > 0)?`<span style="color:${profitColor(totalVar)}" title="${varTip(totalVar)}">${profitArrow(totalVar)} ${R(Math.abs(totalVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}
           </td>
         </tr></tfoot>
       </table>
