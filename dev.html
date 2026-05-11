@@ -21796,8 +21796,14 @@ async function openHistoricalPriceModal(jobId) {
         body: JSON.stringify({ state: newState }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // Update in-memory cache so P&L reflects the new snapshot immediately
+      // Update in-memory cache so P&L reflects the new snapshot immediately.
       job._state = newState;
+      // For the live current job, mirror the snapshot into the in-memory
+      // global so getJobState() includes it on subsequent autosaves (and so
+      // `_hasPriceSnapshot` reads `true` without needing a Supabase refetch).
+      if (jobId === currentJobId) {
+        currentJobPriceSnapshot = newState.costingPriceSnapshot;
+      }
       el.remove();
       renderPLView();
     } catch(e) {
