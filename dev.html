@@ -22165,12 +22165,12 @@ function _renderPLView() {
               <td style="padding:9px 12px;color:var(--text)">${e.edgeKey}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.billedM.toFixed(1)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasQty?'var(--text)':'var(--text-muted)'}">${hasQty ? actualM.toFixed(1) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${mVar!==null?`<span style="color:${qtyColor(mVar)}">${qtyArrow(mVar)} ${Math.abs(mVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${mVar!==null?`<span style="color:${qtyColor(mVar)}" title="${qtyTip(mVar,'metres')}">${qtyArrow(mVar)} ${Math.abs(mVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.pricePerM > 0 ? R(e.pricePerM) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(e.cost)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}" title="${varTip(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,variance)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>`;
           }).join('')}
           ${hasUnmatchedEdge ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
