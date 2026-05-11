@@ -21817,13 +21817,15 @@ function _renderPLView() {
   const pd   = selJobId ? (plData[selJobId] || { invoices: [], notes: '' }) : null;
   const invs = pd ? pd.invoices : [];
 
-  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat.
-  // Bug fix: previously this was `selJobId === currentJobId || ...` which hid the
-  // "Set historical prices" bar for the currently-loaded live job — even if no
-  // snapshot had ever been persisted for it. The bar must remain available so the
-  // user can capture or refresh the per-job price snapshot from the P&L view.
-  const _hasPriceSnapshot = !!(selJob?._state?.costingPrices?.mat
-    && Object.keys(selJob._state.costingPrices.mat).length > 0);
+  // Detect a saved historical-price snapshot. Snapshots live in
+  // `state.costingPriceSnapshot` (a dedicated top-level field) so autosaves
+  // can't wipe them by overwriting `state.costingPrices.mat` from live
+  // globals. For the live current job, `selJob._state` is not refreshed by
+  // loadUserJobs (which only fetches minimal columns), so fall back to the
+  // in-memory `currentJobPriceSnapshot` populated by applyState/openHistoricalPriceModal.
+  const _selSnap = selJob?._state?.costingPriceSnapshot
+    || (selJobId === currentJobId ? currentJobPriceSnapshot : null);
+  const _hasPriceSnapshot = !!(_selSnap && _selSnap.mat && Object.keys(_selSnap.mat).length > 0);
 
   // Calc snapshot totals
   // Priority order:
