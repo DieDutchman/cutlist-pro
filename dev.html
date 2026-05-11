@@ -22297,8 +22297,8 @@ function _renderPLView() {
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>`;
           }).join('')}
         </tbody>
