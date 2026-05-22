@@ -4264,23 +4264,74 @@ function saveMaterials() {
   try { localStorage.setItem('cutlist_materials', JSON.stringify(materialConfig)); } catch(e) {}
 }
 
-// Per-unit hardware flag — { [unitId]: false } means hardware excluded for that unit
-// Default (key absent) = hardware IS included
-const sectionHardware = {}; // { [sectionId]: false } = hardware excluded
+// Per-section hardware flags — granular per type (handles / runners / hinges).
+// Data shape:   sectionHardware[sectionId] = { handles:bool, runners:bool, hinges:bool }
+// Defaults:     missing key OR `true` (legacy) → all three ON
+//               legacy `false` → all three OFF
+// Drilling (hinge hole drilling) follows the hinges flag.
+const HW_TYPES = ['handles', 'runners', 'hinges'];
+const sectionHardware = {};
 try {
   const saved = JSON.parse(localStorage.getItem('cutlist_section_hardware') || '{}');
   Object.assign(sectionHardware, saved);
 } catch(e) {}
 
+// Normalize a stored value into a {handles,runners,hinges} object.
+// Accepts: undefined/true → all on; false → all off; partial obj → fill missing as true.
+function _normSectionHw(v) {
+  if (v === false) return { handles:false, runners:false, hinges:false };
+  if (v && typeof v === 'object') {
+    return {
+      handles: v.handles !== false,
+      runners: v.runners !== false,
+      hinges:  v.hinges  !== false,
+    };
+  }
+  // undefined, true, or anything else → all-on (default)
+  return { handles:true, runners:true, hinges:true };
+}
+
 function saveSectionHardware() {
   try { localStorage.setItem('cutlist_section_hardware', JSON.stringify(sectionHardware)); } catch(e) {}
 }
 
-function toggleSectionHardware(sectionId) {
-  if (sectionHardware[sectionId] === false) {
+// Read individual sub-flag for a section. Defaults to true when unset.
+function sectionHasHwType(sectionId, type) {
+  return _normSectionHw(sectionHardware[sectionId])[type];
+}
+function sectionHasHandles(sectionId) { return sectionHasHwType(sectionId, 'handles'); }
+function sectionHasRunners(sectionId) { return sectionHasHwType(sectionId, 'runners'); }
+function sectionHasHinges (sectionId) { return sectionHasHwType(sectionId, 'hinges' ); }
+
+// "Any" flag — used for showing/hiding the whole hardware UI block.
+function sectionHasHardware(sectionId) {
+  const f = _normSectionHw(sectionHardware[sectionId]);
+  return f.handles || f.runners || f.hinges;
+}
+
+// Unit-level wrappers
+function unitHasHwType(unitId, type) {
+  const unit = getEffectiveUnits().find(u => u.id === unitId);
+  return unit ? sectionHasHwType(unit.section, type) : true;
+}
+function unitHasHandles(unitId) { return unitHasHwType(unitId, 'handles'); }
+function unitHasRunners(unitId) { return unitHasHwType(unitId, 'runners'); }
+function unitHasHinges (unitId) { return unitHasHwType(unitId, 'hinges' ); }
+function unitHasHardware(unitId) {
+  const unit = getEffectiveUnits().find(u => u.id === unitId);
+  return unit ? sectionHasHardware(unit.section) : true;
+}
+
+// Toggle a single sub-flag for a section.
+function toggleSectionHardwareType(sectionId, type) {
+  if (!HW_TYPES.includes(type)) return;
+  const cur = _normSectionHw(sectionHardware[sectionId]);
+  cur[type] = !cur[type];
+  // Optimisation: if all three are on (default), drop the key entirely
+  if (cur.handles && cur.runners && cur.hinges) {
     delete sectionHardware[sectionId];
   } else {
-    sectionHardware[sectionId] = false;
+    sectionHardware[sectionId] = cur;
   }
   saveSectionHardware();
   renderPanel();
@@ -4289,13 +4340,20 @@ function toggleSectionHardware(sectionId) {
   refreshQuoteTotals();
 }
 
-function sectionHasHardware(sectionId) {
-  return sectionHardware[sectionId] !== false;
-}
-
-function unitHasHardware(unitId) {
-  const unit = getEffectiveUnits().find(u => u.id === unitId);
-  return unit ? sectionHasHardware(unit.section) : true;
+// Legacy entry-point: toggle ALL hardware for a section (kept for backwards compat).
+// If anything is on, turn everything off; otherwise turn everything on.
+function toggleSectionHardware(sectionId) {
+  const anyOn = sectionHasHardware(sectionId);
+  if (anyOn) {
+    sectionHardware[sectionId] = { handles:false, runners:false, hinges:false };
+  } else {
+    delete sectionHardware[sectionId];
+  }
+  saveSectionHardware();
+  renderPanel();
+  const cv = document.getElementById('costing-view');
+  if (cv && cv.style.display !== 'none') refreshCostingResults();
+  refreshQuoteTotals();
 }
 
 // Per-unit material overrides — { [unitId]: { wood, edging } }
