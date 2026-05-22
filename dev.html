@@ -14866,11 +14866,15 @@ function calcSectionCost(secId, sectionUnits, quantities) {
   const hw          = costingPrices.hardware;
   const hingePrice  = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hardwareCost = hw_counts.hingeCount     * hingePrice
-                     + hw_counts.runnerCount    * runnerPrice
-                     + hw_counts.handle160Count * hw.handle160
-                     + hw_counts.handle240Count * hw.handle240;
-  const drillingCost = hw_counts.drillingCount * costingPrices.extras.drilling;
+  // Respect the section's per-type hardware flags. Drilling follows hinges.
+  const incHinges   = sectionHasHinges (secId);
+  const incRunners  = sectionHasRunners(secId);
+  const incHandles  = sectionHasHandles(secId);
+  const hardwareCost = (incHinges  ? hw_counts.hingeCount     * hingePrice    : 0)
+                     + (incRunners ? hw_counts.runnerCount    * runnerPrice   : 0)
+                     + (incHandles ? hw_counts.handle160Count * hw.handle160  : 0)
+                     + (incHandles ? hw_counts.handle240Count * hw.handle240  : 0);
+  const drillingCost = incHinges ? hw_counts.drillingCount * costingPrices.extras.drilling : 0;
 
   return matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hPriceCost;
 }
