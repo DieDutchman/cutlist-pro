@@ -4524,17 +4524,30 @@ function buildMatSelector(groupIds) {
     return orphan + list.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
   };
 
-  // Compact per-type hardware toggle pill — used below for hinges / runners / handles.
-  const hwPill = (sectionId, type, label) => {
-    const on = sectionHasHwType(sectionId, type);
-    const onCss  = 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870';
-    const offCss = 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060';
-    return `<button onclick="toggleSectionHardwareType('${sectionId}','${type}')"
-      title="${label} ${on ? 'included' : 'excluded'} — click to ${on ? 'exclude (client supplies own)' : 'include auto-hardware'}"
-      style="display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px;cursor:pointer;border-radius:2px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;font-size:10px;text-transform:uppercase;white-space:nowrap;${on?onCss:offCss}">
-      <span>${label}</span>
-      <span style="font-size:11px;line-height:1">${on ? '✔' : '✘'}</span>
+  // Hardware row — one per type. Whole strip is the include/exclude toggle;
+  // sub-toggles (soft/norm) render inline on the right when applicable.
+  const hwSubBtn = (active, onClick, label) => `
+    <button onclick="${onClick}"
+      style="flex:1;min-width:38px;padding:3px 6px;font-size:9px;line-height:1;font-family:'Oswald',sans-serif;letter-spacing:0.6px;cursor:pointer;border-radius:2px;text-transform:uppercase;
+        border:1px solid ${active ? 'var(--amber)' : 'var(--border)'};
+        background:${active ? 'rgba(212,145,58,0.18)' : 'rgba(0,0,0,0.18)'};
+        color:${active ? 'var(--amber-light)' : 'var(--text-muted)'};
+        box-shadow:${active ? 'inset 0 0 0 1px rgba(212,145,58,0.25)' : 'none'};">
+      ${label}
     </button>`;
+
+  const hwRow = (sectionId, type, label, subHtml) => {
+    const on = sectionHasHwType(sectionId, type);
+    return `<div
+      title="${label} ${on ? 'included' : 'excluded'} — click to ${on ? 'exclude (client supplies own)' : 'include auto-hardware'}"
+      style="display:flex;align-items:stretch;height:22px;border-radius:2px;overflow:hidden;border:1px solid ${on ? '#2a5a3c' : 'var(--border)'};background:${on ? 'linear-gradient(90deg, rgba(40,160,90,0.14) 0%, rgba(40,160,90,0.06) 100%)' : 'rgba(0,0,0,0.16)'};box-shadow:${on ? 'inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 2px rgba(0,0,0,0.25)'}">
+      <button onclick="toggleSectionHardwareType('${sectionId}','${type}')"
+        style="display:flex;align-items:center;gap:7px;padding:0 9px;background:transparent;border:0;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:0.6px;font-size:10px;text-transform:uppercase;white-space:nowrap;color:${on ? '#3fc77a' : '#9a6060'};min-width:84px;">
+        <span style="position:relative;display:inline-block;width:8px;height:8px;border-radius:50%;background:${on ? '#3fc77a' : '#7a3838'};box-shadow:${on ? '0 0 6px rgba(63,199,122,0.7), inset 0 0 0 1px rgba(255,255,255,0.25)' : 'inset 0 0 0 1px rgba(0,0,0,0.35)'};flex-shrink:0"></span>
+        <span>${label}</span>
+      </button>
+      ${subHtml ? `<div style="display:flex;align-items:center;gap:3px;padding:0 5px 0 0;border-left:1px solid var(--border);background:rgba(0,0,0,0.18);flex:1;min-width:0;">${subHtml}</div>` : ''}
+    </div>`;
   };
 
   let html = `<div class="mat-selector-bar">`;
