@@ -8471,10 +8471,12 @@ function _renderQuoteView() {
       const qty = quantities[u.id] || 0;
       if (!qty || !u.parts || u.parts.length === 0) return;
       const c = calcUnitCost(u, qty);
-      totalHinges    += c.hingeCount    || 0;
-      totalHandle160 += c.handle160Count || 0;
-      totalHandle240 += c.handle240Count || 0;
-      if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
+      // Per-type section flags — skip excluded counts so the Quote hardware
+      // summary matches the costing-tab totals.
+      if (unitHasHinges (u.id)) totalHinges    += c.hingeCount    || 0;
+      if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
+      if (unitHasHandles(u.id)) totalHandle240 += c.handle240Count || 0;
+      if (unitHasRunners(u.id) && c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
