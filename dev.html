@@ -4524,10 +4524,23 @@ function buildMatSelector(groupIds) {
     return orphan + list.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
   };
 
+  // Compact per-type hardware toggle pill — used below for hinges / runners / handles.
+  const hwPill = (sectionId, type, label) => {
+    const on = sectionHasHwType(sectionId, type);
+    const onCss  = 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870';
+    const offCss = 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060';
+    return `<button onclick="toggleSectionHardwareType('${sectionId}','${type}')"
+      title="${label} ${on ? 'included' : 'excluded'} — click to ${on ? 'exclude (client supplies own)' : 'include auto-hardware'}"
+      style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px;cursor:pointer;border-radius:2px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;font-size:10px;text-transform:uppercase;white-space:nowrap;width:100%;${on?onCss:offCss}">
+      <span>${label}</span>
+      <span style="font-size:11px;line-height:1">${on ? '✔' : '✘'}</span>
+    </button>`;
+  };
+
   let html = `<div class="mat-selector-bar">`;
   groups.forEach(g => {
     const cfg = materialConfig[g.id];
-    const hwOn = sectionHasHardware(g.id);
+    const hwOn = sectionHasHardware(g.id); // any sub-flag on
     html += `<div class="mat-group">
       <div class="mat-group-label">${g.label}</div>
       <div style="display:flex;align-items:center;gap:14px">
@@ -4547,19 +4560,13 @@ function buildMatSelector(groupIds) {
             </select>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;border-left:1px solid var(--border);padding-left:14px">
-          <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">Hardware</span>
-          <button onclick="toggleSectionHardware('${g.id}')"
-            title="${hwOn ? 'Auto-hardware included — click to exclude (client supplies own)' : 'Hardware excluded — click to include auto-hardware'}"
-            style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 12px;cursor:pointer;border-radius:2px;font-family:inherit;white-space:nowrap;
-                   ${hwOn
-                     ? 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870'
-                     : 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060'
-                   }">
-            <span style="font-size:13px">${hwOn ? '✔' : '✘'}</span>
-            <span style="font-size:10px;letter-spacing:0.5px">${hwOn ? 'Included' : 'Excluded'}</span>
-            <span style="font-size:9px;color:${hwOn ? '#1a7a4a' : '#8a3030'};text-align:center;line-height:1.3">Hinges, Runners<br>&amp; Handles</span>
-          </button>
+        <div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;border-left:1px solid var(--border);padding-left:14px;min-width:120px">
+          <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap;text-align:center">Hardware</span>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            ${hwPill(g.id, 'hinges',  'Hinges' )}
+            ${hwPill(g.id, 'runners', 'Runners')}
+            ${hwPill(g.id, 'handles', 'Handles')}
+          </div>
           ${hwOn ? `
           <div style="display:flex;flex-direction:column;gap:4px;width:100%">
             <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Hinges</div>
