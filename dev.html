@@ -14874,7 +14874,11 @@ function calcSectionCost(secId, sectionUnits, quantities) {
 }
 
 function calcUnitCost(u, unitQty) {
-  const includeHardware = unitHasHardware(u.id);
+  // Per-section, per-type hardware flags. Drilling (hinge holes) follows hinges.
+  const includeHinges   = unitHasHinges(u.id);
+  const includeRunners  = unitHasRunners(u.id);
+  const includeHandles  = unitHasHandles(u.id);
+  const includeHardware = includeHinges || includeRunners || includeHandles;
   // Aggregate material m² and edging m per type, and part/door counts
   const matM2   = {};   // mat -> total m²
   const edgeM   = {};   // edgeKey -> total m
