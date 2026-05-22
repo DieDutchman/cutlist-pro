@@ -6145,6 +6145,11 @@ function generateSummary() {
   selectedUnits.forEach(u => {
     const unitQty = quantities[u.id] || 0;
     const isBedroom = bedroomSections.has(u.section);
+    // Per-section hardware flags — skip excluded types so the assembly summary
+    // matches the costing / quote breakdowns.
+    const incHinges  = sectionHasHinges (u.section);
+    const incHandles = sectionHasHandles(u.section);
+    const incRunners = sectionHasRunners(u.section);
 
     u.parts.forEach(p => {
       const nameLower = p.name.toLowerCase();
@@ -6152,27 +6157,27 @@ function generateSummary() {
       const isDrawerFace = nameLower.includes('face') && !nameLower.includes('filler');
 
       // Hinges — from "X per door" field on door panels
-      if (isDoorPanel) {
+      if (incHinges && isDoorPanel) {
         const match = (p.holes||'').match(/(\d+)\s*per door/i);
         if (match) totalHinges += parseInt(match[1]) * p.qty * unitQty;
       }
 
       // Handles — 1 per door panel, size by door length
-      if (isDoorPanel) {
+      if (incHandles && isDoorPanel) {
         const doorCount = p.qty * unitQty;
         if (Math.max(p.l, p.w) > 2100) handles240 += doorCount;
         else handles160 += doorCount;
       }
 
       // Handles — 1 per drawer face, size by section
-      if (isDrawerFace && !isDoorPanel) {
+      if (incHandles && isDrawerFace && !isDoorPanel) {
         const faceCount = p.qty * unitQty;
         if (isBedroom) handles240 += faceCount;
         else handles160 += faceCount;
       }
 
       // Runners — 1 set per drawer bottom
-      if (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom')) {
+      if (incRunners && (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom'))) {
         totalRunners += p.qty * unitQty;
       }
     });
