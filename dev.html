@@ -16211,12 +16211,12 @@ function _renderCostingView() {
           </tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr>
+          ${unitHasHinges(u.id) && c.doorCount > 0 ? `<tr>
             <td>Hinge Drilling (${c.doorCount} holes)</td>
             <td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td>
             <td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td>
           </tr>` : ''}
-          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${unitHasHardware(u.id) ? hardwareRows(c, u.section) : ''}
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
