@@ -4556,8 +4556,8 @@ function buildMatSelector(groupIds) {
     const hwOn = sectionHasHardware(g.id); // any sub-flag on
     html += `<div class="mat-group">
       <div class="mat-group-label">${g.label}</div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:6px;padding-top:2px">
           <div class="mat-row">
             <span class="mat-row-label">Wood</span>
             <div class="mat-swatch" id="swatch_${g.id}_wood" style="background:${COLOR_SWATCHES[cfg.wood]||'#888'}"></div>
