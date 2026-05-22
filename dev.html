@@ -4573,40 +4573,27 @@ function buildMatSelector(groupIds) {
             </select>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;border-left:1px solid var(--border);padding-left:14px;min-width:120px">
-          <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap;text-align:center">Hardware</span>
-          <div style="display:flex;flex-direction:row;gap:3px">
-            ${hwPill(g.id, 'hinges',  'Hinges' )}
-            ${hwPill(g.id, 'runners', 'Runners')}
-            ${hwPill(g.id, 'handles', 'Handles')}
+        <div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;border-left:1px solid var(--border);padding:2px 0 2px 14px;min-width:200px">
+          <div style="display:flex;align-items:center;gap:6px;padding-left:1px">
+            <span style="display:inline-block;width:14px;height:1px;background:var(--amber-dim)"></span>
+            <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1.6px;color:var(--amber-dim);text-transform:uppercase;white-space:nowrap">Hardware</span>
+            <span style="flex:1;height:1px;background:var(--border)"></span>
           </div>
-          ${hwOn ? `
-          <div style="display:flex;flex-direction:column;gap:4px;width:100%">
-            ${sectionHasHinges(g.id) ? `
-            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Hinges</div>
-            <div style="display:flex;gap:3px">
-              <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'}">
-                SOFT
-              </button>
-              <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'}">
-                NORM
-              </button>
-            </div>` : ''}
-            ${sectionHasRunners(g.id) ? `
-            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Runners</div>
-            <div style="display:flex;gap:3px">
-              <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'}">
-                SOFT
-              </button>
-              <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'}">
-                NORM
-              </button>
-            </div>` : ''}
-          </div>` : ''}
+          <div style="display:flex;flex-direction:column;gap:3px;width:100%">
+            ${hwRow(g.id, 'hinges', 'Hinges',
+              sectionHasHinges(g.id) ? `
+                ${hwSubBtn(quoteState.hingeType==='soft',   `quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()`,   'Soft')}
+                ${hwSubBtn(quoteState.hingeType==='normal', `quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()`, 'Norm')}
+              ` : ''
+            )}
+            ${hwRow(g.id, 'runners', 'Runners',
+              sectionHasRunners(g.id) ? `
+                ${hwSubBtn(quoteState.runnerType==='soft',   `quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()`,   'Soft')}
+                ${hwSubBtn(quoteState.runnerType==='normal', `quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()`, 'Norm')}
+              ` : ''
+            )}
+            ${hwRow(g.id, 'handles', 'Handles', '')}
+          </div>
         </div>
       </div>
     </div>`;
