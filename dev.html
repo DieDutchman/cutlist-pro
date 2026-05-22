@@ -4531,7 +4531,7 @@ function buildMatSelector(groupIds) {
     const offCss = 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060';
     return `<button onclick="toggleSectionHardwareType('${sectionId}','${type}')"
       title="${label} ${on ? 'included' : 'excluded'} — click to ${on ? 'exclude (client supplies own)' : 'include auto-hardware'}"
-      style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px;cursor:pointer;border-radius:2px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;font-size:10px;text-transform:uppercase;white-space:nowrap;width:100%;${on?onCss:offCss}">
+      style="display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px;cursor:pointer;border-radius:2px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;font-size:10px;text-transform:uppercase;white-space:nowrap;${on?onCss:offCss}">
       <span>${label}</span>
       <span style="font-size:11px;line-height:1">${on ? '✔' : '✘'}</span>
     </button>`;
