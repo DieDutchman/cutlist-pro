@@ -14977,22 +14977,23 @@ function calcUnitCost(u, unitQty) {
     edgeCost   += rounded * pricePerM;
     hPriceCost += rounded * hPrice;
   });
-  const drillingCost  = includeHardware ? doorCount * costingPrices.extras.drilling : 0;
+  // Hinge drilling follows the hinges flag (no hinges = no drill holes to pay for).
+  const drillingCost  = includeHinges ? doorCount * costingPrices.extras.drilling : 0;
   const hw            = costingPrices.hardware;
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hingeCost     = includeHardware ? hingeCount * hingePrice : 0;
+  const hingeCost     = includeHinges ? hingeCount * hingePrice : 0;
   const runnerCount   = totalRunnerCount(runnerSets);
   // Runner cost: use custom My Costs prices per size where available
-  const runnerCost    = includeHardware
+  const runnerCost    = includeRunners
     ? Object.entries(runnerSets).reduce((sum, [size, count]) => {
         const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
         const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
         return sum + count * price;
       }, 0)
     : 0;
-  const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
-  const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
+  const handle160Cost = includeHandles ? handle160Count * hw.handle160 : 0;
+  const handle240Cost = includeHandles ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
   const svcCost = calcSpecialServicesCost(unitSpecialServices[u.id]);
