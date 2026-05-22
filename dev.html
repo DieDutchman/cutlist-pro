@@ -16753,8 +16753,8 @@ function _refreshCostingResults() {
           <tr class="cv-subtotal"><td>Boards + Edging</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.matCost + c.edgeCost).toLocaleString('en-ZA')}</td></tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
-          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${unitHasHinges(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
+          ${unitHasHardware(u.id) ? hardwareRows(c, u.section) : ''}
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
