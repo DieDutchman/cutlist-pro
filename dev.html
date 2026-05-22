@@ -15006,20 +15006,25 @@ function calcUnitCost(u, unitQty) {
            totalSheets, boardSheets, masoniteSheets };
 }
 
-function hardwareRows(c) {
+function hardwareRows(c, sectionId) {
   const hw = costingPrices.hardware;
   const hingeLabel  = quoteState.hingeType === 'soft' ? 'Soft Close' : 'Normal';
   const runnerLabel = quoteState.runnerType === 'soft' ? 'Soft Close' : 'Normal';
   const hingePrice  = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
+  // Per-section sub-flags — only emit a row when that hardware type is included.
+  // If sectionId is omitted, fall back to "any is on" (legacy behaviour).
+  const showHinges  = sectionId ? sectionHasHinges(sectionId)  : true;
+  const showRunners = sectionId ? sectionHasRunners(sectionId) : true;
+  const showHandles = sectionId ? sectionHasHandles(sectionId) : true;
   let rows = '';
-  if (c.hingeCount > 0)
+  if (showHinges && c.hingeCount > 0)
     rows += `<tr><td>Hinges – ${hingeLabel} (${c.hingeCount})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hingePrice}×${c.hingeCount}</td><td class="num cost">R ${Math.round(c.hingeCost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.handle160Count > 0)
+  if (showHandles && c.handle160Count > 0)
     rows += `<tr><td>Handles 160mm (${c.handle160Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle160}×${c.handle160Count}</td><td class="num cost">R ${Math.round(c.handle160Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.handle240Count > 0)
+  if (showHandles && c.handle240Count > 0)
     rows += `<tr><td>Handles 240mm (${c.handle240Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle240}×${c.handle240Count}</td><td class="num cost">R ${Math.round(c.handle240Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.runnerCount > 0) {
+  if (showRunners && c.runnerCount > 0) {
     const _rSets    = c.runnerSets || {};
     const _rType    = quoteState.runnerType || 'soft';
     const _hasSized = Object.keys(_rSets).some(k => Number(k) > 0);
