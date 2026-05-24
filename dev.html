@@ -9790,15 +9790,46 @@ function computeQuoteTotals() {
 
   // Add manual hardware extras (Quote tab "+ Hardware" / "+ Other") to raw HW totals.
   // Stored e.amount = qty * unitPrice * (1 + HW_HANDLING); raw cost = amount / 1.15.
+  // Also build per-line hardware detail rows for the P&L Hardware section.
+  // A "top" extra (postform / countertop added via My Costs) is excluded from
+  // hardware detail and surfaced under TOPS instead — detected by matching the
+  // resolved item name against /top|postform/i.
+  const hardwareExtrasDetail = [];   // [{label, qty, unitPrice, rawTotal, category}]
+  const topsExtrasDetail     = [];   // [{label, qty, unitPrice, rawTotal}]
+  const _topRe = /\b(postform|top|counter\s*top|countertop|worktop)\b/i;
   quoteState.extras.forEach(e => {
     const amt = parseFloat(e.amount) || 0;
     if (!amt) return;
     const raw = amt / (1 + HW_HANDLING);
-    if      (e.hwType === 'hinge')                                 _hwRaw.hinges   += raw;
-    else if (e.hwType === 'runner')                                _hwRaw.runners  += raw;
-    else if (e.hwType === 'handle160' || e.hwType === 'handle240') _hwRaw.handles  += raw;
-    else if (e.hwType === 'drilling')                              _hwRaw.drilling += raw;
-    else if (typeof e.otherType === 'string' && !e.otherType.startsWith('svc_')) _hwRaw.other += raw;
+    // Resolve item label (hardware option, My Costs custom item, or special service)
+    let label = '';
+    let unitPrice = 0;
+    let qty = 0;
+    let category = null;     // P&L invoice-category bucket key
+    if (e.hwType) {
+      const opt = _hwOptions().find(o => o.key === e.hwType);
+      label = opt ? opt.label : (e.hwType || 'Hardware item');
+      unitPrice = opt ? opt.price : 0;
+      qty = parseInt(e.hwQty) || 1;
+      if      (e.hwType === 'hinge')                                 { _hwRaw.hinges   += raw; category = 'Hardware – Hinges'; }
+      else if (e.hwType === 'runner')                                { _hwRaw.runners  += raw; category = 'Hardware – Runners'; }
+      else if (e.hwType === 'handle160' || e.hwType === 'handle240') { _hwRaw.handles  += raw; category = 'Hardware – Handles'; }
+      else if (e.hwType === 'drilling')                              { _hwRaw.drilling += raw; category = 'Hinge Drilling'; }
+      hardwareExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw, category });
+    }
+    else if (typeof e.otherType === 'string' && !e.otherType.startsWith('svc_')) {
+      const item = costingPrices.customHardware.find(h => h.id === e.otherType);
+      label     = item ? item.name : (e.desc || 'Custom item');
+      unitPrice = item ? (item.pricePerUnit || 0) : 0;
+      qty = parseInt(e.otherQty) || 1;
+      // Detect a "top" extra (postform / countertop) by name and surface under TOPS.
+      if (item && _topRe.test(item.name || '')) {
+        topsExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw });
+      } else {
+        _hwRaw.other += raw;
+        hardwareExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw, category: 'Hardware – Other' });
+      }
+    }
   });
   // Map raw category sums into P&L invoice-category keys for direct comparison.
   const hardwareExpected = {
@@ -9812,7 +9843,7 @@ function computeQuoteTotals() {
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
   const markup       = quoteState.markup || 0;
   const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected };
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
