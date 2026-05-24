@@ -8559,15 +8559,15 @@ function renderUnitDiagramSVG(unit, unitName) {
 
   // Support rails (outside = extend behind boardEdge)
   if (g.hasSupports) {
-    const railH = Math.max(4, Math.round(g.supportRailH * SSCALE));
+    const railH = Math.max(4, Math.round(g.supportRailH * SCALE));
     sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
     sideSvgContent += `<rect x="${boardEdgePx}" y="${shPx - railH}" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
   }
 
   // Top: solid board or nailers
   if (g.topType === 'nailers') {
-    const fnPx = Math.round(g.frontNailerD * SSCALE);
-    const bnPx = Math.round(g.backNailerD * SSCALE);
+    const fnPx = Math.round(g.frontNailerD * SCALE);
+    const bnPx = Math.round(g.backNailerD * SCALE);
     sideSvgContent += `<rect x="0" y="0" width="${fnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
     sideSvgContent += `<rect x="${boardEdgePx - bnPx}" y="0" width="${bnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
   } else {
@@ -8581,7 +8581,7 @@ function renderUnitDiagramSVG(unit, unitName) {
   if (g.backingType === 'masonite') {
     sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${backT_px}" height="${shPx}" fill="#252538" stroke="#3a3a50" stroke-width="0.5"/>`;
   } else if (g.backingType === 'solid') {
-    const solidX = Math.round((D - g.backT) * SSCALE);
+    const solidX = Math.round((D - g.backT) * SCALE);
     sideSvgContent += `<rect x="${solidX}" y="${tPx}" width="${backT_px}" height="${shPx - 2*tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
   }
 
