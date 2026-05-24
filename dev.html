@@ -22580,8 +22580,12 @@ function _renderPLView() {
         extras:         t.extrasTotal,
         markup:         t.markup,
         hardwareExpected: t.hardwareExpected,
+        hardwareExtrasDetail: t.hardwareExtrasDetail || [],
+        topsExtrasDetail:     t.topsExtrasDetail     || [],
         matBreakdown:   _liveBreakdown.matBreakdown,
         edgeBreakdown:  _liveBreakdown.edgeBreakdown,
+        cutLabelExpected: _liveBreakdown.cutLabelExpected || 0,
+        cutLabelSheets:   _liveBreakdown.cutLabelSheets   || 0,
       };
     } catch(e) { console.warn('PL live calc error:', e); }
   } else if (selJob && selJob._state) {
