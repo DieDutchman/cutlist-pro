@@ -8321,26 +8321,20 @@ function inferUnitGeometry(unit) {
   const findAll = (re) => parts.filter(p => re.test((p.name || '').toLowerCase()));
 
   let H = 0, D = 0, W = 0;
-  let depthSource = '', heightSource = '', widthSource = '';
 
-  // Height + depth from "Sides" (the most reliable signal)
+  // Height + depth from "Sides"
   const sides = find(/^sides?$/);
-  if (sides) {
-    H = sides.l || 0;
-    D = sides.w || 0;
-    heightSource = 'sides.length';
-    depthSource  = 'sides.width';
-  }
+  if (sides) { H = sides.l || 0; D = sides.w || 0; }
 
-  // Width: try Bottom/Top/Back first (interior width), else fall back to doors+gaps
-  const bottom = find(/^bottom$/) || find(/^top$/) || find(/^top.*bottom|bottom.*top|top\/bottom/);
-  if (bottom && bottom.l) { W = bottom.l + 16; widthSource = 'bottom.length + 16 (sides)'; } // +2x8mm side panel approx
+  // Width from Bottom/Top/Back
+  const bottom = find(/^bottom$/) || find(/^top$/) || find(/top.*bottom|bottom.*top|top\/bottom/);
+  if (bottom && bottom.l) { W = bottom.l + 16; }
   if (!W) {
     const back = find(/^back(ing)?$/);
-    if (back && back.w) { W = back.w; widthSource = 'back.width'; }
+    if (back && back.w) { W = back.w; }
   }
 
-  // Drawer faces — collect every "Drawer Face(s)", "Top Drawer Face", "Drawer Front"
+  // Drawer faces
   const drawerFaceParts = parts.filter(p => {
     const n = (p.name || '').toLowerCase();
     return /drawer\s*face/.test(n) || /^drawer\s*front$/.test(n) || /^front\s*face$/.test(n);
@@ -8348,11 +8342,8 @@ function inferUnitGeometry(unit) {
   const drawerFaces = [];
   drawerFaceParts.forEach(p => {
     const qty = p.qty || 1;
-    for (let i = 0; i < qty; i++) {
-      drawerFaces.push({ h: p.l || 0, w: p.w || 0, name: p.name });
-    }
+    for (let i = 0; i < qty; i++) drawerFaces.push({ h: p.l || 0, w: p.w || 0, name: p.name });
   });
-  // Sort drawer faces small-on-top (typical pot-drawer convention: small drawer on top)
   drawerFaces.sort((a, b) => a.h - b.h);
 
   // Doors
@@ -8363,29 +8354,45 @@ function inferUnitGeometry(unit) {
     if (!doorH) doorH = p.l || 0;
     if (!doorW) doorW = p.w || 0;
   });
-
-  // If width still unknown, derive from doors (doors fill width with ~3mm gaps)
-  if (!W && doorW && doorCount) {
-    W = doorW * doorCount + (doorCount + 1) * 3;
-    widthSource = 'doors x qty + gaps';
-  }
+  if (!W && doorW && doorCount) W = doorW * doorCount + (doorCount + 1) * 3;
 
   // Shelves
   const shelfParts = findAll(/^shelf$|^shelves$/);
   let shelfCount = 0;
   shelfParts.forEach(p => { shelfCount += (p.qty || 1); });
 
-  // Bottom-face overlay (e.g. wall units have a "Bottom Face")
+  // Bottom-face overlay (wall units)
   const bottomFace = find(/bottom\s*face/);
+
+  // ── Structural detection ───────────────────────────────────────────────────
+  // Nailers: "Front Support" (≈100mm depth) + "Back Support" (≈70mm depth)
+  const frontSupport = find(/^front\s*support$/);
+  const backSupport  = find(/^back\s*support$/);
+  const topType = frontSupport ? 'nailers' : 'solid';
+  const frontNailerD = frontSupport ? (frontSupport.w || 100) : 100;
+  const backNailerD  = backSupport  ? (backSupport.w  || 70)  : 70;
+
+  // Backing: "Backing" with Masonite mat = masonite back; "Back" with carcass mat = solid back
+  const backingPart   = find(/^backing$/) || parts.find(p => (p.mat || '').toLowerCase().includes('masonite'));
+  const solidBackPart = !backingPart ? find(/^back$/) : null;
+  let backingType = 'none', backT = 0;
+  if (backingPart)    { backingType = 'masonite'; backT = 3; }
+  else if (solidBackPart) { backingType = 'solid'; backT = 18; }
+
+  // Support rails: "Supports" = vertical strips at rear of masonite carcass
+  const supportsPart = find(/^supports?$/);
+  const hasSupports  = !!supportsPart;
+  const supportRailH = supportsPart ? (supportsPart.w || 100) : 100;
 
   return {
     W, H, D,
     doorCount, doorH, doorW,
-    drawerFaces,
-    shelfCount,
+    drawerFaces, shelfCount,
     hasBottomFace: !!bottomFace,
     bottomFaceH: bottomFace ? (bottomFace.l || 0) : 0,
-    heightSource, depthSource, widthSource,
+    topType, frontNailerD, backNailerD,
+    backingType, backT,
+    hasSupports, supportRailH,
     partCount: parts.length,
   };
 }
