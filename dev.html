@@ -22955,6 +22955,24 @@ function _renderPLView() {
       const totalExp = rows.reduce((s,k) => s + hwExpected[k], 0);
       const totalAct = rows.reduce((s,k) => s + hwActual[k], 0);
       const totalVar = totalExp - totalAct;
+      // Group manual hardware-extras by their P&L category for per-line detail
+      // rows under each category roll-up (Bug 1).
+      const hwExtrasByCat = {};
+      (snap.hardwareExtrasDetail || []).forEach(d => {
+        if (!d || !d.category) return;
+        (hwExtrasByCat[d.category] = hwExtrasByCat[d.category] || []).push(d);
+      });
+      // Per-line actual lookup: any invoice with the same category that carries
+      // qty+unit_price detail can be matched by label. Falls back to qty * unitPrice / 1.15
+      // estimate of actual unit cost when no matching invoice is found.
+      const _findActualForLine = (cat, label) => {
+        const matches = invs.filter(inv =>
+          (inv.category || '') === cat &&
+          (inv.desc || '').trim().toLowerCase() === (label || '').trim().toLowerCase()
+        );
+        if (matches.length === 0) return null;
+        return matches.reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0) / 1.15;
+      };
       const _hwExpTip = escTitle(
         `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
         `applied on the Quote tab, because that markup is not part of the supplier's invoice cost.`
