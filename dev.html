@@ -6918,7 +6918,9 @@ function scalePart(part, baseWidth, newWidth) {
   // Lock `l` out of width-scaling so a coincidental near-match between door height and
   // cabinet width (e.g. W750 doors at 717mm) doesn't accidentally scale door height.
   // The `w` axis is still considered for full/half width matching below.
-  const isDoorLike = /\bdoors?\b/.test(n) || /drawer\s*fronts?/.test(n);
+  const isDoorLike = /\bdoors?\b/.test(n)
+                  || /drawer\s*fronts?/.test(n)
+                  || /drawer\s*faces?/.test(n);
 
   let lMode = null, wMode = null, lDist = 9999, wDist = 9999;
 
