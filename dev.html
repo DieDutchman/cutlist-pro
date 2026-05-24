@@ -9878,6 +9878,8 @@ function computeJobMatBreakdown() {
 
   // 4. Board breakdown
   const hPrice = costingPrices.extras.hPrice || 0;
+  let cutLabelExpected = 0;   // running total of cut & label cost across all materials
+  let cutLabelSheets   = 0;   // total whole-sheets billed for cut & label
   const matBreakdown = Object.entries(allMatM2)
     .filter(([, m2]) => m2 > 0)
     .map(([mat, rawM2]) => {
@@ -9891,6 +9893,8 @@ function computeJobMatBreakdown() {
       const matCost       = billedSh * pricePerSheet;
       const cutCost       = wholeSh * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
       const hpc           = (billedSh + wholeSh) * hPrice;
+      cutLabelExpected   += cutCost;
+      cutLabelSheets     += wholeSh;
       return { mat, m2: rawM2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc };
     })
     .sort((a, b) => b.cost - a.cost);
