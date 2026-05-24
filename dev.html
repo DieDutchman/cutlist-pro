@@ -8592,6 +8592,21 @@ function renderUnitDiagramSVG(unit, unitName) {
     }
   }
 
+  // Drawer runner lines — mirror the front view stack so side section shows
+  // where each drawer sits inside the carcass (thin horizontal dividers).
+  if (g.drawerFaces.length > 0) {
+    const dfGapPx = Math.max(1, Math.round(3 * SCALE));
+    let dyPx = shPx;
+    const drawerSideStack = [...g.drawerFaces].reverse(); // largest at bottom
+    drawerSideStack.forEach(f => {
+      const hPx = Math.max(6, Math.round(f.h * SCALE));
+      dyPx -= hPx;
+      // Thin runner board at the top of each drawer opening
+      sideSvgContent += `<rect x="0" y="${dyPx}" width="${boardEdgePx}" height="${Math.max(2, tPx - 2)}" fill="#2f3045" stroke="#3a3a50" stroke-width="0.5"/>`;
+      dyPx -= dfGapPx;
+    });
+  }
+
   // Carcass outline
   sideSvgContent += `<rect x="0" y="0" width="${boardEdgePx}" height="${shPx}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>`;
 
