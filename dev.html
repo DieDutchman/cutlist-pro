@@ -22008,8 +22008,12 @@ function plCalcFromState(state) {
       extras:         t.extrasTotal,
       markup:         t.markup,
       hardwareExpected: t.hardwareExpected,
+      hardwareExtrasDetail: t.hardwareExtrasDetail || [],
+      topsExtrasDetail:     t.topsExtrasDetail     || [],
       matBreakdown:   _snapBreakdown.matBreakdown,
       edgeBreakdown:  _snapBreakdown.edgeBreakdown,
+      cutLabelExpected: _snapBreakdown.cutLabelExpected || 0,
+      cutLabelSheets:   _snapBreakdown.cutLabelSheets   || 0,
     };
 
   } finally {
