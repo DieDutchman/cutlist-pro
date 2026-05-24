@@ -6914,9 +6914,15 @@ function scalePart(part, baseWidth, newWidth) {
   const neverScale = /\bsides?\b/.test(n) || /drawer (box )?sides?/.test(n);
   if (neverScale) return { ...part, _lMode: null, _wMode: null };
 
+  // Door / drawer-front panels: `l` is door HEIGHT, `w` is door WIDTH by codebase convention.
+  // Lock `l` out of width-scaling so a coincidental near-match between door height and
+  // cabinet width (e.g. W750 doors at 717mm) doesn't accidentally scale door height.
+  // The `w` axis is still considered for full/half width matching below.
+  const isDoorLike = /\bdoors?\b/.test(n) || /drawer\s*fronts?/.test(n);
+
   let lMode = null, wMode = null, lDist = 9999, wDist = 9999;
 
-  if (!isStructural(part.l)) {
+  if (!isStructural(part.l) && !isDoorLike) {
     const df = Math.abs(part.l - baseWidth), dh = Math.abs(part.l - halfBase);
     if (df <= FULL_THR)      { lMode = 'full'; lDist = df; }
     else if (dh <= HALF_THR) { lMode = 'half'; lDist = dh; }
@@ -6927,12 +6933,14 @@ function scalePart(part, baseWidth, newWidth) {
     else if (dh <= HALF_THR) { wMode = 'half'; wDist = dh; }
   }
 
-  // Conflict: both l and w qualify — keep the SMALLER offset (closer = more obviously width-derived)
+  // Conflict: both l and w qualify as width-derived.
+  // Prefer the SMALLER absolute offset — closer match wins regardless of full/half mode.
+  // (Old logic short-circuited to prefer 'full' over 'half', which mis-identified door
+  // HEIGHT as a width-derived dimension whenever it happened to be numerically close to
+  // the cabinet width.)
   if (lMode && wMode) {
-    if (lMode === 'full' && wMode !== 'full') wMode = null;
-    else if (wMode === 'full' && lMode !== 'full') lMode = null;
-    else if (lDist <= wDist) wMode = null;
-    else lMode = null;
+    if (lDist <= wDist) wMode = null;
+    else                 lMode = null;
   }
 
   const newL = lMode === 'full' ? part.l + delta
