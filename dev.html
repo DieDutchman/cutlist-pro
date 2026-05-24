@@ -8289,9 +8289,9 @@ function openLightbox(unitId, unitName) {
       : null;
     imgEl.src = '';
     imgEl.style.display = 'none';
-    svgEl.style.display = 'block';
+    svgEl.style.display = 'flex';
     svgEl.innerHTML = renderUnitDiagramSVG(unit, unitName);
-    capEl.textContent = unitName + ' — auto-generated schematic';
+    capEl.textContent = '';
   }
 
   lbEl.style.display = 'flex';
