@@ -3262,7 +3262,8 @@
   <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
-    <img id="img-lightbox-img" src="" alt="">
+    <img id="img-lightbox-img" src="" alt="" style="display:none">
+    <div id="img-lightbox-svg" style="display:none;max-width:90vw;max-height:88vh;background:var(--bg2);border:1px solid var(--border);padding:24px;box-shadow:0 8px 40px rgba(0,0,0,0.7);overflow:auto" onclick="event.stopPropagation()"></div>
     <div class="img-lightbox-caption" id="img-lightbox-caption"></div>
   </div>
 </div>
