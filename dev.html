@@ -8438,13 +8438,11 @@ function renderUnitDiagramSVG(unit, unitName) {
   const frontSvgW = fPAD_L + fw + fPAD_R;
   const frontSvgH = fPAD_T + fh + fPAD_B;
 
-  // Top band: solid board or nailer stubs
+  // Top band: in front elevation nailers look like a full-width strip (depth is
+  // not visible from the front — that detail belongs in the side section only).
   let frontInternals = '';
   if (g.topType === 'nailers') {
-    const fnW = Math.round(g.frontNailerD * FSCALE);
-    const bnW = Math.round(g.backNailerD * FSCALE);
-    frontInternals += `<rect x="0" y="0" width="${fnW}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
-    frontInternals += `<rect x="${fw - bnW}" y="0" width="${bnW}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
+    frontInternals += `<rect x="0" y="0" width="${fw}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
   } else {
     frontInternals += `<rect x="0" y="0" width="${fw}" height="${tPx_f}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.75"/>`;
   }
