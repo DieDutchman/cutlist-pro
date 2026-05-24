@@ -23073,34 +23073,48 @@ function _renderPLView() {
 
     ${(()=>{
       // ── CUT & LABEL comparison ───────────────────────────────────────────────
-      // Expected cut cost is bundled into matBreakdown[].cost (not exposed
-      // separately by computeJobMatBreakdown), so we only show actual here.
+      // Expected cut cost is now exposed separately by computeJobMatBreakdown
+      // (snap.cutLabelExpected) — the per-material cutCost sum, excl VAT.
+      // It is ALSO bundled into matBreakdown[].cost (used for the Boards row),
+      // so the Boards section continues to reflect "boards + cut" combined.
+      const cutExpected = snap.cutLabelExpected || 0;
+      const cutSheets   = snap.cutLabelSheets   || 0;
       const cutActual = invs.filter(i => (i.category||'') === 'Cut & Label')
                             .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
-      if (cutActual <= 0) return '';
+      if (cutExpected <= 0 && cutActual <= 0) return '';
+      const cVar  = (cutExpected > 0 && cutActual > 0) ? (cutExpected - cutActual) : null;
+      const cPct  = (cVar !== null && cutExpected > 0) ? (cVar / cutExpected * 100) : null;
+      const hasE  = cutExpected > 0;
+      const hasA  = cutActual   > 0;
+      const cExpTip = escTitle(
+        `Cut & label estimate (excl VAT) from the costing sheet — the per-sheet ` +
+        `cut & label charge applied across all boards in this job. Also bundled ` +
+        `into the Boards expected total above; shown here for direct variance against ` +
+        `Cut & Label invoice lines.`
+      );
       return `
     <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">CUT &amp; LABEL</div>
     <div style="overflow-x:auto;border:1px solid var(--border)">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
-          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+          ${TH('EXP. SHEETS')}${TH('ACT. SHEETS')}${TH('Δ SHEETS')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
             <td style="padding:9px 12px;color:var(--text)">Cut &amp; Label</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${cutSheets > 0 ? cutSheets : '<span style="font-size:10px">—</span>'}</td>
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)" title="Bundled into Boards expected cost"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${R(cutActual)}</td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" title="${cExpTip}">${hasE ? R(cutExpected) : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(cutActual) : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${cVar!==null?`<span style="color:${profitColor(cVar)}" title="${varTip(cVar)}">${profitArrow(cVar)} ${R(Math.abs(cVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${cPct!==null?`<span style="color:${profitColor(cPct)}" title="${pctTip(cPct,cVar)}">${cPct>=0?'+':''}${cPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
           </tr>
         </tbody>
       </table>
-      <div style="padding:6px 12px;font-size:10px;color:var(--text-muted);font-style:italic;background:var(--bg2)">Expected cut &amp; label cost is bundled into the Boards expected total — compare the Boards section above for combined variance.</div>
+      <div style="padding:6px 12px;font-size:10px;color:var(--text-muted);font-style:italic;background:var(--bg2)">Cut &amp; label expected cost is also bundled into the Boards expected total — the Boards section above shows combined boards + cut variance.</div>
     </div>`;
     })()}
 
