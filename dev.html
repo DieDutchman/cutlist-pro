@@ -8167,11 +8167,31 @@ function removeUnitImage(unitId) {
 }
 
 function openLightbox(unitId, unitName) {
+  const imgEl  = document.getElementById('img-lightbox-img');
+  const svgEl  = document.getElementById('img-lightbox-svg');
+  const capEl  = document.getElementById('img-lightbox-caption');
+  const lbEl   = document.getElementById('img-lightbox');
+
   const src = unitImages[unitId];
-  if (!src) return;
-  document.getElementById('img-lightbox-img').src = src;
-  document.getElementById('img-lightbox-caption').textContent = unitName;
-  document.getElementById('img-lightbox').style.display = 'flex';
+  if (src) {
+    imgEl.src = src;
+    imgEl.style.display = '';
+    svgEl.style.display = 'none';
+    svgEl.innerHTML = '';
+    capEl.textContent = unitName;
+  } else {
+    // No uploaded image — render an auto-generated SVG schematic from parts data.
+    const unit = (typeof getEffectiveUnits === 'function')
+      ? getEffectiveUnits().find(u => u.id === unitId)
+      : null;
+    imgEl.src = '';
+    imgEl.style.display = 'none';
+    svgEl.style.display = 'block';
+    svgEl.innerHTML = renderUnitDiagramSVG(unit, unitName);
+    capEl.textContent = unitName + ' — auto-generated schematic';
+  }
+
+  lbEl.style.display = 'flex';
   document.addEventListener('keydown', closeLightboxOnEsc);
 }
 
@@ -8180,6 +8200,332 @@ function closeLightbox() {
   document.removeEventListener('keydown', closeLightboxOnEsc);
 }
 function closeLightboxOnEsc(e) { if (e.key === 'Escape') closeLightbox(); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO UNIT SCHEMATIC
+// Infer cabinet geometry (W, H, D, doors, drawer faces, shelves) from the
+// unit's parts list, then render a clean SVG front view with dim labels.
+// Naming heuristics match the canonical UNITS array part names:
+//   "Sides"             → length=height, width=depth
+//   "Door" / "Doors"    → qty=door count, length=face height, width=face width
+//   "Drawer Faces" / "Top Drawer Face" / "Drawer Front" → drawer faces
+//   "Shelf" / "Shelves" → shelf count
+//   "Bottom" / "Top"    → fallback width/depth source
+// ─────────────────────────────────────────────────────────────────────────────
+function inferUnitGeometry(unit) {
+  const parts = (unit && unit.parts) || [];
+  const find = (re) => parts.find(p => re.test((p.name || '').toLowerCase()));
+  const findAll = (re) => parts.filter(p => re.test((p.name || '').toLowerCase()));
+
+  let H = 0, D = 0, W = 0;
+  let depthSource = '', heightSource = '', widthSource = '';
+
+  // Height + depth from "Sides" (the most reliable signal)
+  const sides = find(/^sides?$/);
+  if (sides) {
+    H = sides.l || 0;
+    D = sides.w || 0;
+    heightSource = 'sides.length';
+    depthSource  = 'sides.width';
+  }
+
+  // Width: try Bottom/Top/Back first (interior width), else fall back to doors+gaps
+  const bottom = find(/^bottom$/) || find(/^top$/) || find(/^top.*bottom|bottom.*top|top\/bottom/);
+  if (bottom && bottom.l) { W = bottom.l + 16; widthSource = 'bottom.length + 16 (sides)'; } // +2x8mm side panel approx
+  if (!W) {
+    const back = find(/^back(ing)?$/);
+    if (back && back.w) { W = back.w; widthSource = 'back.width'; }
+  }
+
+  // Drawer faces — collect every "Drawer Face(s)", "Top Drawer Face", "Drawer Front"
+  const drawerFaceParts = parts.filter(p => {
+    const n = (p.name || '').toLowerCase();
+    return /drawer\s*face/.test(n) || /^drawer\s*front$/.test(n) || /^front\s*face$/.test(n);
+  });
+  const drawerFaces = [];
+  drawerFaceParts.forEach(p => {
+    const qty = p.qty || 1;
+    for (let i = 0; i < qty; i++) {
+      drawerFaces.push({ h: p.l || 0, w: p.w || 0, name: p.name });
+    }
+  });
+  // Sort drawer faces small-on-top (typical pot-drawer convention: small drawer on top)
+  drawerFaces.sort((a, b) => a.h - b.h);
+
+  // Doors
+  const doorParts = parts.filter(p => /^doors?$/.test((p.name || '').toLowerCase()));
+  let doorCount = 0, doorH = 0, doorW = 0;
+  doorParts.forEach(p => {
+    doorCount += (p.qty || 1);
+    if (!doorH) doorH = p.l || 0;
+    if (!doorW) doorW = p.w || 0;
+  });
+
+  // If width still unknown, derive from doors (doors fill width with ~3mm gaps)
+  if (!W && doorW && doorCount) {
+    W = doorW * doorCount + (doorCount + 1) * 3;
+    widthSource = 'doors x qty + gaps';
+  }
+
+  // Shelves
+  const shelfParts = findAll(/^shelf$|^shelves$/);
+  let shelfCount = 0;
+  shelfParts.forEach(p => { shelfCount += (p.qty || 1); });
+
+  // Bottom-face overlay (e.g. wall units have a "Bottom Face")
+  const bottomFace = find(/bottom\s*face/);
+
+  return {
+    W, H, D,
+    doorCount, doorH, doorW,
+    drawerFaces,
+    shelfCount,
+    hasBottomFace: !!bottomFace,
+    bottomFaceH: bottomFace ? (bottomFace.l || 0) : 0,
+    heightSource, depthSource, widthSource,
+    partCount: parts.length,
+  };
+}
+
+function renderUnitDiagramSVG(unit, unitName) {
+  if (!unit) {
+    return `<div style="color:var(--text-muted);font-family:'Barlow',sans-serif;padding:40px;text-align:center">Unit not found.</div>`;
+  }
+  if (!unit.parts || unit.parts.length === 0) {
+    return `<div style="color:var(--text-muted);font-family:'Barlow',sans-serif;padding:40px;text-align:center">
+      <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:var(--amber);margin-bottom:10px">NO PARTS DEFINED</div>
+      <div style="font-size:13px">This unit has no parts list, so a schematic cannot be generated.<br>You can upload an image diagram in the Unit Editor.</div>
+    </div>`;
+  }
+
+  const g = inferUnitGeometry(unit);
+  const W = g.W || 600;  // sensible fallbacks so the SVG still draws
+  const H = g.H || 780;
+  const D = g.D || 534;
+
+  // Layout: front view on the left, side view on the right.
+  // Aim for a max ~520px wide front view, with the side view scaled identically.
+  const SCALE = Math.min(520 / W, 540 / H);
+  const fw = Math.round(W * SCALE);
+  const fh = Math.round(H * SCALE);
+  const dPx = Math.round(D * SCALE);
+
+  const PAD_L = 56;   // room for height dim on left
+  const PAD_T = 30;   // room for title/headers
+  const PAD_B = 50;   // room for width dim labels
+  const GAP   = 70;   // gap between front and side view
+  const PAD_R = 30;
+
+  const totalW = PAD_L + fw + GAP + dPx + PAD_R;
+  const totalH = PAD_T + fh + PAD_B;
+
+  // ── Front view content ─────────────────────────────────────────────────────
+  // We stack drawer faces from the bottom up, then doors fill the remaining
+  // upper space. Faces drawn as amber slabs with their mm height labeled.
+  const fGap = 3;  // 3mm typical reveal gap
+  const fGapPx = Math.max(1, Math.round(fGap * SCALE));
+
+  let faceSvg = '';
+  let yPx = fh; // bottom of front view in local coords
+
+  // Drawer faces (stacked from bottom, smallest on top per typical pot-drawer)
+  // Our inferUnitGeometry sorted smallest-first; reverse so largest sits at the bottom.
+  const drawerStack = [...g.drawerFaces].reverse();
+  drawerStack.forEach((f) => {
+    const hPx = Math.max(6, Math.round(f.h * SCALE));
+    yPx -= hPx;
+    faceSvg += `
+      <rect x="0" y="${yPx}" width="${fw}" height="${hPx}" rx="1.5"
+        fill="rgba(212,145,58,0.20)" stroke="var(--amber)" stroke-width="1.5"/>
+      <text x="${fw/2}" y="${yPx + hPx/2}" text-anchor="middle"
+        dominant-baseline="middle" font-size="11" fill="var(--amber)"
+        font-family="JetBrains Mono,monospace">${f.h} mm</text>`;
+    yPx -= fGapPx;
+  });
+
+  // Remaining vertical space above drawers → fill with doors (split horizontally
+  // if doorCount > 1). If neither doors nor drawers — show empty carcass.
+  const doorAreaTop = 0;
+  const doorAreaBot = yPx; // top of stacked drawers (or fh if no drawers)
+  const doorAreaH   = doorAreaBot - doorAreaTop;
+
+  let doorSvg = '';
+  if (g.doorCount > 0 && doorAreaH > 8) {
+    // Use the unit's actual door height if it fits; otherwise fit to available space.
+    const wantH = g.doorH ? Math.round(g.doorH * SCALE) : doorAreaH;
+    const actualDoorH = Math.min(wantH, doorAreaH - 2);
+    const doorTopY = doorAreaBot - actualDoorH;
+    // Horizontal layout: doorCount slabs across full front width with thin reveals
+    const reveal = Math.max(1, Math.round(2 * SCALE));
+    const totalReveal = reveal * (g.doorCount + 1);
+    const slabW = (fw - totalReveal) / g.doorCount;
+    for (let i = 0; i < g.doorCount; i++) {
+      const x = reveal + i * (slabW + reveal);
+      doorSvg += `
+        <rect x="${x}" y="${doorTopY + 1}" width="${slabW}" height="${actualDoorH - 2}" rx="1.5"
+          fill="rgba(212,145,58,0.10)" stroke="var(--amber-dim)" stroke-width="1.5"/>`;
+      // Hinge dots (2 per door at top + bottom interior edge)
+      const hingeX = (i === 0) ? x + slabW - 6 : x + 6; // hinge side toward exterior
+      doorSvg += `
+        <circle cx="${hingeX}" cy="${doorTopY + 14}" r="2" fill="rgba(212,145,58,0.55)"/>
+        <circle cx="${hingeX}" cy="${doorTopY + actualDoorH - 14}" r="2" fill="rgba(212,145,58,0.55)"/>`;
+    }
+    // Door height label centered
+    if (g.doorH) {
+      doorSvg += `
+        <text x="${fw/2}" y="${doorTopY + actualDoorH/2}" text-anchor="middle"
+          dominant-baseline="middle" font-size="11" fill="var(--amber-dim)"
+          font-family="JetBrains Mono,monospace">${g.doorCount}× Door ${g.doorH}mm</text>`;
+    }
+  } else if (g.doorCount === 0 && drawerStack.length === 0) {
+    // Open carcass — show shelves if any
+    const shelvesToShow = Math.max(0, g.shelfCount);
+    if (shelvesToShow > 0) {
+      const spacing = fh / (shelvesToShow + 1);
+      for (let i = 1; i <= shelvesToShow; i++) {
+        const sy = Math.round(i * spacing);
+        doorSvg += `
+          <line x1="6" y1="${sy}" x2="${fw - 6}" y2="${sy}"
+            stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="${fw - 10}" y="${sy - 4}" text-anchor="end" font-size="9"
+            fill="rgba(255,255,255,0.4)" font-family="JetBrains Mono,monospace">shelf</text>`;
+      }
+    } else {
+      doorSvg += `
+        <text x="${fw/2}" y="${fh/2}" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="var(--text-muted)" font-family="Barlow,sans-serif"
+          font-style="italic">Open carcass</text>`;
+    }
+  }
+
+  // Bottom face overlay (wall units etc.)
+  let bottomFaceSvg = '';
+  if (g.hasBottomFace && g.bottomFaceH > 0) {
+    const bhPx = Math.round(g.bottomFaceH * SCALE);
+    bottomFaceSvg = `
+      <rect x="0" y="${fh - bhPx}" width="${fw}" height="${bhPx}" rx="1"
+        fill="rgba(150,120,80,0.18)" stroke="var(--amber-dim)" stroke-width="1"
+        stroke-dasharray="4,3"/>
+      <text x="${fw/2}" y="${fh - bhPx/2}" text-anchor="middle" dominant-baseline="middle"
+        font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">
+        Bottom Face ${g.bottomFaceH}mm</text>`;
+  }
+
+  // Carcass outline (drawn last so it sits on top)
+  const carcassOutline = `
+    <rect x="0" y="0" width="${fw}" height="${fh}" rx="2"
+      fill="none" stroke="var(--text)" stroke-width="2"/>`;
+
+  // ── Side view ──────────────────────────────────────────────────────────────
+  // Simple cross-section: depth × height with a thin back panel strip and
+  // top/bottom board lines.
+  const tPx = Math.max(3, Math.round(18 * SCALE)); // 18mm board approx
+  const backW = Math.max(2, Math.round(3 * SCALE)); // 3mm masonite back
+
+  let sideShelves = '';
+  if (g.shelfCount > 0 && g.doorCount > 0) {
+    // Show shelves inside the side view at evenly spaced positions
+    const interiorTop = tPx + 4;
+    const interiorBot = fh - tPx - 4;
+    const span = interiorBot - interiorTop;
+    for (let i = 1; i <= g.shelfCount; i++) {
+      const sy = interiorTop + (span * i / (g.shelfCount + 1));
+      sideShelves += `
+        <line x1="${backW + 2}" y1="${sy}" x2="${dPx - 4}" y2="${sy}"
+          stroke="rgba(212,145,58,0.4)" stroke-width="1" stroke-dasharray="4,3"/>`;
+    }
+  }
+
+  const sideView = `
+    <g transform="translate(${PAD_L + fw + GAP}, ${PAD_T})">
+      <!-- Outer side-panel rectangle -->
+      <rect x="0" y="0" width="${dPx}" height="${fh}" rx="1"
+        fill="rgba(255,255,255,0.03)" stroke="var(--text)" stroke-width="2"/>
+      <!-- Top board -->
+      <rect x="0" y="0" width="${dPx}" height="${tPx}"
+        fill="rgba(255,255,255,0.20)" stroke="#888" stroke-width="1"/>
+      <!-- Bottom board -->
+      <rect x="0" y="${fh - tPx}" width="${dPx}" height="${tPx}"
+        fill="rgba(255,255,255,0.20)" stroke="#888" stroke-width="1"/>
+      <!-- Back panel strip -->
+      <rect x="0" y="${tPx}" width="${backW}" height="${fh - 2*tPx}"
+        fill="rgba(255,255,255,0.15)" stroke="#666" stroke-width="0.5"/>
+      ${sideShelves}
+      <!-- Depth dim (below) -->
+      <line x1="0" y1="${fh + 12}" x2="${dPx}" y2="${fh + 12}"
+        stroke="var(--text-muted)" stroke-width="0.75"/>
+      <line x1="0" y1="${fh + 8}" x2="0" y2="${fh + 16}"
+        stroke="var(--text-muted)" stroke-width="0.75"/>
+      <line x1="${dPx}" y1="${fh + 8}" x2="${dPx}" y2="${fh + 16}"
+        stroke="var(--text-muted)" stroke-width="0.75"/>
+      <text x="${dPx/2}" y="${fh + 28}" text-anchor="middle" font-size="11"
+        fill="var(--text)" font-family="JetBrains Mono,monospace">${D} mm (depth)</text>
+      <!-- Side view label -->
+      <text x="${dPx/2}" y="-10" text-anchor="middle" font-size="10"
+        fill="var(--amber-dim)" font-family="Oswald,sans-serif" letter-spacing="2">SIDE</text>
+    </g>`;
+
+  // ── Dimension lines for front view ────────────────────────────────────────
+  const widthDim = `
+    <line x1="${PAD_L}" y1="${PAD_T + fh + 12}" x2="${PAD_L + fw}" y2="${PAD_T + fh + 12}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <line x1="${PAD_L}" y1="${PAD_T + fh + 8}" x2="${PAD_L}" y2="${PAD_T + fh + 16}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <line x1="${PAD_L + fw}" y1="${PAD_T + fh + 8}" x2="${PAD_L + fw}" y2="${PAD_T + fh + 16}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <text x="${PAD_L + fw/2}" y="${PAD_T + fh + 28}" text-anchor="middle" font-size="11"
+      fill="var(--text)" font-family="JetBrains Mono,monospace">${W} mm (width)</text>`;
+
+  const heightDim = `
+    <line x1="${PAD_L - 12}" y1="${PAD_T}" x2="${PAD_L - 12}" y2="${PAD_T + fh}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <line x1="${PAD_L - 16}" y1="${PAD_T}" x2="${PAD_L - 8}" y2="${PAD_T}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <line x1="${PAD_L - 16}" y1="${PAD_T + fh}" x2="${PAD_L - 8}" y2="${PAD_T + fh}"
+      stroke="var(--text-muted)" stroke-width="0.75"/>
+    <text x="${PAD_L - 20}" y="${PAD_T + fh/2}" text-anchor="middle" font-size="11"
+      fill="var(--text)" font-family="JetBrains Mono,monospace"
+      transform="rotate(-90 ${PAD_L - 20} ${PAD_T + fh/2})">${H} mm (height)</text>`;
+
+  const frontLabel = `
+    <text x="${PAD_L + fw/2}" y="${PAD_T - 10}" text-anchor="middle" font-size="10"
+      fill="var(--amber-dim)" font-family="Oswald,sans-serif" letter-spacing="2">FRONT</text>`;
+
+  // ── Footer summary (parts count, components) ──────────────────────────────
+  const summaryBits = [];
+  if (g.doorCount)        summaryBits.push(`${g.doorCount} door${g.doorCount>1?'s':''}`);
+  if (g.drawerFaces.length) summaryBits.push(`${g.drawerFaces.length} drawer${g.drawerFaces.length>1?'s':''}`);
+  if (g.shelfCount)       summaryBits.push(`${g.shelfCount} shelf${g.shelfCount>1?'ves':''}`);
+  summaryBits.push(`${g.partCount} parts`);
+  const summary = summaryBits.join('  ·  ');
+
+  return `
+    <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:3px;
+                color:var(--amber);text-transform:uppercase;margin-bottom:14px;
+                padding-bottom:10px;border-bottom:1px solid var(--border)">
+      ${(unitName || unit.name || 'Unit').replace(/</g,'&lt;')}
+    </div>
+    <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}"
+         xmlns="http://www.w3.org/2000/svg"
+         style="display:block;background:var(--bg);border:1px solid var(--border)">
+      <g transform="translate(${PAD_L}, ${PAD_T})">
+        ${faceSvg}
+        ${doorSvg}
+        ${bottomFaceSvg}
+        ${carcassOutline}
+      </g>
+      ${frontLabel}
+      ${widthDim}
+      ${heightDim}
+      ${sideView}
+    </svg>
+    <div style="margin-top:12px;font-family:'Barlow',sans-serif;font-size:12px;
+                color:var(--text-muted);display:flex;justify-content:space-between;
+                gap:20px;flex-wrap:wrap">
+      <span>${summary}</span>
+      <span style="font-style:italic;opacity:0.7">Auto-generated from parts list. Upload a custom image in the Unit Editor to replace.</span>
+    </div>`;
+}
 
 // ═══════════════════════════════════════════════════════════
 // QUOTE VIEW
