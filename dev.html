@@ -8541,17 +8541,16 @@ function renderUnitDiagramSVG(unit, unitName) {
 
   // ── SIDE SECTION SVG ──────────────────────────────────────────────────────
   // Cross-section view (looking from the right): x=depth (front→back), y=height
-  const MAX_DW = 200, MAX_SH = 460;
-  const SSCALE = Math.min(MAX_DW / D, MAX_SH / H, FSCALE);
-  const dPx = Math.round(D * SSCALE);
-  const shPx = Math.round(H * SSCALE);
-  const tPx = Math.max(3, Math.round(T * SSCALE));
-  const backT_px = g.backT ? Math.max(2, Math.round(g.backT * SSCALE)) : 0;
+  // shPx === fh because both views share SCALE and the same H.
+  const dPx = Math.round(D * SCALE);
+  const shPx = fh;
+  const tPx = Math.max(3, Math.round(T * SCALE));
+  const backT_px = g.backT ? Math.max(2, Math.round(g.backT * SCALE)) : 0;
 
   // boardEdgeX: where shelves/boards stop (masonite sits on the outside)
   const boardEdgePx = g.backingType === 'masonite'
-    ? Math.round((D - g.backT) * SSCALE)
-    : Math.round(D * SSCALE);
+    ? Math.round((D - g.backT) * SCALE)
+    : Math.round(D * SCALE);
 
   let sideSvgContent = '';
 
