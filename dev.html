@@ -8399,241 +8399,266 @@ function inferUnitGeometry(unit) {
 
 function renderUnitDiagramSVG(unit, unitName) {
   if (!unit) {
-    return `<div style="color:var(--text-muted);font-family:'Barlow',sans-serif;padding:40px;text-align:center">Unit not found.</div>`;
+    return `<div class="udp-header"><span class="udp-title">Unit not found</span><button class="udp-close" onclick="closeLightbox()">×</button></div>`;
   }
   if (!unit.parts || unit.parts.length === 0) {
-    return `<div style="color:var(--text-muted);font-family:'Barlow',sans-serif;padding:40px;text-align:center">
-      <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:var(--amber);margin-bottom:10px">NO PARTS DEFINED</div>
-      <div style="font-size:13px">This unit has no parts list, so a schematic cannot be generated.<br>You can upload an image diagram in the Unit Editor.</div>
-    </div>`;
+    return `
+      <div class="udp-header">
+        <span class="udp-title">${(unitName||unit.name||'Unit').replace(/</g,'&lt;')}</span>
+        <button class="udp-close" onclick="closeLightbox()">×</button>
+      </div>
+      <div class="udp-body"><div class="udp-empty">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:#d4913a;margin-bottom:10px">NO PARTS DEFINED</div>
+        <div style="font-size:13px;color:#666">No parts list — schematic cannot be generated.<br>Upload an image diagram in the Unit Editor.</div>
+      </div></div>`;
   }
 
   const g = inferUnitGeometry(unit);
-  const W = g.W || 600;  // sensible fallbacks so the SVG still draws
+  const W = g.W || 600;
   const H = g.H || 780;
   const D = g.D || 534;
+  const T = 18; // standard board thickness mm
 
-  // Layout: front view on the left, side view on the right.
-  // Aim for a max ~520px wide front view, with the side view scaled identically.
-  const SCALE = Math.min(520 / W, 540 / H);
-  const fw = Math.round(W * SCALE);
-  const fh = Math.round(H * SCALE);
-  const dPx = Math.round(D * SCALE);
+  // ── FRONT VIEW SVG ────────────────────────────────────────────────────────
+  const MAX_FW = 320, MAX_FH = 460;
+  const FSCALE = Math.min(MAX_FW / W, MAX_FH / H);
+  const fw = Math.round(W * FSCALE);
+  const fh = Math.round(H * FSCALE);
+  const tPx_f = Math.max(4, Math.round(T * FSCALE));
+  const fPAD_L = 48, fPAD_T = 16, fPAD_B = 38, fPAD_R = 16;
+  const frontSvgW = fPAD_L + fw + fPAD_R;
+  const frontSvgH = fPAD_T + fh + fPAD_B;
 
-  const PAD_L = 56;   // room for height dim on left
-  const PAD_T = 30;   // room for title/headers
-  const PAD_B = 50;   // room for width dim labels
-  const GAP   = 70;   // gap between front and side view
-  const PAD_R = 30;
+  // Top band: solid board or nailer stubs
+  let frontInternals = '';
+  if (g.topType === 'nailers') {
+    const fnW = Math.round(g.frontNailerD * FSCALE);
+    const bnW = Math.round(g.backNailerD * FSCALE);
+    frontInternals += `<rect x="0" y="0" width="${fnW}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
+    frontInternals += `<rect x="${fw - bnW}" y="0" width="${bnW}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
+  } else {
+    frontInternals += `<rect x="0" y="0" width="${fw}" height="${tPx_f}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.75"/>`;
+  }
+  frontInternals += `<rect x="0" y="${fh - tPx_f}" width="${fw}" height="${tPx_f}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.75"/>`;
 
-  const totalW = PAD_L + fw + GAP + dPx + PAD_R;
-  const totalH = PAD_T + fh + PAD_B;
-
-  // ── Front view content ─────────────────────────────────────────────────────
-  // We stack drawer faces from the bottom up, then doors fill the remaining
-  // upper space. Faces drawn as amber slabs with their mm height labeled.
-  const fGap = 3;  // 3mm typical reveal gap
-  const fGapPx = Math.max(1, Math.round(fGap * SCALE));
-
-  let faceSvg = '';
-  let yPx = fh; // bottom of front view in local coords
-
-  // Drawer faces (stacked from bottom, smallest on top per typical pot-drawer)
-  // Our inferUnitGeometry sorted smallest-first; reverse so largest sits at the bottom.
+  // Drawer faces (stacked bottom-up, largest at bottom)
+  const fGapPx = Math.max(1, Math.round(3 * FSCALE));
+  let facesSvg = '';
+  let yPx = fh;
   const drawerStack = [...g.drawerFaces].reverse();
-  drawerStack.forEach((f) => {
-    const hPx = Math.max(6, Math.round(f.h * SCALE));
+  drawerStack.forEach(f => {
+    const hPx = Math.max(6, Math.round(f.h * FSCALE));
     yPx -= hPx;
-    faceSvg += `
-      <rect x="0" y="${yPx}" width="${fw}" height="${hPx}" rx="1.5"
-        fill="rgba(212,145,58,0.20)" stroke="var(--amber)" stroke-width="1.5"/>
-      <text x="${fw/2}" y="${yPx + hPx/2}" text-anchor="middle"
-        dominant-baseline="middle" font-size="11" fill="var(--amber)"
-        font-family="JetBrains Mono,monospace">${f.h} mm</text>`;
+    facesSvg += `
+      <rect x="2" y="${yPx}" width="${fw - 4}" height="${hPx}" rx="1"
+        fill="rgba(212,145,58,0.18)" stroke="#d4913a" stroke-width="1.5"/>
+      <text x="${fw/2}" y="${yPx + hPx/2}" text-anchor="middle" dominant-baseline="middle"
+        font-size="10" fill="#d4913a" font-family="JetBrains Mono,monospace">${f.h}</text>`;
     yPx -= fGapPx;
   });
 
-  // Remaining vertical space above drawers → fill with doors (split horizontally
-  // if doorCount > 1). If neither doors nor drawers — show empty carcass.
-  const doorAreaTop = 0;
-  const doorAreaBot = yPx; // top of stacked drawers (or fh if no drawers)
-  const doorAreaH   = doorAreaBot - doorAreaTop;
-
-  let doorSvg = '';
+  // Doors in remaining space
+  let doorsSvg = '';
+  const doorAreaH = yPx;
   if (g.doorCount > 0 && doorAreaH > 8) {
-    // Use the unit's actual door height if it fits; otherwise fit to available space.
-    const wantH = g.doorH ? Math.round(g.doorH * SCALE) : doorAreaH;
+    const wantH = g.doorH ? Math.round(g.doorH * FSCALE) : doorAreaH;
     const actualDoorH = Math.min(wantH, doorAreaH - 2);
-    const doorTopY = doorAreaBot - actualDoorH;
-    // Horizontal layout: doorCount slabs across full front width with thin reveals
-    const reveal = Math.max(1, Math.round(2 * SCALE));
-    const totalReveal = reveal * (g.doorCount + 1);
-    const slabW = (fw - totalReveal) / g.doorCount;
+    const doorTopY = yPx - actualDoorH;
+    const reveal = Math.max(1, Math.round(2 * FSCALE));
+    const slabW = (fw - reveal * (g.doorCount + 1)) / g.doorCount;
     for (let i = 0; i < g.doorCount; i++) {
       const x = reveal + i * (slabW + reveal);
-      doorSvg += `
-        <rect x="${x}" y="${doorTopY + 1}" width="${slabW}" height="${actualDoorH - 2}" rx="1.5"
-          fill="rgba(212,145,58,0.10)" stroke="var(--amber-dim)" stroke-width="1.5"/>`;
-      // Hinge dots (2 per door at top + bottom interior edge)
-      const hingeX = (i === 0) ? x + slabW - 6 : x + 6; // hinge side toward exterior
-      doorSvg += `
-        <circle cx="${hingeX}" cy="${doorTopY + 14}" r="2" fill="rgba(212,145,58,0.55)"/>
-        <circle cx="${hingeX}" cy="${doorTopY + actualDoorH - 14}" r="2" fill="rgba(212,145,58,0.55)"/>`;
-    }
-    // Door height label centered
-    if (g.doorH) {
-      doorSvg += `
-        <text x="${fw/2}" y="${doorTopY + actualDoorH/2}" text-anchor="middle"
-          dominant-baseline="middle" font-size="11" fill="var(--amber-dim)"
-          font-family="JetBrains Mono,monospace">${g.doorCount}× Door ${g.doorH}mm</text>`;
+      doorsSvg += `
+        <rect x="${x}" y="${doorTopY + 1}" width="${slabW}" height="${actualDoorH - 2}" rx="1"
+          fill="rgba(212,145,58,0.08)" stroke="rgba(212,145,58,0.45)" stroke-width="1.5"/>`;
+      const hingeX = (i === 0) ? x + slabW - 7 : x + 7;
+      doorsSvg += `
+        <circle cx="${hingeX}" cy="${doorTopY + 14}" r="2.5" fill="rgba(212,145,58,0.5)"/>
+        <circle cx="${hingeX}" cy="${doorTopY + actualDoorH - 14}" r="2.5" fill="rgba(212,145,58,0.5)"/>`;
+      if (g.doorH && slabW > 40) {
+        doorsSvg += `<text x="${x + slabW/2}" y="${doorTopY + actualDoorH/2}" text-anchor="middle"
+          dominant-baseline="middle" font-size="10" fill="rgba(212,145,58,0.55)"
+          font-family="JetBrains Mono,monospace">${g.doorH}</text>`;
+      }
     }
   } else if (g.doorCount === 0 && drawerStack.length === 0) {
-    // Open carcass — show shelves if any
-    const shelvesToShow = Math.max(0, g.shelfCount);
-    if (shelvesToShow > 0) {
-      const spacing = fh / (shelvesToShow + 1);
-      for (let i = 1; i <= shelvesToShow; i++) {
+    if (g.shelfCount > 0) {
+      const spacing = fh / (g.shelfCount + 1);
+      for (let i = 1; i <= g.shelfCount; i++) {
         const sy = Math.round(i * spacing);
-        doorSvg += `
-          <line x1="6" y1="${sy}" x2="${fw - 6}" y2="${sy}"
-            stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <text x="${fw - 10}" y="${sy - 4}" text-anchor="end" font-size="9"
-            fill="rgba(255,255,255,0.4)" font-family="JetBrains Mono,monospace">shelf</text>`;
+        doorsSvg += `<line x1="4" y1="${sy}" x2="${fw - 4}" y2="${sy}"
+          stroke="rgba(212,145,58,0.35)" stroke-width="1.5" stroke-dasharray="5,3"/>`;
       }
-    } else {
-      doorSvg += `
-        <text x="${fw/2}" y="${fh/2}" text-anchor="middle" dominant-baseline="middle"
-          font-size="12" fill="var(--text-muted)" font-family="Barlow,sans-serif"
-          font-style="italic">Open carcass</text>`;
     }
+    doorsSvg += `<text x="${fw/2}" y="${fh/2}" text-anchor="middle" dominant-baseline="middle"
+      font-size="11" fill="rgba(255,255,255,0.2)" font-family="Barlow,sans-serif"
+      font-style="italic">open</text>`;
   }
 
-  // Bottom face overlay (wall units etc.)
+  // Bottom face overlay
   let bottomFaceSvg = '';
   if (g.hasBottomFace && g.bottomFaceH > 0) {
-    const bhPx = Math.round(g.bottomFaceH * SCALE);
-    bottomFaceSvg = `
-      <rect x="0" y="${fh - bhPx}" width="${fw}" height="${bhPx}" rx="1"
-        fill="rgba(150,120,80,0.18)" stroke="var(--amber-dim)" stroke-width="1"
-        stroke-dasharray="4,3"/>
-      <text x="${fw/2}" y="${fh - bhPx/2}" text-anchor="middle" dominant-baseline="middle"
-        font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">
-        Bottom Face ${g.bottomFaceH}mm</text>`;
+    const bhPx = Math.round(g.bottomFaceH * FSCALE);
+    bottomFaceSvg = `<rect x="2" y="${fh - bhPx}" width="${fw - 4}" height="${bhPx}" rx="1"
+      fill="rgba(150,120,80,0.15)" stroke="rgba(212,145,58,0.4)" stroke-width="1" stroke-dasharray="4,2"/>`;
   }
 
-  // Carcass outline (drawn last so it sits on top)
-  const carcassOutline = `
-    <rect x="0" y="0" width="${fw}" height="${fh}" rx="2"
-      fill="none" stroke="var(--text)" stroke-width="2"/>`;
+  // Dim lines
+  const fWDim = `
+    <line x1="${fPAD_L}" y1="${fPAD_T+fh+10}" x2="${fPAD_L+fw}" y2="${fPAD_T+fh+10}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L}" y1="${fPAD_T+fh+6}" x2="${fPAD_L}" y2="${fPAD_T+fh+14}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L+fw}" y1="${fPAD_T+fh+6}" x2="${fPAD_L+fw}" y2="${fPAD_T+fh+14}" stroke="#444" stroke-width="0.75"/>
+    <text x="${fPAD_L+fw/2}" y="${fPAD_T+fh+26}" text-anchor="middle" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${W}</text>`;
+  const fHDim = `
+    <line x1="${fPAD_L-10}" y1="${fPAD_T}" x2="${fPAD_L-10}" y2="${fPAD_T+fh}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L-14}" y1="${fPAD_T}" x2="${fPAD_L-6}" y2="${fPAD_T}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L-14}" y1="${fPAD_T+fh}" x2="${fPAD_L-6}" y2="${fPAD_T+fh}" stroke="#444" stroke-width="0.75"/>
+    <text x="${fPAD_L-18}" y="${fPAD_T+fh/2}" text-anchor="middle" font-size="10" fill="#777"
+      font-family="JetBrains Mono,monospace"
+      transform="rotate(-90 ${fPAD_L-18} ${fPAD_T+fh/2})">${H}</text>`;
 
-  // ── Side view ──────────────────────────────────────────────────────────────
-  // Simple cross-section: depth × height with a thin back panel strip and
-  // top/bottom board lines.
-  const tPx = Math.max(3, Math.round(18 * SCALE)); // 18mm board approx
-  const backW = Math.max(2, Math.round(3 * SCALE)); // 3mm masonite back
+  const frontSvg = `<svg width="${frontSvgW}" height="${frontSvgH}" viewBox="0 0 ${frontSvgW} ${frontSvgH}"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;background:#161620;border:1px solid rgba(255,255,255,0.07)">
+    <g transform="translate(${fPAD_L},${fPAD_T})">
+      <rect x="0" y="0" width="${fw}" height="${fh}" fill="#1a1a28"/>
+      ${frontInternals}
+      ${doorsSvg}
+      ${facesSvg}
+      ${bottomFaceSvg}
+      <rect x="0" y="0" width="${fw}" height="${fh}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>
+    </g>
+    ${fWDim}${fHDim}
+  </svg>`;
 
-  let sideShelves = '';
-  if (g.shelfCount > 0 && g.doorCount > 0) {
-    // Show shelves inside the side view at evenly spaced positions
-    const interiorTop = tPx + 4;
-    const interiorBot = fh - tPx - 4;
-    const span = interiorBot - interiorTop;
+  // ── SIDE SECTION SVG ──────────────────────────────────────────────────────
+  // Cross-section view (looking from the right): x=depth (front→back), y=height
+  const MAX_DW = 200, MAX_SH = 460;
+  const SSCALE = Math.min(MAX_DW / D, MAX_SH / H, FSCALE);
+  const dPx = Math.round(D * SSCALE);
+  const shPx = Math.round(H * SSCALE);
+  const tPx = Math.max(3, Math.round(T * SSCALE));
+  const backT_px = g.backT ? Math.max(2, Math.round(g.backT * SSCALE)) : 0;
+
+  // boardEdgeX: where shelves/boards stop (masonite sits on the outside)
+  const boardEdgePx = g.backingType === 'masonite'
+    ? Math.round((D - g.backT) * SSCALE)
+    : Math.round(D * SSCALE);
+
+  let sideSvgContent = '';
+
+  // Interior fill
+  sideSvgContent += `<rect x="0" y="${tPx}" width="${boardEdgePx}" height="${shPx - 2*tPx}" fill="#1a1a28"/>`;
+
+  // Support rails (outside = extend behind boardEdge)
+  if (g.hasSupports) {
+    const railH = Math.max(4, Math.round(g.supportRailH * SSCALE));
+    sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+    sideSvgContent += `<rect x="${boardEdgePx}" y="${shPx - railH}" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+  }
+
+  // Top: solid board or nailers
+  if (g.topType === 'nailers') {
+    const fnPx = Math.round(g.frontNailerD * SSCALE);
+    const bnPx = Math.round(g.backNailerD * SSCALE);
+    sideSvgContent += `<rect x="0" y="0" width="${fnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+    sideSvgContent += `<rect x="${boardEdgePx - bnPx}" y="0" width="${bnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+  } else {
+    sideSvgContent += `<rect x="0" y="0" width="${boardEdgePx}" height="${tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+  }
+
+  // Bottom board
+  sideSvgContent += `<rect x="0" y="${shPx - tPx}" width="${boardEdgePx}" height="${tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+
+  // Backing
+  if (g.backingType === 'masonite') {
+    sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${backT_px}" height="${shPx}" fill="#252538" stroke="#3a3a50" stroke-width="0.5"/>`;
+  } else if (g.backingType === 'solid') {
+    const solidX = Math.round((D - g.backT) * SSCALE);
+    sideSvgContent += `<rect x="${solidX}" y="${tPx}" width="${backT_px}" height="${shPx - 2*tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+  }
+
+  // Shelves
+  if (g.shelfCount > 0) {
+    const iTop = tPx, iBot = shPx - tPx, span = iBot - iTop;
     for (let i = 1; i <= g.shelfCount; i++) {
-      const sy = interiorTop + (span * i / (g.shelfCount + 1));
-      sideShelves += `
-        <line x1="${backW + 2}" y1="${sy}" x2="${dPx - 4}" y2="${sy}"
-          stroke="rgba(212,145,58,0.4)" stroke-width="1" stroke-dasharray="4,3"/>`;
+      const sy = Math.round(iTop + span * i / (g.shelfCount + 1));
+      sideSvgContent += `<rect x="0" y="${sy}" width="${boardEdgePx}" height="${tPx}" fill="#2f3045" stroke="#3a3a50" stroke-width="0.5"/>`;
     }
   }
 
-  const sideView = `
-    <g transform="translate(${PAD_L + fw + GAP}, ${PAD_T})">
-      <!-- Outer side-panel rectangle -->
-      <rect x="0" y="0" width="${dPx}" height="${fh}" rx="1"
-        fill="rgba(255,255,255,0.03)" stroke="var(--text)" stroke-width="2"/>
-      <!-- Top board -->
-      <rect x="0" y="0" width="${dPx}" height="${tPx}"
-        fill="rgba(255,255,255,0.20)" stroke="#888" stroke-width="1"/>
-      <!-- Bottom board -->
-      <rect x="0" y="${fh - tPx}" width="${dPx}" height="${tPx}"
-        fill="rgba(255,255,255,0.20)" stroke="#888" stroke-width="1"/>
-      <!-- Back panel strip -->
-      <rect x="0" y="${tPx}" width="${backW}" height="${fh - 2*tPx}"
-        fill="rgba(255,255,255,0.15)" stroke="#666" stroke-width="0.5"/>
-      ${sideShelves}
-      <!-- Depth dim (below) -->
-      <line x1="0" y1="${fh + 12}" x2="${dPx}" y2="${fh + 12}"
-        stroke="var(--text-muted)" stroke-width="0.75"/>
-      <line x1="0" y1="${fh + 8}" x2="0" y2="${fh + 16}"
-        stroke="var(--text-muted)" stroke-width="0.75"/>
-      <line x1="${dPx}" y1="${fh + 8}" x2="${dPx}" y2="${fh + 16}"
-        stroke="var(--text-muted)" stroke-width="0.75"/>
-      <text x="${dPx/2}" y="${fh + 28}" text-anchor="middle" font-size="11"
-        fill="var(--text)" font-family="JetBrains Mono,monospace">${D} mm (depth)</text>
-      <!-- Side view label -->
-      <text x="${dPx/2}" y="-10" text-anchor="middle" font-size="10"
-        fill="var(--amber-dim)" font-family="Oswald,sans-serif" letter-spacing="2">SIDE</text>
-    </g>`;
+  // Carcass outline
+  sideSvgContent += `<rect x="0" y="0" width="${boardEdgePx}" height="${shPx}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>`;
 
-  // ── Dimension lines for front view ────────────────────────────────────────
-  const widthDim = `
-    <line x1="${PAD_L}" y1="${PAD_T + fh + 12}" x2="${PAD_L + fw}" y2="${PAD_T + fh + 12}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <line x1="${PAD_L}" y1="${PAD_T + fh + 8}" x2="${PAD_L}" y2="${PAD_T + fh + 16}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <line x1="${PAD_L + fw}" y1="${PAD_T + fh + 8}" x2="${PAD_L + fw}" y2="${PAD_T + fh + 16}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <text x="${PAD_L + fw/2}" y="${PAD_T + fh + 28}" text-anchor="middle" font-size="11"
-      fill="var(--text)" font-family="JetBrains Mono,monospace">${W} mm (width)</text>`;
+  const sPAD_L = 16, sPAD_T = 16, sPAD_B = 38, sPAD_R = 40;
+  const sideSvgW = sPAD_L + dPx + sPAD_R;
+  const sideSvgH = sPAD_T + shPx + sPAD_B;
 
-  const heightDim = `
-    <line x1="${PAD_L - 12}" y1="${PAD_T}" x2="${PAD_L - 12}" y2="${PAD_T + fh}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <line x1="${PAD_L - 16}" y1="${PAD_T}" x2="${PAD_L - 8}" y2="${PAD_T}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <line x1="${PAD_L - 16}" y1="${PAD_T + fh}" x2="${PAD_L - 8}" y2="${PAD_T + fh}"
-      stroke="var(--text-muted)" stroke-width="0.75"/>
-    <text x="${PAD_L - 20}" y="${PAD_T + fh/2}" text-anchor="middle" font-size="11"
-      fill="var(--text)" font-family="JetBrains Mono,monospace"
-      transform="rotate(-90 ${PAD_L - 20} ${PAD_T + fh/2})">${H} mm (height)</text>`;
+  const sDDim = `
+    <line x1="${sPAD_L}" y1="${sPAD_T+shPx+10}" x2="${sPAD_L+dPx}" y2="${sPAD_T+shPx+10}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L}" y1="${sPAD_T+shPx+6}" x2="${sPAD_L}" y2="${sPAD_T+shPx+14}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx}" y1="${sPAD_T+shPx+6}" x2="${sPAD_L+dPx}" y2="${sPAD_T+shPx+14}" stroke="#444" stroke-width="0.75"/>
+    <text x="${sPAD_L+dPx/2}" y="${sPAD_T+shPx+26}" text-anchor="middle" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${D}</text>`;
+  const sHDim = `
+    <line x1="${sPAD_L+dPx+10}" y1="${sPAD_T}" x2="${sPAD_L+dPx+18}" y2="${sPAD_T}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx+10}" y1="${sPAD_T+shPx}" x2="${sPAD_L+dPx+18}" y2="${sPAD_T+shPx}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx+14}" y1="${sPAD_T}" x2="${sPAD_L+dPx+14}" y2="${sPAD_T+shPx}" stroke="#444" stroke-width="0.75"/>
+    <text x="${sPAD_L+dPx+22}" y="${sPAD_T+shPx/2+4}" text-anchor="start" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${H}</text>`;
 
-  const frontLabel = `
-    <text x="${PAD_L + fw/2}" y="${PAD_T - 10}" text-anchor="middle" font-size="10"
-      fill="var(--amber-dim)" font-family="Oswald,sans-serif" letter-spacing="2">FRONT</text>`;
+  const sideSvg = `<svg width="${sideSvgW}" height="${sideSvgH}" viewBox="0 0 ${sideSvgW} ${sideSvgH}"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;background:#161620;border:1px solid rgba(255,255,255,0.07)">
+    <g transform="translate(${sPAD_L},${sPAD_T})">${sideSvgContent}</g>
+    ${sDDim}${sHDim}
+  </svg>`;
 
-  // ── Footer summary (parts count, components) ──────────────────────────────
+  // ── CHIPS ─────────────────────────────────────────────────────────────────
+  const chips = [];
+  if (g.topType === 'nailers')          chips.push(`<span class="udp-chip chip-nailers">NAILERS</span>`);
+  if (g.backingType === 'masonite')     chips.push(`<span class="udp-chip chip-masonite">MASONITE</span>`);
+  else if (g.backingType === 'solid')   chips.push(`<span class="udp-chip chip-solidback">SOLID BACK</span>`);
+  else                                  chips.push(`<span class="udp-chip chip-noback">NO BACK</span>`);
+  if (g.hasSupports)                    chips.push(`<span class="udp-chip chip-supports">SUPPORTS</span>`);
+  if (g.shelfCount)                     chips.push(`<span class="udp-chip chip-shelves">${g.shelfCount} SHELF${g.shelfCount>1?'VES':''}</span>`);
+
+  // ── LEGEND ────────────────────────────────────────────────────────────────
+  const legendItems = [
+    `<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#2a2a3a;border:1px solid #3a3a52"></div>Board</div>`,
+    `<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#1a1a28;border:1px solid #3a3a52"></div>Interior</div>`,
+  ];
+  if (g.shelfCount)   legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#2f3045;border:1px solid #3a3a50"></div>Shelf</div>`);
+  if (g.backingType === 'masonite') legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#252538;border:1px solid #3a3a50"></div>Masonite</div>`);
+  if (g.topType === 'nailers' || g.hasSupports) legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#383850;border:1px solid #3a3a50"></div>Support</div>`);
+  if (g.doorCount)    legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:rgba(212,145,58,0.18);border:1px solid rgba(212,145,58,0.5)"></div>Door</div>`);
+  if (g.drawerFaces.length) legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:rgba(212,145,58,0.22);border:1px solid #d4913a"></div>Drawer</div>`);
+
   const summaryBits = [];
-  if (g.doorCount)        summaryBits.push(`${g.doorCount} door${g.doorCount>1?'s':''}`);
+  if (g.doorCount)          summaryBits.push(`${g.doorCount} door${g.doorCount>1?'s':''}`);
   if (g.drawerFaces.length) summaryBits.push(`${g.drawerFaces.length} drawer${g.drawerFaces.length>1?'s':''}`);
-  if (g.shelfCount)       summaryBits.push(`${g.shelfCount} shelf${g.shelfCount>1?'ves':''}`);
+  if (g.shelfCount)         summaryBits.push(`${g.shelfCount} shelf${g.shelfCount>1?'ves':''}`);
   summaryBits.push(`${g.partCount} parts`);
-  const summary = summaryBits.join('  ·  ');
+
+  const name = (unitName || unit.name || 'Unit').replace(/</g, '&lt;');
 
   return `
-    <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:3px;
-                color:var(--amber);text-transform:uppercase;margin-bottom:14px;
-                padding-bottom:10px;border-bottom:1px solid var(--border)">
-      ${(unitName || unit.name || 'Unit').replace(/</g,'&lt;')}
+    <div class="udp-header">
+      <span class="udp-title">${name}</span>
+      <div class="udp-chips">${chips.join('')}</div>
+      <button class="udp-close" onclick="closeLightbox()">×</button>
     </div>
-    <svg width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}"
-         xmlns="http://www.w3.org/2000/svg"
-         style="display:block;background:var(--bg);border:1px solid var(--border)">
-      <g transform="translate(${PAD_L}, ${PAD_T})">
-        ${faceSvg}
-        ${doorSvg}
-        ${bottomFaceSvg}
-        ${carcassOutline}
-      </g>
-      ${frontLabel}
-      ${widthDim}
-      ${heightDim}
-      ${sideView}
-    </svg>
-    <div style="margin-top:12px;font-family:'Barlow',sans-serif;font-size:12px;
-                color:var(--text-muted);display:flex;justify-content:space-between;
-                gap:20px;flex-wrap:wrap">
-      <span>${summary}</span>
-      <span style="font-style:italic;opacity:0.7">Auto-generated from parts list. Upload a custom image in the Unit Editor to replace.</span>
+    <div class="udp-body">
+      <div class="udp-views">
+        <div class="udp-view-block">
+          <div class="udp-view-label">FRONT VIEW</div>
+          ${frontSvg}
+        </div>
+        <div class="udp-view-block">
+          <div class="udp-view-label">SIDE SECTION</div>
+          ${sideSvg}
+        </div>
+      </div>
+      <div class="udp-legend">
+        ${legendItems.join('')}
+        <div class="udp-legend-note">${summaryBits.join(' · ')}</div>
+      </div>
     </div>`;
 }
 
