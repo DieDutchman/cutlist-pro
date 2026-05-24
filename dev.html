@@ -8423,12 +8423,17 @@ function renderUnitDiagramSVG(unit, unitName) {
   const D = g.D || 534;
   const T = 18; // standard board thickness mm
 
+  // ── UNIFIED SCALE — both views use same px-per-mm ─────────────────────────
+  // Constrain by front width, shared height, AND side depth so both views are
+  // the same height and depth is never squeezed relative to the front.
+  const MAX_FW = 320, MAX_FH = 480, MAX_DW = 280;
+  const SCALE = Math.min(MAX_FW / W, MAX_FH / H, MAX_DW / D);
+
   // ── FRONT VIEW SVG ────────────────────────────────────────────────────────
-  const MAX_FW = 320, MAX_FH = 460;
-  const FSCALE = Math.min(MAX_FW / W, MAX_FH / H);
-  const fw = Math.round(W * FSCALE);
-  const fh = Math.round(H * FSCALE);
-  const tPx_f = Math.max(4, Math.round(T * FSCALE));
+  const FSCALE = SCALE; // alias kept so expressions below compile unchanged
+  const fw = Math.round(W * SCALE);
+  const fh = Math.round(H * SCALE);
+  const tPx_f = Math.max(4, Math.round(T * SCALE));
   const fPAD_L = 48, fPAD_T = 16, fPAD_B = 38, fPAD_R = 16;
   const frontSvgW = fPAD_L + fw + fPAD_R;
   const frontSvgH = fPAD_T + fh + fPAD_B;
