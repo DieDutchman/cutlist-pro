@@ -22883,7 +22883,10 @@ function _renderPLView() {
       // R500 delivery estimate. The handling never appears on a supplier invoice, so
       // comparing topsTotal against invoiceAmount/1.15 always shows a fake profit equal
       // to the markup. Comparing topsExcl vs invoiceExclVAT is apples-to-apples.
-      const topsExpected = snap.topsExcl || 0;
+      const stdTopsExpected = snap.topsExcl || 0;
+      const extrasTopsList  = snap.topsExtrasDetail || [];
+      const extrasTopsExp   = extrasTopsList.reduce((s, x) => s + (x.rawTotal || 0), 0);
+      const topsExpected    = stdTopsExpected + extrasTopsExp;
       const topsActual   = invs.filter(i => (i.category||'') === 'Tops')
                                .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
       if (topsExpected <= 0 && topsActual <= 0) return '';
@@ -22892,11 +22895,42 @@ function _renderPLView() {
       const hasA = topsActual > 0;
       const _topsDel = snap.topsDelivery || 0;
       const _topsHnd = snap.topsHandling || 0;
-      const expTip = escTitle(
-        `Raw supplier estimate (excl VAT): ${R(topsExpected)}. ` +
+      const stdExpTip = escTitle(
+        `Standard tops — raw supplier estimate (excl VAT): ${R(stdTopsExpected)}. ` +
         `Excludes delivery (${R(_topsDel)}) and the 10% handling markup (${R(_topsHnd)}) ` +
         `because those are not part of the supplier invoice cost.`
       );
+      const extraExpTip = escTitle(
+        `Tops added via Quote tab → Extras. Raw supplier cost (excl VAT), ` +
+        `excludes the ${Math.round(HW_HANDLING*100)}% handling markup applied on the Quote tab.`
+      );
+      // Row builder — used for the standard tops line and one per extras-tops item.
+      // The last item gets the variance/% cells (vs grouped tops actual). To avoid
+      // splitting actuals across rows we put the comparison on the TOTAL footer instead.
+      const stdRow = stdTopsExpected > 0 ? `
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">Tops (standard)</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${stdExpTip}">${R(stdTopsExpected)}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+          </tr>` : '';
+      const extraRows = extrasTopsList.map(x => `
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">${x.label}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${x.qty || '—'}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${x.unitPrice > 0 ? R(x.unitPrice) : '—'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${extraExpTip}">${R(x.rawTotal || 0)}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+          </tr>`).join('');
       return `
     <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">TOPS</div>
     <div style="overflow-x:auto;border:1px solid var(--border)">
@@ -22906,18 +22940,17 @@ function _renderPLView() {
           ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
-          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
-            <td style="padding:9px 12px;color:var(--text)">Tops</td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${expTip}">${R(topsExpected)}</td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasA?`<span style="color:${profitColor(tVar)}" title="${varTip(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}" title="${pctTip(tPct,tVar)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-          </tr>
+          ${stdRow}
+          ${extraRows}
         </tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="4" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(topsExpected)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">${hasA?`<span style="color:${profitColor(tVar)}" title="${varTip(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}" title="${pctTip(tPct,tVar)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+        </tr></tfoot>
       </table>
     </div>`;
     })()}
