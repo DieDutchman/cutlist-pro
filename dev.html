@@ -22993,6 +22993,25 @@ function _renderPLView() {
             const pct = exp > 0 ? (v / exp * 100) : null;
             const hasA = act > 0;
             const hasE = exp > 0;
+            // Per-line detail rows for manual hardware extras within this category
+            const detailRows = (hwExtrasByCat[k] || []).map(d => {
+              const lineExp = d.rawTotal || 0;
+              const lineAct = _findActualForLine(k, d.label);
+              const lineHasA = lineAct !== null && lineAct > 0;
+              const lineVar  = lineHasA ? (lineExp - lineAct) : null;
+              const linePct  = (lineHasA && lineExp > 0) ? (lineVar / lineExp * 100) : null;
+              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
+                <td style="padding:6px 12px 6px 28px;color:var(--text-muted);font-size:11px;font-style:italic">↳ ${d.label}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.qty || '—'}</td>
+                <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+                <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.unitPrice > 0 ? R(d.unitPrice) : '—'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4;font-size:11px" title="${_hwExpTip}">${R(lineExp)}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${lineHasA?'var(--text)':'var(--text-muted)'};font-size:11px">${lineHasA ? R(lineAct) : '<span style="font-size:10px">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" title="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" title="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              </tr>`;
+            }).join('');
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${labels[k]}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
@@ -23003,7 +23022,7 @@ function _renderPLView() {
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-            </tr>`;
+            </tr>${detailRows}`;
           }).join('')}
         </tbody>
         <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
