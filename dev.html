@@ -23851,10 +23851,13 @@ function _renderPLView() {
   const qtyArrow = v => v > 0 ? '▲' : '▼';
 
   const matCompareHtml = (matBreakdown.length > 0 || edgeBreakdown.length > 0) ? `
-  <div style="margin-bottom:24px">
-    <div style="padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
-      <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">MATERIAL &amp; EDGING BREAKDOWN — EXPECTED vs ACTUAL</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Assign invoice lines to specific board/edge types (using the dropdowns in the invoice section below) to populate the Actual column.</div>
+  <div style="margin-bottom:28px">
+    <div class="pp-section-head">
+      <div>
+        <span>Material &amp; Edging Breakdown</span>
+        <span class="pp-section-sub" style="margin-left:8px">Expected vs Actual</span>
+      </div>
+      <span class="pp-section-sub">Assign invoice lines below to populate the Actual column</span>
     </div>
 
     ${matBreakdown.length > 0 ? `
