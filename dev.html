@@ -8085,7 +8085,8 @@ function closeHeightBuilder() {
   document.getElementById('hb-overlay').style.display = 'none';
 }
 
-function renderHeightBuilder() {
+function renderHeightBuilder() { withScrollLock(_renderHeightBuilder); }
+function _renderHeightBuilder() {
   const allUnits = getEffectiveUnits();
   const catTabs = WB_CATEGORIES.map(c =>
     `<button onclick="hbState.catId='${c.id}';hbState.baseUnitId=null;renderHeightBuilder()"
