@@ -7831,7 +7831,8 @@ function closeCustomBuilder() {
   document.getElementById('cb-overlay').style.display = 'none';
 }
 
-function renderCustomBuilder() {
+function renderCustomBuilder() { withScrollLock(_renderCustomBuilder); }
+function _renderCustomBuilder() {
   const all = getEffectiveUnits();
 
   // Category tabs
