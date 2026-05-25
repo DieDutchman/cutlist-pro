@@ -24092,9 +24092,9 @@ function _renderPLView() {
         `applied on the Quote tab, because that markup is not part of the supplier's invoice cost.`
       );
       return `
-    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">HARDWARE</div>
-    <div style="overflow-x:auto;border:1px solid var(--border)">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <div class="pp-table-subhead">HARDWARE</div>
+    <div class="pp-table-wrap">
+      <table class="pp-table" style="border-collapse:collapse">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">HARDWARE</th>
           ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
