@@ -22519,11 +22519,22 @@ CRITICAL — detect VAT treatment, do NOT convert prices:
       const imgData = await response.json();
       if (imgData.error) throw new Error(imgData.error.message || imgData.error);
       const imgText = (imgData.content || []).map(b => b.text || '').join('');
-      let items;
+      let items, vatIncludedDefault = true;
       try {
         const clean = imgText.replace(/```json|```/g,'').trim();
         const parsed = JSON.parse(clean);
-        items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.line_items || Object.values(parsed)[0] || []);
+        if (Array.isArray(parsed)) {
+          items = parsed;
+        } else {
+          items = parsed.items || parsed.line_items || [];
+          if (!items.length) {
+            // Fall back to first array-valued key if AI used an unexpected wrapper
+            const firstArr = Object.values(parsed).find(v => Array.isArray(v));
+            items = firstArr || [];
+          }
+          if (typeof parsed.vat_included === 'boolean') vatIncludedDefault = parsed.vat_included;
+          else if (typeof parsed.vatIncluded === 'boolean') vatIncludedDefault = parsed.vatIncluded;
+        }
       } catch(e) {
         throw new Error('Could not parse AI response — try a clearer photo');
       }
@@ -22532,7 +22543,7 @@ CRITICAL — detect VAT treatment, do NOT convert prices:
         return;
       }
       status.innerHTML = `<span style="color:var(--green)">✓ Found ${items.length} line${items.length===1?'':'s'} — review and select which to import</span>`;
-      renderPLPDFResults(items, jobId);
+      renderPLPDFResults(items, jobId, vatIncludedDefault);
       return;
     }
 
