@@ -23862,7 +23862,9 @@ function plUpdateInvoice(jobId, invId, field, value) {
   if (!pd) return;
   const inv = pd.invoices.find(i => i.id === invId);
   if (!inv) return;
-  inv[field] = field === 'amount' ? (parseFloat(value)||0) : value;
+  if (field === 'amount')           inv.amount = parseFloat(value) || 0;
+  else if (field === 'vatIncluded') inv.vatIncluded = !!value;
+  else                              inv[field] = value;
   // Save locally on every keystroke (cheap), defer the server PATCH to blur
   // (plInvoiceBlur) to avoid a network call per character.
   plSave();
