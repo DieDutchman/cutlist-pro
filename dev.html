@@ -2788,8 +2788,8 @@
   input, select, textarea { font-size: 16px !important; }
 
   /* Touch targets: minimum 44px tall for any clickable role */
-  button:not(.tab):not(.unit-img-btn):not(.qty-input),
-  [role="button"] { min-height: 44px; }
+  button:not(.tab):not(.unit-img-btn):not(.unit-action-btn):not(.qty-input),
+  [role="button"]:not(.unit-action-btn) { min-height: 44px; }
 
   /* Long words / unbroken strings (URLs, AI-extracted names) wrap instead of overflow */
   td, th, .unit-name, .cv-extra-label, .summary-totals-bar { overflow-wrap: anywhere; word-break: break-word; }
