@@ -16979,21 +16979,24 @@ function _renderPricesView() {
     <div style="max-width:1100px;margin:0 auto;padding:24px">
 
       <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text)">Supplier Prices</div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:2px">● Not yet synced</span>
-          ${canEditPrices() ? `<button onclick="openBulkAdjustModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">↑ BULK ADJUST</button>` : ''}
-          ${canEditPrices() ? `<button onclick="openBoardCleanupModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">🗃 MANAGE BOARDS</button>` : ''}
-          ${canEditPrices() ? `<button onclick="openImportPricesModal()" style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);color:var(--amber-dim);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:4px 12px;cursor:pointer">⇪ IMPORT PRICES</button>` : ''}
-          <button onclick="loadSupplierPrices()" ${roBtn}
-            style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ SYNC</button>
+      <div class="pp-page-header" style="margin-bottom:14px;padding-top:6px">
+        <h1 class="pp-page-title"><span class="pp-title-mark"></span>Supplier Prices</h1>
+        <span class="pp-page-sub">Board, Edge &amp; Service Pricing</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <span id="sb-sync-badge" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--bg3);border:1px solid var(--border);padding:5px 12px;border-radius:14px">● Not yet synced</span>
+          ${canEditPrices() ? `<button onclick="openBulkAdjustModal()" class="pp-btn">↑ Bulk Adjust</button>` : ''}
+          ${canEditPrices() ? `<button onclick="openBoardCleanupModal()" class="pp-btn">🗃 Manage Boards</button>` : ''}
+          ${canEditPrices() ? `<button onclick="openImportPricesModal()" class="pp-btn">⇪ Import Prices</button>` : ''}
+          <button onclick="loadSupplierPrices()" ${roBtn} class="pp-btn">↻ Sync</button>
         </div>
       </div>
-      <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:6px 10px;margin-bottom:10px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber)">
-        ◆ SUPPLIER: ${activeSupplierRow?.name || 'Default'}${isSupplier() ? '' : ' <span style="color:var(--text-muted);font-size:10px;letter-spacing:1px">(change in job bar)</span>'}
+      <div style="background:linear-gradient(90deg,rgba(212,145,58,0.14) 0%,rgba(212,145,58,0.04) 100%);border:1px solid var(--amber-dim);border-left:3px solid var(--amber);border-radius:4px;padding:10px 16px;margin-bottom:10px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2.5px;color:var(--amber);display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px">◆</span>
+        <span>SUPPLIER:</span>
+        <strong style="color:var(--text);letter-spacing:1.5px">${activeSupplierRow?.name || 'Default'}</strong>
+        ${isSupplier() ? '' : '<span style="color:var(--text-muted);font-size:10px;letter-spacing:1.2px;font-weight:400;margin-left:auto">change in job bar</span>'}
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border);line-height:1.6">
         ${canEditPrices() && !isSupplier() ? 'Changes save to the shared database — all users get updated prices automatically.' : isSupplier() ? 'Supplier mode — you can edit all board and service prices.' : '<span style="color:#e07070">⚠ View only — prices set by admin.</span>'}
       </div>
 
