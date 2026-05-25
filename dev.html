@@ -23439,7 +23439,7 @@ function _renderPLView() {
       const cutExpected = snap.cutLabelExpected || 0;
       const cutSheets   = snap.cutLabelSheets   || 0;
       const cutActual = invs.filter(i => (i.category||'') === 'Cut & Label')
-                            .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+                            .reduce((s,i) => s + _invInclVAT(i), 0) / 1.15;
       if (cutExpected <= 0 && cutActual <= 0) return '';
       const cVar  = (cutExpected > 0 && cutActual > 0) ? (cutExpected - cutActual) : null;
       const cPct  = (cVar !== null && cutExpected > 0) ? (cVar / cutExpected * 100) : null;
