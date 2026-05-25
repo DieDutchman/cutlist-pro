@@ -8811,6 +8811,7 @@ function renderUnitDiagramSVG(unit, unitName) {
       ${facesSvg}
       ${bottomFaceSvg}
       <rect x="0" y="0" width="${fw}" height="${fh}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>
+      ${g.dimsEstimated ? `<text x="${fw/2}" y="${fh - 8}" text-anchor="middle" font-size="8" fill="rgba(200,100,80,0.55)" font-family="JetBrains Mono,monospace" letter-spacing="1">DIMS ESTIMATED</text>` : ''}
     </g>
     ${fWDim}${fHDim}
   </svg>`;
