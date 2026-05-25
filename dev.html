@@ -17749,7 +17749,7 @@ function _renderCostingView() {
 
     const cvId = `cv-block-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId}')">
+      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${u.name} <span style="color:var(--text-muted);font-weight:400;font-size:10px">× ${unitQty}</span></span>
@@ -17889,7 +17889,7 @@ function _renderCostingView() {
     }).join('');
 
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId}')">
+      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${secLabel} — Addons</span>
