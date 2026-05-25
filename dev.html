@@ -24200,33 +24200,33 @@ function _renderPLView() {
 
   view.innerHTML = `
   <div class="main" style="max-width:1200px">
-    <div style="padding:20px 0 12px;border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div style="font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:3px;color:var(--text)">📊 JOB P&L</div>
-      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1px;font-family:'Oswald',sans-serif">PROFIT & LOSS RECONCILER</div>
+    <div class="pp-page-header">
+      <h1 class="pp-page-title"><span class="pp-title-mark"></span>📊 Job P&amp;L</h1>
+      <span class="pp-page-sub">Profit &amp; Loss Reconciler</span>
     </div>
 
     <!-- Job selector -->
-    <div style="background:var(--bg2);border:1px solid var(--border);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--text-muted);white-space:nowrap">SELECT JOB</span>
-      <select autocomplete="off" onchange="plSelectJob(this.value)"
-        style="flex:1;min-width:220px;max-width:420px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;font-size:13px;outline:none;font-family:'Barlow',sans-serif">
+    <div class="pp-card" style="margin-bottom:24px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2.5px;color:var(--amber-dim);white-space:nowrap">SELECT JOB</span>
+      <select autocomplete="off" class="pp-select" onchange="plSelectJob(this.value)"
+        style="flex:1;min-width:220px;max-width:420px">
         <option value="">— Choose a job to analyse —</option>
         ${jobOptions}
       </select>
       ${selJobId ? `
-      <div style="font-size:12px;color:var(--text-muted)">
-        ${selJob?.client ? `<span style="color:var(--text);font-weight:600">${selJob.client}</span>` : ''}
-        ${selJob?.house  ? ` &nbsp;·&nbsp; ${selJob.house}` : ''}
-        ${selJob?.address? ` &nbsp;·&nbsp; ${selJob.address}` : ''}
+      <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${selJob?.client ? `<span style="color:var(--text);font-weight:600;font-family:'Oswald',sans-serif;letter-spacing:0.5px">${selJob.client}</span>` : ''}
+        ${selJob?.house  ? `<span style="color:var(--amber-dim)">·</span><span>${selJob.house}</span>` : ''}
+        ${selJob?.address? `<span style="color:var(--amber-dim)">·</span><span>${selJob.address}</span>` : ''}
       </div>` : ''}
-      <button onclick="plRefresh()" style="background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:6px 14px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px">↻ REFRESH</button>
+      <button onclick="plRefresh()" class="pp-btn">↻ Refresh</button>
     </div>
 
     ${!selJobId ? `
-    <div style="text-align:center;padding:80px 20px;color:var(--text-muted)">
-      <div style="font-size:48px;margin-bottom:16px">📊</div>
-      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:2px;margin-bottom:8px">SELECT A JOB TO BEGIN</div>
-      <div style="font-size:13px;line-height:1.8;max-width:400px;margin:0 auto">
+    <div class="pp-empty">
+      <div class="pp-empty-icon">📊</div>
+      <div class="pp-empty-title">Select a job to begin</div>
+      <div class="pp-empty-body">
         Pick a job from the dropdown above to compare what you quoted, what the costing sheet estimated, and what you actually paid.
       </div>
     </div>` : `
