@@ -17677,11 +17677,11 @@ function _renderCostingView() {
   const addonSections = getAddonSections();
 
   // ── Main: unit cost breakdown ──
-  const boardInfoBar = `<div style="display:inline-flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);padding:7px 14px;font-size:11px;color:var(--text-muted);margin-bottom:16px">
-    <span>&#x1F4D0; Board: <strong style="color:var(--text)">2750 × 1830mm</strong></span>
-    <span>♻ Waste: <strong style="color:var(--text)">${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
-    <span>&#x1F4CF; Billing: <strong style="color:var(--text)">0.05-sheet increments, 0.25 min</strong></span>
-    <span>✂ Edging buffer: <strong style="color:var(--text)">+1m</strong></span>
+  const boardInfoBar = `<div class="pp-stat-strip" style="display:inline-flex;width:auto">
+    <span class="pp-stat"><span class="pp-stat-icon">📐</span>Board <strong>2750 × 1830mm</strong></span>
+    <span class="pp-stat"><span class="pp-stat-icon">♻</span>Waste <strong>${Math.round((WASTE_FACTOR-1)*100)}%</strong></span>
+    <span class="pp-stat"><span class="pp-stat-icon">📏</span>Billing <strong>0.05-sheet · 0.25 min</strong></span>
+    <span class="pp-stat"><span class="pp-stat-icon">✂</span>Edging buffer <strong>+1m</strong></span>
   </div>`;
   let mainHtml = boardInfoBar + `<div class="cv-title">📐 Costing Breakdown</div>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px">
