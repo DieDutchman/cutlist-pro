@@ -5360,29 +5360,24 @@ function _renderPanel() {
     const qty = quantities[u.id] || 0;
     const hasImg = !!unitImages[u.id];
     const _imgTitle = hasImg ? 'View uploaded diagram' : 'View unit schematic (auto-generated)';
-    const imgBtn = `<button class="unit-img-btn" title="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
+    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
     const noParts = !u.parts || u.parts.length === 0;
     const nameStyle = noParts ? 'color:#e05252' : '';
-    const noPartsTag = noParts ? `<span title="No parts defined — will be skipped in cutlist" style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;text-transform:uppercase;padding:1px 5px;background:#3a1a1a;color:#e05252;border:1px solid #5a2a2a;border-radius:2px;margin-left:5px;cursor:default">⚠ No Parts</span>` : '';
+    const noPartsTag = noParts ? `<span class="unit-noparts" title="No parts defined — will be skipped in cutlist">⚠ No Parts</span>` : '';
 
     const ov = unitMatOverrides[u.id];
     const ovActive = !!ov;
-    const ovBtnStyle = ovActive
-      ? 'background:rgba(212,145,58,0.2);border:1px solid var(--amber);color:var(--amber)'
-      : 'background:var(--bg3);border:1px solid var(--border);color:var(--text-muted)';
     const ovBtn = !noParts
-      ? `<button title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
-           onclick="toggleUnitMatOverride('${u.id}')"
-           style="${ovBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:6px">🎨</button>`
+      ? `<button class="unit-action-btn is-icon${ovActive ? ' is-active' : ''}"
+           title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
+           onclick="toggleUnitMatOverride('${u.id}')"><span class="uab-glyph">🎨</span></button>`
       : '';
 
     const hasSvcOverride = (unitSpecialServices[u.id]||[]).length > 0;
-    const svcBtnStyle = hasSvcOverride
-      ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
-      : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
     const svcBtn = costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user')
-      ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
-           style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
+      ? `<button class="unit-action-btn is-icon${hasSvcOverride ? ' is-active-green' : ''}"
+           title="Special services for this unit"
+           onclick="openSpecialServicesPopup('${u.id}','unit',this)"><span class="uab-glyph">⚙</span></button>`
       : '';
 
 
