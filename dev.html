@@ -23081,7 +23081,7 @@ function _renderPLView() {
   const catTotals = {};
   invs.forEach(inv => {
     const cat = inv.category || 'Other';
-    catTotals[cat] = (catTotals[cat]||0) + (parseFloat(inv.amount)||0);
+    catTotals[cat] = (catTotals[cat]||0) + _invInclVAT(inv);
   });
   const catHtml = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,amt]) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
