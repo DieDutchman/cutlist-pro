@@ -24013,9 +24013,9 @@ function _renderPLView() {
             <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
           </tr>`).join('');
       return `
-    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">TOPS</div>
-    <div style="overflow-x:auto;border:1px solid var(--border)">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <div class="pp-table-subhead">TOPS</div>
+    <div class="pp-table-wrap">
+      <table class="pp-table" style="border-collapse:collapse">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
           ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
