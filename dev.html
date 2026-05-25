@@ -8695,9 +8695,9 @@ function renderUnitDiagramSVG(unit, unitName) {
   }
 
   const g = inferUnitGeometry(unit);
-  const W = g.W || 600;
-  const H = g.H || 780;
-  const D = g.D || 534;
+  const W = g.W; // fallbacks now resolved inside inferUnitGeometry
+  const H = g.H;
+  const D = g.D;
   const T = 18; // standard board thickness mm
 
   // ── UNIFIED SCALE — both views use same px-per-mm ─────────────────────────
