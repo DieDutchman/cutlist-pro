@@ -23247,7 +23247,7 @@ function _renderPLView() {
       const extrasTopsExp   = extrasTopsList.reduce((s, x) => s + (x.rawTotal || 0), 0);
       const topsExpected    = stdTopsExpected + extrasTopsExp;
       const topsActual   = invs.filter(i => (i.category||'') === 'Tops')
-                               .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+                               .reduce((s,i) => s + _invInclVAT(i), 0) / 1.15;
       if (topsExpected <= 0 && topsActual <= 0) return '';
       const tVar = topsExpected - topsActual;
       const tPct = topsExpected > 0 ? (tVar / topsExpected * 100) : null;
