@@ -9812,11 +9812,13 @@ function _renderQuoteView() {
   const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
 
   // ── Main area: unit breakdown ──
-  let mainHtml = `<div class="qv-title">
-    💰 Quote ${job.client ? '— ' + job.client : ''}
-    ${job.house ? `<span style="font-size:13px;color:var(--text-muted);font-family:'Barlow',sans-serif;font-weight:normal">${job.house}</span>` : ''}
+  let mainHtml = `
+  <div class="pp-page-header" style="margin-top:0;margin-bottom:14px;padding-top:0">
+    <h1 class="pp-page-title"><span class="pp-title-mark"></span>💰 Quote ${job.client ? '<span style="color:var(--amber-dim);margin:0 4px">—</span> ' + job.client : ''}</h1>
+    ${job.house ? `<span class="pp-page-sub" style="font-family:'Barlow',sans-serif;letter-spacing:0.5px;text-transform:none;font-size:13px;color:var(--text-muted)">${job.house}</span>` : ''}
   </div>
-  <div style="font-size:11px;color:var(--amber-dim);margin-bottom:16px;font-family:'Oswald',sans-serif;letter-spacing:1px">
+  <div style="font-size:11px;color:var(--amber-dim);margin-bottom:18px;font-family:'Oswald',sans-serif;letter-spacing:2px;display:flex;align-items:center;gap:8px">
+    <span style="display:inline-block;width:24px;height:1px;background:var(--amber-dim);opacity:0.5"></span>
     ⟳ Unit prices calculated from material costing sheet
   </div>`;
 
