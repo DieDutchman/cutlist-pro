@@ -6676,7 +6676,8 @@ let MATS = ['Picco White','3MM White Masonite','Dunblane','Iceberg White','Congo
 let EDGES = ['','Dunblane Edging 1mm','White Edging 1mm','Iceberg White Edging 1mm','Congo Edging 1mm',
                'Folkstone Grey Edging 1mm','Woodland Fusion Edging 1mm','Storm Grey Edging 1mm','Picco White Edging 1mm'];
 
-function renderEditor() {
+function renderEditor() { withScrollLock(_renderEditor); }
+function _renderEditor() {
   const ev = document.getElementById('editor-view');
   const isUserMode = usesUserUnits();
 
