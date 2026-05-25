@@ -22603,23 +22603,40 @@ CRITICAL — detect VAT treatment, do NOT convert prices:
   }
 }
 
-// Shared results renderer used by both PDF and image paths
-function renderPLPDFResults(items, jobId) {
+// Shared results renderer used by both PDF and image paths.
+// vatIncludedDefault = AI's judgement on whether the printed line-item prices
+// include VAT (true) or are excl VAT (false). Used to default the per-line
+// VAT toggle; user can override per row before importing.
+function renderPLPDFResults(items, jobId, vatIncludedDefault) {
   const results = document.getElementById('pl-pdf-results');
   if (!results) return;
+  if (typeof vatIncludedDefault !== 'boolean') vatIncludedDefault = true;
+  const bannerColor = vatIncludedDefault ? 'var(--amber-dim)' : '#6aaad4';
+  const bannerText  = vatIncludedDefault
+    ? 'Claude detected: prices on this invoice are INCLUSIVE of VAT (line-item totals already include 15%).'
+    : 'Claude detected: prices on this invoice are EXCLUSIVE of VAT (a separate VAT line is added at the bottom).';
   results.innerHTML = `
+    <div style="margin-bottom:10px;padding:8px 12px;background:rgba(212,145,58,0.06);border:1px solid ${bannerColor};display:flex;align-items:center;gap:10px">
+      <span style="font-size:14px">🧾</span>
+      <div style="flex:1;font-size:11px;color:var(--text-muted);line-height:1.5">${bannerText}<br><span style="color:var(--text-muted);font-size:10px">If wrong, flip the INCL/EXCL switch on any row below before importing.</span></div>
+    </div>
     <div style="border:1px solid var(--border);margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted)">
         <span style="width:20px;flex-shrink:0"></span>
         <span style="flex:2;min-width:0">DESCRIPTION</span>
         <span style="flex:1;min-width:0">SUPPLIER</span>
         <span style="width:130px;flex-shrink:0">CATEGORY</span>
-        <span style="width:70px;flex-shrink:0;text-align:right">QTY</span>
-        <span style="width:90px;flex-shrink:0;text-align:right" title="Unit price incl VAT">UNIT (incl VAT)</span>
-        <span style="width:100px;flex-shrink:0;text-align:right" title="Line total incl VAT — the actual paid amount">TOTAL (incl VAT)</span>
+        <span style="width:60px;flex-shrink:0;text-align:right">QTY</span>
+        <span style="width:80px;flex-shrink:0;text-align:right" title="Unit price as printed on invoice">UNIT PRICE</span>
+        <span style="width:90px;flex-shrink:0;text-align:right" title="Line total as printed on invoice">LINE TOTAL</span>
+        <span style="width:70px;flex-shrink:0;text-align:center" title="Whether this line's prices include VAT or exclude VAT">VAT</span>
       </div>
       ${items.map((item, i) => {
         const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
+        // Resolve per-item override → top-level default
+        let vIn = vatIncludedDefault;
+        if (item && typeof item.vat_included === 'boolean') vIn = item.vat_included;
+        else if (item && typeof item.vatIncluded === 'boolean') vIn = item.vatIncluded;
         return `
         <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06));${isTotal?'background:rgba(212,145,58,0.06)':''}">
           <input type="checkbox" id="pl-pdf-chk-${i}" ${isTotal?'':'checked'} style="width:20px;flex-shrink:0;accent-color:var(--amber)">
@@ -22634,13 +22651,18 @@ function renderPLPDFResults(items, jobId) {
           </select>
           <input type="number" value="${parseFloat(item.qty)||1}" id="pl-pdf-qty-${i}"
             step="0.01" min="0"
-            style="width:70px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:60px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
           <input type="number" value="${parseFloat(item.unit_price)||0}" id="pl-pdf-uprice-${i}"
             step="0.01" min="0"
-            style="width:90px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:80px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
           <input type="number" value="${parseFloat(item.amount)||0}" id="pl-pdf-amt-${i}"
             step="0.01" min="0"
-            style="width:100px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+            style="width:90px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:4px 7px;font-size:11px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace">
+          <select id="pl-pdf-vat-${i}" title="Whether this line's prices include VAT or exclude VAT"
+            style="width:70px;flex-shrink:0;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:11px;outline:none;text-align:center">
+            <option value="incl" ${vIn ? 'selected' : ''}>Incl</option>
+            <option value="excl" ${vIn ? '' : 'selected'}>Excl</option>
+          </select>
         </div>`;
       }).join('')}
     </div>
