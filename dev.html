@@ -17684,10 +17684,14 @@ function _renderCostingView() {
     <span class="pp-stat"><span class="pp-stat-icon">📏</span>Billing <strong>0.05-sheet · 0.25 min</strong></span>
     <span class="pp-stat"><span class="pp-stat-icon">✂</span>Edging buffer <strong>+1m</strong></span>
   </div>`;
-  let mainHtml = boardInfoBar + `<div class="cv-title">📐 Costing Breakdown</div>
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px">
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="costingExpandAll(true)">⊞ Expand All</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="costingExpandAll(false)">⊟ Collapse All</button>
+  let mainHtml = boardInfoBar + `
+  <div class="pp-page-header" style="margin-top:4px;margin-bottom:14px">
+    <h1 class="pp-page-title"><span class="pp-title-mark"></span>📐 Costing Breakdown</h1>
+    <span class="pp-page-sub">Material &amp; Labour Cost Sheet</span>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+    <button class="pp-btn is-sm" onclick="costingExpandAll(true)">⊞ Expand All</button>
+    <button class="pp-btn is-sm" onclick="costingExpandAll(false)">⊟ Collapse All</button>
   </div>`;
 
   if (!selectedUnits.length) {
