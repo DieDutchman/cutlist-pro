@@ -22943,8 +22943,12 @@ function _renderPLView() {
   }
 
   // Invoice totals — VAT-aware
+  // Every inv.amount may be stored as either incl or excl VAT depending on
+  // the supplier invoice; inv.vatIncluded carries that flag (default true for
+  // backwards compat). _invInclVAT normalises each line back to incl-VAT so
+  // the existing /1.15 math still derives the correct excl-VAT figures.
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
-  const invoiceTotal      = invs.reduce((s,inv) => s + (parseFloat(inv.amount)||0), 0);
+  const invoiceTotal      = invs.reduce((s,inv) => s + _invInclVAT(inv), 0);
   const invoiceVAT        = invoiceTotal * 15 / 115;           // input VAT claimable
   const invoiceExclVAT    = invoiceTotal / 1.15;               // true material cost excl VAT
   const totalCostExclVAT  = invoiceExclVAT + labourCost;       // full cost: materials excl VAT + labour
