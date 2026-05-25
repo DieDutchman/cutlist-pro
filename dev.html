@@ -23332,7 +23332,7 @@ function _renderPLView() {
       invs.forEach(inv => {
         const cat = inv.category || '';
         if (cat in hwExpected) {
-          hwActual[cat] += (parseFloat(inv.amount)||0) / 1.15;
+          hwActual[cat] += _invInclVAT(inv) / 1.15;
         }
       });
       const labels = {
