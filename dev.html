@@ -17050,21 +17050,19 @@ function _renderPricesView() {
       </div>` : ''}
 
       <!-- Cutting & Services -->
-      <div style="margin-top:24px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
-          <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--amber-dim)">Cutting &amp; Services</div>
-          ${admin ? `<div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:var(--text-muted)">Edging billing:</span>
-            <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',costingPrices.extras.edgeRoundPerPart?1:0);renderPricesView()"
-              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${!costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${!costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
-              Per job total
-            </button>
-            <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',1);renderPricesView()"
-              style="padding:3px 10px;font-size:10px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer;border:1px solid ${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--border)'};background:${costingPrices.extras.edgeRoundPerPart?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${costingPrices.extras.edgeRoundPerPart?'var(--amber)':'var(--text-muted)'}">
-              Per panel
-            </button>
-            <span style="font-size:10px;color:var(--text-muted)" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices."">ℹ</span>
-          </div>` : `<span style="font-size:11px;color:var(--text-muted)">Edging: <strong style="color:var(--text)">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
+      <div style="margin-top:28px">
+        <div class="pp-section-head" style="margin-top:0">
+          <span>Cutting &amp; Services</span>
+          ${admin ? `<div style="display:flex;align-items:center;gap:10px;font-weight:400">
+            <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none">Edging billing:</span>
+            <div class="pp-toggle-group">
+              <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',costingPrices.extras.edgeRoundPerPart?1:0);renderPricesView()"
+                class="${!costingPrices.extras.edgeRoundPerPart?'is-active':''}">Per job total</button>
+              <button onclick="costingPrices.extras.edgeRoundPerPart=true;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',1);renderPricesView()"
+                class="${costingPrices.extras.edgeRoundPerPart?'is-active':''}">Per panel</button>
+            </div>
+            <span style="font-size:11px;color:var(--text-muted);cursor:help" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices.">ⓘ</span>
+          </div>` : `<span class="pp-section-sub">Edging: <strong style="color:var(--text);letter-spacing:0.5px">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
