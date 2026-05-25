@@ -293,6 +293,178 @@
 
   .unit-name { font-weight: 500; color: var(--text); }
 
+  /* ── UNIT ROW: name + action cluster ────────────────────────────────────── */
+  /* Replaces the old margin-left chain so the SVG icon no longer sits flush
+     against the unit label, and every action button gets identical sizing,
+     focus and hover feedback. */
+  .unit-row-cell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .unit-row-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 220px;
+    line-height: 1.35;
+  }
+  .unit-row-name .unit-expand {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+  }
+  .unit-row-name .unit-expand:hover { color: var(--amber); }
+  .unit-row-name .unit-expand.is-open { transform: rotate(90deg); }
+  .unit-row-name .unit-label {
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .unit-row-name .unit-label.no-cursor { cursor: default; }
+  .unit-row-name .unit-noparts {
+    font-size: 9px;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    background: #3a1a1a;
+    color: #e05252;
+    border: 1px solid #5a2a2a;
+    border-radius: 2px;
+    cursor: default;
+    flex-shrink: 0;
+  }
+
+  .unit-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-left: 14px;
+    border-left: 1px solid var(--border);
+  }
+
+  /* Shared action button: square, ghost, refined hover lift. */
+  .unit-action-btn {
+    --uab-fg: var(--text-muted);
+    --uab-bg: transparent;
+    --uab-border: var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    line-height: 1;
+    color: var(--uab-fg);
+    background: var(--uab-bg);
+    border: 1px solid var(--uab-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.12s ease, color 0.15s ease,
+                background 0.15s ease, border-color 0.15s ease,
+                box-shadow 0.15s ease;
+  }
+  .unit-action-btn:hover {
+    --uab-fg: var(--amber);
+    --uab-border: var(--amber-dim);
+    --uab-bg: rgba(212,145,58,0.10);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .unit-action-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(212,145,58,0.30);
+    border-color: var(--amber);
+  }
+  .unit-action-btn .uab-glyph {
+    font-size: 13px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+  .unit-action-btn .uab-label {
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  /* Icon-only variant (no label). */
+  .unit-action-btn.is-icon {
+    width: 28px;
+    padding: 0;
+  }
+  /* "Active state" — used by material override and special-services pills. */
+  .unit-action-btn.is-active {
+    --uab-fg: var(--amber);
+    --uab-border: var(--amber);
+    --uab-bg: rgba(212,145,58,0.18);
+  }
+  .unit-action-btn.is-active-green {
+    --uab-fg: #4caf82;
+    --uab-border: #4caf82;
+    --uab-bg: rgba(76,175,130,0.18);
+  }
+  /* Danger variant for "Remove". */
+  .unit-action-btn.is-danger {
+    --uab-fg: #6a3434;
+    --uab-border: #3a1a1a;
+  }
+  .unit-action-btn.is-danger:hover {
+    --uab-fg: #ffffff;
+    --uab-border: #e05252;
+    --uab-bg: #c64545;
+    box-shadow: 0 2px 6px rgba(224,82,82,0.35);
+  }
+  /* Image / diagram button — slightly distinct so the SVG icon reads as
+     "preview" rather than "action". */
+  .unit-action-btn.is-img {
+    --uab-fg: rgba(255,255,255,0.55);
+    --uab-bg: rgba(255,255,255,0.04);
+    --uab-border: rgba(255,255,255,0.12);
+  }
+  body.supplier-theme .unit-action-btn.is-img,
+  body.user-light-theme .unit-action-btn.is-img {
+    --uab-fg: rgba(0,0,0,0.55);
+    --uab-bg: rgba(0,0,0,0.04);
+    --uab-border: rgba(0,0,0,0.14);
+  }
+  .unit-action-btn.is-img svg { display: block; }
+
+  /* Wider gap on roomy screens so the cluster never crowds the label. */
+  @media (min-width: 900px) {
+    .unit-row-cell { gap: 18px; }
+    .unit-row-actions { padding-left: 18px; gap: 7px; }
+  }
+
+  /* Phone: drop the divider, let actions wrap below the label. */
+  @media (max-width: 640px) {
+    .unit-row-actions {
+      padding-left: 0;
+      border-left: none;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .unit-action-btn { height: 32px; padding: 0 10px; }
+    .unit-action-btn.is-icon { width: 32px; }
+  }
+
   /* ── QUOTE SUMMARY SIDEBAR ── */
   .layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; }
   .sidebar {
@@ -1213,6 +1385,47 @@
     .cv-layout { grid-template-columns: 1fr; }
     .cv-price-grid { grid-template-columns: 1fr; }
   }
+
+  /* ──────────────────────────────────────────────────────────────────────
+     GLOBAL INPUT OVERFLOW SAFETY NET
+     Prevents text from spilling past the visible edge of any input/select.
+     Addresses the classic flex-shrink overflow (inputs ignoring container
+     width because their UA default min-width is "auto" = intrinsic content).
+     ────────────────────────────────────────────────────────────────────── */
+  input, select, textarea {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Single-line text inputs: clip + ellipsis for placeholder/value preview */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"] {
+    text-overflow: ellipsis;
+  }
+  /* Select elements: hide overflow on the visible label */
+  select {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  /* Textareas: wrap, never horizontal overflow */
+  textarea {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  /* Flex children that wrap an input must also allow shrinking */
+  .mat-select,
+  .qty-input,
+  .cv-extra-input,
+  .bldr-input {
+    min-width: 0;
+  }
 </style>
 <style>
   /* ── BEDROOM ADDON CARDS ── */
@@ -1926,30 +2139,36 @@
   .img-remove-btn:hover { background: var(--red); color: white; }
 
   .unit-img-btn {
-    background: none;
-    border: none;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 3px;
     cursor: pointer;
-    padding: 0 4px;
-    font-size: 16px;
-    opacity: 0.7;
+    padding: 3px 5px;
     line-height: 1;
     vertical-align: middle;
-    transition: opacity 0.15s, transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    color: rgba(255,255,255,0.4);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .unit-img-btn:hover { opacity: 1; transform: scale(1.2); }
-  .unit-img-btn.no-img { opacity: 0.18; cursor: default; filter: grayscale(1); }
-  .unit-img-btn.no-img:hover { opacity: 0.25; transform: none; }
+  .unit-img-btn:hover {
+    background: rgba(212,145,58,0.12);
+    border-color: rgba(212,145,58,0.45);
+    color: #d4913a;
+  }
 
+  /* ── UNIT DIAGRAM LIGHTBOX ─────────────────────────────────────────── */
   .img-lightbox {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.88);
+    background: rgba(0,0,0,0.92);
     z-index: 999;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
     cursor: zoom-out;
+    backdrop-filter: blur(3px);
   }
   .img-lightbox img {
     max-width: 90vw;
@@ -1958,6 +2177,107 @@
     border: 1px solid rgba(255,255,255,0.1);
     box-shadow: 0 8px 40px rgba(0,0,0,0.7);
   }
+  #img-lightbox-svg {
+    background: #0e0e18;
+    border: 1px solid rgba(212,145,58,0.22);
+    box-shadow: 0 0 0 1px rgba(212,145,58,0.07), 0 24px 80px rgba(0,0,0,0.85);
+    max-width: 92vw;
+    max-height: 92vh;
+    overflow: hidden;
+    cursor: default;
+    flex-direction: column;
+  }
+  .udp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(212,145,58,0.16);
+    background: rgba(212,145,58,0.03);
+    flex-shrink: 0;
+  }
+  .udp-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #d4913a;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .udp-chips { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+  .udp-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .chip-nailers   { background: rgba(100,120,200,0.12); color: #8899cc; border: 1px solid rgba(100,120,200,0.22); }
+  .chip-masonite  { background: rgba(80,100,160,0.12);  color: #7799bb; border: 1px solid rgba(80,100,160,0.22); }
+  .chip-solidback { background: rgba(150,100,60,0.12);  color: #bb8844; border: 1px solid rgba(150,100,60,0.22); }
+  .chip-noback    { background: rgba(80,80,80,0.10);    color: #666;    border: 1px solid rgba(80,80,80,0.18); }
+  .chip-supports  { background: rgba(60,100,80,0.12);   color: #66aa88; border: 1px solid rgba(60,100,80,0.22); }
+  .chip-shelves   { background: rgba(80,80,60,0.12);    color: #aaaa66; border: 1px solid rgba(80,80,60,0.22); }
+  .udp-close {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.38);
+    font-size: 17px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.12s, border-color 0.12s;
+  }
+  .udp-close:hover { color: #fff; border-color: rgba(255,255,255,0.38); }
+  .udp-body { overflow: auto; flex: 1; padding: 20px 22px 16px; }
+  .udp-views { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+  .udp-view-block { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .udp-view-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: rgba(212,145,58,0.45);
+    text-transform: uppercase;
+  }
+  .udp-legend {
+    margin-top: 14px;
+    padding-top: 11px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .udp-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 0.5px;
+  }
+  .udp-legend-swatch { width: 14px; height: 9px; border-radius: 1px; flex-shrink: 0; }
+  .udp-legend-note {
+    font-family: 'Barlow', sans-serif;
+    font-size: 10px;
+    color: #444;
+    font-style: italic;
+    margin-left: auto;
+  }
+  .udp-empty { padding: 40px; text-align: center; }
   .img-lightbox-caption {
     position: absolute;
     bottom: 28px;
@@ -2423,6 +2743,56 @@
   /* Trial expired card: tighter padding on phone */
   #trial-expired-screen > div { padding: 18px 12px !important; }
 
+  /* Header at phone width: ensure primary actions never overflow row */
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; }
+  .btn { padding: 6px 9px !important; font-size: 10px !important; letter-spacing: 1px !important; min-height: 40px; }
+
+  /* Section header: smaller on phone so long room/section labels don't push width */
+  .section-header { font-size: 9px !important; padding: 4px 8px 3px 10px !important; word-break: break-word; }
+
+  /* Units table sticky header: lower top so it doesn't get hidden behind wrapped header */
+  .units-table th { top: 0 !important; padding: 5px 8px !important; font-size: 10px; }
+  .units-table td { padding: 6px 8px !important; font-size: 13px; }
+
+  /* Quote view markup grid: 2 cols already; tighten cell padding */
+  .qv-markup-grid > * { padding: 6px !important; }
+
+  /* Force long inline grids (panel cards, materials cards) to single column at phone */
+  #panels-view [style*="grid-template-columns"],
+  #materials-view [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Any element with inline width:Npx beyond viewport — soft cap */
+  [style*="width:680px"], [style*="width: 680px"],
+  [style*="width:720px"], [style*="width: 720px"],
+  [style*="width:760px"], [style*="width: 760px"],
+  [style*="width:600px"], [style*="width: 600px"],
+  [style*="width:520px"], [style*="width: 520px"],
+  [style*="width:500px"], [style*="width: 500px"] {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* ── GLOBAL MOBILE HARDENING (always-on, not media-gated) ─────────────────── */
+/* These are safe at all widths and prevent rare overflow vectors that only
+   manifest when content is unusually long (very long client names, room labels,
+   AI-imported part names with no spaces, etc.). */
+@media (max-width: 768px) {
+  /* Defensive: cap ANY direct child of body at viewport width to defeat
+     any rogue absolute element or stray inline width that escapes wrappers. */
+  body > * { max-width: 100vw; }
+
+  /* Inputs: never shrink below readable on iOS; prevent pinch-zoom auto-fire */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Touch targets: minimum 44px tall for any clickable role */
+  button:not(.tab):not(.unit-img-btn):not(.unit-action-btn):not(.qty-input),
+  [role="button"]:not(.unit-action-btn) { min-height: 44px; }
+
+  /* Long words / unbroken strings (URLs, AI-extracted names) wrap instead of overflow */
+  td, th, .unit-name, .cv-extra-label, .summary-totals-bar { overflow-wrap: anywhere; word-break: break-word; }
 }
 </style>
 </head>
@@ -2733,6 +3103,15 @@
     <select id="supplier-select" onchange="onSupplierSelectChange()"
       style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
     </select>
+  </div>
+  <!-- Job status badge -->
+  <div id="job-status-wrap" style="display:none;position:relative">
+    <button id="job-status-btn" onclick="toggleJobStatusMenu()"
+      style="background:rgba(128,128,128,0.15);border:1px solid rgba(128,128,128,0.4);color:#888;padding:4px 10px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:all 0.15s">
+      ● DRAFT
+    </button>
+    <div id="job-status-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border);min-width:150px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
+    </div>
   </div>
   <button onclick="saveJobToCloud()" id="job-save-btn"
     style="background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap">
@@ -3203,7 +3582,8 @@
   <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
-    <img id="img-lightbox-img" src="" alt="">
+    <img id="img-lightbox-img" src="" alt="" style="display:none">
+    <div id="img-lightbox-svg" style="display:none" onclick="event.stopPropagation()"></div>
     <div class="img-lightbox-caption" id="img-lightbox-caption"></div>
   </div>
 </div>
@@ -3218,25 +3598,55 @@ function withScrollLock(fn) {
   const mainEl   = document.querySelector('.main') || document.documentElement;
   const winScrollY   = window.scrollY;
   const mainScrollTop = mainEl.scrollTop;
+  const bodyScrollTop = document.body ? document.body.scrollTop : 0;
 
-  // Save focused element info so we can restore focus after render
-  const focused   = document.activeElement;
-  const focusedId = focused?.id || null;
-  const focusedSel = focused && focused !== document.body
-    ? focused.getAttribute('data-restore-focus') || null
-    : null;
+  // Save focused element info so we can restore focus after render.
+  // Track caret/selection so number/text inputs don't lose position on every keystroke.
+  const focused    = document.activeElement;
+  const focusedId  = focused?.id || null;
+  const isInput    = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA');
+  let caretStart = null, caretEnd = null;
+  if (isInput) {
+    try { caretStart = focused.selectionStart; caretEnd = focused.selectionEnd; } catch(e) {}
+  }
+
+  // Save scrollTop of every scrollable ancestor of the focused element so nested
+  // modals / panels / overlays don't jump to top when their inner content re-renders.
+  const ancestorScrolls = [];
+  if (focused && focused !== document.body) {
+    let node = focused.parentElement;
+    while (node && node !== document.documentElement) {
+      if (node.scrollHeight > node.clientHeight) {
+        ancestorScrolls.push({ node, top: node.scrollTop, left: node.scrollLeft });
+      }
+      node = node.parentElement;
+    }
+  }
 
   fn();
 
-  // Restore scroll
+  // Restore scroll (window + main + body — covers all root-scroll patterns)
   window.scrollTo(0, winScrollY);
   if (mainEl !== document.documentElement) mainEl.scrollTop = mainScrollTop;
+  if (document.body) document.body.scrollTop = bodyScrollTop;
 
   // Restore focus if the element still exists (it may have been re-rendered)
   if (focusedId) {
     const el = document.getElementById(focusedId);
-    if (el) { try { el.focus(); } catch(e) {} }
+    if (el) {
+      try {
+        el.focus({ preventScroll: true });
+        if (caretStart !== null && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+          try { el.setSelectionRange(caretStart, caretEnd); } catch(e) {}
+        }
+      } catch(e) {}
+    }
   }
+
+  // Restore scroll on every still-attached scrollable ancestor
+  ancestorScrolls.forEach(({ node, top, left }) => {
+    if (node.isConnected) { node.scrollTop = top; node.scrollLeft = left; }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4205,23 +4615,74 @@ function saveMaterials() {
   try { localStorage.setItem('cutlist_materials', JSON.stringify(materialConfig)); } catch(e) {}
 }
 
-// Per-unit hardware flag — { [unitId]: false } means hardware excluded for that unit
-// Default (key absent) = hardware IS included
-const sectionHardware = {}; // { [sectionId]: false } = hardware excluded
+// Per-section hardware flags — granular per type (handles / runners / hinges).
+// Data shape:   sectionHardware[sectionId] = { handles:bool, runners:bool, hinges:bool }
+// Defaults:     missing key OR `true` (legacy) → all three ON
+//               legacy `false` → all three OFF
+// Drilling (hinge hole drilling) follows the hinges flag.
+const HW_TYPES = ['handles', 'runners', 'hinges'];
+const sectionHardware = {};
 try {
   const saved = JSON.parse(localStorage.getItem('cutlist_section_hardware') || '{}');
   Object.assign(sectionHardware, saved);
 } catch(e) {}
 
+// Normalize a stored value into a {handles,runners,hinges} object.
+// Accepts: undefined/true → all on; false → all off; partial obj → fill missing as true.
+function _normSectionHw(v) {
+  if (v === false) return { handles:false, runners:false, hinges:false };
+  if (v && typeof v === 'object') {
+    return {
+      handles: v.handles !== false,
+      runners: v.runners !== false,
+      hinges:  v.hinges  !== false,
+    };
+  }
+  // undefined, true, or anything else → all-on (default)
+  return { handles:true, runners:true, hinges:true };
+}
+
 function saveSectionHardware() {
   try { localStorage.setItem('cutlist_section_hardware', JSON.stringify(sectionHardware)); } catch(e) {}
 }
 
-function toggleSectionHardware(sectionId) {
-  if (sectionHardware[sectionId] === false) {
+// Read individual sub-flag for a section. Defaults to true when unset.
+function sectionHasHwType(sectionId, type) {
+  return _normSectionHw(sectionHardware[sectionId])[type];
+}
+function sectionHasHandles(sectionId) { return sectionHasHwType(sectionId, 'handles'); }
+function sectionHasRunners(sectionId) { return sectionHasHwType(sectionId, 'runners'); }
+function sectionHasHinges (sectionId) { return sectionHasHwType(sectionId, 'hinges' ); }
+
+// "Any" flag — used for showing/hiding the whole hardware UI block.
+function sectionHasHardware(sectionId) {
+  const f = _normSectionHw(sectionHardware[sectionId]);
+  return f.handles || f.runners || f.hinges;
+}
+
+// Unit-level wrappers
+function unitHasHwType(unitId, type) {
+  const unit = getEffectiveUnits().find(u => u.id === unitId);
+  return unit ? sectionHasHwType(unit.section, type) : true;
+}
+function unitHasHandles(unitId) { return unitHasHwType(unitId, 'handles'); }
+function unitHasRunners(unitId) { return unitHasHwType(unitId, 'runners'); }
+function unitHasHinges (unitId) { return unitHasHwType(unitId, 'hinges' ); }
+function unitHasHardware(unitId) {
+  const unit = getEffectiveUnits().find(u => u.id === unitId);
+  return unit ? sectionHasHardware(unit.section) : true;
+}
+
+// Toggle a single sub-flag for a section.
+function toggleSectionHardwareType(sectionId, type) {
+  if (!HW_TYPES.includes(type)) return;
+  const cur = _normSectionHw(sectionHardware[sectionId]);
+  cur[type] = !cur[type];
+  // Optimisation: if all three are on (default), drop the key entirely
+  if (cur.handles && cur.runners && cur.hinges) {
     delete sectionHardware[sectionId];
   } else {
-    sectionHardware[sectionId] = false;
+    sectionHardware[sectionId] = cur;
   }
   saveSectionHardware();
   renderPanel();
@@ -4230,13 +4691,20 @@ function toggleSectionHardware(sectionId) {
   refreshQuoteTotals();
 }
 
-function sectionHasHardware(sectionId) {
-  return sectionHardware[sectionId] !== false;
-}
-
-function unitHasHardware(unitId) {
-  const unit = getEffectiveUnits().find(u => u.id === unitId);
-  return unit ? sectionHasHardware(unit.section) : true;
+// Legacy entry-point: toggle ALL hardware for a section (kept for backwards compat).
+// If anything is on, turn everything off; otherwise turn everything on.
+function toggleSectionHardware(sectionId) {
+  const anyOn = sectionHasHardware(sectionId);
+  if (anyOn) {
+    sectionHardware[sectionId] = { handles:false, runners:false, hinges:false };
+  } else {
+    delete sectionHardware[sectionId];
+  }
+  saveSectionHardware();
+  renderPanel();
+  const cv = document.getElementById('costing-view');
+  if (cv && cv.style.display !== 'none') refreshCostingResults();
+  refreshQuoteTotals();
 }
 
 // Per-unit material overrides — { [unitId]: { wood, edging } }
@@ -4318,6 +4786,41 @@ function setMaterial(groupId, type, val) {
 }
 
 function getUnitMaterialGroup(unit) {
+  // In user-mode (any role with userRooms), the material context is per-room.
+  // Resolve the unit to its hosting userRoom so the per-room Wood/Edging
+  // selection (materialConfig[room.id]) is honored.
+  //
+  // Two-step resolution:
+  //   (a) userUnit owned by a custom room (u.section === room.id) — always
+  //       resolves to that room regardless of which tab is active.
+  //   (b) Template unit (u.section is a hardcoded template id like 'kitchen',
+  //       'mainbedroom') being VIEWED inside a custom room — resolves to the
+  //       room ONLY when currentSection === room.id. Without the currentSection
+  //       guard, a superuser sitting on the static 'mainbedroom' template tab
+  //       would silently inherit the material config of the first custom room
+  //       whose templateSection === 'mainbedroom', and the template tab's own
+  //       Wood/Edging selector (which writes to materialConfig['mainbedroom'])
+  //       would be ignored.
+  if (typeof usesUserUnits === 'function' && usesUserUnits()
+      && Array.isArray(userRooms) && userRooms.length > 0) {
+    // (a) user-built unit lives directly inside its room (section === roomId)
+    let room = userRooms.find(r => r.id === unit.section);
+    // (b) template unit — find its hosting custom room by templateSection.
+    // No currentSection guard: cutlist generation processes all units regardless
+    // of which tab is active, so we match by section type not current view.
+    if (!room) {
+      room = userRooms.find(r => r.templateSection === unit.section);
+    }
+    if (room) {
+      if (typeof materialConfig === 'object' && !materialConfig[room.id]) {
+        materialConfig[room.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+      }
+      if (typeof MAT_GROUPS !== 'undefined' && !MAT_GROUPS.find(g => g.id === room.id)) {
+        MAT_GROUPS.push({ id: room.id, label: room.name || 'Room', section: room.id });
+      }
+      return room.id;
+    }
+  }
   if (unit.section === 'kitchen') {
     return /^W\d/.test(unit.name) ? 'kitchen_wall' : 'kitchen_floor';
   }
@@ -4372,14 +4875,40 @@ function buildMatSelector(groupIds) {
     return orphan + list.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
   };
 
+  // Hardware row — one per type. Whole strip is the include/exclude toggle;
+  // sub-toggles (soft/norm) render inline on the right when applicable.
+  const hwSubBtn = (active, onClick, label) => `
+    <button onclick="${onClick}"
+      style="flex:1;min-width:38px;padding:3px 6px;font-size:9px;line-height:1;font-family:'Oswald',sans-serif;letter-spacing:0.6px;cursor:pointer;border-radius:2px;text-transform:uppercase;
+        border:1px solid ${active ? 'var(--amber)' : 'var(--border)'};
+        background:${active ? 'rgba(212,145,58,0.18)' : 'rgba(0,0,0,0.18)'};
+        color:${active ? 'var(--amber-light)' : 'var(--text-muted)'};
+        box-shadow:${active ? 'inset 0 0 0 1px rgba(212,145,58,0.25)' : 'none'};">
+      ${label}
+    </button>`;
+
+  const hwRow = (sectionId, type, label, subHtml) => {
+    const on = sectionHasHwType(sectionId, type);
+    return `<div
+      title="${label} ${on ? 'included' : 'excluded'} — click to ${on ? 'exclude (client supplies own)' : 'include auto-hardware'}"
+      style="display:flex;align-items:stretch;height:22px;border-radius:2px;overflow:hidden;border:1px solid ${on ? '#2a5a3c' : 'var(--border)'};background:${on ? 'linear-gradient(90deg, rgba(40,160,90,0.14) 0%, rgba(40,160,90,0.06) 100%)' : 'rgba(0,0,0,0.16)'};box-shadow:${on ? 'inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 2px rgba(0,0,0,0.25)'}">
+      <button onclick="toggleSectionHardwareType('${sectionId}','${type}')"
+        style="display:flex;align-items:center;gap:7px;padding:0 9px;background:transparent;border:0;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:0.6px;font-size:10px;text-transform:uppercase;white-space:nowrap;color:${on ? '#3fc77a' : '#9a6060'};min-width:84px;">
+        <span style="position:relative;display:inline-block;width:8px;height:8px;border-radius:50%;background:${on ? '#3fc77a' : '#7a3838'};box-shadow:${on ? '0 0 6px rgba(63,199,122,0.7), inset 0 0 0 1px rgba(255,255,255,0.25)' : 'inset 0 0 0 1px rgba(0,0,0,0.35)'};flex-shrink:0"></span>
+        <span>${label}</span>
+      </button>
+      ${subHtml ? `<div style="display:flex;align-items:center;gap:3px;padding:0 5px 0 0;border-left:1px solid var(--border);background:rgba(0,0,0,0.18);flex:1;min-width:0;">${subHtml}</div>` : ''}
+    </div>`;
+  };
+
   let html = `<div class="mat-selector-bar">`;
   groups.forEach(g => {
     const cfg = materialConfig[g.id];
-    const hwOn = sectionHasHardware(g.id);
+    const hwOn = sectionHasHardware(g.id); // any sub-flag on
     html += `<div class="mat-group">
       <div class="mat-group-label">${g.label}</div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:6px;padding-top:2px">
           <div class="mat-row">
             <span class="mat-row-label">Wood</span>
             <div class="mat-swatch" id="swatch_${g.id}_wood" style="background:${COLOR_SWATCHES[cfg.wood]||'#888'}"></div>
@@ -4395,44 +4924,27 @@ function buildMatSelector(groupIds) {
             </select>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;border-left:1px solid var(--border);padding-left:14px">
-          <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap">Hardware</span>
-          <button onclick="toggleSectionHardware('${g.id}')"
-            title="${hwOn ? 'Auto-hardware included — click to exclude (client supplies own)' : 'Hardware excluded — click to include auto-hardware'}"
-            style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 12px;cursor:pointer;border-radius:2px;font-family:inherit;white-space:nowrap;
-                   ${hwOn
-                     ? 'background:rgba(40,180,100,0.13);border:1px solid #2a6644;color:#2db870'
-                     : 'background:rgba(224,82,82,0.10);border:1px solid #5a2a2a;color:#c06060'
-                   }">
-            <span style="font-size:13px">${hwOn ? '✔' : '✘'}</span>
-            <span style="font-size:10px;letter-spacing:0.5px">${hwOn ? 'Included' : 'Excluded'}</span>
-            <span style="font-size:9px;color:${hwOn ? '#1a7a4a' : '#8a3030'};text-align:center;line-height:1.3">Hinges, Runners<br>&amp; Handles</span>
-          </button>
-          ${hwOn ? `
-          <div style="display:flex;flex-direction:column;gap:4px;width:100%">
-            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Hinges</div>
-            <div style="display:flex;gap:3px">
-              <button onclick="quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='soft'?'var(--amber)':'var(--text-muted)'}">
-                SOFT
-              </button>
-              <button onclick="quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.hingeType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.hingeType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.hingeType==='normal'?'var(--amber)':'var(--text-muted)'}">
-                NORM
-              </button>
-            </div>
-            <div style="font-size:9px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:0.5px;text-align:center">Runners</div>
-            <div style="display:flex;gap:3px">
-              <button onclick="quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='soft'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='soft'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='soft'?'var(--amber)':'var(--text-muted)'}">
-                SOFT
-              </button>
-              <button onclick="quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()"
-                style="flex:1;padding:2px 4px;font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:0.5px;cursor:pointer;border:1px solid ${quoteState.runnerType==='normal'?'var(--amber)':'var(--border)'};background:${quoteState.runnerType==='normal'?'rgba(212,145,58,0.15)':'var(--bg4)'};color:${quoteState.runnerType==='normal'?'var(--amber)':'var(--text-muted)'}">
-                NORM
-              </button>
-            </div>
-          </div>` : ''}
+        <div style="display:flex;flex-direction:column;align-items:stretch;gap:5px;border-left:1px solid var(--border);padding:2px 0 2px 14px;min-width:200px">
+          <div style="display:flex;align-items:center;gap:6px;padding-left:1px">
+            <span style="display:inline-block;width:14px;height:1px;background:var(--amber-dim)"></span>
+            <span style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1.6px;color:var(--amber-dim);text-transform:uppercase;white-space:nowrap">Hardware</span>
+            <span style="flex:1;height:1px;background:var(--border)"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;width:100%">
+            ${hwRow(g.id, 'hinges', 'Hinges',
+              sectionHasHinges(g.id) ? `
+                ${hwSubBtn(quoteState.hingeType==='soft',   `quoteState.hingeType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()`,   'Soft')}
+                ${hwSubBtn(quoteState.hingeType==='normal', `quoteState.hingeType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()`, 'Norm')}
+              ` : ''
+            )}
+            ${hwRow(g.id, 'runners', 'Runners',
+              sectionHasRunners(g.id) ? `
+                ${hwSubBtn(quoteState.runnerType==='soft',   `quoteState.runnerType='soft';saveQuoteState();refreshQuoteTotals();renderPanel()`,   'Soft')}
+                ${hwSubBtn(quoteState.runnerType==='normal', `quoteState.runnerType='normal';saveQuoteState();refreshQuoteTotals();renderPanel()`, 'Norm')}
+              ` : ''
+            )}
+            ${hwRow(g.id, 'handles', 'Handles', '')}
+          </div>
         </div>
       </div>
     </div>`;
@@ -4757,13 +5269,28 @@ function _renderPanel() {
 
   // Determine which material groups apply to this section
   // Kitchen splits into wall + floor unit-type sub-groups so hardware can be
-  // toggled separately for each. Superuser custom rooms based on the kitchen
-  // template inherit the same split (templateSection === 'kitchen').
-  const isKitchenRoom = currentSection === 'kitchen'
-    || (userRoom && userRoom.templateSection === 'kitchen');
-  const matGroupIds = isKitchenRoom
+  // toggled separately for each. The wall/floor split is used for the
+  // template-library kitchen tab regardless of role (superuser without rooms,
+  // or superuser-with-rooms standing on the static Kitchen tab). When viewing
+  // a custom room, each room owns a single materialConfig keyed by room.id
+  // (matching what getUnitMaterialGroup resolves to) so that selecting
+  // Wood/Edging on the room actually applies to its parts.
+  //
+  // Three selector-key cases must stay in sync with getUnitMaterialGroup:
+  //   1. Static Kitchen tab (no active userRoom)        → kitchen_wall + kitchen_floor
+  //   2. Other static template tab (no active userRoom) → [currentSection] e.g. ['mainbedroom']
+  //   3. Custom room tab (userRoom is set)              → [userRoom.id]
+  if (isUserMode && userRoom && !materialConfig[userRoom.id]) {
+    materialConfig[userRoom.id] = { wood: 'Dunblane', edging: 'Dunblane' };
+  }
+  // Register the user-room as a MAT_GROUP entry so buildMatSelector finds it.
+  if (isUserMode && userRoom && !MAT_GROUPS.find(g => g.id === userRoom.id)) {
+    MAT_GROUPS.push({ id: userRoom.id, label: userRoom.name, section: userRoom.id });
+  }
+  const isKitchenTemplateTab = currentSection === 'kitchen' && !userRoom;
+  const matGroupIds = isKitchenTemplateTab
     ? ['kitchen_wall', 'kitchen_floor']
-    : [currentSection];
+    : [userRoom ? userRoom.id : currentSection];
 
   // For user mode: material selector only if there are units
   let html = (isUserMode && units.length === 0) ? '' : buildMatSelector(matGroupIds);
@@ -4832,31 +5359,25 @@ function _renderPanel() {
   applyUnitSort(units).forEach(u => {
     const qty = quantities[u.id] || 0;
     const hasImg = !!unitImages[u.id];
-    const imgBtn = hasImg
-      ? `<button class="unit-img-btn" title="View unit diagram" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')">🖼</button>`
-      : `<button class="unit-img-btn no-img" title="No diagram uploaded — add one in the Unit Editor" onclick="void(0)">🖼</button>`;
+    const _imgTitle = hasImg ? 'View uploaded diagram' : 'View unit schematic (auto-generated)';
+    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
     const noParts = !u.parts || u.parts.length === 0;
     const nameStyle = noParts ? 'color:#e05252' : '';
-    const noPartsTag = noParts ? `<span title="No parts defined — will be skipped in cutlist" style="font-size:9px;font-family:'Oswald',sans-serif;letter-spacing:1px;text-transform:uppercase;padding:1px 5px;background:#3a1a1a;color:#e05252;border:1px solid #5a2a2a;border-radius:2px;margin-left:5px;cursor:default">⚠ No Parts</span>` : '';
+    const noPartsTag = noParts ? `<span class="unit-noparts" title="No parts defined — will be skipped in cutlist">⚠ No Parts</span>` : '';
 
     const ov = unitMatOverrides[u.id];
     const ovActive = !!ov;
-    const ovBtnStyle = ovActive
-      ? 'background:rgba(212,145,58,0.2);border:1px solid var(--amber);color:var(--amber)'
-      : 'background:var(--bg3);border:1px solid var(--border);color:var(--text-muted)';
     const ovBtn = !noParts
-      ? `<button title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
-           onclick="toggleUnitMatOverride('${u.id}')"
-           style="${ovBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:6px">🎨</button>`
+      ? `<button class="unit-action-btn is-icon${ovActive ? ' is-active' : ''}"
+           title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
+           onclick="toggleUnitMatOverride('${u.id}')"><span class="uab-glyph">🎨</span></button>`
       : '';
 
     const hasSvcOverride = (unitSpecialServices[u.id]||[]).length > 0;
-    const svcBtnStyle = hasSvcOverride
-      ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600'
-      : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)';
     const svcBtn = costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user')
-      ? `<button title="Special services for this unit" onclick="openSpecialServicesPopup('${u.id}','unit',this)"
-           style="${svcBtnStyle};padding:2px 7px;font-size:12px;cursor:pointer;border-radius:2px;margin-left:4px">⚙</button>`
+      ? `<button class="unit-action-btn is-icon${hasSvcOverride ? ' is-active-green' : ''}"
+           title="Special services for this unit"
+           onclick="openSpecialServicesPopup('${u.id}','unit',this)"><span class="uab-glyph">⚙</span></button>`
       : '';
 
 
@@ -4899,15 +5420,14 @@ function _renderPanel() {
     const canRemoveUnit = isUserMode || (isSuperuser() && isCustomUnit);
     const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isSuperuser() && isCustomUnit && sections.length > 1);
     const userBtns = `
-      <button onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:6px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✏ Edit</button>
-      <button onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">🔧 Parts</button>
-      ${canMoveUnit ? `<button onclick="openMoveUnitPopup('${u.id}',this)" title="Move unit to another room" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">✂ Move</button>` : ''}
-      ${canRemoveUnit ? `<button onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit" style="background:none;border:1px solid #3a1a1a;color:#5a3030;font-size:11px;cursor:pointer;padding:2px 7px;border-radius:2px;margin-left:4px" onmouseover="this.style.borderColor='#e05252';this.style.color='#e05252'" onmouseout="this.style.borderColor='#3a1a1a';this.style.color='#5a3030'">× Remove</button>` : ''}`;
+      <button class="unit-action-btn" onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button>
+      <button class="unit-action-btn" onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts"><span class="uab-glyph">🔧</span><span class="uab-label">Parts</span></button>
+      ${canMoveUnit ? `<button class="unit-action-btn" onclick="openMoveUnitPopup('${u.id}',this)" title="Move unit to another room"><span class="uab-glyph">✂</span><span class="uab-label">Move</span></button>` : ''}
+      ${canRemoveUnit ? `<button class="unit-action-btn is-danger" onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit"><span class="uab-glyph">×</span><span class="uab-label">Remove</span></button>` : ''}`;
     const isExpanded = expandedUnits.has(u.id);
     const hasParts   = u.parts && u.parts.length > 0;
     const expandBtn  = hasParts
-      ? `<button onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}"
-           style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;transition:transform 0.15s;transform:rotate(${isExpanded?'90':'0'}deg);display:inline-block">▶</button>`
+      ? `<button class="unit-expand${isExpanded ? ' is-open' : ''}" onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}">▶</button>`
       : '';
 
     // Parts expand row
@@ -4960,8 +5480,19 @@ function _renderPanel() {
     html += `<tr class="unit-row">
       <td><input autocomplete="off" class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name">${expandBtn}<span style="${nameStyle};cursor:${hasParts?'pointer':'default'}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
-    </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
+      <td class="unit-name">
+        <div class="unit-row-cell">
+          <div class="unit-row-name">
+            ${expandBtn}
+            <span class="unit-label${hasParts?'':' no-cursor'}" style="${nameStyle}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>
+            ${noPartsTag}
+          </div>
+          <div class="unit-row-actions">
+            ${imgBtn}${ovBtn}${svcBtn}${userBtns}
+          </div>
+        </div>
+      </td>
+    </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button class="unit-action-btn" onclick="openSpecialServicesPopup('${u.id}','unit',this)" title="Edit special services"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button></div></td></tr>` : ''}`;
   });
 
   html += `</tbody></table>`;
@@ -5969,6 +6500,11 @@ function generateSummary() {
   selectedUnits.forEach(u => {
     const unitQty = quantities[u.id] || 0;
     const isBedroom = bedroomSections.has(u.section);
+    // Per-section hardware flags — skip excluded types so the assembly summary
+    // matches the costing / quote breakdowns.
+    const incHinges  = sectionHasHinges (u.section);
+    const incHandles = sectionHasHandles(u.section);
+    const incRunners = sectionHasRunners(u.section);
 
     u.parts.forEach(p => {
       const nameLower = p.name.toLowerCase();
@@ -5976,27 +6512,27 @@ function generateSummary() {
       const isDrawerFace = nameLower.includes('face') && !nameLower.includes('filler');
 
       // Hinges — from "X per door" field on door panels
-      if (isDoorPanel) {
+      if (incHinges && isDoorPanel) {
         const match = (p.holes||'').match(/(\d+)\s*per door/i);
         if (match) totalHinges += parseInt(match[1]) * p.qty * unitQty;
       }
 
       // Handles — 1 per door panel, size by door length
-      if (isDoorPanel) {
+      if (incHandles && isDoorPanel) {
         const doorCount = p.qty * unitQty;
         if (Math.max(p.l, p.w) > 2100) handles240 += doorCount;
         else handles160 += doorCount;
       }
 
       // Handles — 1 per drawer face, size by section
-      if (isDrawerFace && !isDoorPanel) {
+      if (incHandles && isDrawerFace && !isDoorPanel) {
         const faceCount = p.qty * unitQty;
         if (isBedroom) handles240 += faceCount;
         else handles160 += faceCount;
       }
 
       // Runners — 1 set per drawer bottom
-      if (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom')) {
+      if (incRunners && (nameLower.includes('drawer bottom') || nameLower.includes('drawers bottom'))) {
         totalRunners += p.qty * unitQty;
       }
     });
@@ -6347,7 +6883,8 @@ let MATS = ['Picco White','3MM White Masonite','Dunblane','Iceberg White','Congo
 let EDGES = ['','Dunblane Edging 1mm','White Edging 1mm','Iceberg White Edging 1mm','Congo Edging 1mm',
                'Folkstone Grey Edging 1mm','Woodland Fusion Edging 1mm','Storm Grey Edging 1mm','Picco White Edging 1mm'];
 
-function renderEditor() {
+function renderEditor() { withScrollLock(_renderEditor); }
+function _renderEditor() {
   const ev = document.getElementById('editor-view');
   const isUserMode = usesUserUnits();
 
@@ -6733,9 +7270,17 @@ function scalePart(part, baseWidth, newWidth) {
   const neverScale = /\bsides?\b/.test(n) || /drawer (box )?sides?/.test(n);
   if (neverScale) return { ...part, _lMode: null, _wMode: null };
 
+  // Door / drawer-front panels: `l` is door HEIGHT, `w` is door WIDTH by codebase convention.
+  // Lock `l` out of width-scaling so a coincidental near-match between door height and
+  // cabinet width (e.g. W750 doors at 717mm) doesn't accidentally scale door height.
+  // The `w` axis is still considered for full/half width matching below.
+  const isDoorLike = /\bdoors?\b/.test(n)
+                  || /drawer\s*fronts?/.test(n)
+                  || /drawer\s*faces?/.test(n);
+
   let lMode = null, wMode = null, lDist = 9999, wDist = 9999;
 
-  if (!isStructural(part.l)) {
+  if (!isStructural(part.l) && !isDoorLike) {
     const df = Math.abs(part.l - baseWidth), dh = Math.abs(part.l - halfBase);
     if (df <= FULL_THR)      { lMode = 'full'; lDist = df; }
     else if (dh <= HALF_THR) { lMode = 'half'; lDist = dh; }
@@ -6746,12 +7291,14 @@ function scalePart(part, baseWidth, newWidth) {
     else if (dh <= HALF_THR) { wMode = 'half'; wDist = dh; }
   }
 
-  // Conflict: both l and w qualify — keep the SMALLER offset (closer = more obviously width-derived)
+  // Conflict: both l and w qualify as width-derived.
+  // Prefer the SMALLER absolute offset — closer match wins regardless of full/half mode.
+  // (Old logic short-circuited to prefer 'full' over 'half', which mis-identified door
+  // HEIGHT as a width-derived dimension whenever it happened to be numerically close to
+  // the cabinet width.)
   if (lMode && wMode) {
-    if (lMode === 'full' && wMode !== 'full') wMode = null;
-    else if (wMode === 'full' && lMode !== 'full') lMode = null;
-    else if (lDist <= wDist) wMode = null;
-    else lMode = null;
+    if (lDist <= wDist) wMode = null;
+    else                 lMode = null;
   }
 
   const newL = lMode === 'full' ? part.l + delta
@@ -7242,7 +7789,8 @@ function closeWidthBuilder() {
   document.getElementById('wb-overlay').style.display = 'none';
 }
 
-function renderWidthBuilder() {
+function renderWidthBuilder() { withScrollLock(_renderWidthBuilder); }
+function _renderWidthBuilder() {
   const allUnits = getEffectiveUnits();
 
   // Category tabs
@@ -7490,7 +8038,8 @@ function closeCustomBuilder() {
   document.getElementById('cb-overlay').style.display = 'none';
 }
 
-function renderCustomBuilder() {
+function renderCustomBuilder() { withScrollLock(_renderCustomBuilder); }
+function _renderCustomBuilder() {
   const all = getEffectiveUnits();
 
   // Category tabs
@@ -7743,7 +8292,8 @@ function closeHeightBuilder() {
   document.getElementById('hb-overlay').style.display = 'none';
 }
 
-function renderHeightBuilder() {
+function renderHeightBuilder() { withScrollLock(_renderHeightBuilder); }
+function _renderHeightBuilder() {
   const allUnits = getEffectiveUnits();
   const catTabs = WB_CATEGORIES.map(c =>
     `<button onclick="hbState.catId='${c.id}';hbState.baseUnitId=null;renderHeightBuilder()"
@@ -7976,11 +8526,31 @@ function removeUnitImage(unitId) {
 }
 
 function openLightbox(unitId, unitName) {
+  const imgEl  = document.getElementById('img-lightbox-img');
+  const svgEl  = document.getElementById('img-lightbox-svg');
+  const capEl  = document.getElementById('img-lightbox-caption');
+  const lbEl   = document.getElementById('img-lightbox');
+
   const src = unitImages[unitId];
-  if (!src) return;
-  document.getElementById('img-lightbox-img').src = src;
-  document.getElementById('img-lightbox-caption').textContent = unitName;
-  document.getElementById('img-lightbox').style.display = 'flex';
+  if (src) {
+    imgEl.src = src;
+    imgEl.style.display = '';
+    svgEl.style.display = 'none';
+    svgEl.innerHTML = '';
+    capEl.textContent = unitName;
+  } else {
+    // No uploaded image — render an auto-generated SVG schematic from parts data.
+    const unit = (typeof getEffectiveUnits === 'function')
+      ? getEffectiveUnits().find(u => u.id === unitId)
+      : null;
+    imgEl.src = '';
+    imgEl.style.display = 'none';
+    svgEl.style.display = 'flex';
+    svgEl.innerHTML = renderUnitDiagramSVG(unit, unitName);
+    capEl.textContent = '';
+  }
+
+  lbEl.style.display = 'flex';
   document.addEventListener('keydown', closeLightboxOnEsc);
 }
 
@@ -7989,6 +8559,381 @@ function closeLightbox() {
   document.removeEventListener('keydown', closeLightboxOnEsc);
 }
 function closeLightboxOnEsc(e) { if (e.key === 'Escape') closeLightbox(); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO UNIT SCHEMATIC
+// Infer cabinet geometry (W, H, D, doors, drawer faces, shelves) from the
+// unit's parts list, then render a clean SVG front view with dim labels.
+// Naming heuristics match the canonical UNITS array part names:
+//   "Sides"             → length=height, width=depth
+//   "Door" / "Doors"    → qty=door count, length=face height, width=face width
+//   "Drawer Faces" / "Top Drawer Face" / "Drawer Front" → drawer faces
+//   "Shelf" / "Shelves" → shelf count
+//   "Bottom" / "Top"    → fallback width/depth source
+// ─────────────────────────────────────────────────────────────────────────────
+function inferUnitGeometry(unit) {
+  const parts = (unit && unit.parts) || [];
+  const find = (re) => parts.find(p => re.test((p.name || '').toLowerCase()));
+  const findAll = (re) => parts.filter(p => re.test((p.name || '').toLowerCase()));
+
+  let H = 0, D = 0, W = 0;
+
+  // Height + depth from "Sides"
+  const sides = find(/^sides?$/);
+  if (sides) { H = sides.l || 0; D = sides.w || 0; }
+
+  // Width from Bottom/Top/Back
+  const bottom = find(/^bottom$/) || find(/^top$/) || find(/top.*bottom|bottom.*top|top\/bottom/);
+  if (bottom && bottom.l) { W = bottom.l + 16; }
+  if (!W) {
+    const back = find(/^back(ing)?$/);
+    if (back && back.w) { W = back.w; }
+  }
+
+  // Drawer faces
+  const drawerFaceParts = parts.filter(p => {
+    const n = (p.name || '').toLowerCase();
+    return /drawer\s*face/.test(n) || /^drawer\s*front$/.test(n) || /^front\s*face$/.test(n);
+  });
+  const drawerFaces = [];
+  drawerFaceParts.forEach(p => {
+    const qty = p.qty || 1;
+    for (let i = 0; i < qty; i++) drawerFaces.push({ h: p.l || 0, w: p.w || 0, name: p.name });
+  });
+  drawerFaces.sort((a, b) => a.h - b.h);
+
+  // Doors
+  const doorParts = parts.filter(p => /^doors?$/.test((p.name || '').toLowerCase()));
+  let doorCount = 0, doorH = 0, doorW = 0;
+  doorParts.forEach(p => {
+    doorCount += (p.qty || 1);
+    if (!doorH) doorH = p.l || 0;
+    if (!doorW) doorW = p.w || 0;
+  });
+  if (!W && doorW && doorCount) W = doorW * doorCount + (doorCount + 1) * 3;
+
+  // Shelves
+  const shelfParts = findAll(/^shelf$|^shelves$/);
+  let shelfCount = 0;
+  shelfParts.forEach(p => { shelfCount += (p.qty || 1); });
+
+  // Bottom-face overlay (wall units)
+  const bottomFace = find(/bottom\s*face/);
+
+  // ── Structural detection ───────────────────────────────────────────────────
+  // Nailers: "Front Support" (≈100mm depth) + "Back Support" (≈70mm depth)
+  const frontSupport = find(/^front\s*support$/);
+  const backSupport  = find(/^back\s*support$/);
+  const topType = frontSupport ? 'nailers' : 'solid';
+  const frontNailerD = frontSupport ? (frontSupport.w || 100) : 100;
+  const backNailerD  = backSupport  ? (backSupport.w  || 70)  : 70;
+
+  // Backing: "Backing" with Masonite mat = masonite back; "Back" with carcass mat = solid back
+  const backingPart   = find(/^backing$/) || parts.find(p => (p.mat || '').toLowerCase().includes('masonite'));
+  const solidBackPart = !backingPart ? find(/^back$/) : null;
+  let backingType = 'none', backT = 0;
+  if (backingPart)    { backingType = 'masonite'; backT = 3; }
+  else if (solidBackPart) { backingType = 'solid'; backT = 18; }
+
+  // Support rails: "Supports" = vertical strips at rear of masonite carcass
+  const supportsPart = find(/^supports?$/);
+  const hasSupports  = !!supportsPart;
+  const supportRailH = supportsPart ? (supportsPart.w || 100) : 100;
+
+  return {
+    W, H, D,
+    doorCount, doorH, doorW,
+    drawerFaces, shelfCount,
+    hasBottomFace: !!bottomFace,
+    bottomFaceH: bottomFace ? (bottomFace.l || 0) : 0,
+    topType, frontNailerD, backNailerD,
+    backingType, backT,
+    hasSupports, supportRailH,
+    partCount: parts.length,
+  };
+}
+
+function renderUnitDiagramSVG(unit, unitName) {
+  if (!unit) {
+    return `<div class="udp-header"><span class="udp-title">Unit not found</span><button class="udp-close" onclick="closeLightbox()">×</button></div>`;
+  }
+  if (!unit.parts || unit.parts.length === 0) {
+    return `
+      <div class="udp-header">
+        <span class="udp-title">${(unitName||unit.name||'Unit').replace(/</g,'&lt;')}</span>
+        <button class="udp-close" onclick="closeLightbox()">×</button>
+      </div>
+      <div class="udp-body"><div class="udp-empty">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:#d4913a;margin-bottom:10px">NO PARTS DEFINED</div>
+        <div style="font-size:13px;color:#666">No parts list — schematic cannot be generated.<br>Upload an image diagram in the Unit Editor.</div>
+      </div></div>`;
+  }
+
+  const g = inferUnitGeometry(unit);
+  const W = g.W || 600;
+  const H = g.H || 780;
+  const D = g.D || 534;
+  const T = 18; // standard board thickness mm
+
+  // ── UNIFIED SCALE — both views use same px-per-mm ─────────────────────────
+  // Constrain by front width, shared height, AND side depth so both views are
+  // the same height and depth is never squeezed relative to the front.
+  const MAX_FW = 320, MAX_FH = 480, MAX_DW = 280;
+  const SCALE = Math.min(MAX_FW / W, MAX_FH / H, MAX_DW / D);
+
+  // ── FRONT VIEW SVG ────────────────────────────────────────────────────────
+  const FSCALE = SCALE; // alias kept so expressions below compile unchanged
+  const fw = Math.round(W * SCALE);
+  const fh = Math.round(H * SCALE);
+  const tPx_f = Math.max(4, Math.round(T * SCALE));
+  const fPAD_L = 48, fPAD_T = 16, fPAD_B = 38, fPAD_R = 16;
+  const frontSvgW = fPAD_L + fw + fPAD_R;
+  const frontSvgH = fPAD_T + fh + fPAD_B;
+
+  // Top band: in front elevation nailers look like a full-width strip (depth is
+  // not visible from the front — that detail belongs in the side section only).
+  let frontInternals = '';
+  if (g.topType === 'nailers') {
+    frontInternals += `<rect x="0" y="0" width="${fw}" height="${tPx_f}" fill="#383850" stroke="#3a3a60" stroke-width="0.75"/>`;
+  } else {
+    frontInternals += `<rect x="0" y="0" width="${fw}" height="${tPx_f}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.75"/>`;
+  }
+  frontInternals += `<rect x="0" y="${fh - tPx_f}" width="${fw}" height="${tPx_f}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.75"/>`;
+
+  // Drawer faces (stacked bottom-up, largest at bottom)
+  const fGapPx = Math.max(1, Math.round(3 * FSCALE));
+  let facesSvg = '';
+  let yPx = fh;
+  const drawerStack = [...g.drawerFaces].reverse();
+  drawerStack.forEach(f => {
+    const hPx = Math.max(6, Math.round(f.h * FSCALE));
+    yPx -= hPx;
+    facesSvg += `
+      <rect x="2" y="${yPx}" width="${fw - 4}" height="${hPx}" rx="1"
+        fill="rgba(212,145,58,0.18)" stroke="#d4913a" stroke-width="1.5"/>
+      <text x="${fw/2}" y="${yPx + hPx/2}" text-anchor="middle" dominant-baseline="middle"
+        font-size="10" fill="#d4913a" font-family="JetBrains Mono,monospace">${f.h}</text>`;
+    yPx -= fGapPx;
+  });
+
+  // Doors in remaining space
+  let doorsSvg = '';
+  const doorAreaH = yPx;
+  if (g.doorCount > 0 && doorAreaH > 8) {
+    const wantH = g.doorH ? Math.round(g.doorH * FSCALE) : doorAreaH;
+    const actualDoorH = Math.min(wantH, doorAreaH - 2);
+    const doorTopY = yPx - actualDoorH;
+    const reveal = Math.max(1, Math.round(2 * FSCALE));
+    const slabW = (fw - reveal * (g.doorCount + 1)) / g.doorCount;
+    for (let i = 0; i < g.doorCount; i++) {
+      const x = reveal + i * (slabW + reveal);
+      doorsSvg += `
+        <rect x="${x}" y="${doorTopY + 1}" width="${slabW}" height="${actualDoorH - 2}" rx="1"
+          fill="rgba(212,145,58,0.08)" stroke="rgba(212,145,58,0.45)" stroke-width="1.5"/>`;
+      const hingeX = (i === 0) ? x + slabW - 7 : x + 7;
+      doorsSvg += `
+        <circle cx="${hingeX}" cy="${doorTopY + 14}" r="2.5" fill="rgba(212,145,58,0.5)"/>
+        <circle cx="${hingeX}" cy="${doorTopY + actualDoorH - 14}" r="2.5" fill="rgba(212,145,58,0.5)"/>`;
+      if (g.doorH && slabW > 40) {
+        doorsSvg += `<text x="${x + slabW/2}" y="${doorTopY + actualDoorH/2}" text-anchor="middle"
+          dominant-baseline="middle" font-size="10" fill="rgba(212,145,58,0.55)"
+          font-family="JetBrains Mono,monospace">${g.doorH}</text>`;
+      }
+    }
+  } else if (g.doorCount === 0 && drawerStack.length === 0) {
+    if (g.shelfCount > 0) {
+      const spacing = fh / (g.shelfCount + 1);
+      for (let i = 1; i <= g.shelfCount; i++) {
+        const sy = Math.round(i * spacing);
+        doorsSvg += `<line x1="4" y1="${sy}" x2="${fw - 4}" y2="${sy}"
+          stroke="rgba(212,145,58,0.35)" stroke-width="1.5" stroke-dasharray="5,3"/>`;
+      }
+    }
+    doorsSvg += `<text x="${fw/2}" y="${fh/2}" text-anchor="middle" dominant-baseline="middle"
+      font-size="11" fill="rgba(255,255,255,0.2)" font-family="Barlow,sans-serif"
+      font-style="italic">open</text>`;
+  }
+
+  // Bottom face overlay
+  let bottomFaceSvg = '';
+  if (g.hasBottomFace && g.bottomFaceH > 0) {
+    const bhPx = Math.round(g.bottomFaceH * FSCALE);
+    bottomFaceSvg = `<rect x="2" y="${fh - bhPx}" width="${fw - 4}" height="${bhPx}" rx="1"
+      fill="rgba(150,120,80,0.15)" stroke="rgba(212,145,58,0.4)" stroke-width="1" stroke-dasharray="4,2"/>`;
+  }
+
+  // Dim lines
+  const fWDim = `
+    <line x1="${fPAD_L}" y1="${fPAD_T+fh+10}" x2="${fPAD_L+fw}" y2="${fPAD_T+fh+10}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L}" y1="${fPAD_T+fh+6}" x2="${fPAD_L}" y2="${fPAD_T+fh+14}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L+fw}" y1="${fPAD_T+fh+6}" x2="${fPAD_L+fw}" y2="${fPAD_T+fh+14}" stroke="#444" stroke-width="0.75"/>
+    <text x="${fPAD_L+fw/2}" y="${fPAD_T+fh+26}" text-anchor="middle" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${W}</text>`;
+  const fHDim = `
+    <line x1="${fPAD_L-10}" y1="${fPAD_T}" x2="${fPAD_L-10}" y2="${fPAD_T+fh}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L-14}" y1="${fPAD_T}" x2="${fPAD_L-6}" y2="${fPAD_T}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${fPAD_L-14}" y1="${fPAD_T+fh}" x2="${fPAD_L-6}" y2="${fPAD_T+fh}" stroke="#444" stroke-width="0.75"/>
+    <text x="${fPAD_L-18}" y="${fPAD_T+fh/2}" text-anchor="middle" font-size="10" fill="#777"
+      font-family="JetBrains Mono,monospace"
+      transform="rotate(-90 ${fPAD_L-18} ${fPAD_T+fh/2})">${H}</text>`;
+
+  const frontSvg = `<svg width="${frontSvgW}" height="${frontSvgH}" viewBox="0 0 ${frontSvgW} ${frontSvgH}"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;background:#161620;border:1px solid rgba(255,255,255,0.07)">
+    <g transform="translate(${fPAD_L},${fPAD_T})">
+      <rect x="0" y="0" width="${fw}" height="${fh}" fill="#1a1a28"/>
+      ${frontInternals}
+      ${doorsSvg}
+      ${facesSvg}
+      ${bottomFaceSvg}
+      <rect x="0" y="0" width="${fw}" height="${fh}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>
+    </g>
+    ${fWDim}${fHDim}
+  </svg>`;
+
+  // ── SIDE SECTION SVG ──────────────────────────────────────────────────────
+  // Cross-section view (looking from the right): x=depth (front→back), y=height
+  // shPx === fh because both views share SCALE and the same H.
+  const dPx = Math.round(D * SCALE);
+  const shPx = fh;
+  const tPx = Math.max(3, Math.round(T * SCALE));
+  const backT_px = g.backT ? Math.max(2, Math.round(g.backT * SCALE)) : 0;
+
+  // boardEdgeX: where shelves/boards stop (masonite sits on the outside)
+  const boardEdgePx = g.backingType === 'masonite'
+    ? Math.round((D - g.backT) * SCALE)
+    : Math.round(D * SCALE);
+
+  let sideSvgContent = '';
+
+  // Interior fill
+  sideSvgContent += `<rect x="0" y="${tPx}" width="${boardEdgePx}" height="${shPx - 2*tPx}" fill="#1a1a28"/>`;
+
+  // Support rails (outside = extend behind boardEdge)
+  if (g.hasSupports) {
+    const railH = Math.max(4, Math.round(g.supportRailH * SCALE));
+    sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+    sideSvgContent += `<rect x="${boardEdgePx}" y="${shPx - railH}" width="${tPx}" height="${railH}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+  }
+
+  // Top: solid board or nailers
+  if (g.topType === 'nailers') {
+    const fnPx = Math.round(g.frontNailerD * SCALE);
+    const bnPx = Math.round(g.backNailerD * SCALE);
+    sideSvgContent += `<rect x="0" y="0" width="${fnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+    sideSvgContent += `<rect x="${boardEdgePx - bnPx}" y="0" width="${bnPx}" height="${tPx}" fill="#383850" stroke="#3a3a50" stroke-width="0.5"/>`;
+  } else {
+    sideSvgContent += `<rect x="0" y="0" width="${boardEdgePx}" height="${tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+  }
+
+  // Bottom board
+  sideSvgContent += `<rect x="0" y="${shPx - tPx}" width="${boardEdgePx}" height="${tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+
+  // Backing
+  if (g.backingType === 'masonite') {
+    sideSvgContent += `<rect x="${boardEdgePx}" y="0" width="${backT_px}" height="${shPx}" fill="#252538" stroke="#3a3a50" stroke-width="0.5"/>`;
+  } else if (g.backingType === 'solid') {
+    const solidX = Math.round((D - g.backT) * SCALE);
+    sideSvgContent += `<rect x="${solidX}" y="${tPx}" width="${backT_px}" height="${shPx - 2*tPx}" fill="#2a2a3a" stroke="#3a3a52" stroke-width="0.5"/>`;
+  }
+
+  // Shelves
+  if (g.shelfCount > 0) {
+    const iTop = tPx, iBot = shPx - tPx, span = iBot - iTop;
+    for (let i = 1; i <= g.shelfCount; i++) {
+      const sy = Math.round(iTop + span * i / (g.shelfCount + 1));
+      sideSvgContent += `<rect x="0" y="${sy}" width="${boardEdgePx}" height="${tPx}" fill="#2f3045" stroke="#3a3a50" stroke-width="0.5"/>`;
+    }
+  }
+
+  // Drawer runner lines — mirror the front view stack so side section shows
+  // where each drawer sits inside the carcass (thin horizontal dividers).
+  if (g.drawerFaces.length > 0) {
+    const dfGapPx = Math.max(1, Math.round(3 * SCALE));
+    let dyPx = shPx;
+    const drawerSideStack = [...g.drawerFaces].reverse(); // largest at bottom
+    drawerSideStack.forEach(f => {
+      const hPx = Math.max(6, Math.round(f.h * SCALE));
+      dyPx -= hPx;
+      // Thin runner board at the top of each drawer opening
+      sideSvgContent += `<rect x="0" y="${dyPx}" width="${boardEdgePx}" height="${Math.max(2, tPx - 2)}" fill="#2f3045" stroke="#3a3a50" stroke-width="0.5"/>`;
+      dyPx -= dfGapPx;
+    });
+  }
+
+  // Carcass outline
+  sideSvgContent += `<rect x="0" y="0" width="${boardEdgePx}" height="${shPx}" fill="none" stroke="#4a4a6a" stroke-width="1.5"/>`;
+
+  const sPAD_L = 16, sPAD_T = 16, sPAD_B = 38, sPAD_R = 40;
+  const sideSvgW = sPAD_L + dPx + sPAD_R;
+  const sideSvgH = sPAD_T + shPx + sPAD_B;
+
+  const sDDim = `
+    <line x1="${sPAD_L}" y1="${sPAD_T+shPx+10}" x2="${sPAD_L+dPx}" y2="${sPAD_T+shPx+10}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L}" y1="${sPAD_T+shPx+6}" x2="${sPAD_L}" y2="${sPAD_T+shPx+14}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx}" y1="${sPAD_T+shPx+6}" x2="${sPAD_L+dPx}" y2="${sPAD_T+shPx+14}" stroke="#444" stroke-width="0.75"/>
+    <text x="${sPAD_L+dPx/2}" y="${sPAD_T+shPx+26}" text-anchor="middle" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${D}</text>`;
+  const sHDim = `
+    <line x1="${sPAD_L+dPx+10}" y1="${sPAD_T}" x2="${sPAD_L+dPx+18}" y2="${sPAD_T}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx+10}" y1="${sPAD_T+shPx}" x2="${sPAD_L+dPx+18}" y2="${sPAD_T+shPx}" stroke="#444" stroke-width="0.75"/>
+    <line x1="${sPAD_L+dPx+14}" y1="${sPAD_T}" x2="${sPAD_L+dPx+14}" y2="${sPAD_T+shPx}" stroke="#444" stroke-width="0.75"/>
+    <text x="${sPAD_L+dPx+22}" y="${sPAD_T+shPx/2+4}" text-anchor="start" font-size="10" fill="#777" font-family="JetBrains Mono,monospace">${H}</text>`;
+
+  const sideSvg = `<svg width="${sideSvgW}" height="${sideSvgH}" viewBox="0 0 ${sideSvgW} ${sideSvgH}"
+    xmlns="http://www.w3.org/2000/svg" style="display:block;background:#161620;border:1px solid rgba(255,255,255,0.07)">
+    <g transform="translate(${sPAD_L},${sPAD_T})">${sideSvgContent}</g>
+    ${sDDim}${sHDim}
+  </svg>`;
+
+  // ── CHIPS ─────────────────────────────────────────────────────────────────
+  const chips = [];
+  if (g.topType === 'nailers')          chips.push(`<span class="udp-chip chip-nailers">NAILERS</span>`);
+  if (g.backingType === 'masonite')     chips.push(`<span class="udp-chip chip-masonite">MASONITE</span>`);
+  else if (g.backingType === 'solid')   chips.push(`<span class="udp-chip chip-solidback">SOLID BACK</span>`);
+  else                                  chips.push(`<span class="udp-chip chip-noback">NO BACK</span>`);
+  if (g.hasSupports)                    chips.push(`<span class="udp-chip chip-supports">SUPPORTS</span>`);
+  if (g.shelfCount)                     chips.push(`<span class="udp-chip chip-shelves">${g.shelfCount} SHELF${g.shelfCount>1?'VES':''}</span>`);
+
+  // ── LEGEND ────────────────────────────────────────────────────────────────
+  const legendItems = [
+    `<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#2a2a3a;border:1px solid #3a3a52"></div>Board</div>`,
+    `<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#1a1a28;border:1px solid #3a3a52"></div>Interior</div>`,
+  ];
+  if (g.shelfCount)   legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#2f3045;border:1px solid #3a3a50"></div>Shelf</div>`);
+  if (g.backingType === 'masonite') legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#252538;border:1px solid #3a3a50"></div>Masonite</div>`);
+  if (g.topType === 'nailers' || g.hasSupports) legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:#383850;border:1px solid #3a3a50"></div>Support</div>`);
+  if (g.doorCount)    legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:rgba(212,145,58,0.18);border:1px solid rgba(212,145,58,0.5)"></div>Door</div>`);
+  if (g.drawerFaces.length) legendItems.push(`<div class="udp-legend-item"><div class="udp-legend-swatch" style="background:rgba(212,145,58,0.22);border:1px solid #d4913a"></div>Drawer</div>`);
+
+  const summaryBits = [];
+  if (g.doorCount)          summaryBits.push(`${g.doorCount} door${g.doorCount>1?'s':''}`);
+  if (g.drawerFaces.length) summaryBits.push(`${g.drawerFaces.length} drawer${g.drawerFaces.length>1?'s':''}`);
+  if (g.shelfCount)         summaryBits.push(`${g.shelfCount} shelf${g.shelfCount>1?'ves':''}`);
+  summaryBits.push(`${g.partCount} parts`);
+
+  const name = (unitName || unit.name || 'Unit').replace(/</g, '&lt;');
+
+  return `
+    <div class="udp-header">
+      <span class="udp-title">${name}</span>
+      <div class="udp-chips">${chips.join('')}</div>
+      <button class="udp-close" onclick="closeLightbox()">×</button>
+    </div>
+    <div class="udp-body">
+      <div class="udp-views">
+        <div class="udp-view-block">
+          <div class="udp-view-label">FRONT VIEW</div>
+          ${frontSvg}
+        </div>
+        <div class="udp-view-block">
+          <div class="udp-view-label">SIDE SECTION</div>
+          ${sideSvg}
+        </div>
+      </div>
+      <div class="udp-legend">
+        ${legendItems.join('')}
+        <div class="udp-legend-note">${summaryBits.join(' · ')}</div>
+      </div>
+    </div>`;
+}
 
 // ═══════════════════════════════════════════════════════════
 // QUOTE VIEW
@@ -8295,10 +9240,12 @@ function _renderQuoteView() {
       const qty = quantities[u.id] || 0;
       if (!qty || !u.parts || u.parts.length === 0) return;
       const c = calcUnitCost(u, qty);
-      totalHinges    += c.hingeCount    || 0;
-      totalHandle160 += c.handle160Count || 0;
-      totalHandle240 += c.handle240Count || 0;
-      if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
+      // Per-type section flags — skip excluded counts so the Quote hardware
+      // summary matches the costing-tab totals.
+      if (unitHasHinges (u.id)) totalHinges    += c.hingeCount    || 0;
+      if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
+      if (unitHasHandles(u.id)) totalHandle240 += c.handle240Count || 0;
+      if (unitHasRunners(u.id) && c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
@@ -9033,13 +9980,24 @@ function computeQuoteTotals() {
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
   // Per-unit cost cache — same as renderQuoteView
+  // Also accumulate raw (excl HW_HANDLING) hardware costs by category for P&L Expected.
   const unitCostCache = {};
+  const _hwRaw = { hinges: 0, runners: 0, handles: 0, drilling: 0, other: 0 };
   sectionData.forEach(d => d.units.forEach(u => {
     const qty = quantities[u.id] || 0;
     if (STATIC_IDS.has(u.id) || !u.parts || u.parts.length === 0) {
       unitCostCache[u.id] = u.price || 0;
+    } else if (qty > 0) {
+      const c = calcUnitCost(u, qty);
+      unitCostCache[u.id] = c.total / qty;
+      // Auto-hardware raw cost per category (only if this unit's section has hardware enabled).
+      // calcUnitCost already zeroes these when includeHardware is false, so we can sum unconditionally.
+      _hwRaw.hinges   += c.hingeCost     || 0;
+      _hwRaw.runners  += c.runnerCost    || 0;
+      _hwRaw.handles  += (c.handle160Cost||0) + (c.handle240Cost||0);
+      _hwRaw.drilling += c.drillingCost  || 0;
     } else {
-      unitCostCache[u.id] = qty > 0 ? calcUnitCost(u, qty).total / qty : 0;
+      unitCostCache[u.id] = 0;
     }
   }));
 
@@ -9081,10 +10039,63 @@ function computeQuoteTotals() {
     else if (e.skirtingMode !== undefined) quoteState.extras[i].amount = _calcSkirtingExtraCost(e);
   });
   const extrasTotal  = quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+
+  // Add manual hardware extras (Quote tab "+ Hardware" / "+ Other") to raw HW totals.
+  // Stored e.amount = qty * unitPrice * (1 + HW_HANDLING); raw cost = amount / 1.15.
+  // Also build per-line hardware detail rows for the P&L Hardware section.
+  // A "top" extra (postform / countertop added via My Costs) is excluded from
+  // hardware detail and surfaced under TOPS instead — detected by matching the
+  // resolved item name against /top|postform/i.
+  const hardwareExtrasDetail = [];   // [{label, qty, unitPrice, rawTotal, category}]
+  const topsExtrasDetail     = [];   // [{label, qty, unitPrice, rawTotal}]
+  const _topRe = /\b(postform|top|counter\s*top|countertop|worktop)\b/i;
+  quoteState.extras.forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    if (!amt) return;
+    const raw = amt / (1 + HW_HANDLING);
+    // Resolve item label (hardware option, My Costs custom item, or special service)
+    let label = '';
+    let unitPrice = 0;
+    let qty = 0;
+    let category = null;     // P&L invoice-category bucket key
+    if (e.hwType) {
+      const opt = _hwOptions().find(o => o.key === e.hwType);
+      label = opt ? opt.label : (e.hwType || 'Hardware item');
+      unitPrice = opt ? opt.price : 0;
+      qty = parseInt(e.hwQty) || 1;
+      if      (e.hwType === 'hinge')                                 { _hwRaw.hinges   += raw; category = 'Hardware – Hinges'; }
+      else if (e.hwType === 'runner')                                { _hwRaw.runners  += raw; category = 'Hardware – Runners'; }
+      else if (e.hwType === 'handle160' || e.hwType === 'handle240') { _hwRaw.handles  += raw; category = 'Hardware – Handles'; }
+      else if (e.hwType === 'drilling')                              { _hwRaw.drilling += raw; category = 'Hinge Drilling'; }
+      hardwareExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw, category });
+    }
+    else if (typeof e.otherType === 'string' && !e.otherType.startsWith('svc_')) {
+      const item = costingPrices.customHardware.find(h => h.id === e.otherType);
+      label     = item ? item.name : (e.desc || 'Custom item');
+      unitPrice = item ? (item.pricePerUnit || 0) : 0;
+      qty = parseInt(e.otherQty) || 1;
+      // Detect a "top" extra (postform / countertop) by name and surface under TOPS.
+      if (item && _topRe.test(item.name || '')) {
+        topsExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw });
+      } else {
+        _hwRaw.other += raw;
+        hardwareExtrasDetail.push({ label, qty, unitPrice, rawTotal: raw, category: 'Hardware – Other' });
+      }
+    }
+  });
+  // Map raw category sums into P&L invoice-category keys for direct comparison.
+  const hardwareExpected = {
+    'Hardware – Hinges':   _hwRaw.hinges,
+    'Hardware – Runners':  _hwRaw.runners,
+    'Hardware – Handles':  _hwRaw.handles,
+    'Hinge Drilling':      _hwRaw.drilling,
+    'Hardware – Other':    _hwRaw.other,
+  };
+
   const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
   const markup       = quoteState.markup || 0;
   const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup };
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
@@ -9150,6 +10161,8 @@ function computeJobMatBreakdown() {
 
   // 4. Board breakdown
   const hPrice = costingPrices.extras.hPrice || 0;
+  let cutLabelExpected = 0;   // running total of cut & label cost across all materials
+  let cutLabelSheets   = 0;   // total whole-sheets billed for cut & label
   const matBreakdown = Object.entries(allMatM2)
     .filter(([, m2]) => m2 > 0)
     .map(([mat, rawM2]) => {
@@ -9163,6 +10176,8 @@ function computeJobMatBreakdown() {
       const matCost       = billedSh * pricePerSheet;
       const cutCost       = wholeSh * (isMas ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel);
       const hpc           = (billedSh + wholeSh) * hPrice;
+      cutLabelExpected   += cutCost;
+      cutLabelSheets     += wholeSh;
       return { mat, m2: rawM2, billedSh, rawSh, pricePerSheet, cost: matCost + cutCost + hpc };
     })
     .sort((a, b) => b.cost - a.cost);
@@ -9179,7 +10194,7 @@ function computeJobMatBreakdown() {
     .filter(e => e.pricePerM > 0 || e.billedM > 0)
     .sort((a, b) => b.cost - a.cost);
 
-  return { matBreakdown, edgeBreakdown };
+  return { matBreakdown, edgeBreakdown, cutLabelExpected, cutLabelSheets };
 }
 
 function refreshQuoteTotals() {
@@ -9318,7 +10333,20 @@ function downloadQuoteXLSX() {
     rows.push([]);
   }
 
-  // Totals block — markup applies to units only
+  // Board surcharge (applies only to board material cost, same logic as quote view)
+  const _xlsxSurchargePct     = costingPrices.extras.boardSurcharge || 0;
+  const _xlsxSurchargeEnabled = quoteState.boardSurchargeEnabled !== false;
+  let boardSurchargeXLSX = 0;
+  if (_xlsxSurchargePct > 0 && _xlsxSurchargeEnabled) {
+    const _xlsxMatBreak = computeJobMatBreakdown().matBreakdown;
+    boardSurchargeXLSX = _xlsxMatBreak.reduce((s, b) => s + b.billedSh * b.pricePerSheet, 0) * (_xlsxSurchargePct / 100);
+    rows.push(['SURCHARGE', '', '', '', '']);
+    rows.push(['', `Board Surcharge (${_xlsxSurchargePct}%)`, '', '', boardSurchargeXLSX]);
+    grandSub += boardSurchargeXLSX;
+    rows.push([]);
+  }
+
+  // Totals block — markup applies to units + surcharge; tops/fees/extras excluded
   const unitsSubtotal = grandSub - (topsTotal || 0) - (consultTotal || 0) - (dieselTotal || 0)
     - quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
   const nonMarkupTotal = grandSub - unitsSubtotal;
@@ -9609,6 +10637,21 @@ let sbUser   = null;   // { id, email }
 let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
+let currentJobStatus = 'draft';
+// Set true if applyState() threw partway through restoring a job. While this
+// is true, saveJobToCloud() will refuse to overwrite the server row, because
+// the in-memory state is incomplete and a save would clobber good fields
+// (jobStatus, plData, etc.) that never got restored. Cleared on successful
+// applyState() or newJob().
+let _jobRestoreFailed = false;
+const JOB_STATUSES = [
+  { key: 'draft',         label: 'Draft',         color: '#888888', bg: 'rgba(128,128,128,0.15)' },
+  { key: 'quoted',        label: 'Quoted',        color: '#e8c040', bg: 'rgba(232,192,64,0.12)'  },
+  { key: 'accepted',      label: 'Accepted',      color: '#5ba8f5', bg: 'rgba(91,168,245,0.12)'  },
+  { key: 'in_production', label: 'In Production', color: '#f08848', bg: 'rgba(240,136,72,0.12)'  },
+  { key: 'invoiced',      label: 'Invoiced',      color: '#c090e8', bg: 'rgba(192,144,232,0.12)' },
+  { key: 'complete',      label: 'Complete',      color: '#5dba6e', bg: 'rgba(93,186,110,0.12)'  },
+];
 let autoSaveTimer = null;
 // ── Client management ───────────────────────────────────────────────────────
 let clientsCache = [];        // [{ id, name, phone, email, address, notes }]
@@ -10052,7 +11095,7 @@ async function refreshAccessToken(refreshToken) {
 async function loadUserJobs() {
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at&order=updated_at.desc`,
+      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at,state->>jobStatus&order=updated_at.desc`,
       { headers: authHeaders() }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -10070,17 +11113,21 @@ function rebuildJobSelect() {
     try { currentJobId = localStorage.getItem('cutlist_current_job_id') || null; } catch(e) {}
   }
   sel.innerHTML = '<option value="">— New Job —</option>';
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
   sbJobs.forEach(j => {
     const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
     const date  = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+    const dot   = _statusDot[j.jobStatus] || '○';
     const opt   = document.createElement('option');
     opt.value       = j.id;
-    opt.textContent = `${label}  (${date})`;
+    opt.textContent = `${dot} ${label}  (${date})`;
     if (j.id === currentJobId) opt.selected = true;
     sel.appendChild(opt);
   });
   const deleteBtn = document.getElementById('job-delete-btn');
   if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
+  const statusWrap = document.getElementById('job-status-wrap');
+  if (statusWrap) statusWrap.style.display = currentJobId ? 'flex' : 'none';
 }
 
 async function restoreLastJob(jobId) {
@@ -10096,6 +11143,8 @@ async function restoreLastJob(jobId) {
     if (sel) sel.value = currentJobId;
     const deleteBtn = document.getElementById('job-delete-btn');
     if (deleteBtn) deleteBtn.style.display = 'block';
+    const statusWrapR = document.getElementById('job-status-wrap');
+    if (statusWrapR) statusWrapR.style.display = 'flex';
     ['job-client','job-house','job-address','job-notes'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = job[id.replace('job-','')] || '';
@@ -10465,6 +11514,50 @@ function setJobSyncStatus(msg, color) {
   if (el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
 }
 
+function _renderJobStatusBadge() {
+  const btn = document.getElementById('job-status-btn');
+  if (!btn) return;
+  const s = JOB_STATUSES.find(x => x.key === currentJobStatus) || JOB_STATUSES[0];
+  btn.textContent = '● ' + s.label.toUpperCase();
+  btn.style.color = s.color;
+  btn.style.borderColor = s.color + '80';
+  btn.style.background = s.bg;
+}
+
+function toggleJobStatusMenu() {
+  const menu = document.getElementById('job-status-menu');
+  if (!menu) return;
+  if (menu.style.display === 'none') {
+    menu.innerHTML = JOB_STATUSES.map(s =>
+      `<div onclick="setJobStatus('${s.key}')"
+        style="padding:7px 14px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;color:${s.color};
+               background:${currentJobStatus===s.key ? s.bg : 'transparent'};transition:background 0.1s"
+        onmouseenter="this.style.background='${s.bg}'"
+        onmouseleave="this.style.background='${currentJobStatus===s.key ? s.bg : 'transparent'}'">
+        ● ${s.label.toUpperCase()}
+       </div>`
+    ).join('');
+    menu.style.display = 'block';
+    const close = (e) => {
+      if (!menu.contains(e.target) && e.target.id !== 'job-status-btn') {
+        menu.style.display = 'none';
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  } else {
+    menu.style.display = 'none';
+  }
+}
+
+function setJobStatus(key) {
+  currentJobStatus = key;
+  _renderJobStatusBadge();
+  const menu = document.getElementById('job-status-menu');
+  if (menu) menu.style.display = 'none';
+  if (currentJobId) saveJobToCloud();
+}
+
 function getJobState() {
   return {
     quantities,
@@ -10492,6 +11585,14 @@ function getJobState() {
     unitSpecialServices:  {...unitSpecialServices},
     panelSpecialServices: {...panelSpecialServices},
     activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
+    jobStatus: currentJobStatus,
+    // Per-job P&L (actual cost lines + labour + notes) — must travel with the
+    // job so opening it in another browser shows the same reconciliation data.
+    // Persisted inside jobs.state in Supabase; localStorage is a cache only.
+    plData: (currentJobId && plData[currentJobId]) ? plData[currentJobId] : null,
+    // Historical price snapshot (P&L only) — survives autosave by living in a
+    // dedicated top-level field that isn't recomputed from live globals.
+    costingPriceSnapshot: currentJobPriceSnapshot,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
@@ -10499,6 +11600,15 @@ function getJobState() {
 
 async function saveJobToCloud() {
   if (!sbUser) return;
+  // If a prior applyState() threw mid-restore, the in-memory state is partial
+  // and writing it back would clobber server fields (jobStatus, plData,
+  // userRooms, etc.) that never made it into globals. Refuse to save until
+  // the user reloads — the server data is the source of truth.
+  if (_jobRestoreFailed) {
+    console.warn('[saveJobToCloud] refusing to save: prior job restore failed. Reload the page to retry.');
+    setJobSyncStatus('✕ Save blocked — reload to recover', '#e07070');
+    return;
+  }
   const client  = document.getElementById('job-client')?.value  || '';
   const house   = document.getElementById('job-house')?.value   || '';
   const address = document.getElementById('job-address')?.value || '';
@@ -10541,6 +11651,8 @@ async function saveJobToCloud() {
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       document.getElementById('job-delete-btn').style.display = 'block';
+      const _swSave = document.getElementById('job-status-wrap');
+      if (_swSave) _swSave.style.display = 'flex';
     } else {
       await loadUserJobs();
     }
@@ -10585,6 +11697,8 @@ async function loadJobFromSelect() {
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
     document.getElementById('job-delete-btn').style.display = 'block';
+    const _swLS = document.getElementById('job-status-wrap');
+    if (_swLS) _swLS.style.display = 'flex';
   } catch(e) {
     setJobSyncStatus('✕ Load failed', '#e07070');
     console.warn('[Supabase] Load job failed:', e.message);
@@ -10598,6 +11712,13 @@ function newJob() {
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
+  currentJobStatus = 'draft';
+  // Starting fresh — clear any latched restore-failure flag from a prior load
+  _jobRestoreFailed = false;
+  // Clear any historical price snapshot from the previous job
+  currentJobPriceSnapshot = null;
+  const _jsWrap = document.getElementById('job-status-wrap');
+  if (_jsWrap) _jsWrap.style.display = 'none';
   // Clear job details
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
@@ -10622,13 +11743,29 @@ function newJob() {
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
   quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
   quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
-  // Clear plant-on panels, fillers, spacers — reset to blank defaults for each section
-  ADDON_SECTIONS.forEach(sec => {
+  // Clear plant-on panels, fillers, spacers — reset to blank defaults.
+  // Iterate Object.keys(bedroomAddons) FIRST so any leftover user-room ids
+  // (ur_xxx) from the previous job are wiped — getAddonSections() alone
+  // misses them for superusers (userRooms preserved) and for non-superusers
+  // whose userRooms were just cleared above. Then union with current
+  // getAddonSections() so built-ins and any surviving rooms are seeded.
+  const _addonResetKeys = new Set([
+    ...Object.keys(bedroomAddons),
+    ...getAddonSections(),
+  ]);
+  _addonResetKeys.forEach(sec => {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
-      spacers:  { enabled: false, items: [defaultSpacer()] },
+      spacers: { enabled: false, items: [defaultSpacer()] },
     };
   });
+  // For non-superusers, userRooms was cleared above so drop any orphaned
+  // ur_xxx addon keys entirely rather than leaving empty stubs behind.
+  if (!isSuperuser()) {
+    Object.keys(bedroomAddons).forEach(k => {
+      if (!ADDON_SECTIONS.includes(k)) delete bedroomAddons[k];
+    });
+  }
   try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
   renderPanel(); updateCounts();
   setJobSyncStatus('New job', 'var(--text-muted)');
@@ -11915,6 +13052,10 @@ function renameRoomPrompt(roomId) {
   const name = prompt('Rename room:', room.name);
   if (name && name.trim()) {
     room.name = name.trim();
+    // Keep MAT_GROUPS label in sync so the material selector header / cutlist
+    // material summary show the renamed room rather than the old name.
+    const mg = MAT_GROUPS.find(g => g.id === room.id);
+    if (mg) mg.label = room.name;
     renderUserRoomsNav();
     renderPanel();
     scheduleAutoSave();
@@ -13014,13 +14155,24 @@ async function reloadSupplierPrices() {
 // ─── Bulk Price Adjustment ────────────────────────────────────────────────────
 let _bulkAdjCats = { boards: true, edges: true, services: true };
 
-function openBulkAdjustModal() {
+async function openBulkAdjustModal() {
   _bulkAdjCats = { boards: true, edges: true, services: true };
   document.getElementById('bulk-adjust-pct').value = '0';
   document.getElementById('bulk-adjust-error').style.display = 'none';
   updateBulkToggleStyles();
+  // Show modal immediately with current snapshot so the user gets feedback,
+  // then refresh from Supabase so the list reflects the supplier's live
+  // price rows (boards/edges deleted or renamed in the DB are filtered out).
   updateBulkAdjustPreview();
   document.getElementById('bulk-adjust-modal').style.display = 'flex';
+  try {
+    await loadSupplierPrices();
+  } catch(e) {
+    // If the refresh fails we fall back to the snapshot already in memory;
+    // _buildBulkItems still filters against MATS/EDGES below, so renamed/
+    // deleted entries from previous loads stay hidden.
+  }
+  updateBulkAdjustPreview();
 }
 
 function closeBulkAdjustModal() {
@@ -13056,13 +14208,23 @@ function _buildBulkItems(pct) {
   const mult = 1 + pct / 100;
   const round2 = v => Math.round(v * 100) / 100;
   const items = [];
+  // Filter against the live MATS/EDGES arrays — loadSupplierPrices() rebuilds
+  // these from supplier_prices on every load, so they exclude boards/edges
+  // that have been deleted or renamed in the DB. costingPrices.mat / .edge
+  // can still hold stale hardcoded defaults or localStorage entries that no
+  // longer exist in the supplier's price list, so iterating those directly
+  // would surface ghost rows in the bulk-adjust dialog.
+  const liveMats  = new Set(MATS);
+  const liveEdges = new Set(EDGES);
   if (_bulkAdjCats.boards) {
     Object.entries(costingPrices.mat).forEach(([name, price]) => {
+      if (!liveMats.has(name)) return;
       if (price > 0) items.push({ cat: 'board', label: name, before: price, after: round2(price * mult), name });
     });
   }
   if (_bulkAdjCats.edges) {
     Object.entries(costingPrices.edge).forEach(([name, price]) => {
+      if (!liveEdges.has(name)) return;
       if (price > 0) items.push({ cat: 'edge', label: name, before: price, after: round2(price * mult), name });
     });
   }
@@ -13949,6 +15111,172 @@ function deleteStandardBoard(name) {
   })();
 }
 
+// ── Bulk-migrate saved jobs in Supabase when a board or edge is renamed ─────
+// renamesObj: { mat: { oldName: newName, ... }, edge: { oldEdge: newEdge, ... } }
+// Walks every job belonging to the current user, deep-clones state, applies
+// renames anywhere the old names appear, and PATCHes only changed jobs.
+// Skips currentJobId (it'll be saved through the normal save path).
+async function migrateRenamedNamesAcrossJobs(renamesObj) {
+  if (!sbUser || !sbUser.id) return;
+  const matMap  = renamesObj.mat  || {};
+  const edgeMap = renamesObj.edge || {};
+  if (!Object.keys(matMap).length && !Object.keys(edgeMap).length) return;
+
+  const remapMat  = (name) => (name && Object.prototype.hasOwnProperty.call(matMap,  name)) ? matMap[name]  : name;
+  const remapEdge = (name) => (name && Object.prototype.hasOwnProperty.call(edgeMap, name)) ? edgeMap[name] : name;
+
+  // Rename keys on a plain object map ({ oldKey: val } → { newKey: val })
+  const renameKeys = (obj, map) => {
+    if (!obj || typeof obj !== 'object') return false;
+    let changed = false;
+    Object.keys(map).forEach(oldK => {
+      if (Object.prototype.hasOwnProperty.call(obj, oldK)) {
+        const newK = map[oldK];
+        if (newK && newK !== oldK) {
+          // If newK already exists, prefer the existing value (already migrated locally)
+          if (!Object.prototype.hasOwnProperty.call(obj, newK)) obj[newK] = obj[oldK];
+          delete obj[oldK];
+          changed = true;
+        }
+      }
+    });
+    return changed;
+  };
+
+  setJobSyncStatus('↻ Scanning jobs…', 'var(--amber-dim)');
+  let allJobs;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/jobs?select=id,state&user_id=eq.${sbUser.id}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allJobs = await res.json();
+  } catch(e) {
+    console.warn('[Rename migration] fetch jobs failed:', e.message);
+    setJobSyncStatus('✕ Migration scan failed: ' + e.message, '#e07070');
+    setTimeout(() => setJobSyncStatus(''), 4000);
+    return;
+  }
+
+  const candidates = (allJobs || []).filter(j => j && j.state && j.id !== currentJobId);
+  if (!candidates.length) {
+    // Still update sbJobs in memory if needed; nothing to do.
+    return;
+  }
+
+  setJobSyncStatus(`↻ Migrating ${candidates.length} job${candidates.length === 1 ? '' : 's'}…`, 'var(--amber-dim)');
+  let updated = 0, failed = 0;
+
+  for (const job of candidates) {
+    let s;
+    try { s = JSON.parse(JSON.stringify(job.state)); } catch(e) { failed++; continue; }
+    let dirty = false;
+
+    // materialConfig[*].wood / .edging
+    if (s.materialConfig && typeof s.materialConfig === 'object') {
+      Object.values(s.materialConfig).forEach(cfg => {
+        if (!cfg) return;
+        const newWood = remapMat(cfg.wood);
+        if (newWood !== cfg.wood) { cfg.wood = newWood; dirty = true; }
+        // 'edging' may hold an EDGE_COLORS-style short name (mat name) OR a full edge key
+        const edA = remapMat(cfg.edging);
+        if (edA !== cfg.edging) { cfg.edging = edA; dirty = true; }
+        const edB = remapEdge(cfg.edging);
+        if (edB !== cfg.edging) { cfg.edging = edB; dirty = true; }
+      });
+    }
+
+    // unitMatOverrides[*].wood / .edging
+    if (s.unitMatOverrides && typeof s.unitMatOverrides === 'object') {
+      Object.values(s.unitMatOverrides).forEach(ov => {
+        if (!ov) return;
+        const newWood = remapMat(ov.wood);
+        if (newWood !== ov.wood) { ov.wood = newWood; dirty = true; }
+        const edA = remapMat(ov.edging);
+        if (edA !== ov.edging) { ov.edging = edA; dirty = true; }
+        const edB = remapEdge(ov.edging);
+        if (edB !== ov.edging) { ov.edging = edB; dirty = true; }
+      });
+    }
+
+    // panelsState.items[*].mat
+    if (s.panelsState && Array.isArray(s.panelsState.items)) {
+      s.panelsState.items.forEach(p => {
+        if (!p) return;
+        const nm = remapMat(p.mat);
+        if (nm !== p.mat) { p.mat = nm; dirty = true; }
+      });
+    }
+
+    // bedroomAddons[section].plantOn.items[*].mat (and spacers, defensively)
+    if (s.bedroomAddons && typeof s.bedroomAddons === 'object') {
+      Object.values(s.bedroomAddons).forEach(sec => {
+        if (!sec) return;
+        [sec.plantOn, sec.spacers].forEach(group => {
+          if (!group || !Array.isArray(group.items)) return;
+          group.items.forEach(item => {
+            if (!item) return;
+            const nm = remapMat(item.mat);
+            if (nm !== item.mat) { item.mat = nm; dirty = true; }
+          });
+        });
+      });
+    }
+
+    // costingPrices.mat / matMinSheets / matSpecialOrder / matFullSheet — keyed by board name
+    if (s.costingPrices && typeof s.costingPrices === 'object') {
+      ['mat', 'matMinSheets', 'matSpecialOrder', 'matFullSheet', 'matPriceDates'].forEach(k => {
+        if (renameKeys(s.costingPrices[k], matMap)) dirty = true;
+      });
+      // costingPrices.edge — keyed by full edge key
+      if (renameKeys(s.costingPrices.edge, edgeMap)) dirty = true;
+
+      // customBoards array — board/edge name fields
+      if (Array.isArray(s.costingPrices.customBoards)) {
+        s.costingPrices.customBoards.forEach(cb => {
+          if (!cb) return;
+          const nb = remapMat(cb.boardName);
+          if (nb !== cb.boardName) { cb.boardName = nb; dirty = true; }
+          const ne = remapEdge(cb.edgeName);
+          if (ne !== cb.edgeName) { cb.edgeName = ne; dirty = true; }
+        });
+      }
+      // hiddenMats array of board names
+      if (Array.isArray(s.costingPrices.hiddenMats)) {
+        for (let i = 0; i < s.costingPrices.hiddenMats.length; i++) {
+          const nm = remapMat(s.costingPrices.hiddenMats[i]);
+          if (nm !== s.costingPrices.hiddenMats[i]) { s.costingPrices.hiddenMats[i] = nm; dirty = true; }
+        }
+      }
+    }
+
+    if (!dirty) continue;
+
+    try {
+      const pr = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${job.id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ state: s, updated_at: new Date().toISOString() })
+      });
+      if (!pr.ok) throw new Error(`HTTP ${pr.status}`);
+      updated++;
+      // Update in-memory sbJobs cache if present so the next render sees fresh state
+      if (Array.isArray(sbJobs)) {
+        const cached = sbJobs.find(j => j && j.id === job.id);
+        if (cached) cached.state = s;
+      }
+    } catch(e) {
+      failed++;
+      console.warn('[Rename migration] PATCH job failed:', job.id, e.message);
+    }
+  }
+
+  if (failed) {
+    setJobSyncStatus(`⚠ ${updated} updated, ${failed} failed`, '#e07070');
+  } else {
+    setJobSyncStatus(`✓ ${updated} job${updated === 1 ? '' : 's'} updated`, '#5dba6e');
+  }
+  setTimeout(() => setJobSyncStatus(''), 4000);
+}
+
 function renameMat(oldName) {
   const newName = prompt(`Rename board "${oldName}" to:`, oldName);
   if (!newName || newName.trim() === oldName) return;
@@ -13974,9 +15302,13 @@ function renameMat(oldName) {
     const ci2 = COLORS.indexOf(oldName);
     if (ci2 >= 0) COLORS.splice(ci2, 1);
     delete costingPrices.mat[oldName];
-    // Remove old edging rows
-    const oldEdgePfx = oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging';
+    // Remove old edging rows. Track old→new edge keys so jobs that reference
+    // them get migrated to the merged target's edges.
+    const oldEdgePfx  = oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging';
+    const newEdgePfx2 = n       === 'Picco White' ? 'White Edging' : n       + ' Edging';
+    const _mergeEdgeMap = {};
     EDGES.filter(e => e && e.startsWith(oldEdgePfx)).forEach(e => {
+      _mergeEdgeMap[e] = newEdgePfx2 + e.slice(oldEdgePfx.length);
       EDGES.splice(EDGES.indexOf(e), 1);
       delete costingPrices.edge[e];
     });
@@ -13986,7 +15318,7 @@ function renameMat(oldName) {
     saveCostingPrices();
     refreshMatDropdowns();
     refreshPriceViews();
-    // Delete old row from Supabase
+    // Delete old row from Supabase + bulk-migrate saved jobs
     (async () => {
       try {
         await fetch(`${SB_URL}/rest/v1/supplier_prices?name=eq.${encodeURIComponent(oldName)}`,
@@ -13994,6 +15326,14 @@ function renameMat(oldName) {
         sbSyncStatus = 'ok'; sbLastSyncTime = new Date();
       } catch(e) { sbSyncStatus = 'error'; sbLastSyncError = e.message; }
       renderSyncBadge();
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  { [oldName]: n },
+          edge: _mergeEdgeMap
+        });
+      } catch(eMig) {
+        console.warn('[Merge migration] failed:', eMig.message);
+      }
     })();
     return;
   }
@@ -14013,10 +15353,12 @@ function renameMat(oldName) {
   const oldEdgePrefix = (oldName === 'Picco White' ? 'White Edging' : oldName + ' Edging');
   const newEdgePrefix = (n       === 'Picco White' ? 'White Edging' : n       + ' Edging');
   const _renamedOldEdges = [];
+  const _edgeRenameMap  = {};   // oldEdgeKey → newEdgeKey, for cross-job migration
   EDGES.forEach((e, i) => {
     if (e && e.startsWith(oldEdgePrefix)) {
       _renamedOldEdges.push(e);
       const newEdge = newEdgePrefix + e.slice(oldEdgePrefix.length);
+      _edgeRenameMap[e] = newEdge;
       EDGES[i] = newEdge;
       costingPrices.edge[newEdge] = costingPrices.edge[e] || 0;
       delete costingPrices.edge[e];
@@ -14068,6 +15410,19 @@ function renameMat(oldName) {
           { method: 'DELETE', headers: { ...authHeaders(), 'Prefer': 'return=minimal' } });
       }
       sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+
+      // Bulk-migrate every saved job: replace oldName board references and any
+      // associated edge keys. Without this, jobs saved before the rename keep
+      // pointing at the old name and only get fixed if the user opens them
+      // (triggering checkAndRemapOrphans).
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  { [oldName]: n },
+          edge: _edgeRenameMap
+        });
+      } catch(eMig) {
+        console.warn('[Rename migration] failed:', eMig.message);
+      }
     } catch(e) {
       sbSyncStatus = 'error'; sbLastSyncError = e.message;
       console.warn('[Supabase] Rename failed:', e.message);
@@ -14132,6 +15487,18 @@ function renameEdge(oldKey) {
         throw new Error(msg);
       }
       sbSyncStatus = 'ok'; sbLastSyncTime = new Date(); sbLastSyncError = null;
+
+      // Bulk-migrate saved jobs: rename this edge key everywhere it appears
+      // (costingPrices.edge keys, customBoards.edgeName, materialConfig.edging,
+      // unitMatOverrides.edging when stored as full keys).
+      try {
+        await migrateRenamedNamesAcrossJobs({
+          mat:  {},
+          edge: { [oldKey]: n }
+        });
+      } catch(eMig) {
+        console.warn('[Edge rename migration] failed:', eMig.message);
+      }
     } catch(e) {
       sbSyncStatus = 'error'; sbLastSyncError = e.message;
       console.warn('[Supabase] Edge rename failed:', e.message);
@@ -14303,17 +15670,25 @@ function calcSectionCost(secId, sectionUnits, quantities) {
   const hw          = costingPrices.hardware;
   const hingePrice  = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hardwareCost = hw_counts.hingeCount     * hingePrice
-                     + hw_counts.runnerCount    * runnerPrice
-                     + hw_counts.handle160Count * hw.handle160
-                     + hw_counts.handle240Count * hw.handle240;
-  const drillingCost = hw_counts.drillingCount * costingPrices.extras.drilling;
+  // Respect the section's per-type hardware flags. Drilling follows hinges.
+  const incHinges   = sectionHasHinges (secId);
+  const incRunners  = sectionHasRunners(secId);
+  const incHandles  = sectionHasHandles(secId);
+  const hardwareCost = (incHinges  ? hw_counts.hingeCount     * hingePrice    : 0)
+                     + (incRunners ? hw_counts.runnerCount    * runnerPrice   : 0)
+                     + (incHandles ? hw_counts.handle160Count * hw.handle160  : 0)
+                     + (incHandles ? hw_counts.handle240Count * hw.handle240  : 0);
+  const drillingCost = incHinges ? hw_counts.drillingCount * costingPrices.extras.drilling : 0;
 
   return matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hPriceCost;
 }
 
 function calcUnitCost(u, unitQty) {
-  const includeHardware = unitHasHardware(u.id);
+  // Per-section, per-type hardware flags. Drilling (hinge holes) follows hinges.
+  const includeHinges   = unitHasHinges(u.id);
+  const includeRunners  = unitHasRunners(u.id);
+  const includeHandles  = unitHasHandles(u.id);
+  const includeHardware = includeHinges || includeRunners || includeHandles;
   // Aggregate material m² and edging m per type, and part/door counts
   const matM2   = {};   // mat -> total m²
   const edgeM   = {};   // edgeKey -> total m
@@ -14412,22 +15787,23 @@ function calcUnitCost(u, unitQty) {
     edgeCost   += rounded * pricePerM;
     hPriceCost += rounded * hPrice;
   });
-  const drillingCost  = includeHardware ? doorCount * costingPrices.extras.drilling : 0;
+  // Hinge drilling follows the hinges flag (no hinges = no drill holes to pay for).
+  const drillingCost  = includeHinges ? doorCount * costingPrices.extras.drilling : 0;
   const hw            = costingPrices.hardware;
   const hingePrice    = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice   = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
-  const hingeCost     = includeHardware ? hingeCount * hingePrice : 0;
+  const hingeCost     = includeHinges ? hingeCount * hingePrice : 0;
   const runnerCount   = totalRunnerCount(runnerSets);
   // Runner cost: use custom My Costs prices per size where available
-  const runnerCost    = includeHardware
+  const runnerCost    = includeRunners
     ? Object.entries(runnerSets).reduce((sum, [size, count]) => {
         const hwItem = Number(size) > 0 ? _findRunnerHwItem(Number(size), quoteState.runnerType || 'soft') : null;
         const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
         return sum + count * price;
       }, 0)
     : 0;
-  const handle160Cost = includeHardware ? handle160Count * hw.handle160 : 0;
-  const handle240Cost = includeHardware ? handle240Count * hw.handle240 : 0;
+  const handle160Cost = includeHandles ? handle160Count * hw.handle160 : 0;
+  const handle240Cost = includeHandles ? handle240Count * hw.handle240 : 0;
   const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
   const svcCost = calcSpecialServicesCost(unitSpecialServices[u.id]);
@@ -14440,20 +15816,25 @@ function calcUnitCost(u, unitQty) {
            totalSheets, boardSheets, masoniteSheets };
 }
 
-function hardwareRows(c) {
+function hardwareRows(c, sectionId) {
   const hw = costingPrices.hardware;
   const hingeLabel  = quoteState.hingeType === 'soft' ? 'Soft Close' : 'Normal';
   const runnerLabel = quoteState.runnerType === 'soft' ? 'Soft Close' : 'Normal';
   const hingePrice  = quoteState.hingeType === 'soft' ? hw.hingeSoft : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
+  // Per-section sub-flags — only emit a row when that hardware type is included.
+  // If sectionId is omitted, fall back to "any is on" (legacy behaviour).
+  const showHinges  = sectionId ? sectionHasHinges(sectionId)  : true;
+  const showRunners = sectionId ? sectionHasRunners(sectionId) : true;
+  const showHandles = sectionId ? sectionHasHandles(sectionId) : true;
   let rows = '';
-  if (c.hingeCount > 0)
+  if (showHinges && c.hingeCount > 0)
     rows += `<tr><td>Hinges – ${hingeLabel} (${c.hingeCount})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hingePrice}×${c.hingeCount}</td><td class="num cost">R ${Math.round(c.hingeCost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.handle160Count > 0)
+  if (showHandles && c.handle160Count > 0)
     rows += `<tr><td>Handles 160mm (${c.handle160Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle160}×${c.handle160Count}</td><td class="num cost">R ${Math.round(c.handle160Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.handle240Count > 0)
+  if (showHandles && c.handle240Count > 0)
     rows += `<tr><td>Handles 240mm (${c.handle240Count})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${hw.handle240}×${c.handle240Count}</td><td class="num cost">R ${Math.round(c.handle240Cost).toLocaleString('en-ZA')}</td></tr>`;
-  if (c.runnerCount > 0) {
+  if (showRunners && c.runnerCount > 0) {
     const _rSets    = c.runnerSets || {};
     const _rType    = quoteState.runnerType || 'soft';
     const _hasSized = Object.keys(_rSets).some(k => Number(k) > 0);
@@ -15640,12 +17021,12 @@ function _renderCostingView() {
           </tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr>
+          ${unitHasHinges(u.id) && c.doorCount > 0 ? `<tr>
             <td>Hinge Drilling (${c.doorCount} holes)</td>
             <td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td>
             <td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td>
           </tr>` : ''}
-          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${unitHasHardware(u.id) ? hardwareRows(c, u.section) : ''}
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
@@ -16182,8 +17563,8 @@ function _refreshCostingResults() {
           <tr class="cv-subtotal"><td>Boards + Edging</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.matCost + c.edgeCost).toLocaleString('en-ZA')}</td></tr>
           ${cutLabelRow(c)}
           ${hPriceRow(c)}
-          ${unitHasHardware(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
-          ${unitHasHardware(u.id) ? hardwareRows(c) : ''}
+          ${unitHasHinges(u.id) && c.doorCount > 0 ? `<tr><td>Hinge Drilling (${c.doorCount} holes)</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R ${costingPrices.extras.drilling} × ${c.doorCount}</td><td class="num cost">R ${Math.round(c.drillingCost).toLocaleString('en-ZA')}</td></tr>` : ''}
+          ${unitHasHardware(u.id) ? hardwareRows(c, u.section) : ''}
           ${c.svcCost > 0 ? (unitSpecialServices[u.id]||[]).map(s => {
             const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
             if (!svc) return '';
@@ -16429,18 +17810,58 @@ function checkAndRemapOrphans() {
     });
 
     renderPanel(); updateCounts();
+
+    // Persist remapped state to Supabase so the orphan modal doesn't fire again on
+    // next load (and so other devices see the fixed names). Fire and forget — the
+    // user has already accepted the changes locally.
+    if (currentJobId && typeof saveJobToCloud === 'function') {
+      try { saveJobToCloud(); } catch(e) { console.warn('[Remap] save after remap failed:', e); }
+    }
   };
 }
 
+
 function applyState(state) {
-  if (!state) return;
+  if (!state) { _jobRestoreFailed = false; return; }
+  // ── Restore the FRAGILE-but-CRITICAL fields up front, before any code that
+  // could throw. These two (jobStatus, plData) live at the END of
+  // _applyStateInner and were silently skipped if any earlier step threw —
+  // which then caused the next autosave's getJobState() to write back
+  // jobStatus='draft' and plData=null, clobbering the server's good values.
+  // Restoring them here guarantees they're set even if the bulk restore fails.
+  try {
+    if (typeof state.jobStatus === 'string' && state.jobStatus) {
+      currentJobStatus = state.jobStatus;
+    } else {
+      currentJobStatus = 'draft';
+    }
+    if (typeof _renderJobStatusBadge === 'function') _renderJobStatusBadge();
+    if (currentJobId && state.plData && typeof state.plData === 'object') {
+      plData[currentJobId] = state.plData;
+      try { plSave(); } catch(e) {}
+    }
+    // Historical price snapshot — must round-trip through getJobState() on
+    // every autosave so it isn't wiped. Restore here in the safe block.
+    currentJobPriceSnapshot = (state.costingPriceSnapshot && typeof state.costingPriceSnapshot === 'object'
+      && state.costingPriceSnapshot.mat && Object.keys(state.costingPriceSnapshot.mat).length > 0)
+      ? state.costingPriceSnapshot
+      : null;
+  } catch(e) {
+    console.warn('[applyState] critical-field pre-restore warned:', e);
+  }
+  // Now do the rest. If this throws, jobStatus + plData are already safe.
   try {
     _applyStateInner(state);
+    _jobRestoreFailed = false;
   } catch (err) {
     // A throw partway through would leave the UI in a half-restored state
-    // (quoteState/quantities applied but rooms/userUnits skipped). Log loudly
-    // and still run the final re-render so whatever did land is visible.
-    console.error('[applyState] failed mid-restore:', err);
+    // (quoteState/quantities applied but rooms/userUnits skipped). Latch the
+    // failure flag so saveJobToCloud() refuses to write back partial state
+    // and overwrite good server data. Log loudly and still re-render so
+    // whatever did land is visible.
+    _jobRestoreFailed = true;
+    console.error('[applyState] failed mid-restore — autosave to cloud disabled until reload:', err);
+    try { setJobSyncStatus('✕ Load failed — refresh page', '#e07070'); } catch(e) {}
     try { renderPanel(); updateSummary(); updateCounts(); } catch(e) {}
   }
 }
@@ -16663,6 +18084,15 @@ function _applyStateInner(state) {
         try { setJobSyncStatus(msg, 'var(--amber)'); } catch(e) {}
       }
     }
+  }
+  currentJobStatus = state.jobStatus || 'draft';
+  _renderJobStatusBadge();
+  // ── Restore per-job P&L data (actual costs, labour, notes) ──────────────
+  // Server-side jobs.state.plData is the source of truth; merge into local
+  // cache so cross-browser opens see the same reconciliation data.
+  if (currentJobId && state.plData && typeof state.plData === 'object') {
+    plData[currentJobId] = state.plData;
+    plSave();
   }
   save(); saveHoles(); saveJobDetails(); saveQuoteState();
   saveBedroomAddons(); saveCostingPrices();
@@ -20617,6 +22047,11 @@ function drawerSaveUnit() {
 // In-memory store: { [jobId]: { invoices: [{id,desc,supplier,amount}], notes:'' } }
 let plData = {};
 
+// Per-job historical price snapshot (set by openHistoricalPriceModal save and
+// restored by applyState). Lives outside costingPrices so autosaves do not
+// clobber it with live supplier prices. Shape: { mat:{}, edge:{}, savedAt:'' }.
+let currentJobPriceSnapshot = null;
+
 function plLoad() {
   try { plData = JSON.parse(localStorage.getItem('cutlist_pl_data') || '{}'); } catch(e) { plData = {}; }
 }
@@ -20624,6 +22059,67 @@ function plSave() {
   try { localStorage.setItem('cutlist_pl_data', JSON.stringify(plData)); } catch(e) {}
 }
 plLoad();
+
+// ── Persist a job's P&L data into Supabase jobs.state.plData ─────────────────
+// Browser localStorage alone is per-device — opening the same job in another
+// browser would show no P&L. This pushes plData[jobId] into the row's state
+// JSON so it's authoritative server-side and survives cross-browser opens.
+//
+// Strategy:
+//  • For the *current* job, leave the heavy lifting to saveJobToCloud()
+//    (getJobState() already includes plData) but also do a lightweight PATCH
+//    so users don't have to click Save explicitly for P&L edits to sync.
+//  • For *other* jobs (superuser P&L picker), PATCH directly into that row's
+//    state.plData without disturbing any other job state.
+async function plPersistJob(jobId) {
+  if (!sbUser || !jobId) return;
+  // Local cache is always written first (fast UI, offline tolerance)
+  plSave();
+  // If we're persisting the live current job and applyState() failed, the
+  // baseState we'd build via getJobState() would be partial — block the
+  // server PATCH so we don't clobber good fields.
+  if (jobId === currentJobId && _jobRestoreFailed) {
+    console.warn('[plPersistJob] refusing to PATCH live job: prior restore failed.');
+    return;
+  }
+  try {
+    const job = (typeof sbJobs !== 'undefined' && sbJobs)
+      ? sbJobs.find(j => j.id === jobId)
+      : null;
+    let baseState = null;
+    if (jobId === currentJobId) {
+      // Live-edit job: getJobState() reflects the live globals (which now
+      // include plData). Note this also persists any other in-flight live
+      // edits — that's intentional: P&L is part of the same live job state
+      // and the alternative (a stale cached _state) would lose data.
+      baseState = getJobState();
+    } else if (job && job._state) {
+      // Other job opened in the P&L picker — use the cached server state and
+      // only swap in the new plData. Don't touch any other fields.
+      baseState = JSON.parse(JSON.stringify(job._state));
+      baseState.plData = plData[jobId] || null;
+    } else {
+      // Fetch the row's existing state, then merge in plData and PATCH it back
+      const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=state`, { headers: authHeaders() });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const rows = await r.json();
+      if (!rows.length) return;
+      baseState = rows[0].state || {};
+      baseState.plData = plData[jobId] || null;
+      if (job) job._state = baseState; // cache for next edit
+    }
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ state: baseState, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Keep the in-memory job._state in sync so subsequent reads don't go stale
+    if (job) job._state = baseState;
+  } catch (e) {
+    console.warn('[P&L] persist failed:', e.message);
+  }
+}
 
 // ── Snapshot: apply job state silently, call computeQuoteTotals(), restore ─────
 function plCalcFromState(state) {
@@ -20703,12 +22199,38 @@ function plCalcFromState(state) {
       if (st.costingPrices.matFullSheet)    costingPrices.matFullSheet    = st.costingPrices.matFullSheet;
       if (st.costingPrices.specialServices) costingPrices.specialServices = st.costingPrices.specialServices;
     }
+    // Historical price snapshot overrides board/edge prices (only) — sheet
+    // counts and billing-mode flags (matFullSheet/matSpecialOrder/matMinSheets)
+    // come from the saved state, not the snapshot, so sheet quantities remain
+    // immutable when only prices change (Bug 1).
+    if (st.costingPriceSnapshot) {
+      if (st.costingPriceSnapshot.mat) {
+        Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+        Object.assign(costingPrices.mat, st.costingPriceSnapshot.mat);
+      }
+      if (st.costingPriceSnapshot.edge) {
+        Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+        Object.assign(costingPrices.edge, st.costingPriceSnapshot.edge);
+      }
+    }
 
     // userUnits & customUnits (for getEffectiveUnits)
     userUnits.length = 0;
     if (st.userUnits) st.userUnits.forEach(u => { userUnits.push(u); if (!(u.id in quantities)) quantities[u.id] = 0; });
-    customUnits.length = 0;
-    if (st.customUnits) st.customUnits.forEach(u => customUnits.push(u));
+    // customUnits, unitOverrides and deletedUnits are GLOBAL template settings —
+    // getJobState() deliberately omits them (see comment in getJobState()). Only
+    // wipe-and-replace them when the saved state actually carries them; otherwise
+    // keep the live globals so superuser custom units / template overrides /
+    // template deletions remain in effect during the calc. Wiping unconditionally
+    // here caused the Expected vs Actual sheet counts to shift after saving a
+    // historical price snapshot, because the post-snapshot render path routes the
+    // live job through plCalcFromState(getJobState()) and getJobState() does not
+    // include customUnits — so they were emptied for the duration of the calc,
+    // changing which units computeJobMatBreakdown() iterated over.
+    if (st.customUnits) {
+      customUnits.length = 0;
+      st.customUnits.forEach(u => customUnits.push(u));
+    }
 
     // userRooms
     if (st.userRooms) { userRooms.length = 0; st.userRooms.forEach(r => userRooms.push(r)); }
@@ -20730,12 +22252,20 @@ function plCalcFromState(state) {
       quoteGrand:     t.grand,
       quoteMarkupAmt: t.unitsTotal * t.markup,
       topsTotal:      t.topsTotal,
+      topsExcl:       t.topsExcl,
+      topsDelivery:   t.topsDelivery,
+      topsHandling:   t.topsHandling,
       consult:        t.consultTotal,
       diesel:         t.dieselTotal,
       extras:         t.extrasTotal,
       markup:         t.markup,
+      hardwareExpected: t.hardwareExpected,
+      hardwareExtrasDetail: t.hardwareExtrasDetail || [],
+      topsExtrasDetail:     t.topsExtrasDetail     || [],
       matBreakdown:   _snapBreakdown.matBreakdown,
       edgeBreakdown:  _snapBreakdown.edgeBreakdown,
+      cutLabelExpected: _snapBreakdown.cutLabelExpected || 0,
+      cutLabelSheets:   _snapBreakdown.cutLabelSheets   || 0,
     };
 
   } finally {
@@ -20867,10 +22397,12 @@ Use these categories where possible: ${cats}
 
 Rules:
 - qty is the quantity ordered — can be a decimal (e.g. 1.67 sheets). Use 1 if not shown.
-- unit_price is the price per single unit/item. Use 0 if not shown.
-- amount is the total line price (qty × unit_price). This is what was actually paid for that line.
+- unit_price is the price per single unit/item INCLUSIVE of VAT.
+- amount is the total VAT-INCLUSIVE line price (what was actually paid for that line, including its share of VAT). This is CRITICAL.
+- If the invoice shows line items excluding VAT with a separate VAT line at the bottom, you MUST add the proportional VAT back into each line's amount (typically multiply each line by 1.15 for SA 15% VAT, or distribute the VAT line proportionally). Do the same for unit_price.
+- Confirm by checking: sum of all non-VAT/non-Total line amounts should approximately equal the invoice GRAND TOTAL (incl. VAT), NOT the subtotal excl. VAT.
 - All numeric fields must be plain numbers (no currency symbols, no commas)
-- If VAT is a separate line include it as category "VAT"
+- If VAT is a separate line include it as category "VAT" (but its amount is informational — the VAT is already baked into the line items above per the rule above)
 - If a subtotal or total line exists include it as category "Total" so the user can verify
 - Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
 - Return ONLY a JSON array, nothing else`;
@@ -21010,8 +22542,8 @@ function renderPLPDFResults(items, jobId) {
         <span style="flex:1;min-width:0">SUPPLIER</span>
         <span style="width:130px;flex-shrink:0">CATEGORY</span>
         <span style="width:70px;flex-shrink:0;text-align:right">QTY</span>
-        <span style="width:90px;flex-shrink:0;text-align:right">UNIT PRICE</span>
-        <span style="width:100px;flex-shrink:0;text-align:right">TOTAL</span>
+        <span style="width:90px;flex-shrink:0;text-align:right" title="Unit price incl VAT">UNIT (incl VAT)</span>
+        <span style="width:100px;flex-shrink:0;text-align:right" title="Line total incl VAT — the actual paid amount">TOTAL (incl VAT)</span>
       </div>
       ${items.map((item, i) => {
         const isTotal = (item.category||'').toLowerCase().includes('total') || (item.category||'').toLowerCase().includes('vat');
@@ -21067,12 +22599,161 @@ function plImportSelectedLines(jobId, count) {
     plData[jobId].invoices.push({ id:'inv_'+Date.now()+'_'+i, desc, supplier, category:cat, qty, unit_price, amount });
     added++;
   }
-  plSave();
+  plPersistJob(jobId);
   document.getElementById('pl-pdf-overlay')?.remove();
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
 
+
+// ── Historical price snapshot modal ───────────────────────────────────────────
+async function openHistoricalPriceModal(jobId) {
+  const job = sbJobs.find(j => j.id === jobId);
+  if (!job) return;
+
+  // Hydrate _state — required for the snapshot save below.
+  // For the live current job, ALWAYS rebuild from getJobState() (do not reuse a
+  // stale `_state` populated by an earlier plSelectJob fetch). Otherwise the
+  // snapshot would carry outdated quantities/rooms/units and Expected sheet
+  // counts would silently shift after save (Bug 1).
+  // For other jobs, fetch the row from Supabase if not already cached.
+  if (jobId === currentJobId && typeof getJobState === 'function') {
+    try { job._state = JSON.parse(JSON.stringify(getJobState())); }
+    catch(e) { console.warn('[hist-price] live state clone failed:', e); return; }
+  } else if (!job._state) {
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=*`, { headers: authHeaders() });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const rows = await r.json();
+      if (!rows[0]) return;
+      job._state  = rows[0].state;
+      job.client  = rows[0].client;
+      job.house   = rows[0].house;
+      job.address = rows[0].address;
+    } catch(e) { console.warn('[hist-price] state fetch failed:', e); return; }
+  }
+  if (!job._state) return;
+
+  // Pre-fill the modal with the existing snapshot prices (not the live
+  // current-supplier prices) when a snapshot already exists, so the user is
+  // editing the historical values, not re-typing them.
+  const _existingSnap = job._state.costingPriceSnapshot || null;
+
+  // Build price rows from current MATS (those would have been the boards at job time).
+  // Include ALL boards — Masonite has its own per-sheet price in costingPrices.mat
+  // and must be capturable as a historical snapshot like any other board.
+  const mats = MATS.filter(m => m);
+  const edges = EDGES.filter(e => e);
+  // Prefer the saved snapshot values (if any) over the live prices so the user
+  // is editing the historical record they already captured. Fall back to live
+  // prices for the initial snapshot.
+  const curMat  = (_existingSnap && _existingSnap.mat)  ? _existingSnap.mat  : costingPrices.mat;
+  const curEdge = (_existingSnap && _existingSnap.edge) ? _existingSnap.edge : costingPrices.edge;
+
+  const matRows = mats.map(m => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span style="flex:1;font-size:12px;color:var(--text)">${m}</span>
+      <input type="number" min="0" step="1" value="${curMat[m]||0}"
+        data-hist-mat="${m.replace(/"/g,'&quot;')}"
+        style="width:80px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <span style="font-size:10px;color:var(--text-muted);width:30px">/sh</span>
+    </div>`).join('');
+
+  const edgeRows = edges.map(e => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span style="flex:1;font-size:12px;color:var(--text)">${e}</span>
+      <input type="number" min="0" step="0.01" value="${curEdge[e]||0}"
+        data-hist-edge="${e.replace(/"/g,'&quot;')}"
+        style="width:80px;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:4px 6px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:right"
+        onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      <span style="font-size:10px;color:var(--text-muted);width:30px">/m</span>
+    </div>`).join('');
+
+  const el = document.createElement('div');
+  el.id = 'hist-price-modal';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  el.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--amber);max-width:520px;width:92%;max-height:85vh;display:flex;flex-direction:column">
+      <div style="padding:18px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:3px;color:var(--amber);margin-bottom:4px">SET HISTORICAL PRICES</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
+          Enter the board and edging prices that were in effect when this job was quoted.<br>
+          These are saved <strong style="color:var(--text)">only to this job</strong> — global prices are unchanged.
+        </div>
+      </div>
+      <div style="overflow-y:auto;padding:12px 20px;flex:1">
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin:8px 0 6px">BOARDS</div>
+        ${matRows}
+        ${edgeRows.length ? `
+        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--amber-dim);margin:16px 0 6px">EDGING</div>
+        ${edgeRows}` : ''}
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0">
+        <button id="hist-price-cancel"
+          style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+          CANCEL
+        </button>
+        <button id="hist-price-save"
+          style="background:var(--amber);border:none;color:#111;padding:8px 20px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer;font-weight:600">
+          SAVE SNAPSHOT
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  el.querySelector('#hist-price-cancel').onclick = () => el.remove();
+
+  el.querySelector('#hist-price-save').onclick = async () => {
+    const btn = el.querySelector('#hist-price-save');
+    btn.disabled = true; btn.textContent = 'SAVING…';
+
+    // Collect edited prices from inputs
+    const histMat = {};
+    el.querySelectorAll('[data-hist-mat]').forEach(inp => {
+      histMat[inp.dataset.histMat] = parseFloat(inp.value) || 0;
+    });
+    const histEdge = {};
+    el.querySelectorAll('[data-hist-edge]').forEach(inp => {
+      histEdge[inp.dataset.histEdge] = parseFloat(inp.value) || 0;
+    });
+
+    // Deep-copy the job state and inject the price snapshot into a dedicated
+    // top-level field. We deliberately do NOT overwrite state.costingPrices.mat
+    // / .edge here — those are mirrors of live globals at save time and would
+    // be clobbered by the next autosave's getJobState() pass, destroying the
+    // snapshot. Keeping the snapshot in its own field guarantees survival
+    // across autosaves and page reloads (Bug 2).
+    const newState = JSON.parse(JSON.stringify(job._state));
+    newState.costingPriceSnapshot = {
+      mat:  histMat,
+      edge: histEdge,
+      savedAt: new Date().toISOString(),
+    };
+
+    try {
+      const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ state: newState }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Update in-memory cache so P&L reflects the new snapshot immediately.
+      job._state = newState;
+      // For the live current job, mirror the snapshot into the in-memory
+      // global so getJobState() includes it on subsequent autosaves (and so
+      // `_hasPriceSnapshot` reads `true` without needing a Supabase refetch).
+      if (jobId === currentJobId) {
+        currentJobPriceSnapshot = newState.costingPriceSnapshot;
+      }
+      el.remove();
+      renderPLView();
+    } catch(e) {
+      btn.disabled = false; btn.textContent = 'SAVE SNAPSHOT';
+      alert('Save failed: ' + e.message);
+    }
+  };
+}
 
 // ── Render ─────────────────────────────────────────────────────────────────────
 function renderPLView() { withScrollLock(_renderPLView); }
@@ -21098,13 +22779,42 @@ function _renderPLView() {
   const pd   = selJobId ? (plData[selJobId] || { invoices: [], notes: '' }) : null;
   const invs = pd ? pd.invoices : [];
 
+  // Detect a saved historical-price snapshot. Snapshots live in
+  // `state.costingPriceSnapshot` (a dedicated top-level field) so autosaves
+  // can't wipe them by overwriting `state.costingPrices.mat` from live
+  // globals. For the live current job, `selJob._state` is not refreshed by
+  // loadUserJobs (which only fetches minimal columns), so fall back to the
+  // in-memory `currentJobPriceSnapshot` populated by applyState/openHistoricalPriceModal.
+  const _selSnap = selJob?._state?.costingPriceSnapshot
+    || (selJobId === currentJobId ? currentJobPriceSnapshot : null);
+  const _hasPriceSnapshot = !!(_selSnap && _selSnap.mat && Object.keys(_selSnap.mat).length > 0);
+
   // Calc snapshot totals
-  // IMPORTANT: check currentJobId FIRST — if this is the live job, always use
-  // computeQuoteTotals() directly so it matches the Quote tab exactly.
-  // Only fall back to the Supabase snapshot for jobs other than the current one.
+  // Priority order:
+  //   1. If the job carries a saved historical-price snapshot, ALWAYS run the
+  //      calc through plCalcFromState() so Expected reflects those snapshot
+  //      prices — even for the live job. Live globals may have been mutated
+  //      by a supplier-price refresh since the job was loaded, which would
+  //      otherwise leak current prices into Expected.
+  //   2. Else, if this is the live current job, use computeQuoteTotals()
+  //      directly so totals match the Quote tab exactly (no snapshot to honour).
+  //   3. Else, fall back to plCalcFromState() on the saved Supabase state.
   let snap = { costingTotal:0, quoteGrand:0, quoteMarkupAmt:0 };
-  if (selJobId && selJobId === currentJobId) {
-    // Live job — guaranteed match with Quote tab
+  if (selJob && _hasPriceSnapshot) {
+    // Job has a price snapshot — Expected must use those prices, not live globals.
+    // For the LIVE current job, sbJobs[i].state isn't refreshed by loadUserJobs
+    // (it only selects minimal columns), so selJob._state can be stale or null.
+    // Build a fresh state from live globals + inject the in-memory snapshot.
+    let _stateForCalc = selJob._state;
+    if (selJobId === currentJobId && typeof getJobState === 'function') {
+      try {
+        _stateForCalc = getJobState();
+        if (_selSnap) _stateForCalc.costingPriceSnapshot = _selSnap;
+      } catch(e) { _stateForCalc = selJob._state; }
+    }
+    try { snap = plCalcFromState(_stateForCalc); } catch(e) { console.warn('PL snap (with prices) error:', e); }
+  } else if (selJobId && selJobId === currentJobId) {
+    // Live job, no snapshot — guaranteed match with Quote tab
     try {
       const t = computeQuoteTotals();
       const _liveBreakdown = computeJobMatBreakdown();
@@ -21114,21 +22824,26 @@ function _renderPLView() {
         quoteGrand:     t.grand,
         quoteMarkupAmt: t.unitsTotal * t.markup,
         topsTotal:      t.topsTotal,
+        topsExcl:       t.topsExcl,
+        topsDelivery:   t.topsDelivery,
+        topsHandling:   t.topsHandling,
         consult:        t.consultTotal,
         diesel:         t.dieselTotal,
         extras:         t.extrasTotal,
         markup:         t.markup,
+        hardwareExpected: t.hardwareExpected,
+        hardwareExtrasDetail: t.hardwareExtrasDetail || [],
+        topsExtrasDetail:     t.topsExtrasDetail     || [],
         matBreakdown:   _liveBreakdown.matBreakdown,
         edgeBreakdown:  _liveBreakdown.edgeBreakdown,
+        cutLabelExpected: _liveBreakdown.cutLabelExpected || 0,
+        cutLabelSheets:   _liveBreakdown.cutLabelSheets   || 0,
       };
     } catch(e) { console.warn('PL live calc error:', e); }
   } else if (selJob && selJob._state) {
-    // Different job — use saved state snapshot
+    // Different job, no snapshot — use saved state (prices may be live globals)
     try { snap = plCalcFromState(selJob._state); } catch(e) { console.warn('PL snap error:', e); }
   }
-
-  // Flag: old jobs saved before price snapshot was added won't have costingPrices.mat
-  const _hasPriceSnapshot = selJobId === currentJobId || !!(selJob?._state?.costingPrices?.mat);
 
   // Invoice totals — VAT-aware
   const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
@@ -21143,6 +22858,31 @@ function _renderPLView() {
 
   const profitColor  = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const profitArrow  = v => v >= 0 ? '▲' : '▼';
+  // Tooltip text for the cost-variance (Δ COST) cells.
+  //   variance = expected − actual (excl VAT).
+  //   v >= 0  → actual came in at or under what the costing sheet expected (green = in budget).
+  //   v <  0  → actual exceeded the estimate (red = over budget).
+  // Escapes quotes so it's safe inside a title="…" attribute.
+  const escTitle = s => String(s).replace(/"/g,'&quot;');
+  const varTip = v => escTitle(
+    v > 0  ? `Actual cost came in R ${Math.abs(v).toFixed(2)} below the costing sheet estimate — you stayed under budget on this line.`
+  : v < 0 ? `Actual cost ran R ${Math.abs(v).toFixed(2)} over the costing sheet estimate — this line cost more than expected.`
+  :         `Actual cost matched the estimate exactly.`
+  );
+  const pctTip = (pct, v) => escTitle(
+    pct > 0 ? `${pct.toFixed(1)}% under the costing sheet estimate (saved R ${Math.abs(v).toFixed(2)} vs expected).`
+  : pct < 0 ? `${Math.abs(pct).toFixed(1)}% over the costing sheet estimate (R ${Math.abs(v).toFixed(2)} over budget).`
+  :           `Actual cost exactly matches the estimate.`
+  );
+  // Tooltip text for the qty-variance (Δ SHEETS / Δ METRES) cells.
+  //   shVar = actual − expected (INVERTED vs cost variance).
+  //   v > 0 → used more than expected (red).
+  //   v ≤ 0 → used same or fewer (green).
+  const qtyTip = (v, unit) => escTitle(
+    v > 0  ? `Used ${Math.abs(v).toFixed(1)} ${unit} more than the costing sheet expected — more material consumed than planned.`
+  : v < 0 ? `Used ${Math.abs(v).toFixed(1)} ${unit} less than the costing sheet expected — saved material vs the estimate.`
+  :         `Actual quantity matched the estimate exactly.`
+  );
 
   // ── Material breakdown: expected (costing sheet) vs actual (invoice lines) ──
   const matBreakdown  = (snap.matBreakdown  || []).filter(b => b.pricePerSheet > 0 || b.billedSh > 0);
@@ -21194,8 +22934,9 @@ function _renderPLView() {
             ${plInvoiceCategories().map(c =>
               `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
-          <span style="font-size:11px;color:var(--text-muted)">R</span>
-          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
+          <span style="font-size:11px;color:var(--text-muted)" title="Amount INCLUDING VAT">R</span>
+          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="incl VAT" min="0" step="0.01"
+            title="VAT-inclusive line total (what was paid). System divides by 1.15 to compare against quote excl VAT."
             style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);padding:5px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
@@ -21248,6 +22989,41 @@ function _renderPLView() {
   const allEdgeActual    = invs.filter(i => i.category === 'Edging').reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
   const TH = (txt, color) => `<th style="text-align:right;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:${color||'var(--text-muted)'};font-weight:normal">${txt}</th>`;
 
+  // ── Per-material/edge actual QTY rollups (sheets / metres) ──
+  // We tally inv.qty only when both qty and unit_price are present (>0). Lump-sum
+  // invoices without qty detail show "—" in the Act. Sheets / Act. Metres column.
+  const matActualQty  = {};   // mat -> sum of inv.qty (only counted when qty>0 && unit_price>0)
+  const matHasQty     = {};   // mat -> boolean — at least one linked invoice has qty detail
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Boards') return;
+    if (!inv.mat) return;
+    const q  = parseFloat(inv.qty) || 0;
+    const up = parseFloat(inv.unit_price) || 0;
+    if (q > 0 && up > 0) {
+      matActualQty[inv.mat] = (matActualQty[inv.mat] || 0) + q;
+      matHasQty[inv.mat]    = true;
+    } else if (!(inv.mat in matHasQty)) {
+      matHasQty[inv.mat] = false;
+    }
+  });
+  const edgeActualQty = {};
+  const edgeHasQty    = {};
+  invs.forEach(inv => {
+    if ((inv.category || '') !== 'Edging') return;
+    if (!inv.edgeKey) return;
+    const q  = parseFloat(inv.qty) || 0;
+    const up = parseFloat(inv.unit_price) || 0;
+    if (q > 0 && up > 0) {
+      edgeActualQty[inv.edgeKey] = (edgeActualQty[inv.edgeKey] || 0) + q;
+      edgeHasQty[inv.edgeKey]    = true;
+    } else if (!(inv.edgeKey in edgeHasQty)) {
+      edgeHasQty[inv.edgeKey] = false;
+    }
+  });
+  // Variance helpers for qty (red if over-used, green if at-or-under)
+  const qtyColor = v => v > 0 ? '#e05252' : '#5dba6e';
+  const qtyArrow = v => v > 0 ? '▲' : '▼';
+
   const matCompareHtml = (matBreakdown.length > 0 || edgeBreakdown.length > 0) ? `
   <div style="margin-bottom:24px">
     <div style="padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0">
@@ -21261,7 +23037,7 @@ function _renderPLView() {
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">BOARD</th>
-          ${TH('SHEETS')}${TH('R/SHEET')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+          ${TH('EXP. SHEETS')}${TH('ACT. SHEETS')}${TH('Δ SHEETS')}${TH('R/SHEET')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           ${matBreakdown.map(b => {
@@ -21270,29 +23046,34 @@ function _renderPLView() {
             const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
             const variance      = hasActual ? b.cost - actualExcl : null;
             const pct           = hasActual && b.cost > 0 ? ((b.cost - actualExcl) / b.cost * 100) : null;
+            const hasQty        = !!matHasQty[b.mat];
+            const actualSh      = hasQty ? matActualQty[b.mat] : null;
+            const shVar         = hasQty ? (actualSh - b.billedSh) : null;
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${b.mat}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.billedSh.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasQty?'var(--text)':'var(--text-muted)'}">${hasQty ? actualSh.toFixed(1) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${shVar!==null?`<span style="color:${qtyColor(shVar)}" title="${qtyTip(shVar,'sheets')}">${qtyArrow(shVar)} ${Math.abs(shVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${b.pricePerSheet > 0 ? R(b.pricePerSheet) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(b.cost)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}" title="${varTip(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,variance)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>`;
           }).join('')}
           ${hasUnmatched ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
-            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned board invoices</td>
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="6">Unassigned board invoices</td>
             <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedBoardsInclVAT/1.15)}</td>
             <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
           </tr>` : ''}
         </tbody>
         ${allBoardsActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
           <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
-          <td colspan="2" style="padding:8px 10px"></td>
+          <td colspan="4" style="padding:8px 10px"></td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(matBreakdown.reduce((s,b)=>s+b.cost,0))}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allBoardsActual/1.15)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-            ${(()=>{const v=matBreakdown.reduce((s,b)=>s+b.cost,0)-allBoardsActual/1.15;return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
+            ${(()=>{const v=matBreakdown.reduce((s,b)=>s+b.cost,0)-allBoardsActual/1.15;return `<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
           </td>
         </tr></tfoot>` : ''}
       </table>
@@ -21304,7 +23085,7 @@ function _renderPLView() {
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
           <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">EDGE TYPE</th>
-          ${TH('METRES')}${TH('R/M')}${TH('EXPECTED','#6aaad4')}${TH('ACTUAL EX VAT')}${TH('VARIANCE')}${TH('±%')}
+          ${TH('EXP. METRES')}${TH('ACT. METRES')}${TH('Δ METRES')}${TH('R/M')}${TH('EXP. COST','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
         </tr></thead>
         <tbody>
           ${edgeBreakdown.map(e => {
@@ -21313,33 +23094,281 @@ function _renderPLView() {
             const actualExcl    = hasActual ? actualInclVAT / 1.15 : null;
             const variance      = hasActual ? e.cost - actualExcl : null;
             const pct           = hasActual && e.cost > 0 ? ((e.cost - actualExcl) / e.cost * 100) : null;
+            const hasQty        = !!edgeHasQty[e.edgeKey];
+            const actualM       = hasQty ? edgeActualQty[e.edgeKey] : null;
+            const mVar          = hasQty ? (actualM - e.billedM) : null;
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${e.edgeKey}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.billedM.toFixed(1)}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasQty?'var(--text)':'var(--text-muted)'}">${hasQty ? actualM.toFixed(1) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${mVar!==null?`<span style="color:${qtyColor(mVar)}" title="${qtyTip(mVar,'metres')}">${qtyArrow(mVar)} ${Math.abs(mVar).toFixed(1)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${e.pricePerM > 0 ? R(e.pricePerM) : '—'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4">${R(e.cost)}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasActual?'var(--text)':'var(--text-muted)'}">${hasActual ? R(actualExcl) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${variance!==null?`<span style="color:${profitColor(variance)}" title="${varTip(variance)}">${profitArrow(variance)} ${R(Math.abs(variance))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${pct!==null?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,variance)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>`;
           }).join('')}
           ${hasUnmatchedEdge ? `<tr style="opacity:0.65;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
-            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="4">Unassigned edging invoices</td>
+            <td style="padding:7px 12px;color:var(--text-muted);font-style:italic" colspan="6">Unassigned edging invoices</td>
             <td style="padding:7px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${R(unmatchedEdgeInclVAT/1.15)}</td>
             <td colspan="2" style="padding:7px 10px;text-align:right;font-size:10px;color:var(--text-muted)">assign ↑</td>
           </tr>` : ''}
         </tbody>
         ${allEdgeActual > 0 ? `<tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
           <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
-          <td colspan="2" style="padding:8px 10px"></td>
+          <td colspan="4" style="padding:8px 10px"></td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(edgeBreakdown.reduce((s,e)=>s+e.cost,0))}</td>
           <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(allEdgeActual/1.15)}</td>
           <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-            ${(()=>{const v=edgeBreakdown.reduce((s,e)=>s+e.cost,0)-allEdgeActual/1.15;return `<span style="color:${profitColor(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
+            ${(()=>{const v=edgeBreakdown.reduce((s,e)=>s+e.cost,0)-allEdgeActual/1.15;return `<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`;})()}
           </td>
         </tr></tfoot>` : ''}
       </table>
     </div>` : ''}
+
+    ${(()=>{
+      // ── TOPS comparison ──────────────────────────────────────────────────────
+      // Expected here is the RAW supplier cost we expect to be invoiced for:
+      //   topsExcl only (m² × R/m²), excl VAT, excl delivery, excl our 10% handling markup.
+      // Why: topsTotal includes a 10% internal handling markup (user profit) and a flat
+      // R500 delivery estimate. The handling never appears on a supplier invoice, so
+      // comparing topsTotal against invoiceAmount/1.15 always shows a fake profit equal
+      // to the markup. Comparing topsExcl vs invoiceExclVAT is apples-to-apples.
+      const stdTopsExpected = snap.topsExcl || 0;
+      const extrasTopsList  = snap.topsExtrasDetail || [];
+      const extrasTopsExp   = extrasTopsList.reduce((s, x) => s + (x.rawTotal || 0), 0);
+      const topsExpected    = stdTopsExpected + extrasTopsExp;
+      const topsActual   = invs.filter(i => (i.category||'') === 'Tops')
+                               .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+      if (topsExpected <= 0 && topsActual <= 0) return '';
+      const tVar = topsExpected - topsActual;
+      const tPct = topsExpected > 0 ? (tVar / topsExpected * 100) : null;
+      const hasA = topsActual > 0;
+      const _topsDel = snap.topsDelivery || 0;
+      const _topsHnd = snap.topsHandling || 0;
+      const stdExpTip = escTitle(
+        `Standard tops — raw supplier estimate (excl VAT): ${R(stdTopsExpected)}. ` +
+        `Excludes delivery (${R(_topsDel)}) and the 10% handling markup (${R(_topsHnd)}) ` +
+        `because those are not part of the supplier invoice cost.`
+      );
+      const extraExpTip = escTitle(
+        `Tops added via Quote tab → Extras. Raw supplier cost (excl VAT), ` +
+        `excludes the ${Math.round(HW_HANDLING*100)}% handling markup applied on the Quote tab.`
+      );
+      // Row builder — used for the standard tops line and one per extras-tops item.
+      // The last item gets the variance/% cells (vs grouped tops actual). To avoid
+      // splitting actuals across rows we put the comparison on the TOTAL footer instead.
+      const stdRow = stdTopsExpected > 0 ? `
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">Tops (standard)</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${stdExpTip}">${R(stdTopsExpected)}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+          </tr>` : '';
+      const extraRows = extrasTopsList.map(x => `
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">${x.label}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${x.qty || '—'}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${x.unitPrice > 0 ? R(x.unitPrice) : '—'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4" title="${extraExpTip}">${R(x.rawTotal || 0)}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+          </tr>`).join('');
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">TOPS</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          ${stdRow}
+          ${extraRows}
+        </tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="4" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4">${R(topsExpected)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(topsActual) : '<span style="font-size:10px">—</span>'}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">${hasA?`<span style="color:${profitColor(tVar)}" title="${varTip(tVar)}">${profitArrow(tVar)} ${R(Math.abs(tVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px">${tPct!==null && hasA?`<span style="color:${profitColor(tPct)}" title="${pctTip(tPct,tVar)}">${tPct>=0?'+':''}${tPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+    })()}
+
+    ${(()=>{
+      // ── HARDWARE comparison ──────────────────────────────────────────────────
+      // Expected = raw supplier cost from snap.hardwareExpected (built in
+      // computeQuoteTotals) — sums auto-calculated unit hardware (hinges /
+      // runners / handles / drilling, respecting sectionHardware toggles) PLUS
+      // manual Quote-tab hardware extras. All values are EXCL the 15% HW
+      // handling markup, so they line up with what the supplier actually
+      // invoices excl VAT.
+      const hwExpected = Object.assign(
+        { 'Hardware – Hinges':0, 'Hardware – Runners':0, 'Hardware – Handles':0, 'Hinge Drilling':0, 'Hardware – Other':0 },
+        snap.hardwareExpected || {}
+      );
+      // Group actuals by category (excl VAT)
+      const hwActual = {};
+      Object.keys(hwExpected).forEach(k => { hwActual[k] = 0; });
+      invs.forEach(inv => {
+        const cat = inv.category || '';
+        if (cat in hwExpected) {
+          hwActual[cat] += (parseFloat(inv.amount)||0) / 1.15;
+        }
+      });
+      const labels = {
+        'Hardware – Hinges':  'Hinges',
+        'Hardware – Runners': 'Runners',
+        'Hardware – Handles': 'Handles',
+        'Hinge Drilling':     'Hinge Drilling',
+        'Hardware – Other':   'Other Hardware',
+      };
+      const rows = Object.keys(hwExpected).filter(k => (hwExpected[k] > 0 || hwActual[k] > 0));
+      if (rows.length === 0) return '';
+      const totalExp = rows.reduce((s,k) => s + hwExpected[k], 0);
+      const totalAct = rows.reduce((s,k) => s + hwActual[k], 0);
+      const totalVar = totalExp - totalAct;
+      // Group manual hardware-extras by their P&L category for per-line detail
+      // rows under each category roll-up (Bug 1).
+      const hwExtrasByCat = {};
+      (snap.hardwareExtrasDetail || []).forEach(d => {
+        if (!d || !d.category) return;
+        (hwExtrasByCat[d.category] = hwExtrasByCat[d.category] || []).push(d);
+      });
+      // Per-line actual lookup: any invoice with the same category that carries
+      // qty+unit_price detail can be matched by label. Falls back to qty * unitPrice / 1.15
+      // estimate of actual unit cost when no matching invoice is found.
+      const _findActualForLine = (cat, label) => {
+        const matches = invs.filter(inv =>
+          (inv.category || '') === cat &&
+          (inv.desc || '').trim().toLowerCase() === (label || '').trim().toLowerCase()
+        );
+        if (matches.length === 0) return null;
+        return matches.reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0) / 1.15;
+      };
+      const _hwExpTip = escTitle(
+        `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
+        `applied on the Quote tab, because that markup is not part of the supplier's invoice cost.`
+      );
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">HARDWARE</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">HARDWARE</th>
+          ${TH('EXP. QTY')}${TH('ACT. QTY')}${TH('Δ QTY')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          ${rows.map(k => {
+            const exp = hwExpected[k];
+            const act = hwActual[k];
+            const v   = exp - act;
+            const pct = exp > 0 ? (v / exp * 100) : null;
+            const hasA = act > 0;
+            const hasE = exp > 0;
+            // Per-line detail rows for manual hardware extras within this category
+            const detailRows = (hwExtrasByCat[k] || []).map(d => {
+              const lineExp = d.rawTotal || 0;
+              const lineAct = _findActualForLine(k, d.label);
+              const lineHasA = lineAct !== null && lineAct > 0;
+              const lineVar  = lineHasA ? (lineExp - lineAct) : null;
+              const linePct  = (lineHasA && lineExp > 0) ? (lineVar / lineExp * 100) : null;
+              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
+                <td style="padding:6px 12px 6px 28px;color:var(--text-muted);font-size:11px;font-style:italic">↳ ${d.label}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.qty || '—'}</td>
+                <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+                <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.unitPrice > 0 ? R(d.unitPrice) : '—'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4;font-size:11px" title="${_hwExpTip}">${R(lineExp)}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${lineHasA?'var(--text)':'var(--text-muted)'};font-size:11px">${lineHasA ? R(lineAct) : '<span style="font-size:10px">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" title="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" title="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              </tr>`;
+            }).join('');
+            return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+              <td style="padding:9px 12px;color:var(--text)">${labels[k]}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" title="${_hwExpTip}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            </tr>${detailRows}`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
+          <td style="padding:8px 12px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text-muted)">TOTAL</td>
+          <td colspan="4" style="padding:8px 10px"></td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#6aaad4" title="${_hwExpTip}">${R(totalExp)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)">${R(totalAct)}</td>
+          <td colspan="2" style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
+            ${(totalAct > 0 && totalExp > 0)?`<span style="color:${profitColor(totalVar)}" title="${varTip(totalVar)}">${profitArrow(totalVar)} ${R(Math.abs(totalVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}
+          </td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+    })()}
+
+    ${(()=>{
+      // ── CUT & LABEL comparison ───────────────────────────────────────────────
+      // Expected cut cost is now exposed separately by computeJobMatBreakdown
+      // (snap.cutLabelExpected) — the per-material cutCost sum, excl VAT.
+      // It is ALSO bundled into matBreakdown[].cost (used for the Boards row),
+      // so the Boards section continues to reflect "boards + cut" combined.
+      const cutExpected = snap.cutLabelExpected || 0;
+      const cutSheets   = snap.cutLabelSheets   || 0;
+      const cutActual = invs.filter(i => (i.category||'') === 'Cut & Label')
+                            .reduce((s,i) => s + (parseFloat(i.amount)||0), 0) / 1.15;
+      if (cutExpected <= 0 && cutActual <= 0) return '';
+      const cVar  = (cutExpected > 0 && cutActual > 0) ? (cutExpected - cutActual) : null;
+      const cPct  = (cVar !== null && cutExpected > 0) ? (cVar / cutExpected * 100) : null;
+      const hasE  = cutExpected > 0;
+      const hasA  = cutActual   > 0;
+      const cExpTip = escTitle(
+        `Cut & label estimate (excl VAT) from the costing sheet — the per-sheet ` +
+        `cut & label charge applied across all boards in this job. Also bundled ` +
+        `into the Boards expected total above; shown here for direct variance against ` +
+        `Cut & Label invoice lines.`
+      );
+      return `
+    <div style="margin-top:16px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);padding:6px 0 4px">CUT &amp; LABEL</div>
+    <div style="overflow-x:auto;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-muted);font-weight:normal">ITEM</th>
+          ${TH('EXP. SHEETS')}${TH('ACT. SHEETS')}${TH('Δ SHEETS')}${TH('UNIT')}${TH('EXP. COST EX VAT','#6aaad4')}${TH('ACT. COST EX VAT')}${TH('Δ COST')}${TH('±%')}
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+            <td style="padding:9px 12px;color:var(--text)">Cut &amp; Label</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${cutSheets > 0 ? cutSheets : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" title="${cExpTip}">${hasE ? R(cutExpected) : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(cutActual) : '<span style="font-size:10px">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${cVar!==null?`<span style="color:${profitColor(cVar)}" title="${varTip(cVar)}">${profitArrow(cVar)} ${R(Math.abs(cVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+            <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${cPct!==null?`<span style="color:${profitColor(cPct)}" title="${pctTip(cPct,cVar)}">${cPct>=0?'+':''}${cPct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:6px 12px;font-size:10px;color:var(--text-muted);font-style:italic;background:var(--bg2)">Cut &amp; label expected cost is also bundled into the Boards expected total — the Boards section above shows combined boards + cut variance.</div>
+    </div>`;
+    })()}
 
   </div>` : '';
 
@@ -21377,9 +23406,13 @@ function _renderPLView() {
     </div>` : `
 
     ${!_hasPriceSnapshot ? `
-    <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-muted)">
-      <span style="color:var(--amber);font-size:14px">⚠</span>
-      <span>This job was saved before price snapshots were introduced — the <strong style="color:var(--text)">Costing Sheet Estimate</strong> uses <strong style="color:var(--text)">current prices</strong>, not the prices from when the job was quoted. Load and re-save the job to lock in a snapshot.</span>
+    <div style="background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-muted);flex-wrap:wrap">
+      <span style="color:var(--amber);font-size:14px;flex-shrink:0">⚠</span>
+      <span style="flex:1">No price snapshot — costing estimate uses <strong style="color:var(--text)">current prices</strong>, not prices from when this job was quoted.</span>
+      <button onclick="openHistoricalPriceModal('${selJobId}')"
+        style="background:var(--amber);border:none;color:#111;padding:6px 14px;font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;flex-shrink:0;white-space:nowrap">
+        SET HISTORICAL PRICES
+      </button>
     </div>` : ''}
 
     <!-- Three-column summary cards -->
@@ -21557,8 +23590,9 @@ function _renderPLView() {
           onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');const ew=document.getElementById('pl-new-edge-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';if(ew)ew.style.display=s.value==='Edging'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
-        <span style="font-size:11px;color:var(--text-muted)">R</span>
-        <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01"
+        <span style="font-size:11px;color:var(--text-muted)" title="Enter amounts INCLUDING VAT — system strips VAT for comparison against quote">R <span style="font-size:9px;color:var(--amber-dim)">(incl VAT)</span></span>
+        <input id="pl-new-amount" type="number" placeholder="incl VAT" min="0" step="0.01"
+          title="Enter the VAT-inclusive total (what you actually paid)"
           style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
@@ -21610,7 +23644,14 @@ function plSelectJob(jobId) {
   if (!view) return;
 
   if (jobId && !plData[jobId]) {
-    plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
+    // Hydrate from server-side jobs.state.plData if available before falling
+    // back to a fresh object — otherwise opening a job in a new browser
+    // would clobber existing P&L data with empty defaults.
+    const _job = (typeof sbJobs !== 'undefined' && sbJobs) ? sbJobs.find(j => j.id === jobId) : null;
+    const _serverPl = _job && _job._state && _job._state.plData;
+    plData[jobId] = (_serverPl && typeof _serverPl === 'object')
+      ? _serverPl
+      : { invoices: [], notes: '', labourCost: 0 };
     plSave();
   }
 
@@ -21632,7 +23673,14 @@ function plSelectJob(jobId) {
 
   // If this is the current live job, skip the Supabase fetch — we'll use
   // computeQuoteTotals() directly in renderPLView for a guaranteed match.
+  // Still populate sbJobs[i]._state from live getJobState() so the snapshot
+  // detection in renderPLView can see costingPriceSnapshot without needing a
+  // round-trip to Supabase.
   if (jobId && jobId === currentJobId) {
+    const _existing = sbJobs.find(j => j.id === jobId);
+    if (_existing && !_existing._state && typeof getJobState === 'function') {
+      try { _existing._state = JSON.parse(JSON.stringify(getJobState())); } catch(e) {}
+    }
     view._selectedJobId = jobId;
     renderPLView();
     return;
@@ -21650,6 +23698,13 @@ function plSelectJob(jobId) {
             existing.client  = rows[0].client;
             existing.house   = rows[0].house;
             existing.address = rows[0].address;
+            // Hydrate P&L from server (per-job state.plData) — this is the
+            // cross-browser source of truth. Local cache may be empty/stale.
+            const serverPl = rows[0].state && rows[0].state.plData;
+            if (serverPl && typeof serverPl === 'object') {
+              plData[jobId] = serverPl;
+              plSave();
+            }
           }
           view._selectedJobId = jobId;
           renderPLView();
@@ -21690,7 +23745,7 @@ function plAddInvoice(jobId) {
   if (!desc && !amount) { document.getElementById('pl-new-desc')?.focus(); return; }
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
   plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, category: cat, amount, mat, edgeKey });
-  plSave();
+  plPersistJob(jobId);
   renderPLView();
   // Restore select after re-render
   const view = document.getElementById('pl-view');
@@ -21705,12 +23760,15 @@ function plUpdateInvoice(jobId, invId, field, value) {
   const inv = pd.invoices.find(i => i.id === invId);
   if (!inv) return;
   inv[field] = field === 'amount' ? (parseFloat(value)||0) : value;
+  // Save locally on every keystroke (cheap), defer the server PATCH to blur
+  // (plInvoiceBlur) to avoid a network call per character.
   plSave();
   // Never re-render while typing — update is saved, re-render deferred to blur
 }
 
 function plInvoiceBlur(jobId) {
   // Re-render totals once the user leaves any invoice field
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -21719,7 +23777,7 @@ function plRemoveInvoice(jobId, invId) {
   const pd = plData[jobId];
   if (!pd) return;
   pd.invoices = pd.invoices.filter(i => i.id !== invId);
-  plSave();
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -21727,11 +23785,14 @@ function plRemoveInvoice(jobId, invId) {
 function plUpdateLabour(jobId, value) {
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '', labourCost: 0 };
   plData[jobId].labourCost = parseFloat(value) || 0;
+  // Defer server PATCH to blur (plUpdateLabourDone) — keystroke-rate PATCHes
+  // would hammer Supabase. Local cache is updated immediately.
   plSave();
 }
 
 function plUpdateLabourDone(jobId) {
   // Only re-render once the user finishes typing (on blur)
+  plPersistJob(jobId);
   const view = document.getElementById('pl-view');
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
@@ -21739,7 +23800,11 @@ function plUpdateLabourDone(jobId) {
 function plUpdateNotes(jobId, value) {
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
   plData[jobId].notes = value;
+  // Notes typing is keystroke-rate — only write locally; server PATCH happens
+  // on blur via plNotesBlur (see textarea onblur in renderPLView).
   plSave();
+  if (plUpdateNotes._t) clearTimeout(plUpdateNotes._t);
+  plUpdateNotes._t = setTimeout(() => plPersistJob(jobId), 1500);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -23018,14 +25083,14 @@ function _showPlanToast(message) {
   pointer-events: none;
   letter-spacing: 0.5px;
   user-select: none;
-" title="Build version">LIVE 2026-05-06 21:28 UTC</div>
+" title="Build version">LIVE 2026-05-25 15:06 UTC</div>
 <script>
 (function() {
   const chip = document.getElementById('version-chip');
   if (!chip) return;
   const raw = chip.textContent.trim();
   // If workflow already stamped it, show as-is
-  if (raw !== 'LIVE 2026-05-06 21:28 UTC') return;
+  if (raw !== 'LIVE 2026-05-25 15:06 UTC') return;
   // Fallback: use document.lastModified
   try {
     const d = new Date(document.lastModified);
