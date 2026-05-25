@@ -24385,62 +24385,50 @@ function _renderPLView() {
     </div>
 
     <!-- Invoice entry section -->
-    <div style="margin-bottom:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:0;flex-wrap:wrap;gap:8px">
-        <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;color:var(--amber-dim)">ACTUAL COSTS — INVOICE LINES</div>
-        <button onclick="plOpenPDFImport('${selJobId}')"
-          style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1.5px;padding:5px 14px;cursor:pointer;white-space:nowrap">
-          📄 IMPORT PDF INVOICE
+    <div style="margin-bottom:28px">
+      <div class="pp-section-head">
+        <span>Actual Costs — Invoice Lines</span>
+        <button onclick="plOpenPDFImport('${selJobId}')" class="pp-btn is-amber">
+          📄 Import PDF Invoice
         </button>
       </div>
-      <div style="border:1px solid var(--border);border-top:none;margin-bottom:8px">
+      <div class="pp-inv-list" style="border-radius:0 0 4px 4px;border-top:none;margin-bottom:0">
         ${invRowsHtml}
       </div>
 
       <!-- Add invoice row -->
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 0">
-        <input id="pl-new-desc" type="text" placeholder="Description (e.g. 18mm White Boards)"
-          style="flex:2;min-width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+      <div class="pp-inv-add">
+        <input id="pl-new-desc" type="text" placeholder="Description (e.g. 18mm White Boards)" class="pp-input" style="flex:2;min-width:180px"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
-        <input id="pl-new-supplier" type="text" placeholder="Supplier"
-          style="flex:1;min-width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;outline:none;font-family:'Barlow',sans-serif"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+        <input id="pl-new-supplier" type="text" placeholder="Supplier" class="pp-input" style="flex:1;min-width:110px"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
-        <select id="pl-new-cat"
-          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;width:150px"
+        <select id="pl-new-cat" class="pp-select" style="width:150px"
           onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');const ew=document.getElementById('pl-new-edge-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';if(ew)ew.style.display=s.value==='Edging'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
-        <span style="font-size:11px;color:var(--text-muted)" title="Enter the amount exactly as it appears on the invoice — then choose Incl or Excl VAT">R</span>
-        <input id="pl-new-amount" type="number" placeholder="amount" min="0" step="0.01"
+        <span style="font-size:11px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px" title="Enter the amount exactly as it appears on the invoice — then choose Incl or Excl VAT">R</span>
+        <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01" class="pp-input is-num" style="width:112px"
           title="Line total as it appears on the supplier invoice. Use the Incl/Excl toggle to declare whether it includes VAT."
-          style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 8px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
-        <select id="pl-new-vat" title="Does this amount include VAT or exclude VAT?"
-          style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 6px;font-size:11px;outline:none;text-align:center">
+        <select id="pl-new-vat" class="pp-vat-select" title="Does this amount include VAT or exclude VAT?">
           <option value="incl" selected>Incl VAT</option>
           <option value="excl">Excl VAT</option>
         </select>
-        <button onclick="plAddInvoice('${selJobId}')"
-          style="background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;padding:8px 18px;cursor:pointer;white-space:nowrap">
-          + ADD LINE
+        <button onclick="plAddInvoice('${selJobId}')" class="pp-btn is-amber">
+          + Add Line
         </button>
       </div>
-      ${allMatNames.length > 0 ? `<div id="pl-new-mat-wrap" style="display:none;align-items:center;gap:8px;padding:6px 0 2px">
-        <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">BOARD TYPE</span>
-        <select id="pl-new-mat" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:4px 8px;font-size:11px;outline:none;min-width:200px"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      ${allMatNames.length > 0 ? `<div id="pl-new-mat-wrap" style="display:none;align-items:center;gap:8px;padding:8px 12px 2px;font-size:11px">
+        <span class="pp-inv-tag" style="color:#6aaad4">▣ BOARD TYPE</span>
+        <select id="pl-new-mat" class="pp-select is-sm" style="min-width:220px">
           <option value="">— unassigned —</option>
           ${allMatNames.map(m => `<option value="${m}">${m}</option>`).join('')}
         </select>
         <span style="font-size:10px;color:var(--text-muted)">links to board comparison</span>
       </div>` : ''}
-      ${allEdgeNames.length > 0 ? `<div id="pl-new-edge-wrap" style="display:none;align-items:center;gap:8px;padding:6px 0 2px">
-        <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">EDGE TYPE</span>
-        <select id="pl-new-edge" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:4px 8px;font-size:11px;outline:none;min-width:200px"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+      ${allEdgeNames.length > 0 ? `<div id="pl-new-edge-wrap" style="display:none;align-items:center;gap:8px;padding:8px 12px 2px;font-size:11px">
+        <span class="pp-inv-tag" style="color:#6aaad4">▤ EDGE TYPE</span>
+        <select id="pl-new-edge" class="pp-select is-sm" style="min-width:220px">
           <option value="">— unassigned —</option>
           ${allEdgeNames.map(e => `<option value="${e}">${e}</option>`).join('')}
         </select>
