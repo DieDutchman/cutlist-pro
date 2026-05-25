@@ -22434,23 +22434,30 @@ async function plProcessPDFFile(file, jobId) {
   results.innerHTML = '';
 
   const cats = plInvoiceCategories().join(', ');
-  const systemPrompt = `You are reading a supplier invoice or delivery note for a cabinet-making business.
-Extract every line item that represents a cost. Return ONLY a valid JSON array (no markdown, no explanation):
-[{ "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "qty": 1.67, "unit_price": 1104.69, "amount": 1844.83 }]
+  const systemPrompt = `You are reading a supplier invoice or delivery note for a cabinet-making business in South Africa (15% VAT).
+Extract every line item that represents a cost. Return ONLY a valid JSON object (no markdown, no explanation):
+{ "vat_included": true, "vat_rate": 0.15, "items": [ { "desc": "short description", "supplier": "supplier name if visible on the document", "category": "best matching category", "qty": 1.67, "unit_price": 1104.69, "amount": 1844.83, "vat_included": true } ] }
 
 Use these categories where possible: ${cats}
 
-Rules:
+CRITICAL — detect VAT treatment, do NOT convert prices:
+- First decide whether the LINE-ITEM prices printed on this invoice are INCLUSIVE of VAT or EXCLUSIVE of VAT.
+  Strong signals that line items are EXCLUSIVE of VAT (vat_included = false):
+    * the invoice shows a "Subtotal" / "Sub-total" / "Total excl VAT" followed by a separate "VAT @ 15%" / "VAT" line then a "Total incl VAT" / "Grand Total" line that is ~15% larger
+    * line headers say "Excl VAT", "Ex VAT", "Net", "Nett", or similar
+    * sum of line amounts ≈ subtotal/excl-VAT total, NOT the grand total
+  Strong signals that line items are INCLUSIVE of VAT (vat_included = true):
+    * line headers say "Incl VAT", "Inc VAT", "VAT inclusive", "Gross"
+    * each line shows VAT bundled in (no separate VAT row at the bottom, or only a VAT-informational line equal to 15/115 of the grand total)
+    * sum of line amounts ≈ the grand total
+  Put your overall judgement in the top-level "vat_included" boolean. If individual lines clearly differ, set the per-item "vat_included" too; otherwise omit per-item and the top-level value is used for every item.
+- Return amounts EXACTLY as PRINTED on the invoice for each line. Do NOT add VAT. Do NOT strip VAT. unit_price and amount are the numbers shown next to that line.
 - qty is the quantity ordered — can be a decimal (e.g. 1.67 sheets). Use 1 if not shown.
-- unit_price is the price per single unit/item INCLUSIVE of VAT.
-- amount is the total VAT-INCLUSIVE line price (what was actually paid for that line, including its share of VAT). This is CRITICAL.
-- If the invoice shows line items excluding VAT with a separate VAT line at the bottom, you MUST add the proportional VAT back into each line's amount (typically multiply each line by 1.15 for SA 15% VAT, or distribute the VAT line proportionally). Do the same for unit_price.
-- Confirm by checking: sum of all non-VAT/non-Total line amounts should approximately equal the invoice GRAND TOTAL (incl. VAT), NOT the subtotal excl. VAT.
-- All numeric fields must be plain numbers (no currency symbols, no commas)
-- If VAT is a separate line include it as category "VAT" (but its amount is informational — the VAT is already baked into the line items above per the rule above)
-- If a subtotal or total line exists include it as category "Total" so the user can verify
-- Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only
-- Return ONLY a JSON array, nothing else`;
+- All numeric fields must be plain numbers (no currency symbols, no commas).
+- If VAT is a separate line include it as category "VAT" so the user can verify; its amount is informational.
+- If a subtotal or grand total line exists include it as category "Total" so the user can verify.
+- Skip page numbers, addresses, dates, reference numbers, payment terms — cost lines only.
+- Return ONLY the JSON object, nothing else.`;
 
   try {
     let rawText = '';
