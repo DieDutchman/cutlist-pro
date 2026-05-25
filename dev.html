@@ -24300,64 +24300,49 @@ function _renderPLView() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
 
       <!-- Real profit: quote excl VAT vs effective cost excl VAT -->
-      <div style="background:var(--bg2);border:1px solid ${profitColor(realProfit)};padding:16px 20px">
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <div style="font-size:28px">${realProfit >= 0 ? '✅' : '🔴'}</div>
+      <div class="pp-card ${realProfit >= 0 ? 'is-pos' : 'is-neg'}" style="border:1px solid ${profitColor(realProfit)}">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="font-size:30px;line-height:1">${realProfit >= 0 ? '✅' : '🔴'}</div>
           <div style="flex:1">
-            <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px">REAL PROFIT / LOSS</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px">Quote excl. VAT − Effective cost excl. VAT</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${profitColor(realProfit)}">${profitArrow(realProfit)} ${R(Math.abs(realProfit))}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
-              ${realProfit >= 0 ? 'Profit margin' : 'Loss'} of ${Math.abs(realProfitMargin).toFixed(1)}% on this job
+            <div class="pp-card-eyebrow" style="color:${profitColor(realProfit)}">Real Profit / Loss</div>
+            <div class="pp-card-sub">Quote excl. VAT − Effective cost excl. VAT</div>
+            <div class="pp-card-value" style="color:${profitColor(realProfit)};font-size:24px">${profitArrow(realProfit)} ${R(Math.abs(realProfit))}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px">
+              ${realProfit >= 0 ? 'Profit margin' : 'Loss'} of <strong style="color:${profitColor(realProfit)};font-family:'JetBrains Mono',monospace">${Math.abs(realProfitMargin).toFixed(1)}%</strong> on this job
             </div>
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08));font-size:11px;color:var(--text-muted);line-height:1.8">
-              <div style="display:flex;justify-content:space-between"><span>Quote (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">${R(quoteExclVAT)}</span></div>
-              <div style="display:flex;justify-content:space-between"><span>Materials (excl. VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(invoiceExclVAT)}</span></div>
-              ${labourCost > 0 ? `<div style="display:flex;justify-content:space-between"><span>Labour (no VAT)</span><span style="font-family:'JetBrains Mono',monospace">− ${R(labourCost)}</span></div>` : ''}
-              <div style="display:flex;justify-content:space-between;color:#4caf82"><span>VAT claimable on materials</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(invoiceVAT)}</span></div>
-            </div>
+            <div class="pp-card-divider"></div>
+            <div class="pp-kv-row"><span>Quote (excl. VAT)</span><span class="pp-kv-val">${R(quoteExclVAT)}</span></div>
+            <div class="pp-kv-row"><span>Materials (excl. VAT)</span><span class="pp-kv-val">− ${R(invoiceExclVAT)}</span></div>
+            ${labourCost > 0 ? `<div class="pp-kv-row"><span>Labour (no VAT)</span><span class="pp-kv-val">− ${R(labourCost)}</span></div>` : ''}
+            <div class="pp-kv-row" style="color:#4caf82"><span>VAT claimable on materials</span><span class="pp-kv-val" style="color:#4caf82">+ ${R(invoiceVAT)}</span></div>
           </div>
         </div>
       </div>
 
       <!-- Costing accuracy + VAT summary -->
-      <div style="background:var(--bg2);border:1px solid var(--border);padding:16px 20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text-muted);margin-bottom:12px">COSTING ACCURACY & VAT SUMMARY</div>
-        <div style="font-size:11px;color:var(--text-muted);line-height:2;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between">
-            <span>Costing estimate</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(snap.costingTotal)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <span>Actual cost (excl. VAT)</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(invoiceExclVAT)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between">
+      <div class="pp-card">
+        <div class="pp-card-eyebrow" style="color:var(--text-muted)">Costing Accuracy &amp; VAT Summary</div>
+        <div style="padding:6px 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px">
+          <div class="pp-kv-row"><span>Costing estimate</span><span class="pp-kv-val">${R(snap.costingTotal)}</span></div>
+          <div class="pp-kv-row"><span>Actual cost (excl. VAT)</span><span class="pp-kv-val">${R(invoiceExclVAT)}</span></div>
+          <div class="pp-kv-row">
             <span>Variance</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:${profitColor(costingVariance)}">${profitArrow(costingVariance)} ${R(Math.abs(costingVariance))}</span>
+            <span class="pp-var ${costingVariance >= 0 ? 'is-pos' : 'is-neg'}">${profitArrow(costingVariance)} ${R(Math.abs(costingVariance))}</span>
           </div>
-          <div style="font-size:10px;color:var(--text-muted)">
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-style:italic">
             ${costingVariance >= 0 ? 'Costing over-estimated' : 'Costing under-estimated'} by ${snap.costingTotal > 0 ? Math.abs((costingVariance/snap.costingTotal)*100).toFixed(1) : '0'}%
           </div>
         </div>
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;color:#4caf82;margin-bottom:8px">VAT RETURN</div>
-        <div style="font-size:11px;color:var(--text-muted);line-height:2">
-          <div style="display:flex;justify-content:space-between">
-            <span>Output VAT (charged to client)</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${R(snap.quoteGrand * 0.15)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <span>Input VAT (claimable on invoices)</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:#4caf82">− ${R(invoiceVAT)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08))">
-            <span><strong style="color:var(--text)">Net VAT payable to SARS</strong></span>
-            <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text)">${R(snap.quoteGrand * 0.15 - invoiceVAT)}</span>
-          </div>
-          ${labourCost > 0 ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.06));font-size:10px;color:var(--text-muted)">
-            Labour (R ${R(labourCost)}) has no VAT — not claimable, not payable.
-          </div>` : ''}
+        <div class="pp-card-eyebrow" style="color:#4caf82;margin-bottom:4px">VAT Return</div>
+        <div class="pp-kv-row"><span>Output VAT (charged to client)</span><span class="pp-kv-val">${R(snap.quoteGrand * 0.15)}</span></div>
+        <div class="pp-kv-row"><span>Input VAT (claimable on invoices)</span><span class="pp-kv-val" style="color:#4caf82">− ${R(invoiceVAT)}</span></div>
+        <div class="pp-kv-row" style="padding-top:6px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08));margin-top:4px">
+          <span style="color:var(--text);font-weight:600">Net VAT payable to SARS</span>
+          <span class="pp-kv-val" style="color:var(--text);font-weight:600">${R(snap.quoteGrand * 0.15 - invoiceVAT)}</span>
         </div>
+        ${labourCost > 0 ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.06));font-size:10px;color:var(--text-muted);font-style:italic">
+          Labour (R ${R(labourCost)}) has no VAT — not claimable, not payable.
+        </div>` : ''}
       </div>
     </div>` : ''}
 
