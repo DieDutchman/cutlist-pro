@@ -3426,25 +3426,55 @@ function withScrollLock(fn) {
   const mainEl   = document.querySelector('.main') || document.documentElement;
   const winScrollY   = window.scrollY;
   const mainScrollTop = mainEl.scrollTop;
+  const bodyScrollTop = document.body ? document.body.scrollTop : 0;
 
-  // Save focused element info so we can restore focus after render
-  const focused   = document.activeElement;
-  const focusedId = focused?.id || null;
-  const focusedSel = focused && focused !== document.body
-    ? focused.getAttribute('data-restore-focus') || null
-    : null;
+  // Save focused element info so we can restore focus after render.
+  // Track caret/selection so number/text inputs don't lose position on every keystroke.
+  const focused    = document.activeElement;
+  const focusedId  = focused?.id || null;
+  const isInput    = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA');
+  let caretStart = null, caretEnd = null;
+  if (isInput) {
+    try { caretStart = focused.selectionStart; caretEnd = focused.selectionEnd; } catch(e) {}
+  }
+
+  // Save scrollTop of every scrollable ancestor of the focused element so nested
+  // modals / panels / overlays don't jump to top when their inner content re-renders.
+  const ancestorScrolls = [];
+  if (focused && focused !== document.body) {
+    let node = focused.parentElement;
+    while (node && node !== document.documentElement) {
+      if (node.scrollHeight > node.clientHeight) {
+        ancestorScrolls.push({ node, top: node.scrollTop, left: node.scrollLeft });
+      }
+      node = node.parentElement;
+    }
+  }
 
   fn();
 
-  // Restore scroll
+  // Restore scroll (window + main + body — covers all root-scroll patterns)
   window.scrollTo(0, winScrollY);
   if (mainEl !== document.documentElement) mainEl.scrollTop = mainScrollTop;
+  if (document.body) document.body.scrollTop = bodyScrollTop;
 
   // Restore focus if the element still exists (it may have been re-rendered)
   if (focusedId) {
     const el = document.getElementById(focusedId);
-    if (el) { try { el.focus(); } catch(e) {} }
+    if (el) {
+      try {
+        el.focus({ preventScroll: true });
+        if (caretStart !== null && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+          try { el.setSelectionRange(caretStart, caretEnd); } catch(e) {}
+        }
+      } catch(e) {}
+    }
   }
+
+  // Restore scroll on every still-attached scrollable ancestor
+  ancestorScrolls.forEach(({ node, top, left }) => {
+    if (node.isConnected) { node.scrollTop = top; node.scrollLeft = left; }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
