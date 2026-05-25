@@ -8640,6 +8640,30 @@ function inferUnitGeometry(unit) {
   const hasSupports  = !!supportsPart;
   const supportRailH = supportsPart ? (supportsPart.w || 100) : 100;
 
+  // ── Dimension resolution with fallback chain ───────────────────────────────
+  // 1. Parts (already in W/H/D above)
+  // 2. unit.width/height/depth  — set by _normalizeDbTemplate() from DB meta
+  // 3. Width from unit name/ID  — "F600", "W450", id "k_f750_..." → 750
+  // 4. Hardcoded defaults       — last resort; flagged as estimated
+  let wSource = W ? 'parts' : null;
+  let hSource = H ? 'parts' : null;
+  let dSource = D ? 'parts' : null;
+
+  if (!W && unit.width)  { W = unit.width;  wSource = 'meta'; }
+  if (!H && unit.height) { H = unit.height; hSource = 'meta'; }
+  if (!D && unit.depth)  { D = unit.depth;  dSource = 'meta'; }
+
+  if (!W) {
+    const m = (unit.name || unit.id || '').match(/[fwFW](\d{3,4})/i);
+    if (m) { W = parseInt(m[1]); wSource = 'name'; }
+  }
+
+  if (!W) { W = 600; wSource = 'default'; }
+  if (!H) { H = 780; hSource = 'default'; }
+  if (!D) { D = 534; dSource = 'default'; }
+
+  const dimsEstimated = wSource === 'default' || hSource === 'default' || dSource === 'default';
+
   return {
     W, H, D,
     doorCount, doorH, doorW,
@@ -8650,6 +8674,7 @@ function inferUnitGeometry(unit) {
     backingType, backT,
     hasSupports, supportRailH,
     partCount: parts.length,
+    dimsEstimated, wSource, hSource, dSource,
   };
 }
 
