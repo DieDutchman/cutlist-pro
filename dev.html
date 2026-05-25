@@ -1213,6 +1213,47 @@
     .cv-layout { grid-template-columns: 1fr; }
     .cv-price-grid { grid-template-columns: 1fr; }
   }
+
+  /* ──────────────────────────────────────────────────────────────────────
+     GLOBAL INPUT OVERFLOW SAFETY NET
+     Prevents text from spilling past the visible edge of any input/select.
+     Addresses the classic flex-shrink overflow (inputs ignoring container
+     width because their UA default min-width is "auto" = intrinsic content).
+     ────────────────────────────────────────────────────────────────────── */
+  input, select, textarea {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Single-line text inputs: clip + ellipsis for placeholder/value preview */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"] {
+    text-overflow: ellipsis;
+  }
+  /* Select elements: hide overflow on the visible label */
+  select {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  /* Textareas: wrap, never horizontal overflow */
+  textarea {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  /* Flex children that wrap an input must also allow shrinking */
+  .mat-select,
+  .qty-input,
+  .cv-extra-input,
+  .bldr-input {
+    min-width: 0;
+  }
 </style>
 <style>
   /* ── BEDROOM ADDON CARDS ── */
