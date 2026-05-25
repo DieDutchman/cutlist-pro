@@ -7622,7 +7622,14 @@ function _renderEditor() {
     editorSection = sections[0].id;
   }
 
-  const units = getEffectiveUnits().filter(u => u.section === editorSection);
+  // Mirrors Units-tab filter: superuser-with-rooms must match both the room's
+  // own id (for userUnits) and its templateSection (for shared template units),
+  // otherwise template units vanish from the Edit Units panel.
+  const userRoom = isUserMode ? userRooms.find(r => r.id === editorSection) : null;
+  const units = (isSuperuser() && isUserMode && userRoom)
+    ? getEffectiveUnits().filter(u =>
+        u.section === userRoom.templateSection || u.section === userRoom.id)
+    : getEffectiveUnits().filter(u => u.section === editorSection);
   const sectionOpts = roomList.map(s =>
     `<option value="${s.id}" ${s.id===editorSection?'selected':''}>${s.label}</option>`).join('');
 
