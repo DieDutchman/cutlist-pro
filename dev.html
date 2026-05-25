@@ -7582,7 +7582,8 @@ function closeWidthBuilder() {
   document.getElementById('wb-overlay').style.display = 'none';
 }
 
-function renderWidthBuilder() {
+function renderWidthBuilder() { withScrollLock(_renderWidthBuilder); }
+function _renderWidthBuilder() {
   const allUnits = getEffectiveUnits();
 
   // Category tabs
