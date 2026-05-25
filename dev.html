@@ -2963,6 +2963,727 @@
   letter-spacing: 1.5px;
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   POLISH PASS — shared utility classes for Quote / P&L / Prices / Costing
+   ══════════════════════════════════════════════════════════════════════════
+   These classes elevate the visual baseline across the app's data-heavy
+   tabs to match the polish established on the Units tab. They are designed
+   to coexist with the existing dense inline-styled markup — applying them
+   adds consistent typography, spacing, border treatment, and focus rings
+   without forcing a full template rewrite.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* ── Page header strip ──────────────────────────────────────────────── */
+.pp-page-header {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 22px 0 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  position: relative;
+}
+.pp-page-header::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 64px; height: 2px;
+  background: linear-gradient(90deg, var(--amber) 0%, transparent 100%);
+}
+.pp-page-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.pp-page-title .pp-title-mark {
+  display: inline-block;
+  width: 8px; height: 22px;
+  background: var(--amber);
+  border-radius: 1px;
+  vertical-align: middle;
+}
+.pp-page-sub {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ── Section header — Oswald + amber accent rail ────────────────────── */
+.pp-section-head {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 12px 14px 10px;
+  margin: 28px 0 0;
+  background: linear-gradient(90deg, rgba(212,145,58,0.10) 0%, rgba(212,145,58,0.02) 50%, transparent 100%);
+  border-left: 3px solid var(--amber);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pp-section-head .pp-section-sub {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: none;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ── Card / panel surfaces ──────────────────────────────────────────── */
+.pp-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.20), 0 6px 18px -10px rgba(0,0,0,0.45);
+}
+.pp-card.is-accent     { border-top: 3px solid var(--amber); }
+.pp-card.is-info       { border-top: 3px solid #4a8abf; }
+.pp-card.is-pos        { border-top: 3px solid #5dba6e; }
+.pp-card.is-neg        { border-top: 3px solid #e05252; }
+.pp-card-eyebrow {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 4px;
+}
+.pp-card-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.3px;
+}
+.pp-card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--amber);
+  line-height: 1.05;
+}
+.pp-card-value.is-info { color: #6aaad4; }
+.pp-card-value.is-text { color: var(--text); }
+.pp-card-divider {
+  margin: 12px 0 10px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+}
+.pp-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  line-height: 1.5;
+}
+.pp-kv-row .pp-kv-val {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+}
+
+/* ── Polished inputs / selects ──────────────────────────────────────── */
+.pp-input,
+.pp-select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  padding: 8px 12px;
+  height: 36px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+.pp-input::placeholder { color: var(--text-muted); }
+.pp-input:hover,
+.pp-select:hover { border-color: var(--text-muted); }
+.pp-input:focus,
+.pp-select:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px rgba(212,145,58,0.18);
+  background: var(--bg3);
+}
+.pp-input.is-num {
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+  color: var(--amber);
+}
+.pp-input.is-sm,
+.pp-select.is-sm { height: 32px; font-size: 12px; padding: 6px 10px; }
+
+/* Custom select chevron — replaces ugly browser default */
+.pp-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--amber-dim) 50%), linear-gradient(135deg, var(--amber-dim) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.pp-select.is-sm {
+  background-position: calc(100% - 12px) 12px, calc(100% - 7px) 12px;
+}
+.pp-select:focus {
+  background-image: linear-gradient(45deg, transparent 50%, var(--amber) 50%), linear-gradient(135deg, var(--amber) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* VAT-style tight pill select (used for Incl/Excl VAT) */
+.pp-vat-select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  padding: 0 22px 0 10px;
+  height: 32px;
+  border-radius: 16px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--amber-dim) 50%), linear-gradient(135deg, var(--amber-dim) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 13px, calc(100% - 7px) 13px;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+}
+.pp-vat-select:hover { border-color: var(--amber-dim); color: var(--amber); }
+.pp-vat-select:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px rgba(212,145,58,0.20);
+  color: var(--amber);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.pp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pp-btn:hover {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+  background: rgba(212,145,58,0.05);
+}
+.pp-btn.is-amber {
+  background: rgba(212,145,58,0.12);
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+.pp-btn.is-amber:hover {
+  background: rgba(212,145,58,0.20);
+  border-color: var(--amber);
+}
+.pp-btn.is-primary {
+  background: linear-gradient(180deg, var(--amber) 0%, #b8852a 100%);
+  border-color: var(--amber);
+  color: #141414;
+  box-shadow: 0 2px 6px rgba(212,145,58,0.25);
+}
+.pp-btn.is-primary:hover {
+  background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(212,145,58,0.35);
+}
+.pp-btn.is-danger {
+  background: transparent;
+  border-color: #5a2a2a;
+  color: #e05252;
+}
+.pp-btn.is-danger:hover {
+  background: rgba(224,82,82,0.10);
+  border-color: #e05252;
+}
+.pp-btn.is-sm { height: 26px; padding: 0 10px; font-size: 10px; letter-spacing: 1.5px; }
+.pp-btn.is-icon { width: 32px; padding: 0; font-size: 14px; letter-spacing: 0; }
+.pp-btn.is-icon.is-sm { width: 26px; }
+
+/* ── Polished data table — used by P&L breakdown tables ─────────────── */
+.pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--bg2);
+}
+.pp-table thead th {
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 11px 12px;
+  text-align: left;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pp-table thead th.num { text-align: right; }
+.pp-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.06));
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+.pp-table tbody td.num,
+.pp-table tbody td.mono {
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+  color: var(--text);
+}
+.pp-table tbody td.exp { color: #6aaad4; font-family: 'JetBrains Mono', monospace; text-align: right; }
+.pp-table tbody tr:hover td { background: rgba(212,145,58,0.025); }
+.pp-table tfoot td {
+  padding: 11px 12px;
+  background: linear-gradient(180deg, rgba(212,145,58,0.06) 0%, var(--bg3) 100%);
+  border-top: 1px solid var(--amber-dim);
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+.pp-table tfoot td.num,
+.pp-table tfoot td.mono {
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+}
+.pp-table tfoot td.exp {
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+  color: #6aaad4;
+}
+
+/* Table wrapper — gives the table a finished frame and consistent overflow */
+.pp-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow-x: auto;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  margin-bottom: 4px;
+}
+.pp-table-wrap .pp-table { background: transparent; }
+
+/* Material/Edge breakdown subheader inside a wrap */
+.pp-table-subhead {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  padding: 14px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pp-table-subhead::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--amber-dim) 0%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* ── Variance badges (Δ / ±%) ────────────────────────────────────────── */
+.pp-var {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.pp-var.is-pos {
+  color: #5dba6e;
+  background: rgba(93,186,110,0.08);
+  border-color: rgba(93,186,110,0.25);
+}
+.pp-var.is-neg {
+  color: #e05252;
+  background: rgba(224,82,82,0.08);
+  border-color: rgba(224,82,82,0.25);
+}
+.pp-var.is-neut { color: var(--text-muted); }
+
+/* ── Invoice line row (P&L) ─────────────────────────────────────────── */
+.pp-inv-list {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg2);
+}
+.pp-inv-row {
+  border-bottom: 1px solid var(--border-inner, rgba(255,255,255,0.06));
+  transition: background 0.15s;
+}
+.pp-inv-row:last-child { border-bottom: none; }
+.pp-inv-row:hover { background: rgba(212,145,58,0.02); }
+.pp-inv-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+}
+.pp-inv-main .pp-input,
+.pp-inv-main .pp-select { height: 34px; font-size: 12px; padding: 6px 10px; }
+.pp-inv-main .pp-select { padding-right: 26px; }
+.pp-inv-detail {
+  padding: 4px 12px 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(255,255,255,0.015);
+  border-top: 1px dashed var(--border);
+}
+.pp-inv-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.pp-inv-tag .pp-inv-tag-ok { color: #5dba6e; }
+
+/* Add new invoice strip */
+.pp-inv-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: var(--bg3);
+  border: 1px dashed var(--border-light);
+  border-radius: 4px;
+  margin-top: 10px;
+}
+.pp-inv-add .pp-input,
+.pp-inv-add .pp-select { height: 34px; font-size: 12px; }
+
+/* ── Totals card (Quote sidebar) — refined version of qv-total-block ── */
+.pp-totals {
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px;
+  box-shadow: 0 2px 12px -4px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.pp-totals::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--amber) 50%, transparent 100%);
+}
+.pp-totals .pp-totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 7px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pp-totals .pp-totals-row:last-child { border-bottom: none; }
+.pp-totals .pp-totals-row .pp-totals-val {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+}
+.pp-totals .pp-totals-row.is-sub { font-size: 11px; color: var(--text-muted); }
+.pp-totals .pp-totals-row.is-grand {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--amber-dim);
+  border-bottom: none;
+}
+.pp-totals .pp-totals-row.is-grand .pp-totals-lbl {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.pp-totals .pp-totals-row.is-grand .pp-totals-val {
+  font-size: 22px;
+  color: var(--amber);
+  font-weight: 700;
+}
+
+/* ── Helper: zebra-divider list (used for hardware items, fees) ─────── */
+.pp-line-list {
+  display: flex;
+  flex-direction: column;
+}
+.pp-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 13px;
+  color: var(--text);
+}
+.pp-line:last-child { border-bottom: none; }
+.pp-line .pp-line-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pp-line .pp-line-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--amber);
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ── Stat strip (header chips for board info etc.) ──────────────────── */
+.pp-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.pp-stat-strip .pp-stat {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-right: 1px solid var(--border);
+}
+.pp-stat-strip .pp-stat:last-child { border-right: none; }
+.pp-stat-strip .pp-stat strong {
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+.pp-stat-strip .pp-stat-icon {
+  color: var(--amber-dim);
+  font-size: 13px;
+}
+
+/* ── Refined Costing unit-card header ───────────────────────────────── */
+.cv-unit-card { transition: border-color 0.18s, box-shadow 0.18s; }
+.cv-unit-card:hover {
+  border-left-color: var(--amber-light);
+  box-shadow: 0 2px 10px -2px rgba(212,145,58,0.18);
+}
+
+/* ── Refined Quote section heads — tighten + amber bottom underline ── */
+.qv-section-head {
+  background: linear-gradient(90deg, rgba(212,145,58,0.08) 0%, var(--bg2) 60%, var(--bg2) 100%);
+  border-left: 3px solid var(--amber-dim);
+  color: var(--amber);
+  font-weight: 600;
+  letter-spacing: 2px;
+  transition: background 0.18s;
+}
+.qv-section-head:hover { background: linear-gradient(90deg, rgba(212,145,58,0.12) 0%, var(--bg3) 60%, var(--bg3) 100%); }
+
+/* Quote extras table — softer dividers */
+.qv-extras-table tr { transition: background 0.15s; }
+.qv-extras-table tr:hover { background: rgba(212,145,58,0.025); }
+.qv-extra-input { border-radius: 3px; transition: border-color 0.15s, background 0.15s; }
+.qv-extra-input:hover:not(:focus) { border-color: var(--border-light); background: rgba(255,255,255,0.015); }
+
+/* Refined qv-total-block — add subtle top accent rail */
+.qv-total-block { position: relative; }
+.qv-total-block::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--amber) 50%, transparent 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+/* ── Polish for the .cv-results-table — typography refresh ──────────── */
+.cv-results-table {
+  font-size: 12px;
+}
+.cv-results-table th {
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
+}
+.cv-results-table td { padding: 8px 10px; }
+.cv-results-table td.num { font-size: 12px; }
+.cv-results-table tr { transition: background 0.15s; }
+.cv-results-table tr:hover td { background: rgba(212,145,58,0.04); }
+.cv-results-table .cv-subtotal td {
+  background: linear-gradient(180deg, rgba(212,145,58,0.06) 0%, var(--bg3) 100%) !important;
+  border-top: 1px solid var(--amber-dim);
+}
+
+/* ── Polished cv-extra-row — used heavily in Prices/Costing ─────────── */
+.cv-extra-row {
+  padding: 9px 0;
+  gap: 12px;
+  transition: background 0.15s;
+}
+.cv-extra-row:hover { background: rgba(255,255,255,0.012); }
+.cv-extra-input {
+  height: 32px;
+  border-radius: 3px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cv-extra-input:focus { box-shadow: 0 0 0 2px rgba(212,145,58,0.18); }
+
+/* ── Tile-button group (toggles like Per Job / Per Panel, In Stock / Full Sheet / Special Order) ── */
+.pp-toggle-group {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px;
+}
+.pp-toggle-group button {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+.pp-toggle-group button:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.pp-toggle-group button.is-active {
+  background: var(--amber);
+  color: #141414;
+  font-weight: 600;
+}
+
+/* ── Empty-state placeholder used when no job / no data ─────────────── */
+.pp-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--bg2) 0%, transparent 100%);
+}
+.pp-empty .pp-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+.pp-empty .pp-empty-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  color: var(--text-dim);
+}
+.pp-empty .pp-empty-body {
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ── Light-theme adaptations (supplier / user-light) ────────────────── */
+body.supplier-theme .pp-card,
+body.user-light-theme .pp-card {
+  background: #faf8f5;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06), 0 6px 18px -10px rgba(0,0,0,0.10);
+}
+body.supplier-theme .pp-table tbody tr:hover td,
+body.user-light-theme .pp-table tbody tr:hover td { background: rgba(184,112,48,0.04); }
+body.supplier-theme .pp-input,
+body.supplier-theme .pp-select,
+body.supplier-theme .pp-vat-select,
+body.user-light-theme .pp-input,
+body.user-light-theme .pp-select,
+body.user-light-theme .pp-vat-select {
+  background: #edeae4;
+  border-color: #c8c0b0;
+  color: #1a1612;
+}
+
+/* ── Mobile gracefulness ────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .pp-page-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .pp-page-title { font-size: 18px; letter-spacing: 2px; }
+  .pp-card { padding: 14px 16px; }
+  .pp-card-value { font-size: 22px; }
+  .pp-stat-strip .pp-stat { min-width: 120px; padding: 8px 10px; font-size: 10px; }
+  .pp-totals { padding: 14px; }
+  .pp-inv-main { padding: 8px 10px; gap: 6px; }
+  .pp-inv-main .pp-input,
+  .pp-inv-main .pp-select { height: 32px; font-size: 11px; padding: 5px 8px; }
+}
 </style>
 
 <div id="login-overlay" style="
