@@ -24245,57 +24245,53 @@ function _renderPLView() {
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
 
       <!-- Card 1: Quoted to client -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--amber);padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--amber-dim);margin-bottom:4px">QUOTED TO CLIENT</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">excl. VAT</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:var(--amber);font-weight:700;margin-bottom:4px">${R(snap.quoteGrand)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">+ VAT ${R(snap.quoteGrand * 0.15)} = ${R(snap.quoteGrand * 1.15)} incl.</div>
-        <div style="font-size:11px;color:var(--text-muted);line-height:1.8;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-          <div style="display:flex;justify-content:space-between"><span>Base cost (excl. markup)</span><span style="font-family:'JetBrains Mono',monospace">${R(snap.costingTotal)}</span></div>
-          <div style="display:flex;justify-content:space-between"><span>Markup (${Math.round((snap.markup||0)*100)}%)</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.quoteMarkupAmt)}</span></div>
-          ${snap.topsTotal > 0 ? `<div style="display:flex;justify-content:space-between"><span>Tops</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.topsTotal)}</span></div>` : ''}
-          ${snap.consult   > 0 ? `<div style="display:flex;justify-content:space-between"><span>Consult fee</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.consult)}</span></div>` : ''}
-          ${snap.diesel    > 0 ? `<div style="display:flex;justify-content:space-between"><span>Diesel fee</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.diesel)}</span></div>` : ''}
-          ${snap.extras    > 0 ? `<div style="display:flex;justify-content:space-between"><span>Extras</span><span style="font-family:'JetBrains Mono',monospace">+ ${R(snap.extras)}</span></div>` : ''}
-        </div>
+      <div class="pp-card is-accent">
+        <div class="pp-card-eyebrow">Quoted to Client</div>
+        <div class="pp-card-sub">excl. VAT</div>
+        <div class="pp-card-value">${R(snap.quoteGrand)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ VAT ${R(snap.quoteGrand * 0.15)} = ${R(snap.quoteGrand * 1.15)} incl.</div>
+        <div class="pp-card-divider"></div>
+        <div class="pp-kv-row"><span>Base cost (excl. markup)</span><span class="pp-kv-val">${R(snap.costingTotal)}</span></div>
+        <div class="pp-kv-row"><span>Markup (${Math.round((snap.markup||0)*100)}%)</span><span class="pp-kv-val">+ ${R(snap.quoteMarkupAmt)}</span></div>
+        ${snap.topsTotal > 0 ? `<div class="pp-kv-row"><span>Tops</span><span class="pp-kv-val">+ ${R(snap.topsTotal)}</span></div>` : ''}
+        ${snap.consult   > 0 ? `<div class="pp-kv-row"><span>Consult fee</span><span class="pp-kv-val">+ ${R(snap.consult)}</span></div>` : ''}
+        ${snap.diesel    > 0 ? `<div class="pp-kv-row"><span>Diesel fee</span><span class="pp-kv-val">+ ${R(snap.diesel)}</span></div>` : ''}
+        ${snap.extras    > 0 ? `<div class="pp-kv-row"><span>Extras</span><span class="pp-kv-val">+ ${R(snap.extras)}</span></div>` : ''}
       </div>
 
       <!-- Card 2: Costing sheet estimate -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid #4a8abf;padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:#4a8abf;margin-bottom:4px">COSTING SHEET ESTIMATE</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">excl. VAT</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:#6aaad4;font-weight:700;margin-bottom:4px">${R(snap.costingTotal)}</div>
+      <div class="pp-card is-info">
+        <div class="pp-card-eyebrow" style="color:#4a8abf">Costing Sheet Estimate</div>
+        <div class="pp-card-sub">excl. VAT</div>
+        <div class="pp-card-value is-info">${R(snap.costingTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
           Raw material + labour cost estimated by the costing sheet — before markup.
         </div>
         ${snap.costingTotal > 0 ? `
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-          <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between">
-            <span>As % of quote</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--text)">${snap.quoteGrand > 0 ? Math.round((snap.costingTotal/snap.quoteGrand)*100) : '—'}%</span>
-          </div>
+        <div class="pp-card-divider"></div>
+        <div class="pp-kv-row">
+          <span>As % of quote</span>
+          <span class="pp-kv-val">${snap.quoteGrand > 0 ? Math.round((snap.costingTotal/snap.quoteGrand)*100) : '—'}%</span>
         </div>` : ''}
       </div>
 
       <!-- Card 3: Actual paid — VAT breakdown -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid ${invs.length > 0 ? profitColor(realProfit) : 'var(--border)'};padding:20px">
-        <div style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:3px;color:var(--text-muted);margin-bottom:4px">ACTUAL INVOICES PAID</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:12px">incl. VAT as entered</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:var(--text);font-weight:700;margin-bottom:4px">${R(invoiceTotal)}</div>
-        <div style="font-size:11px;color:var(--text-muted);line-height:1.8;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-          <div style="display:flex;justify-content:space-between">
-            <span>VAT portion (15/115)</span>
-            <span style="font-family:'JetBrains Mono',monospace;color:#4caf82">− ${R(invoiceVAT)} <span style="font-size:10px">(claimable)</span></span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08))">
-            <span><strong style="color:var(--text)">Effective cost excl. VAT</strong></span>
-            <span style="font-family:'JetBrains Mono',monospace;color:var(--text);font-weight:600">${R(invoiceExclVAT)}</span>
-          </div>
+      <div class="pp-card ${invs.length > 0 ? (realProfit >= 0 ? 'is-pos' : 'is-neg') : ''}">
+        <div class="pp-card-eyebrow" style="color:var(--text-muted)">Actual Invoices Paid</div>
+        <div class="pp-card-sub">incl. VAT as entered</div>
+        <div class="pp-card-value is-text">${R(invoiceTotal)}</div>
+        <div class="pp-card-divider"></div>
+        <div class="pp-kv-row">
+          <span>VAT portion (15/115)</span>
+          <span class="pp-kv-val" style="color:#4caf82">− ${R(invoiceVAT)} <span style="font-size:10px">(claimable)</span></span>
+        </div>
+        <div class="pp-kv-row" style="margin-top:4px;padding-top:6px;border-top:1px solid var(--border-inner,rgba(255,255,255,0.08))">
+          <span style="color:var(--text);font-weight:600">Effective cost excl. VAT</span>
+          <span class="pp-kv-val" style="color:var(--text);font-weight:600">${R(invoiceExclVAT)}</span>
         </div>
         ${invs.length > 0 && catHtml ? `
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-          ${catHtml}
-        </div>` : ''}
+        <div class="pp-card-divider"></div>
+        ${catHtml}` : ''}
       </div>
     </div>
 
