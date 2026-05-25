@@ -22990,21 +22990,21 @@ function _renderPLView() {
   const edgeBreakdown = (snap.edgeBreakdown || []).filter(e => e.pricePerM    > 0 || e.billedM  > 0);
   const allMatNames   = matBreakdown.map(b => b.mat);
   const allEdgeNames  = edgeBreakdown.map(e => e.edgeKey);
-  // Tally actual Boards invoice lines per assigned material (amounts entered incl. VAT)
+  // Tally actual Boards invoice lines per assigned material (normalised to incl-VAT)
   const matActualInclVAT = {};
   let unmatchedBoardsInclVAT = 0;
   invs.forEach(inv => {
     if ((inv.category || '') !== 'Boards') return;
-    const amt = parseFloat(inv.amount) || 0;
+    const amt = _invInclVAT(inv);
     if (inv.mat) matActualInclVAT[inv.mat] = (matActualInclVAT[inv.mat] || 0) + amt;
     else unmatchedBoardsInclVAT += amt;
   });
-  // Tally actual Edging invoice lines per assigned edge type
+  // Tally actual Edging invoice lines per assigned edge type (normalised to incl-VAT)
   const edgeActualInclVAT = {};
   let unmatchedEdgeInclVAT = 0;
   invs.forEach(inv => {
     if ((inv.category || '') !== 'Edging') return;
-    const amt = parseFloat(inv.amount) || 0;
+    const amt = _invInclVAT(inv);
     if (inv.edgeKey) edgeActualInclVAT[inv.edgeKey] = (edgeActualInclVAT[inv.edgeKey] || 0) + amt;
     else unmatchedEdgeInclVAT += amt;
   });
