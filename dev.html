@@ -22356,6 +22356,23 @@ function plInvoiceCategories() {
   return cats;
 }
 
+// ── VAT helpers ──────────────────────────────────────────────────────────────
+// Invoices may store amounts either incl. or excl. VAT depending on what the
+// supplier printed. inv.vatIncluded defaults to true (backwards compatible:
+// older data has no flag and was always stored incl-VAT). All P&L math
+// downstream is expressed in incl-VAT figures (then /1.15 → excl-VAT), so
+// these helpers normalise any excl-VAT input back to incl-VAT first.
+function _invInclVAT(inv) {
+  const amt = parseFloat(inv && inv.amount) || 0;
+  if (!inv) return amt;
+  return inv.vatIncluded === false ? amt * 1.15 : amt;
+}
+function _invUnitInclVAT(inv) {
+  const up = parseFloat(inv && inv.unit_price) || 0;
+  if (!inv) return up;
+  return inv.vatIncluded === false ? up * 1.15 : up;
+}
+
 // ── PDF Invoice Import via Anthropic API ───────────────────────────────────────
 function plOpenPDFImport(jobId) {
   const overlay = document.createElement('div');
