@@ -23363,7 +23363,7 @@ function _renderPLView() {
           (inv.desc || '').trim().toLowerCase() === (label || '').trim().toLowerCase()
         );
         if (matches.length === 0) return null;
-        return matches.reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0) / 1.15;
+        return matches.reduce((s, inv) => s + _invInclVAT(inv), 0) / 1.15;
       };
       const _hwExpTip = escTitle(
         `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
