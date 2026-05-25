@@ -5480,8 +5480,19 @@ function _renderPanel() {
     html += `<tr class="unit-row">
       <td><input autocomplete="off" class="qty-input ${qty > 0 ? 'nonzero' : ''}" type="number" min="0" value="${qty}"
            id="qty_${u.id}" onchange="setQty('${u.id}', this)" oninput="setQty('${u.id}', this)"></td>
-      <td class="unit-name">${expandBtn}<span style="${nameStyle};cursor:${hasParts?'pointer':'default'}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>${noPartsTag}${imgBtn}${ovBtn}${svcBtn}${userBtns}</td>
-    </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button onclick="openSpecialServicesPopup('${u.id}','unit',this)" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 4px">✏ Edit</button></div></td></tr>` : ''}`;
+      <td class="unit-name">
+        <div class="unit-row-cell">
+          <div class="unit-row-name">
+            ${expandBtn}
+            <span class="unit-label${hasParts?'':' no-cursor'}" style="${nameStyle}" onclick="${hasParts?`toggleUnitExpand('${u.id}')`:''}">${u.name}</span>
+            ${noPartsTag}
+          </div>
+          <div class="unit-row-actions">
+            ${imgBtn}${ovBtn}${svcBtn}${userBtns}
+          </div>
+        </div>
+      </td>
+    </tr>${ovRow}${partsExpandRow}${(unitSpecialServices[u.id]||[]).length > 0 ? `<tr style="background:rgba(76,175,130,0.04)"><td></td><td style="padding:4px 8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;color:#4caf82;font-family:'Oswald',sans-serif;letter-spacing:1px">⚙ SPECIAL SERVICES</span>${(unitSpecialServices[u.id]||[]).map(s=>{const svc=costingPrices.specialServices.find(x=>x.id===s.serviceId);return svc?`<span style="font-size:11px;color:var(--text-muted)">${svc.name} ×${s.qty}</span>`:''}).join('')}<button class="unit-action-btn" onclick="openSpecialServicesPopup('${u.id}','unit',this)" title="Edit special services"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button></div></td></tr>` : ''}`;
   });
 
   html += `</tbody></table>`;
