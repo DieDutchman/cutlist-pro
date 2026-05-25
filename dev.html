@@ -8917,6 +8917,7 @@ function renderUnitDiagramSVG(unit, unitName) {
   else                                  chips.push(`<span class="udp-chip chip-noback">NO BACK</span>`);
   if (g.hasSupports)                    chips.push(`<span class="udp-chip chip-supports">SUPPORTS</span>`);
   if (g.shelfCount)                     chips.push(`<span class="udp-chip chip-shelves">${g.shelfCount} SHELF${g.shelfCount>1?'VES':''}</span>`);
+  if (g.dimsEstimated)                  chips.push(`<span class="udp-chip chip-estimated" title="Some dimensions could not be read from parts — standard defaults used">⚠ DIMS ESTIMATED</span>`);
 
   // ── LEGEND ────────────────────────────────────────────────────────────────
   const legendItems = [
