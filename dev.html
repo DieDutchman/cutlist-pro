@@ -13979,6 +13979,125 @@ function confirmNewUnit() {
   scheduleAutoSave();
 }
 
+// ── Import Unit Modal (from another job) ─────────────────────────────────────
+function openImportUnitModal() {
+  const modal = document.createElement('div');
+  modal.id = 'import-unit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+
+  const statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+
+  const jobOptions = sbJobs
+    .filter(j => j.id !== currentJobId)
+    .map(j => {
+      const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+      const date  = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const dot   = statusDot[j.jobStatus] || '○';
+      return `<option value="${j.id}">${dot} ${label}  (${date})</option>`;
+    }).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="padding:24px 28px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNIT</div>
+        <div style="font-size:12px;color:var(--text-muted)">Reuse units you built in a previous job. Parts, dimensions, and pricing are copied as-is.</div>
+      </div>
+      <div style="padding:16px 28px;border-bottom:1px solid var(--border)">
+        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Select Job</label>
+        ${jobOptions.length === 0
+          ? `<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No other jobs found.</div>`
+          : `<select id="import-job-select" onchange="loadImportJobUnits(this.value)"
+              style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;cursor:pointer"
+              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+              <option value="">— Choose a job —</option>
+              ${jobOptions}
+            </select>`
+        }
+      </div>
+      <div id="import-unit-list" style="flex:1;overflow-y:auto;padding:12px 28px;min-height:80px">
+        <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Select a job to see its units.</div>
+      </div>
+      <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+        <span id="import-selected-count" style="font-size:12px;color:var(--text-muted);flex:1">No units selected</span>
+        <button onclick="confirmImportUnits()" style="background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">IMPORT SELECTED</button>
+        <button onclick="document.getElementById('import-unit-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+let _importJobUnitsCache = {};
+
+async function loadImportJobUnits(jobId) {
+  const listEl = document.getElementById('import-unit-list');
+  if (!jobId) { listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Select a job to see its units.</div>'; return; }
+
+  if (_importJobUnitsCache[jobId]) { _renderImportUnitList(_importJobUnitsCache[jobId]); return; }
+
+  listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Loading…</div>';
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=state`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const state = rows[0]?.state;
+    const units = (state?.userUnits || []).filter(u => u && u.id && u.name);
+    _importJobUnitsCache[jobId] = units;
+    _renderImportUnitList(units);
+  } catch(e) {
+    listEl.innerHTML = `<div style="text-align:center;color:#e07070;font-size:12px;padding:24px 0">Failed to load job: ${e.message}</div>`;
+  }
+}
+
+function _renderImportUnitList(units) {
+  const listEl = document.getElementById('import-unit-list');
+  if (!units.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">No custom units found in this job.</div>';
+    return;
+  }
+  listEl.innerHTML = units.map((u, i) => `
+    <label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+      <input type="checkbox" class="import-unit-cb" data-idx="${i}" onchange="_updateImportCount()"
+        style="width:16px;height:16px;accent-color:var(--amber);cursor:pointer;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${u.parts?.length || 0} part${(u.parts?.length||0)===1?'':'s'}${u.price ? ' · R' + u.price.toFixed(0) : ''}</div>
+      </div>
+    </label>`).join('');
+  listEl._units = units;
+  _updateImportCount();
+}
+
+function _updateImportCount() {
+  const cbs = document.querySelectorAll('.import-unit-cb:checked');
+  const countEl = document.getElementById('import-selected-count');
+  if (countEl) countEl.textContent = cbs.length === 0 ? 'No units selected' : `${cbs.length} unit${cbs.length===1?'':'s'} selected`;
+}
+
+function confirmImportUnits() {
+  const listEl = document.getElementById('import-unit-list');
+  const units = listEl?._units;
+  if (!units) return;
+  const cbs = document.querySelectorAll('.import-unit-cb:checked');
+  if (!cbs.length) { alert('Select at least one unit to import.'); return; }
+  cbs.forEach(cb => {
+    const u = units[parseInt(cb.dataset.idx)];
+    if (!u) return;
+    const newId = 'uu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const cloned = JSON.parse(JSON.stringify(u));
+    cloned.id = newId;
+    cloned.section = currentSection;
+    // Regenerate part IDs to avoid collision with existing parts
+    if (Array.isArray(cloned.parts)) {
+      cloned.parts = cloned.parts.map(p => ({ ...p, id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) }));
+    }
+    userUnits.push(cloned);
+    quantities[newId] = 0;
+  });
+  document.getElementById('import-unit-modal').remove();
+  renderPanel();
+  scheduleAutoSave();
+}
+
 // ── Template Browser Modal ────────────────────────────────────────────────────
 function openTemplateBrowser() {
   // Group admin units by section
