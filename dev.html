@@ -13979,119 +13979,219 @@ function confirmNewUnit() {
   scheduleAutoSave();
 }
 
-// ── Import Unit Modal (from another job) ─────────────────────────────────────
+// ── Import Unit Modal (from XLSX / XLS / CSV file) ───────────────────────────
+let _importUnitParsedUnits = [];
+
 function openImportUnitModal() {
+  _importUnitParsedUnits = [];
   const modal = document.createElement('div');
   modal.id = 'import-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
-
-  const statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
-
-  const jobOptions = sbJobs
-    .filter(j => j.id !== currentJobId)
-    .map(j => {
-      const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
-      const date  = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
-      const dot   = statusDot[j.jobStatus] || '○';
-      return `<option value="${j.id}">${dot} ${label}  (${date})</option>`;
-    }).join('');
-
   modal.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
-      <div style="padding:24px 28px 16px;border-bottom:1px solid var(--border)">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="padding:22px 28px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNIT</div>
-        <div style="font-size:12px;color:var(--text-muted)">Reuse units you built in a previous job. Parts, dimensions, and pricing are copied as-is.</div>
+        <div style="font-size:12px;color:var(--text-muted)">Upload a spreadsheet with your parts list. Each unique Unit Name becomes one unit.</div>
       </div>
       <div style="padding:16px 28px;border-bottom:1px solid var(--border)">
-        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Select Job</label>
-        ${jobOptions.length === 0
-          ? `<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No other jobs found.</div>`
-          : `<select id="import-job-select" onchange="loadImportJobUnits(this.value)"
-              style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;cursor:pointer"
-              onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-              <option value="">— Choose a job —</option>
-              ${jobOptions}
-            </select>`
-        }
+        <div id="import-unit-dropzone"
+          ondragover="event.preventDefault();this.style.borderColor='var(--amber)';this.style.background='rgba(212,145,58,0.06)'"
+          ondragleave="this.style.borderColor='var(--amber-dim)';this.style.background=''"
+          ondrop="_handleImportUnitDrop(event)"
+          style="border:2px dashed var(--amber-dim);padding:24px;text-align:center;cursor:pointer;transition:all 0.15s"
+          onclick="document.getElementById('import-unit-file-input').click()">
+          <div style="font-size:22px;margin-bottom:6px">📂</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:4px">Drop file here or click to browse</div>
+          <div style="font-size:11px;color:var(--text-muted)">.xlsx · .xls · .csv</div>
+          <div id="import-unit-filename" style="font-size:11px;color:var(--amber);margin-top:8px;display:none"></div>
+        </div>
+        <input type="file" id="import-unit-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="_handleImportUnitFileSelect(event)">
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          <button onclick="downloadImportUnitTemplate()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;font-size:11px;font-family:'Oswald',sans-serif;letter-spacing:1px;cursor:pointer">⬇ DOWNLOAD TEMPLATE</button>
+          <span style="font-size:11px;color:var(--text-muted)">Columns: Unit Name, Part Name, Qty, Length, Width, Material, Edging L1, Edging L2, Edging W1, Edging W2</span>
+        </div>
       </div>
-      <div id="import-unit-list" style="flex:1;overflow-y:auto;padding:12px 28px;min-height:80px">
-        <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Select a job to see its units.</div>
+      <div id="import-unit-error" style="display:none;margin:10px 28px 0;padding:10px;background:rgba(224,112,112,0.1);border:1px solid #e07070;color:#e07070;font-size:12px"></div>
+      <div id="import-unit-preview" style="flex:1;overflow-y:auto;padding:0 28px 10px;display:none">
+        <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);padding:12px 0 6px">PREVIEW</div>
+        <div id="import-unit-preview-rows"></div>
       </div>
-      <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
-        <span id="import-selected-count" style="font-size:12px;color:var(--text-muted);flex:1">No units selected</span>
-        <button onclick="confirmImportUnits()" style="background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer">IMPORT SELECTED</button>
+      <div style="padding:14px 28px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+        <span id="import-unit-summary" style="font-size:12px;color:var(--text-muted);flex:1"></span>
+        <button id="import-unit-confirm-btn" onclick="confirmImportUnits()" disabled
+          style="background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:2px;cursor:not-allowed;opacity:0.4">IMPORT</button>
         <button onclick="document.getElementById('import-unit-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
 }
 
-let _importJobUnitsCache = {};
+function downloadImportUnitTemplate() {
+  const header = 'Unit Name,Part Name,Qty,Length,Width,Material,Edging L1,Edging L2,Edging W1,Edging W2';
+  const examples = [
+    'F600 Floor Unit,Side,2,780,534,Picco White 18mm,Dunblane Edging 1mm,,,',
+    'F600 Floor Unit,Bottom,1,534,418,Picco White 18mm,,,,Dunblane Edging 1mm',
+    'F600 Floor Unit,Shelf,1,524,418,Picco White 18mm,,,,Dunblane Edging 1mm',
+    'F600 Floor Unit,Door,1,777,596,Dunblane,Dunblane Edging 1mm,Dunblane Edging 1mm,Dunblane Edging 1mm,Dunblane Edging 1mm',
+    'W600 Wall Unit,Side,2,520,300,Picco White 18mm,Dunblane Edging 1mm,,,',
+    'W600 Wall Unit,Bottom,1,300,564,Picco White 18mm,,,,',
+  ].join('\n');
+  const blob = new Blob([header + '\n' + examples], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'unit-import-template.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 
-async function loadImportJobUnits(jobId) {
-  const listEl = document.getElementById('import-unit-list');
-  if (!jobId) { listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Select a job to see its units.</div>'; return; }
+function _handleImportUnitDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('import-unit-dropzone');
+  if (dz) { dz.style.borderColor = 'var(--amber-dim)'; dz.style.background = ''; }
+  const file = event.dataTransfer?.files?.[0];
+  if (file) _processImportUnitFile(file);
+}
 
-  if (_importJobUnitsCache[jobId]) { _renderImportUnitList(_importJobUnitsCache[jobId]); return; }
+function _handleImportUnitFileSelect(event) {
+  const file = event.target?.files?.[0];
+  if (file) _processImportUnitFile(file);
+}
 
-  listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">Loading…</div>';
+async function _processImportUnitFile(file) {
+  const errEl  = document.getElementById('import-unit-error');
+  const prevEl = document.getElementById('import-unit-preview');
+  const fnEl   = document.getElementById('import-unit-filename');
+  const btn    = document.getElementById('import-unit-confirm-btn');
+  errEl.style.display = 'none';
+  prevEl.style.display = 'none';
+  _importUnitParsedUnits = [];
+  btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
+  fnEl.textContent = file.name; fnEl.style.display = 'block';
   try {
-    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?id=eq.${jobId}&select=state`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
-    const state = rows[0]?.state;
-    const units = (state?.userUnits || []).filter(u => u && u.id && u.name);
-    _importJobUnitsCache[jobId] = units;
-    _renderImportUnitList(units);
+    const rows = await _parseImportUnitFile(file);
+    if (!rows.length) throw new Error('File contains no data rows.');
+    const units = _groupImportUnitRows(rows);
+    if (!units.length) throw new Error('No units found. Make sure the "Unit Name" column is filled.');
+    _importUnitParsedUnits = units;
+    _renderImportUnitPreview(units);
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
   } catch(e) {
-    listEl.innerHTML = `<div style="text-align:center;color:#e07070;font-size:12px;padding:24px 0">Failed to load job: ${e.message}</div>`;
+    errEl.textContent = e.message || String(e);
+    errEl.style.display = 'block';
   }
 }
 
-function _renderImportUnitList(units) {
-  const listEl = document.getElementById('import-unit-list');
-  if (!units.length) {
-    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:24px 0">No custom units found in this job.</div>';
-    return;
+async function _parseImportUnitFile(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'csv') {
+    const text = await file.text();
+    const lines = text.replace(/\r/g, '').trim().split('\n').filter(l => l.trim());
+    if (!lines.length) return [];
+    const headers = _splitCsvLine(lines[0]).map(h => h.toLowerCase().trim());
+    return lines.slice(1).map(line => {
+      const cols = _splitCsvLine(line);
+      const row = {};
+      headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+      return row;
+    }).filter(r => Object.values(r).some(v => v !== ''));
   }
-  listEl.innerHTML = units.map((u, i) => `
-    <label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
-      <input type="checkbox" class="import-unit-cb" data-idx="${i}" onchange="_updateImportCount()"
-        style="width:16px;height:16px;accent-color:var(--amber);cursor:pointer;flex-shrink:0">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
-        <div style="font-size:11px;color:var(--text-muted)">${u.parts?.length || 0} part${(u.parts?.length||0)===1?'':'s'}${u.price ? ' · R' + u.price.toFixed(0) : ''}</div>
-      </div>
-    </label>`).join('');
-  listEl._units = units;
-  _updateImportCount();
+  if (ext === 'xlsx' || ext === 'xls') {
+    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS not loaded — cannot parse XLSX.');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const ws = workbook.worksheets[0];
+    if (!ws) throw new Error('No worksheet found in file.');
+    const headers = [];
+    const rows = [];
+    ws.eachRow((row, ri) => {
+      if (ri === 1) {
+        row.eachCell((c, ci) => { headers[ci - 1] = String(c.value ?? '').toLowerCase().trim(); });
+        return;
+      }
+      const obj = {};
+      row.eachCell((c, ci) => {
+        const key = headers[ci - 1];
+        if (key) {
+          let v = c.value;
+          if (v && typeof v === 'object' && 'result' in v) v = v.result;
+          if (v && typeof v === 'object' && 'text' in v) v = v.text;
+          obj[key] = v == null ? '' : String(v).trim();
+        }
+      });
+      if (Object.values(obj).some(v => v !== '')) rows.push(obj);
+    });
+    return rows;
+  }
+  throw new Error('Unsupported file type. Use CSV, XLSX, or XLS.');
 }
 
-function _updateImportCount() {
-  const cbs = document.querySelectorAll('.import-unit-cb:checked');
-  const countEl = document.getElementById('import-selected-count');
-  if (countEl) countEl.textContent = cbs.length === 0 ? 'No units selected' : `${cbs.length} unit${cbs.length===1?'':'s'} selected`;
+function _groupImportUnitRows(rows) {
+  // Normalise column name aliases
+  function col(row, ...names) {
+    for (const n of names) {
+      const found = Object.keys(row).find(k => k === n || k.replace(/[\s_-]/g,'') === n.replace(/[\s_-]/g,''));
+      if (found && row[found] !== '') return row[found];
+    }
+    return '';
+  }
+  const unitMap = new Map();
+  const unitOrder = [];
+  rows.forEach(row => {
+    const unitName = col(row, 'unit name', 'unitname', 'unit');
+    const partName = col(row, 'part name', 'partname', 'part', 'description');
+    if (!unitName) return;
+    if (!unitMap.has(unitName)) { unitMap.set(unitName, []); unitOrder.push(unitName); }
+    if (!partName) return;
+    const qty = parseInt(col(row, 'qty', 'quantity', 'count')) || 1;
+    const l   = parseFloat(col(row, 'length', 'l', 'len')) || 0;
+    const w   = parseFloat(col(row, 'width', 'w', 'wid')) || 0;
+    const mat = col(row, 'material', 'mat', 'board', 'material name') || '';
+    const el1 = col(row, 'edging l1', 'edgingl1', 'el1', 'edge l1') || '';
+    const el2 = col(row, 'edging l2', 'edgingl2', 'el2', 'edge l2') || '';
+    const ew1 = col(row, 'edging w1', 'edgingw1', 'ew1', 'edge w1') || '';
+    const ew2 = col(row, 'edging w2', 'edgingw2', 'ew2', 'edge w2') || '';
+    unitMap.get(unitName).push({ name: partName, qty, l, w, mat, el1, el2, ew1, ew2 });
+  });
+  return unitOrder.map(name => ({ name, parts: unitMap.get(name) }));
+}
+
+function _renderImportUnitPreview(units) {
+  const prevEl  = document.getElementById('import-unit-preview');
+  const rowsEl  = document.getElementById('import-unit-preview-rows');
+  const summEl  = document.getElementById('import-unit-summary');
+  const totalParts = units.reduce((s, u) => s + u.parts.length, 0);
+  summEl.textContent = `${units.length} unit${units.length===1?'':'s'} · ${totalParts} part${totalParts===1?'':'s'} found`;
+  rowsEl.innerHTML = units.map(u => `
+    <div style="border:1px solid var(--border);margin-bottom:8px">
+      <div style="background:var(--bg3);padding:7px 12px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:1px;color:var(--amber)">${u.name}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="color:var(--text-muted)">
+          <th style="padding:4px 8px;text-align:left;font-weight:400">Part</th>
+          <th style="padding:4px 8px;text-align:right;font-weight:400">Qty</th>
+          <th style="padding:4px 8px;text-align:right;font-weight:400">L</th>
+          <th style="padding:4px 8px;text-align:right;font-weight:400">W</th>
+          <th style="padding:4px 8px;text-align:left;font-weight:400">Material</th>
+        </tr></thead>
+        <tbody>${u.parts.map(p => `
+          <tr style="border-top:1px solid var(--border)">
+            <td style="padding:4px 8px;color:var(--text)">${p.name}</td>
+            <td style="padding:4px 8px;text-align:right;color:var(--text-muted)">${p.qty}</td>
+            <td style="padding:4px 8px;text-align:right;color:var(--text-muted)">${p.l||'—'}</td>
+            <td style="padding:4px 8px;text-align:right;color:var(--text-muted)">${p.w||'—'}</td>
+            <td style="padding:4px 8px;color:var(--text-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.mat||'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+  prevEl.style.display = 'block';
 }
 
 function confirmImportUnits() {
-  const listEl = document.getElementById('import-unit-list');
-  const units = listEl?._units;
-  if (!units) return;
-  const cbs = document.querySelectorAll('.import-unit-cb:checked');
-  if (!cbs.length) { alert('Select at least one unit to import.'); return; }
-  cbs.forEach(cb => {
-    const u = units[parseInt(cb.dataset.idx)];
-    if (!u) return;
-    const newId = 'uu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-    const cloned = JSON.parse(JSON.stringify(u));
-    cloned.id = newId;
-    cloned.section = currentSection;
-    // Regenerate part IDs to avoid collision with existing parts
-    if (Array.isArray(cloned.parts)) {
-      cloned.parts = cloned.parts.map(p => ({ ...p, id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) }));
-    }
-    userUnits.push(cloned);
-    quantities[newId] = 0;
+  if (!_importUnitParsedUnits.length) return;
+  _importUnitParsedUnits.forEach(u => {
+    const id = 'uu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    userUnits.push({ id, section: currentSection, name: u.name, price: 0, parts: u.parts });
+    quantities[id] = 0;
   });
   document.getElementById('import-unit-modal').remove();
   renderPanel();
