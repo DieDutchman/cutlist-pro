@@ -6041,8 +6041,9 @@ function _renderPanel() {
       html += `<div style="padding:40px 0;text-align:center;color:var(--text-muted);border:2px dashed var(--border);border-radius:3px;margin:12px 0">
         <div style="font-size:28px;margin-bottom:12px">📦</div>
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px">NO UNITS YET</div>
-        <div style="font-size:12px;margin-bottom:16px">Add units from the template library or create your own.</div>
+        <div style="font-size:12px;margin-bottom:16px">Pick from the template library, import from a previous job, or build your own from scratch.</div>
         <button onclick="openTemplateBrowser()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;margin-right:8px">📋 COPY FROM TEMPLATE</button>
+        <button onclick="openImportUnitModal()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;margin-right:8px">⇪ IMPORT UNIT</button>
         <button onclick="openNewUnitModal()" style="background:var(--amber);color:#111;border:none;padding:8px 18px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ NEW UNIT</button>
       </div>`;
       html += `</div>`;
