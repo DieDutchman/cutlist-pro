@@ -6031,8 +6031,9 @@ function _renderPanel() {
   if (isUserMode) {
     html += `<div style="display:flex;align-items:center;gap:10px;padding:16px 0 8px;flex-wrap:wrap">
       <div style="font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text);flex:1">${userRoom?.icon||''} ${sec.label}</div>
-      <button onclick="openTemplateBrowser()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">📋 COPY FROM TEMPLATE</button>
-      <button onclick="openNewUnitModal()" style="background:var(--amber);color:#111;border:none;padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer">+ NEW UNIT</button>
+      <button onclick="openTemplateBrowser()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer" title="Pick a standard cabinet from the built-in library">📋 COPY FROM TEMPLATE</button>
+      <button onclick="openImportUnitModal()" style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer" title="Reuse a unit from a previous job">⇪ IMPORT UNIT</button>
+      <button onclick="openNewUnitModal()" style="background:var(--amber);color:#111;border:none;padding:7px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer" title="Build a custom unit from scratch">+ NEW UNIT</button>
       <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room">✏</button>
       <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room">🗑</button>
     </div>`;
