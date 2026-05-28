@@ -19403,6 +19403,8 @@ function _applyStateInner(state) {
       });
     }
     if (state.userUnits?.length) { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
+    archivedUnitIds.clear();
+    if (Array.isArray(state.archivedUnitIds)) state.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
   } else {
     // Superuser: if the job has rooms, restore them (job-load behavior). If not
     // (older job, or profile-only rooms), preserve whatever loadTemplatesFromCloud
