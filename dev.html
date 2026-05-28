@@ -23697,6 +23697,7 @@ function plCalcFromState(state) {
     Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
     Object.assign(unitOverrides, snap.unitOverrides);
     deletedUnits.clear(); snap.deletedUnits.forEach(id => deletedUnits.add(id));
+    archivedUnitIds.clear(); if (snap.archivedUnitIds) snap.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
 
     Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);
     Object.assign(unitSpecialServices,  snap.unitSpecialServices);
