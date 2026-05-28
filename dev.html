@@ -5606,7 +5606,7 @@ async function saveTemplate(payload) {
     await loadTemplatesAdmin();
     return true;
   } catch(e) {
-    alert('Save failed: ' + e.message);
+    showToast('Save failed: ' + e.message, 'error');
     return false;
   }
 }
@@ -5622,12 +5622,12 @@ async function toggleTemplateActive(id, makeActive) {
     await loadUnitTemplates();
     await loadTemplatesAdmin();
   } catch(e) {
-    alert('Toggle failed: ' + e.message);
+    showToast('Toggle failed: ' + e.message, 'error');
   }
 }
 
 async function deleteTemplate(id, name) {
-  if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+  if (!(await confirmAction(`Delete template "${name}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
   try {
     const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -5637,13 +5637,13 @@ async function deleteTemplate(id, name) {
     await loadUnitTemplates();
     await loadTemplatesAdmin();
   } catch(e) {
-    alert('Delete failed: ' + e.message);
+    showToast('Delete failed: ' + e.message, 'error');
   }
 }
 
 async function seedUnitTemplates() {
-  if (!isSuperuser()) { alert('Superuser only.'); return; }
-  if (!confirm(`This will insert all ${UNITS.length} hardcoded unit templates into the database. Existing rows are not modified. Continue?`)) return;
+  if (!isSuperuser()) { showToast('Superuser only.', 'warning'); return; }
+  if (!(await confirmAction(`Insert all ${UNITS.length} hardcoded unit templates into the database? Existing rows are not modified.`, { confirmLabel: 'SEED' }))) return;
   const rows = UNITS.map(u => ({
     name: u.name,
     category: u.section || u.category || 'custom',
