@@ -23625,6 +23625,8 @@ function plCalcFromState(state) {
     // unitOverrides / deletedUnits
     if (st.unitOverrides) Object.assign(unitOverrides, st.unitOverrides);
     if (st.deletedUnits)  { deletedUnits.clear(); st.deletedUnits.forEach(id => deletedUnits.add(id)); }
+    archivedUnitIds.clear();
+    if (st.archivedUnitIds) st.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
 
     // special service assignments
     if (st.unitSpecialServices)  { Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);  Object.assign(unitSpecialServices,  st.unitSpecialServices); }
