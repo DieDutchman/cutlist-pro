@@ -8418,7 +8418,7 @@ function saveUnit(id) {
   const section = document.getElementById('ef-section')?.value;
   const parts   = readPartsFromTable();
 
-  if (!name) { alert('Unit name cannot be empty.'); return; }
+  if (!name) { showToast('Unit name cannot be empty.', 'warning'); return; }
 
   // User mode (admin + user): save into userUnits. Only superuser writes to shared customUnits/overrides.
   if (usesUserUnits()) {
