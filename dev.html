@@ -16720,7 +16720,7 @@ function addCustomBoard() {
   const price = parseFloat(priceEl?.value) || 0;
   if (!name) { if(nameEl){ nameEl.focus(); nameEl.style.borderColor='#e05252'; } return; }
   if (nameEl) nameEl.style.borderColor = '';
-  if (MATS.includes(name)) { alert(`"${name}" already exists.`); return; }
+  if (MATS.includes(name)) { showToast(`"${name}" already exists.`, 'warning'); return; }
 
   const id = 'cb_' + Date.now();
   const edgePrice = parseFloat(edgePriceEl?.value) || 0;
