@@ -7533,7 +7533,7 @@ function generateSummary() {
   });
   const hasPanels = panelsState.items.some(p => p.l > 0 && p.w > 0 && p.qty > 0);
   if (!selectedUnits.length && !hasPanels && !hasAddons) {
-    alert('No units, panels or addons selected yet. Add quantities, panels, base or plant-on/spacer items first.');
+    showToast('No units, panels or addons selected yet. Add quantities, panels, base or plant-on/spacer items first.', 'warning');
     return;
   }
 
