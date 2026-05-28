@@ -4717,6 +4717,130 @@ body.user-light-theme .pp-vat-select {
 
 <script>
 // ═══════════════════════════════════════════════════════════
+// TOAST NOTIFICATIONS + INLINE CONFIRMATIONS
+// Lightweight feedback system replacing alert() and confirm()
+// ═══════════════════════════════════════════════════════════
+const TOAST_ICONS = {
+  success: '✓',
+  error:   '✕',
+  warning: '!',
+  info:    'i'
+};
+const TOAST_DEFAULT_DURATION = { success: 3000, info: 3000, warning: 6000, error: 0 };
+
+function showToast(message, type, opts) {
+  type = type || 'info';
+  if (!TOAST_ICONS[type]) type = 'info';
+  opts = opts || {};
+  const container = document.getElementById('toast-container');
+  if (!container) {
+    // Fallback if DOM isn't ready
+    try { console[type === 'error' ? 'error' : 'log']('[toast]', message); } catch(_) {}
+    return null;
+  }
+  // Strip any leading legacy markers (✓ ✕ ! ↻ — these are now provided by the icon column)
+  const text = String(message == null ? '' : message).replace(/^[\s✓✕!↻⟳⚠✗ℹ️]+/, '').trim() || String(message);
+
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.textContent = TOAST_ICONS[type];
+  t.appendChild(icon);
+
+  const body = document.createElement('div');
+  body.style.flex = '1';
+
+  const msg = document.createElement('div');
+  msg.className = 'toast-msg';
+  msg.textContent = text;
+  body.appendChild(msg);
+
+  let resolved = false;
+  let actionPromise = null;
+  let actionResolve = null;
+  if (Array.isArray(opts.actions) && opts.actions.length) {
+    actionPromise = new Promise(res => { actionResolve = res; });
+    const row = document.createElement('div');
+    row.className = 'toast-actions';
+    opts.actions.forEach((a, i) => {
+      const btn = document.createElement('button');
+      btn.textContent = a.label;
+      if (a.primary) btn.className = 'toast-primary';
+      btn.addEventListener('click', () => {
+        if (resolved) return;
+        resolved = true;
+        const val = a.value === undefined ? i : a.value;
+        dismiss();
+        if (actionResolve) actionResolve(val);
+      });
+      row.appendChild(btn);
+    });
+    body.appendChild(row);
+  }
+  t.appendChild(body);
+
+  const close = document.createElement('button');
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Dismiss');
+  close.textContent = '×';
+  close.addEventListener('click', () => {
+    if (resolved) return;
+    resolved = true;
+    dismiss();
+    if (actionResolve) actionResolve(null);
+  });
+  t.appendChild(close);
+
+  container.appendChild(t);
+  // Trigger transition
+  requestAnimationFrame(() => t.classList.add('toast-show'));
+
+  let hideTimer = null;
+  function dismiss() {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    t.classList.remove('toast-show');
+    t.classList.add('toast-hide');
+    setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+  }
+
+  let duration = opts.duration;
+  if (duration === undefined) duration = TOAST_DEFAULT_DURATION[type];
+  // Persistent if actions are present and no explicit duration was set
+  if (Array.isArray(opts.actions) && opts.actions.length && opts.duration === undefined) duration = 0;
+  if (duration && duration > 0) {
+    hideTimer = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      dismiss();
+      if (actionResolve) actionResolve(null);
+    }, duration);
+  }
+
+  return { dismiss, actionPromise };
+}
+
+// Promise-returning inline confirmation (replaces window.confirm)
+// Usage: if (!(await confirmAction('Delete this?'))) return;
+function confirmAction(message, opts) {
+  opts = opts || {};
+  const confirmLabel = opts.confirmLabel || 'CONFIRM';
+  const cancelLabel  = opts.cancelLabel  || 'CANCEL';
+  const type = opts.type || 'warning';
+  const handle = showToast(message, type, {
+    duration: opts.duration === undefined ? 10000 : opts.duration,
+    actions: [
+      { label: cancelLabel, value: false },
+      { label: confirmLabel, value: true, primary: true }
+    ]
+  });
+  if (!handle || !handle.actionPromise) return Promise.resolve(false);
+  return handle.actionPromise.then(v => v === true);
+}
+
+// ═══════════════════════════════════════════════════════════
 // SCROLL PRESERVATION — prevents page jumping when inputs re-render views
 // ═══════════════════════════════════════════════════════════
 // Wrap any function that rebuilds innerHTML to preserve scroll + focus
