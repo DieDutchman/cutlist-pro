@@ -13322,7 +13322,7 @@ async function openBoardCleanupModal() {
 }
 
 async function cleanupDeleteRow(name, btn) {
-  if (!confirm(`Delete "${name}" from Supabase?`)) return;
+  if (!(await confirmAction(`Delete "${name}" from Supabase?`, { confirmLabel: 'DELETE' }))) return;
   btn.disabled = true; btn.textContent = '…';
   try {
     const supplierFilter = activeSupplierRow?.id
