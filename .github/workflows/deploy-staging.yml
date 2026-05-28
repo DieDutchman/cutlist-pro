@@ -7,11 +7,6 @@ on:
     paths:
       - 'dev.html'
 
-# Prevent re-triggering when the workflow itself commits the stamped file
-concurrency:
-  group: staging-deploy
-  cancel-in-progress: true
-
 permissions:
   contents: write
 
