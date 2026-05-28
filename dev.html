@@ -13114,8 +13114,8 @@ async function loadJobFromSelect() {
   }
 }
 
-function newJob() {
-  if (!confirm('Start a new job? Unsaved changes will be lost.')) return;
+async function newJob() {
+  if (!(await confirmAction('Start a new job? Unsaved changes will be lost.', { confirmLabel: 'START NEW' }))) return;
   currentJobId = null;
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   persistLastJobId(null);
