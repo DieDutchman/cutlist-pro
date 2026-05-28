@@ -17076,13 +17076,13 @@ async function migrateRenamedNamesAcrossJobs(renamesObj) {
   setTimeout(() => setJobSyncStatus(''), 4000);
 }
 
-function renameMat(oldName) {
+async function renameMat(oldName) {
   const newName = prompt(`Rename board "${oldName}" to:`, oldName);
   if (!newName || newName.trim() === oldName) return;
   const n = newName.trim();
   if (MATS.includes(n)) {
     // Target already exists — offer to merge: remap all units from oldName → n, then delete oldName
-    if (!confirm(`"${n}" already exists as a separate board.\n\nMerge "${oldName}" into "${n}"?\n\nAll units currently set to "${oldName}" will switch to "${n}". The old "${oldName}" entry will then be deleted from the list.\n\nThis cannot be undone.`)) return;
+    if (!(await confirmAction(`"${n}" already exists. Merge "${oldName}" into "${n}"? All units set to "${oldName}" will switch to "${n}", and "${oldName}" will be deleted. This cannot be undone.`, { confirmLabel: 'MERGE' }))) return;
     // Remap materialConfig
     Object.values(materialConfig).forEach(cfg => {
       if (cfg.wood   === oldName) cfg.wood   = n;
