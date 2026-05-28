@@ -14811,61 +14811,194 @@ function openUnitPartsModal(unitId) {
   document.getElementById('upm-modal')?.remove();
   // Apply current wood/edging selection so parts show the actual colours, not template defaults
   const resolvedParts = (unit.parts || []).map(p => applyMaterials(p, unit));
-  const partsRows = resolvedParts.map((p, i) => buildPartRow(p, i)).join('');
+  const hasParts = resolvedParts.length > 0;
+  const partsRows = resolvedParts.map((p, i) => buildUpmPartRow(p, i)).join('');
+  const safeName = (unit.name || 'Unit').replace(/"/g,'&quot;');
+
+  const tableBlock = `
+    <div class="upm-tbl-wrap">
+      <table class="upm-tbl">
+        <thead><tr>
+          <th class="is-num" style="width:32px">#</th>
+          <th style="min-width:140px">Part Name</th>
+          <th class="is-num" style="width:56px">Qty</th>
+          <th class="is-num" style="width:64px">Height</th>
+          <th class="is-num" style="width:64px">Width</th>
+          <th style="min-width:150px">Material</th>
+          <th style="min-width:130px">Edge L1</th>
+          <th style="min-width:130px">Edge L2</th>
+          <th style="min-width:130px">Edge W1</th>
+          <th style="min-width:130px">Edge W2</th>
+          <th style="min-width:130px">Holes / Notes</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="upm-parts-tbody">${partsRows}</tbody>
+      </table>
+    </div>`;
+
+  const emptyBlock = `
+    <div class="pp-empty" id="upm-empty">
+      <div class="pp-empty-icon">🔧</div>
+      <div class="pp-empty-title">No parts yet</div>
+      <div class="pp-empty-body">
+        This unit has no parts defined. Add your first part below to start building the cut list.
+      </div>
+    </div>`;
 
   const modal = document.createElement('div');
   modal.id = 'upm-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px';
   modal.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:1100px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <div>
-          <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text)">🔧 PARTS — ${unit.name}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Showing your current wood &amp; edging selection. Edit dimensions, materials and edging, then save.</div>
+    <div class="upm-shell" role="dialog" aria-modal="true" aria-label="Edit unit parts">
+      <div class="upm-head">
+        <div style="min-width:0;flex:1">
+          <div class="upm-eyebrow">Parts Editor</div>
+          <div class="upm-title">
+            <span>${safeName}</span>
+            <span class="upm-count" id="upm-count">${resolvedParts.length} ${resolvedParts.length === 1 ? 'part' : 'parts'}</span>
+          </div>
+          <div class="upm-sub">
+            Showing your current wood &amp; edging selection. Edit dimensions, swap materials, or remove parts &mdash; then save to update this unit.
+          </div>
         </div>
-        <button onclick="document.getElementById('upm-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+        <button type="button" class="upm-close" onclick="document.getElementById('upm-modal').remove()" aria-label="Close" title="Close">&times;</button>
       </div>
-      <div style="flex:1;overflow:auto;padding:16px 20px">
-        <div style="overflow-x:auto">
-          <table class="parts-edit-table" id="upm-parts-tbody-wrap">
-            <thead><tr>
-              <th style="width:24px">#</th>
-              <th style="min-width:130px">Part Name</th>
-              <th style="width:50px">Qty</th>
-              <th style="width:70px">Height</th>
-              <th style="width:70px">Width</th>
-              <th style="min-width:140px">Material</th>
-              <th style="min-width:120px">Edge L1</th>
-              <th style="min-width:120px">Edge L2</th>
-              <th style="min-width:120px">Edge W1</th>
-              <th style="min-width:120px">Edge W2</th>
-              <th style="min-width:110px">Holes/Notes</th>
-              <th style="width:28px"></th>
-            </tr></thead>
-            <tbody id="upm-parts-tbody">${partsRows}</tbody>
-          </table>
+
+      <div class="upm-body">
+        <div id="upm-table-host">${hasParts ? tableBlock : emptyBlock}</div>
+
+        <div class="upm-add-strip" onclick="upmAddPartRow()" title="Add a new part">
+          <span class="upm-add-glyph">+</span>
+          <span>Add Part</span>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0">
-        <button onclick="upmAddPartRow()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:7px 14px;font-size:12px;cursor:pointer;font-family:'Oswald',sans-serif;letter-spacing:1px" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">+ ADD PART</button>
-        <div style="flex:1"></div>
-        <button onclick="document.getElementById('upm-modal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:8px 18px;font-family:'Oswald',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
-        <button onclick="saveUnitParts('${unitId}')" style="background:var(--amber);color:#111;border:none;padding:8px 22px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">💾 SAVE PARTS</button>
+
+      <div class="upm-foot">
+        <div class="upm-foot-meta">Unit &middot; ${safeName}</div>
+        <div class="upm-foot-spacer"></div>
+        <button type="button" class="pp-btn" onclick="document.getElementById('upm-modal').remove()">Cancel</button>
+        <button type="button" class="pp-btn is-amber" onclick="saveUnitParts('${unitId}')">Save Parts</button>
       </div>
     </div>`;
+
+  // Backdrop click to close (but not clicks inside the shell)
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+  // Escape to close
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
   document.body.appendChild(modal);
 }
 
-function upmAddPartRow() {
+// Build a single row for the redesigned unit parts modal.
+// Uses pp-input / pp-select so the modal stays visually consistent with the
+// rest of the app. Separate from buildPartRow (which targets the inline
+// unit editor and must not change).
+function buildUpmPartRow(p, i) {
+  const safe = v => String(v == null ? '' : v).replace(/"/g,'&quot;');
+  return `<tr data-idx="${i}">
+    <td class="upm-row-idx">${i+1}</td>
+    <td><input autocomplete="off" class="pp-input" data-f="name" value="${safe(p.name)}" placeholder="Part name"></td>
+    <td class="upm-qty-cell"><input autocomplete="off" class="pp-input is-num" data-f="qty" type="number" min="0" value="${p.qty||1}"></td>
+    <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="l" type="number" min="0" value="${p.l||0}"></td>
+    <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="w" type="number" min="0" value="${p.w||0}"></td>
+    <td><select autocomplete="off" class="pp-select" data-f="mat">${matOpts(p.mat||'Picco White')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><input autocomplete="off" class="pp-input" data-f="holes" value="${safe(p.holes)}" placeholder="e.g. 2 per door"></td>
+    <td class="upm-del-cell"><button type="button" class="pp-btn is-danger is-sm is-icon" onclick="upmRemovePartRow(this)" title="Remove part" aria-label="Remove part">&times;</button></td>
+  </tr>`;
+}
+
+// Remove a row from the parts modal with a brief fade-out, then re-number
+// surviving rows and refresh the header count. Works for both template
+// (pre-existing) and user-added rows since they share the same DOM shape.
+function upmRemovePartRow(btn) {
+  const tr = btn?.closest('tr');
+  if (!tr) return;
+  tr.classList.add('is-removing');
+  setTimeout(() => {
+    tr.remove();
+    _upmRenumberAndCount();
+  }, 170);
+}
+
+function _upmRenumberAndCount() {
   const tbody = document.getElementById('upm-parts-tbody');
+  const host  = document.getElementById('upm-table-host');
+  const countBadge = document.getElementById('upm-count');
+
+  if (tbody) {
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach((row, i) => {
+      row.dataset.idx = i;
+      const idxCell = row.querySelector('.upm-row-idx');
+      if (idxCell) idxCell.textContent = i + 1;
+    });
+    if (rows.length === 0 && host) {
+      // Last row removed — swap table for empty state
+      host.innerHTML = `
+        <div class="pp-empty" id="upm-empty">
+          <div class="pp-empty-icon">🔧</div>
+          <div class="pp-empty-title">No parts yet</div>
+          <div class="pp-empty-body">
+            This unit has no parts defined. Add your first part below to start building the cut list.
+          </div>
+        </div>`;
+    }
+    if (countBadge) {
+      const n = rows.length;
+      countBadge.textContent = n + ' ' + (n === 1 ? 'part' : 'parts');
+    }
+  }
+}
+
+function upmAddPartRow() {
+  let tbody = document.getElementById('upm-parts-tbody');
+  const host = document.getElementById('upm-table-host');
+
+  // If we're in the empty state, swap in a fresh table first.
+  if (!tbody && host) {
+    host.innerHTML = `
+      <div class="upm-tbl-wrap">
+        <table class="upm-tbl">
+          <thead><tr>
+            <th class="is-num" style="width:32px">#</th>
+            <th style="min-width:140px">Part Name</th>
+            <th class="is-num" style="width:56px">Qty</th>
+            <th class="is-num" style="width:64px">Height</th>
+            <th class="is-num" style="width:64px">Width</th>
+            <th style="min-width:150px">Material</th>
+            <th style="min-width:130px">Edge L1</th>
+            <th style="min-width:130px">Edge L2</th>
+            <th style="min-width:130px">Edge W1</th>
+            <th style="min-width:130px">Edge W2</th>
+            <th style="min-width:130px">Holes / Notes</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="upm-parts-tbody"></tbody>
+        </table>
+      </div>`;
+    tbody = document.getElementById('upm-parts-tbody');
+  }
   if (!tbody) return;
+
   const idx = tbody.querySelectorAll('tr').length;
   const tr = document.createElement('tr');
   tr.dataset.idx = idx;
-  tr.innerHTML = buildPartRow({name:'',qty:1,l:0,w:0,mat:'Picco White',el1:'',el2:'',ew1:'',ew2:'',holes:''}, idx)
+  tr.innerHTML = buildUpmPartRow({name:'',qty:1,l:0,w:0,mat:'Picco White',el1:'',el2:'',ew1:'',ew2:'',holes:''}, idx)
     .match(/<tr[^>]*>([\s\S]*)<\/tr>/)[1];
   tbody.appendChild(tr);
-  tr.querySelector('.part-cell-input')?.focus();
+  _upmRenumberAndCount();
+  tr.querySelector('.pp-input')?.focus();
 }
 
 function saveUnitParts(unitId) {
