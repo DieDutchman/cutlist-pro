@@ -7974,7 +7974,7 @@ function generateSummary() {
 
 async function downloadSummaryXLSX() {
   const data = window._lastSummary;
-  if (!data) { alert('Please generate the summary first.'); return; }
+  if (!data) { showToast('Please generate the summary first.', 'warning'); return; }
 
   if (typeof ExcelJS === 'undefined') {
     const { summaryData, jobClient } = data;
