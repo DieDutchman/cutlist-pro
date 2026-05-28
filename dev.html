@@ -13781,12 +13781,12 @@ async function addSupplier(name, ownerId) {
     if (nameInput) nameInput.value = '';
     await loadSuppliersTab();
   } catch(e) {
-    alert('Add supplier failed: ' + e.message);
+    showToast('Add supplier failed: ' + e.message, 'error');
   }
 }
 
 async function deleteSupplier(id) {
-  if (!confirm('Delete this supplier? Their prices will remain but be orphaned.')) return;
+  if (!(await confirmAction('Delete this supplier? Their prices will remain but be orphaned.', { confirmLabel: 'DELETE' }))) return;
   try {
     const res = await fetch(`${SB_URL}/rest/v1/suppliers?id=eq.${id}`, {
       method: 'DELETE',
