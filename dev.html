@@ -14500,10 +14500,10 @@ async function deleteRoomPrompt(roomId) {
 // (filtered by room.templateSection). Remove must work for either source —
 // fall back to deleteCustomUnit (custom units) and to deletedUnits (template
 // units) so the button is never silently inert.
-function deleteUserUnit(unitId) {
+async function deleteUserUnit(unitId) {
   const userUnit = userUnits.find(u => u.id === unitId);
   if (userUnit) {
-    if (!confirm(`Remove unit "${userUnit.name}"?`)) return;
+    if (!(await confirmAction(`Remove unit "${userUnit.name}"?`, { confirmLabel: 'REMOVE' }))) return;
     userUnits = userUnits.filter(u => u.id !== unitId);
     delete quantities[unitId];
     renderPanel();
@@ -14517,7 +14517,7 @@ function deleteUserUnit(unitId) {
   // Template unit shown in a superuser custom room — soft-delete via deletedUnits
   const tplUnit = getEffectiveUnits().find(u => u.id === unitId);
   if (!tplUnit) return;
-  if (!confirm(`Remove unit "${tplUnit.name}" from this room?`)) return;
+  if (!(await confirmAction(`Remove unit "${tplUnit.name}" from this room?`, { confirmLabel: 'REMOVE' }))) return;
   deletedUnits.add(unitId);
   try { localStorage.setItem('cutlist_deleted_units', JSON.stringify([...deletedUnits])); } catch(e) {}
   delete quantities[unitId];
@@ -14525,10 +14525,10 @@ function deleteUserUnit(unitId) {
   scheduleAutoSave();
 }
 
-function deleteCustomUnit(unitId) {
+async function deleteCustomUnit(unitId) {
   const unit = customUnits.find(u => u.id === unitId);
   if (!unit) return;
-  if (!confirm(`Remove unit "${unit.name}"?`)) return;
+  if (!(await confirmAction(`Remove unit "${unit.name}"?`, { confirmLabel: 'REMOVE' }))) return;
   const idx = customUnits.findIndex(u => u.id === unitId);
   if (idx >= 0) customUnits.splice(idx, 1);
   delete quantities[unitId];
