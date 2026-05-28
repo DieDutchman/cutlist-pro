@@ -21251,7 +21251,7 @@ function importedToCutlist() {
 
 // ── Save Imported Parts as a Unit ──────────────────────────────────────────────
 function openSaveAsUnitModal(parts, defaultLabel) {
-  if (!parts || !parts.length) { alert('No parts to save.'); return; }
+  if (!parts || !parts.length) { showToast('No parts to save.', 'warning'); return; }
 
   // Build group list from the parts so each group can become its own unit
   const groups = {};
