@@ -214,6 +214,52 @@
   }
   .tab.active .count { background: var(--amber); color: #141414; }
 
+  /* ── MORE DROPDOWN (overflow tools) ── */
+  .more-wrap { position: relative; display: inline-flex; align-items: center; }
+  .tab.more-trigger { display: inline-flex; align-items: center; gap: 4px; }
+  .tab.more-trigger.has-active { color: var(--amber); border-bottom-color: var(--amber); }
+  .tab.more-trigger .caret {
+    display: inline-block;
+    font-size: 9px;
+    line-height: 1;
+    transform: translateY(1px);
+    transition: transform 0.15s;
+  }
+  .more-wrap.open .tab.more-trigger .caret { transform: translateY(1px) rotate(180deg); }
+  .more-panel {
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 0;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--amber);
+    min-width: 200px;
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    padding: 4px 0;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  }
+  .more-wrap.open .more-panel { display: flex; }
+  .more-panel .tab {
+    text-align: left;
+    border-bottom: none !important;
+    padding: 10px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    letter-spacing: 1.5px;
+  }
+  .more-panel .tab:hover { background: rgba(212,145,58,0.08); }
+  .more-panel .tab.active {
+    color: var(--amber);
+    background: rgba(212,145,58,0.12);
+    border-bottom: none !important;
+    border-left: 3px solid var(--amber);
+    padding-left: 13px;
+  }
+  body.supplier-theme .more-panel,
+  body.user-light-theme .more-panel { background: #f5f1e8; border-color: #c8c0b0; }
+
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 
