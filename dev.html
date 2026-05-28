@@ -5034,6 +5034,7 @@ const UNITS = [
 let customUnits = [];
 const unitOverrides = {};
 const deletedUnits = new Set();
+const archivedUnitIds = new Set(); // job-scoped; saved/restored in getJobState/applyState
 
 // ── Declared early so getEffectiveUnits() can safely read it at startup ───────
 let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
