@@ -3923,16 +3923,15 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   box-shadow: 0 2px 10px -2px rgba(212,145,58,0.18);
 }
 
-/* ── Refined Quote section heads — tighten + amber bottom underline ── */
+/* ── Refined Quote section heads — clean header style, no left rail ── */
 .qv-section-head {
-  background: linear-gradient(90deg, rgba(212,145,58,0.08) 0%, var(--bg2) 60%, var(--bg2) 100%);
-  border-left: 3px solid var(--amber-dim);
+  background: var(--bg2);
   color: var(--amber);
   font-weight: 600;
   letter-spacing: 2px;
   transition: background 0.18s;
 }
-.qv-section-head:hover { background: linear-gradient(90deg, rgba(212,145,58,0.12) 0%, var(--bg3) 60%, var(--bg3) 100%); }
+.qv-section-head:hover { background: var(--bg3); }
 
 /* Quote extras table — softer dividers */
 .qv-extras-table tr { transition: background 0.15s; }
