@@ -16875,8 +16875,8 @@ function updateCustomHardware(id, field, value) {
   refreshCostingResults();
 }
 
-function deleteStandardBoard(name) {
-  if (!confirm(`Delete board "${name}" and its edging from the supplier list?`)) return;
+async function deleteStandardBoard(name) {
+  if (!(await confirmAction(`Delete board "${name}" and its edging from the supplier list?`, { confirmLabel: 'DELETE' }))) return;
   const i = MATS.indexOf(name);
   if (i >= 0) MATS.splice(i, 1);
   // Also remove matching edges
