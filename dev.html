@@ -17238,7 +17238,7 @@ function renameEdge(oldKey) {
   const newKey = prompt(`Rename edging "${oldKey}" to:`, oldKey);
   if (!newKey || newKey.trim() === oldKey) return;
   const n = newKey.trim();
-  if (EDGES.includes(n)) { alert(`"${n}" already exists.`); return; }
+  if (EDGES.includes(n)) { showToast(`"${n}" already exists.`, 'warning'); return; }
 
   // Update EDGES array
   const ei = EDGES.indexOf(oldKey);
