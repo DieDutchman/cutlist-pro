@@ -16397,7 +16397,7 @@ async function confirmImportPrices() {
   try {
     const result = await importPriceRows(_importParsedRows);
     closeImportPricesModal();
-    alert(`Imported ${result.imported} row${result.imported !== 1 ? 's' : ''}, skipped ${result.skipped}.`);
+    showToast(`Imported ${result.imported} row${result.imported !== 1 ? 's' : ''}, skipped ${result.skipped}.`, 'success');
   } catch (e) {
     errEl.textContent = `Import failed: ${e.message || e}`;
     errEl.style.display = 'block';
