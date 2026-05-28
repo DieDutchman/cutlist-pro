@@ -19251,6 +19251,7 @@ function _applyStateInner(state) {
   // ── Zero everything first so no old job's data bleeds into the new one ────
   // Quantities — set ALL known units to 0, then overwrite with saved values
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+  archivedUnitIds.clear();
   // Clear job-specific overrides and services
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
