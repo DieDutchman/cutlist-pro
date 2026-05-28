@@ -5672,12 +5672,12 @@ async function seedUnitTemplates() {
       const txt = await res.text().catch(()=>'');
       throw new Error(`HTTP ${res.status} ${txt}`);
     }
-    alert(`Seeded ${rows.length} templates successfully.`);
+    showToast(`Seeded ${rows.length} templates successfully.`, 'success');
     await loadUnitTemplates();
     await loadTemplatesAdmin();
   } catch(e) {
     _setTplStatus(e.message, true);
-    alert('Seed failed: ' + e.message);
+    showToast('Seed failed: ' + e.message, 'error');
   }
 }
 
