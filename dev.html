@@ -13612,7 +13612,7 @@ async function markFeedbackRead(id) {
       row.style.boxShadow = 'none';
       row.setAttribute('data-read', '1');
       const btn = row.querySelector('button');
-      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:1px">READ</span>';
+      if (btn) btn.outerHTML = '<span style="font-size:10px;color:var(--text-muted);font-family:\'Barlow\',sans-serif;font-weight:500;letter-spacing:0.3px">READ</span>';
       // Remove the NEW pill once the message is marked read
       row.querySelectorAll('span').forEach(s => { if (s.textContent.trim() === 'NEW') s.remove(); });
     }
