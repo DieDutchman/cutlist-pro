@@ -9602,7 +9602,7 @@ function createCustomBuilderUnit() {
   renderPanel();
   closeCustomBuilder();
   // Flash confirmation
-  setTimeout(() => alert(`✓ "${unitName}" added to ${section} unit list!`), 50);
+  setTimeout(() => showToast(`"${unitName}" added to ${section} unit list`, 'success'), 50);
 }
 
 function openHeightBuilder() {
