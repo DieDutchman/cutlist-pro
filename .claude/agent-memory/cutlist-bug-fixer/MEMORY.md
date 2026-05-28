@@ -10,3 +10,4 @@
 - [P&L price snapshot](project_pl_price_snapshot.md) — snapshots live in state.costingPriceSnapshot (dedicated field), not state.costingPrices.mat; survives autosave
 - [plCalcFromState global wipe](project_plcalcfromstate_global_wipe.md) — must guard wipe of customUnits/unitOverrides/deletedUnits; getJobState omits them so unconditional clears empty them mid-calc
 - [P&L invoice VAT flag](project_pl_invoice_amount_incl_vat.md) — invoices store amount as-printed plus inv.vatIncluded; aggregate via _invInclVAT(inv) before /1.15. AI detects VAT mode, UI exposes per-row toggle.
+- [Regex font swap quote collisions](project_regex_font_swap_quote_collisions.md) — bulk 'Oswald'->'Barlow' regex can land CSS single-quoted font names inside JS single-quoted strings, breaking <script> parse and login
