@@ -13185,7 +13185,7 @@ async function deleteCurrentJob() {
   if (!currentJobId) return;
   const sel = document.getElementById('job-select');
   const label = sel.options[sel.selectedIndex]?.text || 'this job';
-  if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+  if (!(await confirmAction(`Delete "${label}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
   try {
     const res = await fetch(`${SB_URL}/rest/v1/jobs?id=eq.${currentJobId}`, {
       method: 'DELETE', headers: authHeaders()
