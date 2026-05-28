@@ -12871,9 +12871,55 @@ async function clientHistoryLoad(jobId) {
   await loadJobFromSelect();
 }
 
+// Enhanced glanceable sync status: classifies the message into success / saving /
+// error / neutral, renders an icon + label, and fires an error toast on failure.
+// Keeps the legacy (msg, color) signature intact for all existing callers.
 function setJobSyncStatus(msg, color) {
   const el = document.getElementById('job-sync-status');
-  if (el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
+  if (!el) return;
+  const raw = (msg == null ? '' : String(msg)).trim();
+
+  // Clear → hide pill
+  if (!raw) {
+    el.className = '';
+    el.classList.remove('sync-visible', 'sync-saving', 'sync-success', 'sync-error', 'sync-neutral');
+    el.textContent = '';
+    el.style.color = '';
+    return;
+  }
+
+  // Classify by leading marker / keyword (legacy callers pass ↻/↻/✓/✕ + text)
+  let kind = 'neutral';
+  let label = raw;
+  if (/^[↻⟳]/.test(raw) || /Saving|Loading|Scanning|Migrating/i.test(raw)) {
+    kind = 'saving';
+  } else if (/^✓/.test(raw) || /^(Saved|Loaded|Updated|Deleted)\b/i.test(raw)) {
+    kind = 'success';
+  } else if (/^[✕✗⚠]/.test(raw) || /fail|error|blocked/i.test(raw)) {
+    kind = 'error';
+  }
+  // Strip legacy leading symbol so we can render a clean icon
+  label = label.replace(/^[\s✓✕✗⚠↻⟳]+/, '').trim() || label;
+
+  const iconMap = { saving: '⟳', success: '✓', error: '✕', neutral: '●' };
+  el.className = '';
+  el.classList.add('sync-visible', 'sync-' + kind);
+  el.style.color = '';
+  el.innerHTML = '';
+  const ic = document.createElement('span');
+  ic.className = 'sync-icon';
+  ic.textContent = iconMap[kind];
+  const tx = document.createElement('span');
+  tx.textContent = label;
+  el.appendChild(ic);
+  el.appendChild(tx);
+
+  // Fire an error toast when save state goes red — but only once per message
+  if (kind === 'error' && el.dataset.lastErrorMsg !== label) {
+    el.dataset.lastErrorMsg = label;
+    try { showToast(label, 'error'); } catch(_) {}
+  }
+  if (kind !== 'error') delete el.dataset.lastErrorMsg;
 }
 
 function _renderJobStatusBadge() {
