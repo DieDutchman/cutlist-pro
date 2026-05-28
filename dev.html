@@ -5166,7 +5166,7 @@ function getEffectiveUnits() {
   // (empty array if none created yet) — admins go through the same fresh-account
   // onboarding flow as regular users; only superuser sees the seeded template library.
   if (usesUserUnits() && !isSuperuser()) {
-    return userUnits;
+    return userUnits.filter(u => !archivedUnitIds.has(u.id));
   }
   // Superuser always gets template library + custom units. When superuser also
   // has custom rooms, the template units are remapped per-room via
