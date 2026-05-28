@@ -24632,7 +24632,7 @@ async function openHistoricalPriceModal(jobId) {
       renderPLView();
     } catch(e) {
       btn.disabled = false; btn.textContent = 'SAVE SNAPSHOT';
-      alert('Save failed: ' + e.message);
+      showToast('Save failed: ' + e.message, 'error');
     }
   };
 }
