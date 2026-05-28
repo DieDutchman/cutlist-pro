@@ -8833,21 +8833,21 @@ function saveAddonPreset(secId) {
   saveAddonPresetsLocal();
   pushAddonPresetsToCloud();
   renderPanel();
-  alert('✓ Preset "' + preset.name + '" saved!');
+  showToast('Preset "' + preset.name + '" saved!', 'success');
 }
 
-function deleteAddonPreset(id) {
-  if (!confirm('Delete this preset?')) return;
+async function deleteAddonPreset(id) {
+  if (!(await confirmAction('Delete this preset?', { confirmLabel: 'DELETE' }))) return;
   addonPresets = addonPresets.filter(p => p.id !== id);
   saveAddonPresetsLocal();
   pushAddonPresetsToCloud();
   renderPanel();
 }
 
-function applyAddonPreset(presetId, targetSecId) {
+async function applyAddonPreset(presetId, targetSecId) {
   const preset = addonPresets.find(p => p.id === presetId);
   if (!preset) return;
-  if (!confirm(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons and spacers.`)) return;
+  if (!(await confirmAction(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons and spacers.`, { confirmLabel: 'APPLY' }))) return;
   bedroomAddons[targetSecId].plantOn = JSON.parse(JSON.stringify(preset.plantOn));
   bedroomAddons[targetSecId].spacers  = JSON.parse(JSON.stringify(preset.spacers));
   saveBedroomAddons();
