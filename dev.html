@@ -19430,6 +19430,8 @@ function _applyStateInner(state) {
       userUnits = [...state.userUnits];
       state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; });
     }
+    archivedUnitIds.clear();
+    if (Array.isArray(state.archivedUnitIds)) state.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
     // After loading a job, sync the (possibly merged) room set back to the
     // profile blob so future logins see the latest set.
     if (sbUser && (state.userRooms?.length || state.userUnits?.length)) {
