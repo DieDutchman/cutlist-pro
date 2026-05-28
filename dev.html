@@ -19961,7 +19961,7 @@ function renderQMList() {
         style="background:var(--amber);color:#111;border:none;padding:6px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;flex-shrink:0">
         LOAD
       </button>
-      <button onclick="if(confirm('Delete this quote?'))deleteSnapshot('${safeName}')"
+      <button onclick="confirmAction('Delete this quote?', { confirmLabel: 'DELETE' }).then(ok => { if (ok) deleteSnapshot('${safeName}'); })"
         style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0">
         🗑
       </button>
