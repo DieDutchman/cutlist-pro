@@ -13,6 +13,7 @@ permissions:
 jobs:
   stamp:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
