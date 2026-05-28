@@ -7305,7 +7305,7 @@ function downloadCSV(filename, rows) {
 
 async function downloadXLSX() {
   const data = window._lastCutlist;
-  if (!data) { alert('Please generate the cutlist first.'); return; }
+  if (!data) { showToast('Please generate the cutlist first.', 'warning'); return; }
 
   if (typeof ExcelJS === 'undefined') {
     // CSV fallback
