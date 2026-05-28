@@ -13795,7 +13795,7 @@ async function deleteSupplier(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     await loadSuppliersTab();
   } catch(e) {
-    alert('Delete failed: ' + e.message);
+    showToast('Delete failed: ' + e.message, 'error');
   }
 }
 
