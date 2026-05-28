@@ -13341,7 +13341,7 @@ async function cleanupDeleteRow(name, btn) {
     renderSyncBadge();
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Delete';
-    alert('Delete failed: ' + e.message);
+    showToast('Delete failed: ' + e.message, 'error');
   }
 }
 
