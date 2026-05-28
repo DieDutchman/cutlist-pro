@@ -5966,9 +5966,49 @@ function applyUnitSort(units) {
   return arr;
 }
 
+// ── More menu (overflow Tools dropdown) ───────────────────────────────────────
+// Buttons inside #more-panel keep their original ids/data-section/switchTab
+// handlers, so all show/hide logic elsewhere (role gating, imported-tab toggle,
+// optimize-tab toggle, etc.) continues to work without modification.
+function toggleMoreMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const wrap = document.getElementById('more-wrap');
+  if (!wrap) return;
+  const isOpen = wrap.classList.toggle('open');
+  const trig = document.getElementById('more-trigger');
+  if (trig) trig.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+function closeMoreMenu() {
+  const wrap = document.getElementById('more-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('open');
+  const trig = document.getElementById('more-trigger');
+  if (trig) trig.setAttribute('aria-expanded', 'false');
+}
+// Close when clicking outside
+document.addEventListener('click', function(ev) {
+  const wrap = document.getElementById('more-wrap');
+  if (!wrap || !wrap.classList.contains('open')) return;
+  if (!wrap.contains(ev.target)) closeMoreMenu();
+});
+// Close on Escape
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') closeMoreMenu();
+});
+// Highlight the More trigger when the active tab lives inside the panel
+function syncMoreTriggerActive() {
+  const wrap = document.getElementById('more-wrap');
+  const trig = document.getElementById('more-trigger');
+  if (!wrap || !trig) return;
+  const activeInPanel = !!wrap.querySelector('.more-panel .tab.active');
+  trig.classList.toggle('has-active', activeInPanel);
+}
+
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+  // Reflect overflow-tab activation on the More trigger
+  try { syncMoreTriggerActive(); } catch(e) {}
 
   // Always hide optimizer unless explicitly requested — simplifies per-branch logic
   if (section !== '__optimize__') {
