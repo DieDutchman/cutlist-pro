@@ -2489,10 +2489,11 @@
   .btn { padding: 6px 10px; font-size: 11px; letter-spacing: 1px; min-height: 44px; }
 
   /* Nav tabs: both rows scrollable horizontally, no wrap */
-  .nav-tabs { padding: 0 6px; overflow: hidden; }
+  .nav-tabs { padding: 0 6px; overflow: visible; }
   .nav-row {
     flex-wrap: nowrap;
     overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 1px;
@@ -2501,6 +2502,10 @@
     mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
   }
   .nav-row::-webkit-scrollbar { display: none; }
+  /* Tools row hosts the More dropdown — let it spill out of the scroll container */
+  #tools-row { overflow: visible !important; -webkit-mask-image: none; mask-image: none; }
+  /* More panel on mobile: pin to right edge of viewport, take usable width */
+  .more-panel { right: 6px; min-width: 180px; max-width: calc(100vw - 24px); }
 
   /* Issue 3a: compact tab density */
   .tab { padding: 4px 8px; font-size: 10px; letter-spacing: 0.5px; min-height: 36px; flex-shrink: 0; }
