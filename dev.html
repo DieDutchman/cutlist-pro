@@ -3550,9 +3550,11 @@
 #upm-modal .upm-tbl .pp-input.is-num {
   text-align: center; color: var(--amber); font-family: 'JetBrains Mono', monospace;
 }
-#upm-modal .upm-tbl td.upm-num-cell { width: 64px; }
-#upm-modal .upm-tbl td.upm-qty-cell { width: 56px; }
+#upm-modal .upm-tbl td.upm-num-cell { width: 92px; min-width: 92px; }
+#upm-modal .upm-tbl td.upm-qty-cell { width: 72px; min-width: 72px; }
 #upm-modal .upm-tbl td.upm-del-cell { width: 36px; text-align: center; padding-right: 8px; }
+#upm-modal .upm-tbl td.upm-name-cell { width: auto; min-width: 180px; }
+#upm-modal .upm-tbl .pp-input.is-num { min-width: 0; }
 
 /* Add-part strip — uses .pp-inv-add visual pattern with a centered prompt */
 #upm-modal .upm-add-strip {
