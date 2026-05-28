@@ -3555,6 +3555,8 @@
 #upm-modal .upm-tbl td.upm-del-cell { width: 36px; text-align: center; padding-right: 8px; }
 #upm-modal .upm-tbl td.upm-name-cell { width: auto; min-width: 180px; }
 #upm-modal .upm-tbl .pp-input.is-num { min-width: 0; }
+#upm-modal .upm-tbl td:has(.pp-select) { min-width: 160px; }
+#upm-modal .upm-tbl td .pp-select { width: 100%; min-width: 0; }
 
 /* Add-part strip — uses .pp-inv-add visual pattern with a centered prompt */
 #upm-modal .upm-add-strip {
@@ -14826,12 +14828,12 @@ function openUnitPartsModal(unitId) {
           <th class="is-num" style="width:72px;min-width:72px">Qty</th>
           <th class="is-num" style="width:92px;min-width:92px">Height</th>
           <th class="is-num" style="width:92px;min-width:92px">Width</th>
-          <th style="min-width:150px">Material</th>
-          <th style="min-width:130px">Edge L1</th>
-          <th style="min-width:130px">Edge L2</th>
-          <th style="min-width:130px">Edge W1</th>
-          <th style="min-width:130px">Edge W2</th>
-          <th style="min-width:130px">Holes / Notes</th>
+          <th style="min-width:160px">Material</th>
+          <th style="min-width:160px">Edge L1</th>
+          <th style="min-width:160px">Edge L2</th>
+          <th style="min-width:160px">Edge W1</th>
+          <th style="min-width:160px">Edge W2</th>
+          <th style="min-width:150px">Holes / Notes</th>
           <th style="width:36px"></th>
         </tr></thead>
         <tbody id="upm-parts-tbody">${partsRows}</tbody>
@@ -14978,12 +14980,12 @@ function upmAddPartRow() {
             <th class="is-num" style="width:72px;min-width:72px">Qty</th>
             <th class="is-num" style="width:92px;min-width:92px">Height</th>
             <th class="is-num" style="width:92px;min-width:92px">Width</th>
-            <th style="min-width:150px">Material</th>
-            <th style="min-width:130px">Edge L1</th>
-            <th style="min-width:130px">Edge L2</th>
-            <th style="min-width:130px">Edge W1</th>
-            <th style="min-width:130px">Edge W2</th>
-            <th style="min-width:130px">Holes / Notes</th>
+            <th style="min-width:160px">Material</th>
+            <th style="min-width:160px">Edge L1</th>
+            <th style="min-width:160px">Edge L2</th>
+            <th style="min-width:160px">Edge W1</th>
+            <th style="min-width:160px">Edge W2</th>
+            <th style="min-width:150px">Holes / Notes</th>
             <th style="width:36px"></th>
           </tr></thead>
           <tbody id="upm-parts-tbody"></tbody>
