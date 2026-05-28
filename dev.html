@@ -11295,7 +11295,7 @@ function addMyCostItemToQuote(hwId) {
 function addQuoteOther() {
   const opts = _otherOptions();
   if (!opts.length) {
-    alert('No items in My Costs yet. Add items in the My Costs tab first.');
+    showToast('No items in My Costs yet. Add items in the My Costs tab first.', 'warning');
     return;
   }
   const firstKey  = opts[0].key;
