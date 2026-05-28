@@ -14906,7 +14906,7 @@ function buildUpmPartRow(p, i) {
   const safe = v => String(v == null ? '' : v).replace(/"/g,'&quot;');
   return `<tr data-idx="${i}">
     <td class="upm-row-idx">${i+1}</td>
-    <td><input autocomplete="off" class="pp-input" data-f="name" value="${safe(p.name)}" placeholder="Part name"></td>
+    <td class="upm-name-cell"><input autocomplete="off" class="pp-input" data-f="name" value="${safe(p.name)}" placeholder="Part name"></td>
     <td class="upm-qty-cell"><input autocomplete="off" class="pp-input is-num" data-f="qty" type="number" min="0" value="${p.qty||1}"></td>
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="l" type="number" min="0" value="${p.l||0}"></td>
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="w" type="number" min="0" value="${p.w||0}"></td>
