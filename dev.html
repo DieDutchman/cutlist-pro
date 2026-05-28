@@ -14472,14 +14472,14 @@ function renameRoomPrompt(roomId) {
   }
 }
 
-function deleteRoomPrompt(roomId) {
+async function deleteRoomPrompt(roomId) {
   const room = userRooms.find(r => r.id === roomId);
   if (!room) return;
   const unitCount = userUnits.filter(u => u.section === roomId).length;
   const msg = unitCount > 0
     ? `Delete room "${room.name}"? This will also remove ${unitCount} unit${unitCount!==1?'s':''}.`
     : `Delete room "${room.name}"?`;
-  if (!confirm(msg)) return;
+  if (!(await confirmAction(msg, { confirmLabel: 'DELETE' }))) return;
   userRooms = userRooms.filter(r => r.id !== roomId);
   userUnits = userUnits.filter(u => u.section !== roomId);
   renderUserRoomsNav();
