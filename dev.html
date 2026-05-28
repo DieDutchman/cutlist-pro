@@ -12807,7 +12807,7 @@ async function clientEditSave() {
     setJobSyncStatus('✓ Client updated', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 2500);
   } catch(e) {
-    alert('Save failed: ' + e.message);
+    showToast('Save failed: ' + e.message, 'error');
   }
 }
 
