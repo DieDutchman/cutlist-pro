@@ -18289,8 +18289,8 @@ function updateSpecialService(id, field, value) {
   }, 800);
 }
 
-function removeSpecialService(id) {
-  if (!confirm('Remove this special service?')) return;
+async function removeSpecialService(id) {
+  if (!(await confirmAction('Remove this special service?', { confirmLabel: 'REMOVE' }))) return;
   costingPrices.specialServices = costingPrices.specialServices.filter(s => s.id !== id);
   // Also clean up any unit/panel references
   Object.values(unitSpecialServices).forEach(arr => {
