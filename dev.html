@@ -6340,7 +6340,8 @@ function _renderPanel() {
       <button class="unit-action-btn" onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button>
       <button class="unit-action-btn" onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts"><span class="uab-glyph">🔧</span><span class="uab-label">Parts</span></button>
       ${canMoveUnit ? `<button class="unit-action-btn" onclick="openMoveUnitPopup('${u.id}',this)" title="Move unit to another room"><span class="uab-glyph">✂</span><span class="uab-label">Move</span></button>` : ''}
-      ${canRemoveUnit ? `<button class="unit-action-btn is-danger" onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit"><span class="uab-glyph">×</span><span class="uab-label">Remove</span></button>` : ''}`;
+      ${isUserMode ? `<button class="unit-action-btn" onclick="archiveUserUnit('${u.id}')" title="Hide this unit without deleting it — restore it from the archive bar below"><span class="uab-glyph">📦</span><span class="uab-label">Archive</span></button>` : ''}
+      ${canRemoveUnit ? `<button class="unit-action-btn is-danger" onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit permanently"><span class="uab-glyph">×</span><span class="uab-label">Remove</span></button>` : ''}`;
     const isExpanded = expandedUnits.has(u.id);
     const hasParts   = u.parts && u.parts.length > 0;
     const expandBtn  = hasParts
