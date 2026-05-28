@@ -12785,7 +12785,7 @@ async function clientEditSave() {
     notes:   document.getElementById('ce-notes').value,
     updated_at: new Date().toISOString(),
   };
-  if (!body.name) { alert('Client name is required.'); return; }
+  if (!body.name) { showToast('Client name is required.', 'warning'); return; }
   try {
     const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients?id=eq.${currentClientId}`, {
       method: 'PATCH',
