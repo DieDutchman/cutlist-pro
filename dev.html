@@ -21384,7 +21384,7 @@ function saveImportAsUnit(groupNames, groups) {
   document.getElementById('sau-overlay')?.remove();
 
   const sectionLabel = savedCount > 1 ? `${savedCount} units` : '1 unit';
-  alert(`✓ Saved ${sectionLabel} to your unit list! You can find ${savedCount > 1 ? 'them' : 'it'} in the room tabs and set quantities to include in your quote.`);
+  showToast(`Saved ${sectionLabel} to your unit list. Find ${savedCount > 1 ? 'them' : 'it'} in the room tabs.`, 'success');
 }
 
 
