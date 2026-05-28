@@ -20875,7 +20875,7 @@ async function downloadImportedXLSX(partsArg, labelArg) {
     || 'Imported Cutlist';
 
   if (!srcParts || !srcParts.length) {
-    alert('No imported cutlist to export.');
+    showToast('No imported cutlist to export.', 'warning');
     return;
   }
 
