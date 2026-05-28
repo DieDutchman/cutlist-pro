@@ -17317,7 +17317,7 @@ function promptAddEdge(mat) {
   const price = parseFloat(prompt(`Price per metre for ${mat} ${size.trim()} edging (R):`));
   if (isNaN(price)) return;
   const edgeKey = (mat === 'Picco White' ? 'White Edging' : mat + ' Edging') + ' ' + size.trim();
-  if (EDGES.includes(edgeKey)) { alert(`"${edgeKey}" already exists.`); return; }
+  if (EDGES.includes(edgeKey)) { showToast(`"${edgeKey}" already exists.`, 'warning'); return; }
   EDGES.push(edgeKey);
   costingPrices.edge[edgeKey] = price;
   pushSupplierPrice('edge', edgeKey, price);
