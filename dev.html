@@ -22989,7 +22989,7 @@ function builderSaveUnit() {
   customUnits.push({ id, name, section: bs.section, parts, price: 0 });
   saveCustomUnits();
   updateCounts();
-  alert(`✓ "${name}" added to ${bs.section} unit list!`);
+  showToast(`"${name}" added to ${bs.section} unit list`, 'success');
 }
 
 
