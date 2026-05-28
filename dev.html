@@ -19488,7 +19488,7 @@ function getSnapshots() {
 }
 function saveSnapshots(snaps) {
   try { localStorage.setItem(QM_KEY, JSON.stringify(snaps)); } catch(e) {
-    alert('Storage full — export a JSON backup first to free up space.');
+    showToast('Storage full — export a JSON backup first to free up space.', 'error');
   }
 }
 
