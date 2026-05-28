@@ -23845,7 +23845,7 @@ function drawerSaveUnit() {
   if (!(id in quantities)) quantities[id] = 0;
   updateCounts();
   renderPanel();
-  alert(`✓ "${name}" added to ${drawerState.section} unit list!`);
+  showToast(`"${name}" added to ${drawerState.section} unit list`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════
