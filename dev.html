@@ -18505,7 +18505,7 @@ function openSpecialServicesPopup(targetId, targetType, anchorEl) {
   // Close any existing popup
   document.getElementById('svc-popup')?.remove();
   if (costingPrices.specialServices.length === 0) {
-    alert('No special services have been added yet.\nAsk your supplier to add services in the Supplier Prices tab.');
+    showToast('No special services have been added yet. Ask your supplier to add services in the Supplier Prices tab.', 'info');
     return;
   }
   const popup = document.createElement('div');
