@@ -14204,6 +14204,44 @@ function confirmNewUnit() {
   scheduleAutoSave();
 }
 
+// ── Archive / Restore Units ───────────────────────────────────────────────────
+function archiveUserUnit(id) {
+  archivedUnitIds.add(id);
+  renderPanel();
+  scheduleAutoSave();
+  const unit = userUnits.find(u => u.id === id);
+  _showArchiveToast(`"${unit?.name || 'Unit'}" archived.`, id);
+}
+
+function restoreArchivedUnit(id) {
+  archivedUnitIds.delete(id);
+  document.getElementById('archive-toast')?.remove();
+  renderPanel();
+  scheduleAutoSave();
+}
+
+function toggleArchiveBar(sectionId) {
+  const list    = document.getElementById('archive-bar-' + sectionId + '-list');
+  const chevron = document.getElementById('archive-bar-' + sectionId + '-chevron');
+  if (!list) return;
+  const open = list.style.display === 'none';
+  list.style.display    = open ? 'block' : 'none';
+  if (chevron) chevron.textContent = open ? '▲ HIDE' : '▼ SHOW';
+}
+
+function _showArchiveToast(message, unitId) {
+  document.getElementById('archive-toast')?.remove();
+  const t = document.createElement('div');
+  t.id = 'archive-toast';
+  t.style.cssText = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--amber);color:var(--text);padding:12px 20px;font-family:'Barlow',sans-serif;font-size:13px;z-index:9999;box-shadow:0 6px 22px rgba(0,0,0,0.5);display:flex;align-items:center;gap:14px;white-space:nowrap";
+  t.innerHTML = `<span>${message}</span><button onclick="restoreArchivedUnit('${unitId}')"
+    style="background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;cursor:pointer">UNDO</button>`;
+  document.body.appendChild(t);
+  const fadeTimer  = setTimeout(() => { t.style.transition = 'opacity 0.5s'; t.style.opacity = '0'; }, 5500);
+  const removeTimer = setTimeout(() => t.remove(), 6200);
+  t.querySelector('button').addEventListener('click', () => { clearTimeout(fadeTimer); clearTimeout(removeTimer); });
+}
+
 // ── Import Unit Modal (from XLSX / XLS / CSV file) ───────────────────────────
 let _importUnitParsedUnits = [];
 
