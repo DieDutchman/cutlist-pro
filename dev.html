@@ -13206,6 +13206,12 @@ async function saveJobToCloud() {
   } catch(e) {
     setJobSyncStatus('✕ Save failed: ' + e.message, '#e07070');
     console.warn('[Supabase] Save job failed:', e.message);
+    try {
+      showToast('Save failed — check connection', 'error', {
+        action: { label: 'RETRY', fn: () => saveJobToCloud() },
+        persist: true
+      });
+    } catch(_) {}
   }
   document.getElementById('job-save-btn').disabled = false;
 }
