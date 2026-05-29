@@ -13173,6 +13173,7 @@ async function newJob() {
   });
   currentClientId = null;
   _updateClientButtonsVisibility();
+  try { refreshJobDetailsIndicator(); } catch(e) {}
   // Reset quantities and state — wipe every key so nothing from old job persists
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
