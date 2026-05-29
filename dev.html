@@ -13976,7 +13976,7 @@ async function deleteSupplier(id) {
 
 function renderUserRow(u) {
   const isMe = u.id === sbUser?.id;
-  const roleColor = u.role === 'superuser' ? '#d4913a' : u.role === 'admin' ? 'var(--amber-dim)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
+  const roleColor = u.role === 'superuser' ? 'var(--amber)' : u.role === 'admin' ? 'var(--amber-dim)' : u.role === 'supplier' ? '#4caf82' : 'var(--text-muted)';
   const trialDate = u.trial_expires_at || '';
   const today = new Date().toISOString().split('T')[0];
   const isExpired = trialDate && trialDate < today;
