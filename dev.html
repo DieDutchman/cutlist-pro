@@ -6878,9 +6878,18 @@ function _renderPanel() {
 
   html += `</tbody></table>`;
 
-  // Archive bar — shows when archived units exist in this room
+  // Archive bar — shows when archived units exist in this room.
+  // For superuser-with-rooms the room can contain template units (matched via
+  // room.templateSection), custom units, and userUnits — we need to surface
+  // archived items from every pool so the restore button is reachable.
   if (isUserMode) {
-    const archivedInRoom = userUnits.filter(u => u.section === currentSection && archivedUnitIds.has(u.id));
+    const _allUnitPool = (isSuperuser() && userRoom)
+      ? [...getUnitTemplates(), ...customUnits, ...userUnits]
+      : userUnits;
+    const _matchesRoom = u => userRoom
+      ? (u.section === userRoom.templateSection || u.section === userRoom.id)
+      : (u.section === currentSection);
+    const archivedInRoom = _allUnitPool.filter(u => _matchesRoom(u) && archivedUnitIds.has(u.id));
     if (archivedInRoom.length > 0) {
       const barId = 'archive-bar-' + currentSection;
       html += `<div id="${barId}" style="margin-top:12px;border:1px solid var(--border);border-radius:2px;overflow:hidden">
