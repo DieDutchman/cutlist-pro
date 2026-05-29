@@ -14735,10 +14735,10 @@ function confirmAddRoom() {
   if (isSuperuser() && sbUser) pushTemplatesToCloud();
 }
 
-function renameRoomPrompt(roomId) {
+async function renameRoomPrompt(roomId) {
   const room = userRooms.find(r => r.id === roomId);
   if (!room) return;
-  const name = prompt('Rename room:', room.name);
+  const name = await inputPrompt('Rename room:', room.name);
   if (name && name.trim()) {
     room.name = name.trim();
     // Keep MAT_GROUPS label in sync so the material selector header / cutlist
