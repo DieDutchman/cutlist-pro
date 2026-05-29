@@ -13409,7 +13409,7 @@ function showUsersTab(tab) {
   if (supPanel) supPanel.style.display = isSuppliers ? 'flex' : 'none';
   const tplPanel = document.getElementById('um-panel-templates');
   if (tplPanel) tplPanel.style.display = isTemplates ? 'flex' : 'none';
-  const styleFor = (active) => `flex:1;padding:10px;font-family:'Barlow',sans-serif;font-weight:500;font-size:11px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
+  const styleFor = (active) => `flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-weight:500;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
   document.getElementById('um-tab-users').style.cssText    = styleFor(isUsers);
   document.getElementById('um-tab-feedback').style.cssText = styleFor(isFeedback);
   const supTab = document.getElementById('um-tab-suppliers');
