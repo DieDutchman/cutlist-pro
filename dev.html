@@ -4869,6 +4869,93 @@ function confirmAction(message, opts) {
   return handle.actionPromise.then(v => v === true);
 }
 
+// Promise-returning inline text input (replaces window.prompt)
+// Usage: const v = await inputPrompt('Rename room:', currentName); if (v === null) return;
+// Returns trimmed string on confirm, null on cancel/escape/dismiss.
+function inputPrompt(message, defaultValue) {
+  return new Promise((resolve) => {
+    const container = document.getElementById('toast-container');
+    if (!container) { resolve(null); return; }
+
+    const t = document.createElement('div');
+    t.className = 'toast toast-info';
+    t.setAttribute('role', 'dialog');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.textContent = TOAST_ICONS.info || 'ℹ';
+    t.appendChild(icon);
+
+    const body = document.createElement('div');
+    body.style.flex = '1';
+
+    const msg = document.createElement('div');
+    msg.className = 'toast-msg';
+    msg.textContent = String(message == null ? '' : message);
+    body.appendChild(msg);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultValue == null ? '' : String(defaultValue);
+    input.style.cssText = 'display:block;width:100%;margin-top:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;outline:none;box-sizing:border-box';
+    input.addEventListener('focus', () => { input.style.borderColor = 'var(--amber)'; });
+    input.addEventListener('blur',  () => { input.style.borderColor = 'var(--border)'; });
+    body.appendChild(input);
+
+    let resolved = false;
+    const finish = (val) => {
+      if (resolved) return;
+      resolved = true;
+      document.removeEventListener('keydown', keyHandler, true);
+      t.classList.remove('toast-show');
+      t.classList.add('toast-hide');
+      setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      resolve(val);
+    };
+
+    const row = document.createElement('div');
+    row.className = 'toast-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'CANCEL';
+    cancelBtn.addEventListener('click', () => finish(null));
+    const okBtn = document.createElement('button');
+    okBtn.className = 'toast-primary';
+    okBtn.textContent = 'RENAME';
+    okBtn.addEventListener('click', () => {
+      const v = input.value.trim();
+      finish(v ? v : null);
+    });
+    row.appendChild(cancelBtn);
+    row.appendChild(okBtn);
+    body.appendChild(row);
+
+    t.appendChild(body);
+
+    const close = document.createElement('button');
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.textContent = '×';
+    close.addEventListener('click', () => finish(null));
+    t.appendChild(close);
+
+    const keyHandler = (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(null); }
+      else if (ev.key === 'Enter' && document.activeElement === input) {
+        ev.preventDefault(); ev.stopPropagation();
+        const v = input.value.trim();
+        finish(v ? v : null);
+      }
+    };
+    document.addEventListener('keydown', keyHandler, true);
+
+    container.appendChild(t);
+    requestAnimationFrame(() => {
+      t.classList.add('toast-show');
+      try { input.focus(); input.select(); } catch(_) {}
+    });
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
 // SCROLL PRESERVATION — prevents page jumping when inputs re-render views
 // ═══════════════════════════════════════════════════════════
