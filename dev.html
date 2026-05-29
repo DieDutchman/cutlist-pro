@@ -26491,7 +26491,7 @@ function renderOptimizer() {
       <div class="opt-stat"><div class="opt-stat-label">Sheet Area</div><div class="opt-stat-val small">${(totalSheetArea / 1e6).toFixed(2)} m²</div></div>
       <div class="opt-stat"><div class="opt-stat-label">Efficiency</div><div class="opt-stat-val">${efficiency.toFixed(1)}%</div></div>
       <div class="opt-stat"><div class="opt-stat-label">Waste</div><div class="opt-stat-val">${waste.toFixed(1)}%</div></div>
-      ${totalOversized > 0 ? `<div class="opt-stat" style="border-left-color:#d4583a"><div class="opt-stat-label">Oversized</div><div class="opt-stat-val" style="color:#d4583a">${totalOversized}</div></div>` : ''}
+      ${totalOversized > 0 ? `<div class="opt-stat"><div class="opt-stat-label">Oversized</div><div class="opt-stat-val" style="color:#d4583a">${totalOversized}</div></div>` : ''}
     </div>
   `;
 
