@@ -14227,7 +14227,16 @@ function _renderTrialBadge() {
       \u23f1 ${label}: <strong>${timeStr}</strong>
     </span>`;
   const activeBtn = document.getElementById('trial-badge-btn');
-  if (activeBtn) activeBtn.addEventListener('click', function() { openTrialContactModal('active'); });
+  if (activeBtn) activeBtn.addEventListener('click', function() {
+    // Touch-friendly summary toast so the countdown detail isn't hover-only
+    try {
+      const summary = days >= 1
+        ? `${days} day${days===1?'':'s'} left on your trial (expires ${expiry})`
+        : `Trial expires today (${timeStr} remaining)`;
+      showToast(summary, urgent ? 'warning' : 'info', { duration: 3500 });
+    } catch(_) {}
+    openTrialContactModal('active');
+  });
 }
 
 let _trialExpiredModalShown = false;
