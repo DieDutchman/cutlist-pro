@@ -18169,6 +18169,9 @@ function _renderPricesView() {
       <div style="font-weight:500;padding:7px 12px;font-size:10px;color:var(--amber-dim);letter-spacing:0.3px;font-family:'Barlow',sans-serif;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
         ⚠ ORPHAN EDGES — no matching board (safe to remove)
       </div>
+      <div style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-style:italic;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));line-height:1.5">
+        These edging types are not linked to a specific board. They can still be assigned to parts.
+      </div>
       ${orphanEdges.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
         <span style="flex:1;font-size:12px;color:var(--amber-dim)">${e}</span>
         <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[e]||0}"
