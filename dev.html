@@ -13136,6 +13136,7 @@ async function loadJobFromSelect() {
     if (document.getElementById('job-notes'))   document.getElementById('job-notes').value   = job.notes   || '';
     currentClientId = job.client_id || null;
     _updateClientButtonsVisibility();
+    try { refreshJobDetailsIndicator(); } catch(e) {}
 
     // Apply full state
     if (job.state) applyState(job.state);
