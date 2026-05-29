@@ -9093,7 +9093,7 @@ function buildPlantOnCard(secId) {
         <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
         <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
         <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
       </div>
       ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
     </div>`;
@@ -9193,7 +9193,7 @@ function buildSpacersCard(secId) {
         <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
         <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
         <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
       </div>
       ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
     </div>`;
