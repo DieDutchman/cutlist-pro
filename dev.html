@@ -13725,10 +13725,10 @@ async function loadFeedbackInbox() {
         : cat === 'Pricing / boards'          ? '#c98a3a'        // orange-amber
         : 'var(--text-muted)';                                   // general / fallback
       const isUnread = !r.read;
-      // Card: stronger separation via background + 4px left accent border + outer border
+      // Card: stronger separation via background + 3px top accent border + outer border
       const cardStyle = [
-        `border-left:4px solid ${catColor}`,
-        'border-top:1px solid var(--border)',
+        `border-top:3px solid ${catColor}`,
+        'border-left:1px solid var(--border)',
         'border-right:1px solid var(--border)',
         'border-bottom:1px solid var(--border)',
         `background:${isUnread ? 'var(--bg2)' : 'var(--bg)'}`,
