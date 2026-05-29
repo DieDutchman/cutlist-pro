@@ -13506,12 +13506,11 @@ function showUsersTab(tab) {
   const tplPanel = document.getElementById('um-panel-templates');
   if (tplPanel) tplPanel.style.display = isTemplates ? 'flex' : 'none';
   const styleFor = (active) => `flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-weight:500;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid ${active ? 'var(--amber)' : 'transparent'};background:${active ? 'rgba(212,145,58,0.08)' : 'none'};color:${active ? 'var(--amber)' : 'var(--text-muted)'}`;
-  document.getElementById('um-tab-users').style.cssText    = styleFor(isUsers);
-  document.getElementById('um-tab-feedback').style.cssText = styleFor(isFeedback);
-  const supTab = document.getElementById('um-tab-suppliers');
-  if (supTab) supTab.style.cssText = styleFor(isSuppliers);
-  const tplTab = document.getElementById('um-tab-templates');
-  if (tplTab) tplTab.style.cssText = styleFor(isTemplates);
+  const _setTab = (el, active) => { if (!el) return; el.style.cssText = styleFor(active); el.setAttribute('aria-selected', active ? 'true' : 'false'); };
+  _setTab(document.getElementById('um-tab-users'),    isUsers);
+  _setTab(document.getElementById('um-tab-feedback'), isFeedback);
+  _setTab(document.getElementById('um-tab-suppliers'), isSuppliers);
+  _setTab(document.getElementById('um-tab-templates'), isTemplates);
   if (isFeedback) { clearFeedbackDot(); loadFeedbackInbox(); }
   if (isSuppliers && typeof loadSuppliersTab === 'function') loadSuppliersTab();
   if (isTemplates) loadTemplatesAdmin();
