@@ -18127,7 +18127,7 @@ function _renderPricesView() {
         const sizeLabel = edgeKey.replace(/^.*? Edging /, '');
         const safeKey   = edgeKey.replace(/'/g, "\\\\'");
         return `<div style="display:flex;align-items:center;gap:6px;${matEdges.length > 1 ? 'padding:3px 0;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))' : ''}">
-          <span style="font-size:12px;color:var(--text-muted);width:32px;flex-shrink:0">${sizeLabel}</span>
+          <span style="font-size:12px;color:var(--text);font-weight:500;min-width:78px;flex-shrink:0"><span style="color:var(--amber)">${sizeLabel}</span> <span style="color:var(--text-muted);font-weight:400">edging</span></span>
           <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${costingPrices.edge[edgeKey]||0}" ${ro}
             onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
             onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
