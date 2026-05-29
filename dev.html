@@ -4838,6 +4838,9 @@ function showToast(message, type, opts) {
     }, duration);
   }
 
+  if (_shorthandFn && actionPromise) {
+    actionPromise.then(v => { if (v === '__action__') { try { _shorthandFn(); } catch(e) { console.warn('[toast action]', e); } } });
+  }
   return { dismiss, actionPromise };
 }
 
