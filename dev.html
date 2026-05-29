@@ -26713,6 +26713,9 @@ async function handlePlanFile(file) {
     return;
   }
 
+  // Preserve file across error → retry so user doesn't have to re-upload
+  _planImportLastFile = file;
+
   renderPlanImportState('processing', 'Reading plan…');
 
   const systemPrompt = `You are a floor plan analyser. The user has uploaded an architect's floor plan PDF or image.
