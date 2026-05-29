@@ -6905,102 +6905,86 @@ function updateCounts() {
   });
 }
 
-function clearAll() {
-  const btn = document.querySelector('button[onclick="clearAll()"]');
-  if (btn._confirmPending) {
-    // Second click confirms
-    btn._confirmPending = false;
-    btn.textContent = 'Clear All';
-    btn.style.color = '';
-    getEffectiveUnits().forEach(u => quantities[u.id] = 0);
-    Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+async function clearAll() {
+  if (!(await confirmAction('Clear all units and panels? This cannot be undone.', { confirmLabel: 'CLEAR ALL' }))) return;
+  getEffectiveUnits().forEach(u => quantities[u.id] = 0);
+  Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
   Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
   panelsState.items = []; panelsState.label = '';
-    // Reset bedroom addons (built-ins + user rooms)
-    getAddonSections().forEach(sec => {
-      ensureBedroomAddons(sec);
-      bedroomAddons[sec].plantOn  = { enabled: false, items: [defaultAddon()] };
-      bedroomAddons[sec].spacers  = { enabled: false, items: [defaultSpacer()] };
-    });
-    saveBedroomAddons();
-    panelsState.items = [];
-    panelsState.label = '';
-    _panelIdCounter = 1;
-    savePanelsState();
-    // Reset entire quote state — extras, tops, fees, markup back to defaults
-    quoteState.extras     = [];
-    quoteState.tops       = { m2: 0, type: 'Platinum', pricePerM2: 2900 };
-    quoteState.consultFee    = false;
-    quoteState.dieselFee     = false;
-    quoteState.deliveryFee   = false;
-    quoteState.consultFeeAmt = 500;
-    quoteState.dieselFeeAmt  = 1800;
-    quoteState.deliveryFeeAmt= 0;
-    quoteState.markup     = 0.40;
-    quoteState.hingeType  = 'soft';
-    quoteState.runnerType = 'soft';
-    saveQuoteState();
+  // Reset bedroom addons (built-ins + user rooms)
+  getAddonSections().forEach(sec => {
+    ensureBedroomAddons(sec);
+    bedroomAddons[sec].plantOn  = { enabled: false, items: [defaultAddon()] };
+    bedroomAddons[sec].spacers  = { enabled: false, items: [defaultSpacer()] };
+  });
+  saveBedroomAddons();
+  panelsState.items = [];
+  panelsState.label = '';
+  _panelIdCounter = 1;
+  savePanelsState();
+  // Reset entire quote state — extras, tops, fees, markup back to defaults
+  quoteState.extras     = [];
+  quoteState.tops       = { m2: 0, type: 'Platinum', pricePerM2: 2900 };
+  quoteState.consultFee    = false;
+  quoteState.dieselFee     = false;
+  quoteState.deliveryFee   = false;
+  quoteState.consultFeeAmt = 500;
+  quoteState.dieselFeeAmt  = 1800;
+  quoteState.deliveryFeeAmt= 0;
+  quoteState.markup     = 0.40;
+  quoteState.hingeType  = 'soft';
+  quoteState.runnerType = 'soft';
+  saveQuoteState();
 
-    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
-    Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
-    saveSectionHardware();
-    saveUnitMatOverrides();
-    save();
-    saveHoles();
-    document.getElementById('cutlist-view').innerHTML = '';
-    document.getElementById('summary-view').innerHTML = '';
-    document.getElementById('cutlist-view').style.display = 'none';
-    document.getElementById('summary-view').style.display = 'none';
-    document.getElementById('editor-view').style.display = 'none';
-    document.getElementById('quote-price-view').style.display = 'none';
-    document.getElementById('costing-view').style.display = 'none';
-    document.getElementById('materials-view').style.display = 'none';
-    document.getElementById('prices-view').style.display = 'none';
-    document.getElementById('builder-view').style.display = 'none';
-    document.getElementById('panels-view').style.display = 'none';
-    document.getElementById('import-view').style.display = 'none';
-    document.getElementById('imported-cutlist-view').style.display = 'none';
-    document.getElementById('pl-view').style.display = 'none';
-    document.getElementById('quote-view').style.display = 'block';
-    // Reset import state
-    importState.raw = null;
-    importState.parsed = null;
-    importState.label = '';
-    importState.status = 'idle';
-    importState.error = null;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    // For user mode (admin + user), activate first user room; for superuser, activate kitchen
-    if (usesUserUnits() && userRooms.length > 0) {
-      currentSection = userRooms[0].id;
-    } else {
-      currentSection = 'kitchen';
-    }
-    const _caTab = document.querySelector('[data-section="' + currentSection + '"]');
-    if (_caTab) _caTab.classList.add('active');
-    if (usesUserUnits()) applyRoleRestrictions(); // re-show Add Room button for non-superuser
-    renderPanel();
-    window._lastCutlist = null;
-    window._lastSummary = null;
-    // Clear job details
-    ['job-client','job-house','job-address','job-notes'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    saveJobDetails();
+  Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+  Object.keys(sectionHardware).forEach(k => delete sectionHardware[k]);
+  saveSectionHardware();
+  saveUnitMatOverrides();
+  save();
+  saveHoles();
+  document.getElementById('cutlist-view').innerHTML = '';
+  document.getElementById('summary-view').innerHTML = '';
+  document.getElementById('cutlist-view').style.display = 'none';
+  document.getElementById('summary-view').style.display = 'none';
+  document.getElementById('editor-view').style.display = 'none';
+  document.getElementById('quote-price-view').style.display = 'none';
+  document.getElementById('costing-view').style.display = 'none';
+  document.getElementById('materials-view').style.display = 'none';
+  document.getElementById('prices-view').style.display = 'none';
+  document.getElementById('builder-view').style.display = 'none';
+  document.getElementById('panels-view').style.display = 'none';
+  document.getElementById('import-view').style.display = 'none';
+  document.getElementById('imported-cutlist-view').style.display = 'none';
+  document.getElementById('pl-view').style.display = 'none';
+  document.getElementById('quote-view').style.display = 'block';
+  // Reset import state
+  importState.raw = null;
+  importState.parsed = null;
+  importState.label = '';
+  importState.status = 'idle';
+  importState.error = null;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  // For user mode (admin + user), activate first user room; for superuser, activate kitchen
+  if (usesUserUnits() && userRooms.length > 0) {
+    currentSection = userRooms[0].id;
   } else {
-    // First click — ask for confirmation via button state
-    btn._confirmPending = true;
-    btn.textContent = 'Confirm Clear?';
-    btn.style.color = 'var(--red)';
-    setTimeout(() => {
-      if (btn._confirmPending) {
-        btn._confirmPending = false;
-        btn.textContent = 'Clear All';
-        btn.style.color = '';
-      }
-    }, 3000);
+    currentSection = 'kitchen';
   }
+  const _caTab = document.querySelector('[data-section="' + currentSection + '"]');
+  if (_caTab) _caTab.classList.add('active');
+  if (usesUserUnits()) applyRoleRestrictions(); // re-show Add Room button for non-superuser
+  renderPanel();
+  window._lastCutlist = null;
+  window._lastSummary = null;
+  // Clear job details
+  ['job-client','job-house','job-address','job-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  saveJobDetails();
+  // Refresh job details popover indicator
+  try { refreshJobDetailsIndicator(); } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════
