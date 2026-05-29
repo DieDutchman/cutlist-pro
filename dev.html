@@ -26677,13 +26677,18 @@ function renderPlanImportState(state, extra) {
   }
 
   if (state === 'error') {
+    const hasLast = !!_planImportLastFile;
+    const fileLabel = hasLast ? (_planImportLastFile.name || 'previous file') : '';
     body.innerHTML = `
       <div style="background:rgba(224,82,82,0.1);border:1px solid #5a2a2a;color:#e07070;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px">
         ${extra || 'Something went wrong.'}
       </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
+      ${hasLast ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;font-family:'Barlow',sans-serif">Last upload: <span style="color:var(--text)">${fileLabel.replace(/[<>&]/g,'')}</span></div>` : ''}
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+        ${hasLast ? `<button onclick="retryPlanImportSameFile()"
+          style="font-weight:500;background:var(--amber);color:#111;border:none;padding:9px 18px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">↺ RETRY SAME FILE</button>` : ''}
         <button onclick="renderPlanImportState('upload')"
-          style="font-weight:500;background:var(--amber);color:#111;border:none;padding:9px 18px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">↺ TRY AGAIN</button>
+          style="font-weight:500;background:${hasLast ? 'var(--bg3)' : 'var(--amber)'};${hasLast ? 'border:1px solid var(--border);color:var(--text-muted);' : 'border:none;color:#111;'}padding:9px 18px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">↑ UPLOAD NEW FILE</button>
         <button onclick="closePlanImportModal()"
           style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:9px 18px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">CLOSE</button>
       </div>
