@@ -17514,8 +17514,8 @@ async function renameMat(oldName) {
   refreshPriceViews();
 }
 
-function renameEdge(oldKey) {
-  const newKey = prompt(`Rename edging "${oldKey}" to:`, oldKey);
+async function renameEdge(oldKey) {
+  const newKey = await inputPrompt(`Rename edging "${oldKey}" to:`, oldKey);
   if (!newKey || newKey.trim() === oldKey) return;
   const n = newKey.trim();
   if (EDGES.includes(n)) { showToast(`"${n}" already exists.`, 'warning'); return; }
