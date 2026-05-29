@@ -19504,6 +19504,7 @@ function saveJobDetails() {
       notes:   document.getElementById('job-notes')?.value   || '',
     }));
   } catch(e) {}
+  try { refreshJobDetailsIndicator(); } catch(e) {}
 }
 
 function loadJobDetails() {
@@ -19514,6 +19515,7 @@ function loadJobDetails() {
     if (document.getElementById('job-address')) document.getElementById('job-address').value = saved.address || '';
     if (document.getElementById('job-notes'))   document.getElementById('job-notes').value   = saved.notes   || '';
   } catch(e) {}
+  try { refreshJobDetailsIndicator(); } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════
