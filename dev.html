@@ -8231,7 +8231,8 @@ async function downloadSummaryXLSX() {
 
   // ── Extras / Shopping List sheet ──
   const extrasForXlsx = (quoteState.extras || []).filter(e => parseFloat(e.amount) > 0 || e.hwType || e.otherType || e.skirtingMode !== undefined || e.baseMode !== undefined);
-  if (extrasForXlsx.length > 0) {
+  const bomForXlsx = Array.isArray(window._bomForXlsx) ? window._bomForXlsx : [];
+  if (extrasForXlsx.length > 0 || bomForXlsx.length > 0) {
     const wsE = wb.addWorksheet('Shopping List');
     wsE.columns = [{width:32},{width:12},{width:16},{width:18}];
     // Header
@@ -8242,6 +8243,44 @@ async function downloadSummaryXLSX() {
       eHdr.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('1E3A5F') };
       eHdr.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
       eHdr.getCell(c).border = aM('1E3A5F');
+    }
+
+    // ── Auto-calculated Hardware BOM (prepended before manual extras) ──
+    if (bomForXlsx.length > 0) {
+      const bomSection = wsE.addRow(['HARDWARE ORDER LIST', '', '', '']);
+      bomSection.height = 18;
+      for (let c=1;c<=4;c++) {
+        bomSection.getCell(c).font = { bold:true, size:11, color:hex('FFFFFF') };
+        bomSection.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('8C5A2E') };
+        bomSection.getCell(c).border = aM('8C5A2E');
+        bomSection.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
+      }
+      bomForXlsx.forEach((r, ri) => {
+        const br = wsE.addRow([r.item, r.qty, r.unit, '']);
+        br.height = 16;
+        const bg = ri % 2 === 0 ? 'FEF3E2' : 'FAEAD0';
+        for (let c=1;c<=4;c++) {
+          br.getCell(c).font = { size:11, color:hex('111827') };
+          br.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex(bg) };
+          br.getCell(c).border = aT();
+          br.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
+        }
+        br.getCell(2).font = { bold:true, size:11, color:hex('92400E') };
+      });
+      // Spacer row so the extras header is visually separate
+      wsE.addRow([]);
+    }
+
+    // ── Manual extras (kept after the auto BOM) ──
+    if (extrasForXlsx.length > 0) {
+      const exHdr = wsE.addRow(['EXTRAS & SHOPPING LIST', '', '', '']);
+      exHdr.height = 18;
+      for (let c=1;c<=4;c++) {
+        exHdr.getCell(c).font = { bold:true, size:11, color:hex('FFFFFF') };
+        exHdr.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('1E3A5F') };
+        exHdr.getCell(c).border = aM('1E3A5F');
+        exHdr.getCell(c).alignment = { horizontal: c===1 ? 'left' : 'center', vertical:'middle' };
+      }
     }
     let extrasTotal = 0;
     extrasForXlsx.forEach((e, ei) => {
