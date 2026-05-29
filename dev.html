@@ -8064,7 +8064,8 @@ function generateSummary() {
   document.getElementById('summary-view').innerHTML = html;
   window._lastSummary = { summaryData, dateTimeStr, jobClient,
     jobHouse: document.getElementById('job-house')?.value.trim()||'',
-    jobAddress: document.getElementById('job-address')?.value.trim()||'' };
+    jobAddress: document.getElementById('job-address')?.value.trim()||'',
+    bomRows: Array.isArray(window._bomForXlsx) ? window._bomForXlsx.slice() : [] };
 
   // Switch to summary tab
   document.getElementById('quote-view').style.display = 'none';
