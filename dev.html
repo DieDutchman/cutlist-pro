@@ -17357,7 +17357,7 @@ async function migrateRenamedNamesAcrossJobs(renamesObj) {
 }
 
 async function renameMat(oldName) {
-  const newName = prompt(`Rename board "${oldName}" to:`, oldName);
+  const newName = await inputPrompt(`Rename board "${oldName}" to:`, oldName);
   if (!newName || newName.trim() === oldName) return;
   const n = newName.trim();
   if (MATS.includes(n)) {
