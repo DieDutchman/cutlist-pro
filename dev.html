@@ -6271,6 +6271,49 @@ function toggleMoreMenu(ev) {
   const trig = document.getElementById('more-trigger');
   if (trig) trig.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 }
+
+// ─── Job details popover (client/stand/address/notes collapsed behind icon) ─
+function toggleJobDetailsPopover(ev) {
+  if (ev) ev.stopPropagation();
+  const pop = document.getElementById('job-details-popover');
+  const btn = document.getElementById('job-details-btn');
+  if (!pop) return;
+  const showing = pop.style.display !== 'none' && pop.style.display !== '';
+  pop.style.display = showing ? 'none' : 'block';
+  if (btn) btn.setAttribute('aria-expanded', showing ? 'false' : 'true');
+}
+function closeJobDetailsPopover() {
+  const pop = document.getElementById('job-details-popover');
+  const btn = document.getElementById('job-details-btn');
+  if (pop) pop.style.display = 'none';
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+function refreshJobDetailsIndicator() {
+  const dot = document.getElementById('job-details-dot');
+  if (!dot) return;
+  const ids = ['job-client','job-house','job-address','job-notes'];
+  const hasContent = ids.some(id => {
+    const el = document.getElementById(id);
+    return el && el.value && el.value.trim().length > 0;
+  });
+  dot.style.display = hasContent ? 'inline-block' : 'none';
+}
+// Close on outside click — but ignore clicks inside the client picker dropdown,
+// which is positioned outside the popover but is part of the same interaction.
+document.addEventListener('click', function(ev) {
+  const wrap = document.getElementById('job-details-wrap');
+  const pop  = document.getElementById('job-details-popover');
+  if (!wrap || !pop) return;
+  if (pop.style.display === 'none' || pop.style.display === '') return;
+  if (wrap.contains(ev.target)) return;
+  const picker = document.getElementById('client-picker-dropdown');
+  if (picker && picker.contains(ev.target)) return;
+  closeJobDetailsPopover();
+});
+// Close on Escape (only if no nested overlay has focus)
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') closeJobDetailsPopover();
+});
 function closeMoreMenu() {
   const wrap = document.getElementById('more-wrap');
   if (!wrap) return;
