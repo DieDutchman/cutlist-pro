@@ -18138,18 +18138,21 @@ function _renderPricesView() {
         </div>`;
       }).join('');
       const addEdgeRow = admin ? `
-        <div style="display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid var(--border-inner, rgba(255,255,255,0.18));margin-top:3px">
+        <div style="display:flex;align-items:center;gap:5px;padding-top:6px;border-top:1px solid var(--border-inner, rgba(255,255,255,0.18));margin-top:3px">
           <input id="new-edge-size-${safeId}" type="text" placeholder="size e.g. 2mm"
-            style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border-inner, rgba(255,255,255,0.18));color:var(--text);padding:3px 6px;font-size:11px;outline:none"
+            title="Edging thickness — e.g. 0.4mm, 1mm, 2mm, 3mm"
+            style="flex:1;min-width:0;background:var(--bg4);border:1px solid var(--border-inner, rgba(255,255,255,0.18));color:var(--text);padding:4px 8px;font-size:11px;outline:none"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
-          <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="0"
+          <input id="new-edge-price-${safeId}" class="cv-extra-input" type="number" min="0" placeholder="price/m"
+            title="Price per metre of edging"
             style="width:80px;font-size:11px;padding:3px 6px"
             onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
             onkeydown="if(event.key==='Enter')addBoardEdging('${mat.replace(/'/g, "\\'")}')">
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
           <button onclick="addBoardEdging('${mat.replace(/'/g, "\\'")}')"
-            style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:10px;padding:2px 8px;cursor:pointer">+</button>
+            title="Add this edging size to the board"
+            style="background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);font-size:11px;font-weight:500;padding:3px 12px;cursor:pointer;white-space:nowrap;letter-spacing:0.3px">+ Add</button>
         </div>` : '';
       edgeCell = `<div style="${ROW_PAD}">${edgeInputs}${addEdgeRow}</div>`;
     }
