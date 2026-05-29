@@ -8322,15 +8322,17 @@ async function downloadSummaryXLSX() {
         dr.getCell(3).numFmt = 'R #,##0.00';
       }
     });
-    // Total row
-    const totRow = wsE.addRow(['TOTAL', '', '', extrasTotal]);
-    totRow.height = 20;
-    for (let c=1;c<=4;c++) {
-      totRow.getCell(c).font = { bold:true, size:12, color:hex('FFFFFF') };
-      totRow.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('8C5A2E') };
-      totRow.getCell(c).border = aM('8C5A2E');
+    // Total row — only when manual extras are present
+    if (extrasForXlsx.length > 0) {
+      const totRow = wsE.addRow(['TOTAL', '', '', extrasTotal]);
+      totRow.height = 20;
+      for (let c=1;c<=4;c++) {
+        totRow.getCell(c).font = { bold:true, size:12, color:hex('FFFFFF') };
+        totRow.getCell(c).fill = { type:'pattern', pattern:'solid', fgColor:hex('8C5A2E') };
+        totRow.getCell(c).border = aM('8C5A2E');
+      }
+      totRow.getCell(4).numFmt = 'R #,##0.00';
     }
-    totRow.getCell(4).numFmt = 'R #,##0.00';
   }
 
   // ── Download ──
