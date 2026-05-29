@@ -17654,6 +17654,17 @@ function calcUnitCost(u, unitQty) {
   const bedroomSecs = new Set(['mainbedroom','sparebedroom','linnekast']);
   const isBedroom   = bedroomSecs.has(u.section);
 
+  // Pre-scan: does this unit have any drawer sides? If yes, sized runners come
+  // from the sides and any drawer-bottom fallback must be suppressed (otherwise
+  // the BOM gets BOTH a sized "Soft-close Drawer Runners 500mm" line AND an
+  // unsized "Soft-close Drawer Runners" line for the same drawers).
+  const _hasDrawerSides = u.parts.some(p => {
+    const rp = applyMaterials(p, u);
+    const nl = (rp.name || '').toLowerCase();
+    return (nl.includes('drawer side') || nl.includes('drawer box side')) && rp.l > 0;
+  });
+  let _drawerBottomFallbackQty = 0;
+
   u.parts.forEach(p => {
     const rp = applyMaterials(p, u);   // apply selected material/edging substitution
     const totalQty  = rp.qty * unitQty;
@@ -17706,13 +17717,19 @@ function calcUnitCost(u, unitQty) {
       const sets    = totalQty / 2; // pair of sides = one runner set
       runnerSets[stdSize] = (runnerSets[stdSize] || 0) + sets;
     }
-    // Fallback: if only drawer bottoms are present (no sides), count them as unknown-size runners
+    // Fallback: only used when the unit has NO drawer sides at all. We can't
+    // know the runner size from bottoms alone, so we tally and apply after the
+    // loop to avoid order-dependent duplicates with sized runners.
     const isDrawerBottom = nameLower.includes('drawer bottom') || nameLower.includes('drawer box bottom') || nameLower.includes('drawers bottom');
-    if (isDrawerBottom && !Object.keys(runnerSets).length) {
-      // We don't know the size — record as 0 (unknown) to still count the sets
-      runnerSets[0] = (runnerSets[0] || 0) + totalQty;
+    if (isDrawerBottom && !_hasDrawerSides) {
+      _drawerBottomFallbackQty += totalQty;
     }
   });
+
+  // Apply drawer-bottom fallback only when no sized runners were derived from sides.
+  if (!_hasDrawerSides && _drawerBottomFallbackQty > 0) {
+    runnerSets[0] = (runnerSets[0] || 0) + _drawerBottomFallbackQty;
+  }
 
   // Cost calculations
   let matCost = 0, edgeCost = 0, cutLabelCost = 0;
