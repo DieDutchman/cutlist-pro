@@ -4397,7 +4397,9 @@ body.user-light-theme .pp-vat-select {
       </div>
       <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
         <span id="tpl-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
-        <button onclick="loadTemplatesAdmin()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">↻ REFRESH</button>
+        <button onclick="loadTemplatesAdmin()"
+          onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+          style="font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;transition:color 0.15s">↻ REFRESH</button>
       </div>
     </div>
 
