@@ -4415,17 +4415,17 @@ body.user-light-theme .pp-vat-select {
     <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab">🪵 Panels</button>
     <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab">✦ Cutlist</button>
     <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab">💰 Quote</button>
+    <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab">▦ Sheet Optimizer</button>
+    <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab">✏ Edit Units</button>
     <button class="tab" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab">📐 Costing</button>
-    <button class="tab" data-section="__pl__" onclick="switchTab(this,'__pl__')" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
     <!-- Overflow: less-frequent tools live inside the More dropdown.
          Buttons keep their original ids, data-section, and switchTab handlers so
          all existing show/hide and role-gating logic continues to work. -->
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
       <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
-        <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__'); closeMoreMenu()" id="optimize-tab">▦ Sheet Optimizer</button>
+        <button class="tab" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
         <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__'); closeMoreMenu()" id="summary-tab">☰ Summary</button>
-        <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__'); closeMoreMenu()" id="editor-tab">✏ Edit Units</button>
         <button class="tab" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
         <button class="tab" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
         <button class="tab" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
