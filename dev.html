@@ -5541,12 +5541,15 @@ function getEffectiveUnits() {
   // has custom rooms, the template units are remapped per-room via
   // room.templateSection in _renderPanel(); userUnits (custom-built additions)
   // are layered on top so they show in their assigned room too.
+  // Archived units (archivedUnitIds) must be filtered out of every branch so
+  // that archiveUserUnit() actually hides the unit for superuser-with-rooms too
+  // — the archive bar / restore path relies on this exclusion.
   const base = getUnitTemplates()
-    .filter(u => !deletedUnits.has(u.id))
+    .filter(u => !deletedUnits.has(u.id) && !archivedUnitIds.has(u.id))
     .map(u => unitOverrides[u.id] ? {...u, ...unitOverrides[u.id]} : u);
-  const tpl = [...base, ...customUnits];
+  const tpl = [...base, ...customUnits.filter(u => !archivedUnitIds.has(u.id))];
   if (isSuperuser() && userRooms.length > 0) {
-    return [...tpl, ...userUnits];
+    return [...tpl, ...userUnits.filter(u => !archivedUnitIds.has(u.id))];
   }
   return tpl;
 }
