@@ -8232,7 +8232,7 @@ async function downloadSummaryXLSX() {
 
   // ── Extras / Shopping List sheet ──
   const extrasForXlsx = (quoteState.extras || []).filter(e => parseFloat(e.amount) > 0 || e.hwType || e.otherType || e.skirtingMode !== undefined || e.baseMode !== undefined);
-  const bomForXlsx = Array.isArray(window._bomForXlsx) ? window._bomForXlsx : [];
+  const bomForXlsx = Array.isArray(data.bomRows) ? data.bomRows : (Array.isArray(window._bomForXlsx) ? window._bomForXlsx : []);
   if (extrasForXlsx.length > 0 || bomForXlsx.length > 0) {
     const wsE = wb.addWorksheet('Shopping List');
     wsE.columns = [{width:32},{width:12},{width:16},{width:18}];
