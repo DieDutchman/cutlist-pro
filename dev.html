@@ -12353,6 +12353,10 @@ async function onSupplierSelectChange() {
   } catch(e) { console.warn('[Supabase] Could not persist active supplier:', e.message); }
   await loadSupplierPrices();
   if (typeof refreshPriceViews === 'function') refreshPriceViews();
+  try {
+    const _supName = activeSupplierRow?.name || 'Default';
+    showToast(`Supplier changed to ${_supName} — all material prices updated`, 'warning', { duration: 4000 });
+  } catch(_) {}
 }
 
 function isSuperuser()   { return sbRole === 'superuser'; }
