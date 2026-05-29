@@ -8644,16 +8644,8 @@ function newUnit() {
   if (usesUserUnits()) scheduleAutoSave();
 }
 
-function editorDeleteUserUnit(id) {
-  const btn = document.querySelector('.btn-danger-soft');
-  if (btn && !btn._confirmPending) {
-    btn._confirmPending = true;
-    btn.textContent = 'Confirm Delete?';
-    setTimeout(() => {
-      if (btn._confirmPending) { btn._confirmPending = false; btn.textContent = '🗑 Delete Unit'; }
-    }, 3000);
-    return;
-  }
+async function editorDeleteUserUnit(id) {
+  if (!(await confirmAction('Delete this unit? This cannot be undone.', { confirmLabel: 'DELETE' }))) return;
   userUnits = userUnits.filter(u => u.id !== id);
   delete quantities[id];
   editingUnitId = null;
@@ -8662,16 +8654,8 @@ function editorDeleteUserUnit(id) {
   scheduleAutoSave();
 }
 
-function deleteUnit(id) {
-  const btn = document.querySelector('.btn-danger-soft');
-  if (btn && !btn._confirmPending) {
-    btn._confirmPending = true;
-    btn.textContent = 'Confirm Delete?';
-    setTimeout(() => {
-      if (btn._confirmPending) { btn._confirmPending = false; btn.textContent = '🗑 Delete Unit'; }
-    }, 3000);
-    return;
-  }
+async function deleteUnit(id) {
+  if (!(await confirmAction('Delete this unit? This cannot be undone.', { confirmLabel: 'DELETE' }))) return;
   customUnits = customUnits.filter(u => u.id !== id);
   delete quantities[id];
   saveCustomUnits();
@@ -8680,16 +8664,8 @@ function deleteUnit(id) {
   renderEditor();
 }
 
-function deleteBuiltinUnit(id) {
-  const btn = event.target;
-  if (!btn._confirmPending) {
-    btn._confirmPending = true;
-    btn.textContent = 'Confirm Delete?';
-    setTimeout(() => {
-      if (btn._confirmPending) { btn._confirmPending = false; btn.textContent = '🗑 Delete Unit'; }
-    }, 3000);
-    return;
-  }
+async function deleteBuiltinUnit(id) {
+  if (!(await confirmAction('Delete this unit? This cannot be undone.', { confirmLabel: 'DELETE' }))) return;
   deletedUnits.add(id);
   delete quantities[id];
   saveDeletedUnits();
