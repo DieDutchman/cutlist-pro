@@ -26613,6 +26613,22 @@ const PLAN_MAX_FILE_MB = 10;
 let _planImportRooms = [];
 let _planImportLastFile = null; // preserved across error → retry so user doesn't re-upload
 
+function openPlanImportModal() {
+  _planImportRooms = [];
+  _planImportLastFile = null;
+  const modal = document.getElementById('plan-import-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderPlanImportState('upload');
+}
+
+function closePlanImportModal() {
+  const modal = document.getElementById('plan-import-modal');
+  if (modal) modal.style.display = 'none';
+  _planImportRooms = [];
+  _planImportLastFile = null;
+}
+
 function renderPlanImportState(state, extra) {
   const body = document.getElementById('plan-import-body');
   if (!body) return;
