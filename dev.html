@@ -7912,6 +7912,82 @@ function generateSummary() {
     ${totalRunners > 0 ? `<div class="st-cell"><div class="st-label">Drawer Runners</div><div class="st-val">${totalRunners} sets</div></div>` : ''}
   </div>`;
 
+  // ── Hardware BOM (Order List) ─────────────────────────────────────────────
+  // Consolidated "what to order" list for the whole job. Uses calcUnitCost so
+  // runner sets are split by standard size, matching costing. Respects per-
+  // section hardware toggles. Shelf pins = 4 per part containing "shelf".
+  {
+    const _bomRunnerSets = {};
+    let _bomHinges = 0, _bomH160 = 0, _bomH240 = 0, _bomShelfPins = 0;
+
+    selectedUnits.forEach(u => {
+      const unitQty = quantities[u.id] || 0;
+      if (!unitQty || !u.parts || !u.parts.length) return;
+      const incHinges  = unitHasHinges (u.id);
+      const incHandles = unitHasHandles(u.id);
+      const incRunners = unitHasRunners(u.id);
+
+      // Reuse the costing calculator so runner sizes match the costing tab.
+      const c = calcUnitCost(u, unitQty);
+      if (incHinges)  _bomHinges += c.hingeCount     || 0;
+      if (incHandles) _bomH160   += c.handle160Count || 0;
+      if (incHandles) _bomH240   += c.handle240Count || 0;
+      if (incRunners && c.runnerSets) mergeRunnerSets(_bomRunnerSets, c.runnerSets);
+
+      // Shelf pins — 4 per shelf part. Exclude obvious non-shelves (supports,
+      // backs, braces) that happen to contain the word "shelf".
+      u.parts.forEach(p => {
+        const nl = (p.name||'').toLowerCase();
+        if (!nl.includes('shelf')) return;
+        if (/\b(support|back|brace)\b/.test(nl)) return;
+        _bomShelfPins += (p.qty || 0) * unitQty * 4;
+      });
+    });
+
+    const _bomTotalRunners = totalRunnerCount(_bomRunnerSets);
+    const _bomHingeLabel   = (quoteState.hingeType  === 'soft') ? 'Soft-close Hinges' : 'Hinges';
+    const _bomRunnerLabel  = (quoteState.runnerType === 'soft') ? 'Soft-close Drawer Runners' : 'Drawer Runners';
+
+    const _bomRows = [];
+    if (_bomHinges > 0) _bomRows.push({ item: _bomHingeLabel, qty: _bomHinges, unit: 'pcs' });
+    RUNNER_STANDARD_SIZES.forEach(size => {
+      const n = _bomRunnerSets[size];
+      if (n) _bomRows.push({ item: `${_bomRunnerLabel} ${size}mm`, qty: n, unit: 'sets' });
+    });
+    if (_bomRunnerSets[0]) {
+      _bomRows.push({ item: _bomRunnerLabel, qty: _bomRunnerSets[0], unit: 'sets' });
+    }
+    if (_bomH160 > 0) _bomRows.push({ item: 'Handles 160mm', qty: _bomH160, unit: 'pcs' });
+    if (_bomH240 > 0) _bomRows.push({ item: 'Handles 240mm', qty: _bomH240, unit: 'pcs' });
+    if (_bomShelfPins > 0) _bomRows.push({ item: 'Shelf Pins', qty: _bomShelfPins, unit: 'pcs' });
+
+    if (_bomRows.length) {
+      html += `
+      <div style="margin:24px 24px 0">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;letter-spacing:2px;color:var(--amber)">⚙ HARDWARE ORDER LIST</span>
+          <span style="font-size:11px;color:var(--text-muted)">consolidated bill of materials</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg2)">
+          <div style="display:grid;grid-template-columns:1fr 110px 80px;gap:0;padding:8px 14px;background:rgba(212,145,58,0.08);border-bottom:1px solid var(--border)">
+            <div style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px">ITEM</div>
+            <div style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-align:right">QTY</div>
+            <div style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-align:right">UNIT</div>
+          </div>
+          ${_bomRows.map((r,ri) => `
+          <div style="display:grid;grid-template-columns:1fr 110px 80px;gap:0;padding:9px 14px;border-top:${ri===0?'none':'1px solid rgba(255,255,255,0.05)'};background:${ri%2===0?'transparent':'rgba(255,255,255,0.02)'}">
+            <div style="font-size:13px;color:var(--text)">${escHtml(r.item)}</div>
+            <div style="font-size:14px;color:var(--amber);text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600">${r.qty}</div>
+            <div style="font-size:12px;color:var(--text-muted);text-align:right;font-family:'JetBrains Mono',monospace">${r.unit}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    // Stash for XLSX export.
+    window._bomForXlsx = _bomRows;
+  }
+
   // ── Extras / Shopping List block ─────────────────────────────────────────
   const _extrasForSummary = (quoteState.extras || []).filter(e => parseFloat(e.amount) > 0 || e.hwType || e.otherType || e.skirtingMode !== undefined || e.baseMode !== undefined);
   if (_extrasForSummary.length > 0) {
