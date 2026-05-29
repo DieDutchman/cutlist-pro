@@ -13059,13 +13059,13 @@ function toggleJobStatusMenu() {
   if (!menu) return;
   if (menu.style.display === 'none') {
     menu.innerHTML = JOB_STATUSES.map(s =>
-      `<div onclick="setJobStatus('${s.key}')"
-        style="font-weight:500;padding:7px 14px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:${s.color};
-               background:${currentJobStatus===s.key ? s.bg : 'transparent'};transition:background 0.1s"
+      `<button type="button" onclick="setJobStatus('${s.key}')"
+        style="display:block;width:100%;text-align:left;font-weight:500;padding:7px 14px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:${s.color};
+               background:${currentJobStatus===s.key ? s.bg : 'transparent'};border:none;transition:background 0.1s"
         onmouseenter="this.style.background='${s.bg}'"
         onmouseleave="this.style.background='${currentJobStatus===s.key ? s.bg : 'transparent'}'">
         ● ${s.label.toUpperCase()}
-       </div>`
+       </button>`
     ).join('');
     menu.style.display = 'block';
     const close = (e) => {
