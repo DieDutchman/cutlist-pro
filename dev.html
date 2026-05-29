@@ -8674,16 +8674,8 @@ async function deleteBuiltinUnit(id) {
   renderPanel();
 }
 
-function resetUnit(id) {
-  const btn = document.querySelector('.btn-danger-soft');
-  if (btn && !btn._confirmPending) {
-    btn._confirmPending = true;
-    btn.textContent = 'Confirm Reset?';
-    setTimeout(() => {
-      if (btn._confirmPending) { btn._confirmPending = false; btn.textContent = '↩ Reset to Default'; }
-    }, 3000);
-    return;
-  }
+async function resetUnit(id) {
+  if (!(await confirmAction('Reset this unit to defaults? This cannot be undone.', { confirmLabel: 'RESET' }))) return;
   delete unitOverrides[id];
   saveCustomUnits();
   renderEditor();
