@@ -18015,16 +18015,19 @@ function _renderPricesView() {
     const stockPill = admin ? `
       <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
         <button onclick="setMatSpecialOrder('${safeMatJS}',false);setMatFullSheet('${safeMatJS}',false)"
+          title="Normally stocked — billed in portions (e.g. 0.25 sheet minimum)"
           style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
                  ${activeStock ? 'background:rgba(76,175,130,0.15);border-color:#4caf82;color:#4caf82;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
           ✓ In Stock
         </button>
         <button onclick="setMatFullSheet('${safeMatJS}',true)"
+          title="Supplier only sells full sheets — offcuts included in price"
           style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
                  ${isFullSheet ? 'background:rgba(100,160,255,0.15);border-color:#5090e0;color:#7ab0ff;font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
-          🟦 Full Sheet
+          🟦 Full Sheet Only
         </button>
         <button onclick="setMatSpecialOrder('${safeMatJS}',true)"
+          title="Not normally stocked — must be ordered, minimum 1 full sheet"
           style="font-size:10px;padding:2px 8px;cursor:pointer;border:1px solid;
                  ${isSpecial ? 'background:rgba(212,145,58,0.18);border-color:var(--amber);color:var(--amber);font-weight:600' : 'background:var(--bg4);border-color:var(--border);color:var(--text-muted)'}">
           🛒 Special Order
