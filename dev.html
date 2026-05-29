@@ -13420,12 +13420,23 @@ function showUsersTab(tab) {
   if (isSuppliers && typeof loadSuppliersTab === 'function') loadSuppliersTab();
   if (isTemplates) loadTemplatesAdmin();
 }
+let _usersModalEscHandler = null;
 function openUsersModal() {
   document.getElementById('users-modal').style.display = 'flex';
   loadUsersModal();
+  // Escape-to-close (stored so it can be removed on close)
+  if (_usersModalEscHandler) document.removeEventListener('keydown', _usersModalEscHandler);
+  _usersModalEscHandler = function(ev) {
+    if (ev.key === 'Escape') closeUsersModal();
+  };
+  document.addEventListener('keydown', _usersModalEscHandler);
 }
 function closeUsersModal() {
   document.getElementById('users-modal').style.display = 'none';
+  if (_usersModalEscHandler) {
+    document.removeEventListener('keydown', _usersModalEscHandler);
+    _usersModalEscHandler = null;
+  }
 }
 
 // ── Board Cleanup Modal ───────────────────────────────────────────────────────
