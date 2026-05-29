@@ -4303,38 +4303,42 @@ body.user-light-theme .pp-vat-select {
 </div>
 
 <!-- ═══ USERS MODAL ══════════════════════════════════════════════════════════ -->
-<div id="users-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center">
-  <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+<div id="users-modal" onclick="closeUsersModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;align-items:center;justify-content:center">
+  <div onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="User Management"
+    style="background:var(--bg2);border:1px solid var(--border);border-radius:2px;box-shadow:0 8px 32px rgba(0,0,0,0.5);width:680px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">👥 User Management</div>
-      <button onclick="closeUsersModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      <button onclick="closeUsersModal()" aria-label="Close User Management"
+        onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+        style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px;transition:color 0.15s">×</button>
     </div>
 
     <!-- Tab bar -->
-    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
-      <button onclick="showUsersTab('users')" id="um-tab-users"
-        style="font-weight:500;flex:1;padding:10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid var(--amber);background:rgba(212,145,58,0.08);color:var(--amber)">
+    <div role="tablist" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button onclick="showUsersTab('users')" id="um-tab-users" role="tab" title="Manage user roles, trial expiry, and supplier access"
+        style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid var(--amber);background:rgba(212,145,58,0.08);color:var(--amber)">
         USERS
       </button>
-      <button onclick="showUsersTab('feedback')" id="um-tab-feedback"
-        style="font-weight:500;flex:1;padding:10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
+      <button onclick="showUsersTab('feedback')" id="um-tab-feedback" role="tab" title="Trial extension requests, bug reports, and feature requests from users"
+        style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         FEEDBACK INBOX<span id="fb-inbox-badge" style="color:var(--amber)"></span>
       </button>
-      <button onclick="showUsersTab('suppliers')" id="um-tab-suppliers"
-        style="font-weight:500;flex:1;padding:10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
+      <button onclick="showUsersTab('suppliers')" id="um-tab-suppliers" role="tab" title="Add and manage supplier identities and their owners"
+        style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         SUPPLIERS
       </button>
-      <button onclick="showUsersTab('templates')" id="um-tab-templates"
-        style="font-weight:500;flex:1;padding:10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
+      <button onclick="showUsersTab('templates')" id="um-tab-templates" role="tab" title="Manage the live unit template library shown to all users"
+        style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         UNIT TEMPLATES
       </button>
     </div>
 
     <!-- Users panel -->
     <div id="um-panel-users" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
-      <div style="padding:12px 20px;background:rgba(212,145,58,0.07);border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="padding:14px 20px;background:rgba(212,145,58,0.07);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:14px;color:var(--amber);line-height:1.4;flex-shrink:0">ℹ</div>
         <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
           To <strong style="color:var(--text)">add a new user</strong>: go to
           <a href="https://supabase.com/dashboard/project/ojuzylnzwdblkaglaeug/auth/users" target="_blank"
@@ -4347,7 +4351,9 @@ body.user-light-theme .pp-vat-select {
       </div>
       <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
         <span id="users-status" style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace"></span>
-        <button onclick="loadUsersModal()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">↻ REFRESH</button>
+        <button onclick="loadUsersModal()"
+          onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+          style="font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;transition:color 0.15s">↻ REFRESH</button>
       </div>
     </div>
 
@@ -4355,7 +4361,9 @@ body.user-light-theme .pp-vat-select {
     <div id="um-panel-feedback" style="display:none;flex-direction:column;flex:1;overflow:hidden">
       <div style="flex:1;overflow-y:auto" id="feedback-inbox"></div>
       <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;text-align:right">
-        <button onclick="loadFeedbackInbox()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">↻ REFRESH</button>
+        <button onclick="loadFeedbackInbox()"
+          onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+          style="font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;transition:color 0.15s">↻ REFRESH</button>
       </div>
     </div>
 
