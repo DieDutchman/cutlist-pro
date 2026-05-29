@@ -4742,6 +4742,20 @@ function showToast(message, type, opts) {
   type = type || 'info';
   if (!TOAST_ICONS[type]) type = 'info';
   opts = opts || {};
+  // Shorthand: opts.action = { label, fn } → translate into opts.actions array
+  if (opts.action && opts.action.label && typeof opts.action.fn === 'function') {
+    const _userAction = opts.action;
+    const existing = Array.isArray(opts.actions) ? opts.actions.slice() : [];
+    existing.push({ label: _userAction.label, primary: true, value: '__action__' });
+    opts = Object.assign({}, opts, { actions: existing });
+    if (opts.persist) opts.duration = 0;
+    // Fire the user's fn when this action is chosen
+    setTimeout(() => {
+      if (handle && handle.actionPromise) {
+        handle.actionPromise.then(v => { if (v === '__action__') { try { _userAction.fn(); } catch(e) { console.warn('[toast action]', e); } } });
+      }
+    }, 0);
+  }
   const container = document.getElementById('toast-container');
   if (!container) {
     // Fallback if DOM isn't ready
