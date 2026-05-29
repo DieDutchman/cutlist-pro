@@ -19330,7 +19330,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
 
   const anyHardware = totalHardware + extraHwTotal > 0;
 
-  return `<div class="cv-unit-card" style="border-left-color:var(--amber)">
+  return `<div class="cv-unit-card">
     <div class="cv-unit-head" style="background:rgba(255,200,0,0.04)">
       <span style="color:var(--amber);font-family:'Oswald',sans-serif;letter-spacing:1px">${selectedUnits.length > 0 && panelItems.length > 0 ? 'ALL UNITS + PANELS COMBINED' : panelItems.length > 0 ? 'CUSTOM PANELS' : 'ALL UNITS COMBINED'}</span>
       <span class="cv-unit-total" style="font-size:18px">${R(grandTotalAll)}</span>
