@@ -4314,19 +4314,19 @@ body.user-light-theme .pp-vat-select {
 
     <!-- Tab bar -->
     <div role="tablist" style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
-      <button onclick="showUsersTab('users')" id="um-tab-users" role="tab" title="Manage user roles, trial expiry, and supplier access"
+      <button onclick="showUsersTab('users')" id="um-tab-users" role="tab" aria-selected="true" title="Manage user roles, trial expiry, and supplier access"
         style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid var(--amber);background:rgba(212,145,58,0.08);color:var(--amber)">
         USERS
       </button>
-      <button onclick="showUsersTab('feedback')" id="um-tab-feedback" role="tab" title="Trial extension requests, bug reports, and feature requests from users"
+      <button onclick="showUsersTab('feedback')" id="um-tab-feedback" role="tab" aria-selected="false" title="Trial extension requests, bug reports, and feature requests from users"
         style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         FEEDBACK INBOX<span id="fb-inbox-badge" style="color:var(--amber)"></span>
       </button>
-      <button onclick="showUsersTab('suppliers')" id="um-tab-suppliers" role="tab" title="Add and manage supplier identities and their owners"
+      <button onclick="showUsersTab('suppliers')" id="um-tab-suppliers" role="tab" aria-selected="false" title="Add and manage supplier identities and their owners"
         style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         SUPPLIERS
       </button>
-      <button onclick="showUsersTab('templates')" id="um-tab-templates" role="tab" title="Manage the live unit template library shown to all users"
+      <button onclick="showUsersTab('templates')" id="um-tab-templates" role="tab" aria-selected="false" title="Manage the live unit template library shown to all users"
         style="font-weight:500;flex:1;padding:11px 16px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted)">
         UNIT TEMPLATES
       </button>
