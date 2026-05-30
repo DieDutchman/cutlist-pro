@@ -26152,13 +26152,14 @@ function _renderPLView() {
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px 0">
         <span style="font-weight:500;font-size:12px;color:var(--text-muted);white-space:nowrap;font-family:'Barlow',sans-serif;letter-spacing:0.3px">TOTAL LABOUR PAID</span>
         <span style="font-size:13px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">R</span>
-        <input autocomplete="off" type="number" min="0" step="0.01" placeholder="0.00"
-          value="${labourCost > 0 ? labourCost : ''}"
+        <input autocomplete="off" type="number" min="0" step="0.01" placeholder="${_estimatedLabour > 0 ? _estimatedLabour.toFixed(2) + ' (est.)' : '0.00'}"
+          value="${_manualLabour > 0 ? _manualLabour : ''}"
           class="pp-input is-num"
           style="width:180px;height:40px;font-size:15px"
           oninput="plUpdateLabour('${selJobId}', this.value)"
           onblur="plUpdateLabourDone('${selJobId}')">
-        ${labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-style:italic">No VAT — full amount deducted from profit</span>` : ''}
+        ${labourIsEstimate ? `<span style="font-size:11px;color:var(--amber);font-style:italic">Using R ${labourCost.toFixed(2)} estimate from labour config — type a real figure to override</span>`
+          : (labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-style:italic">No VAT — full amount deducted from profit</span>` : '')}
       </div>
     </div>
 
