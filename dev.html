@@ -10754,6 +10754,9 @@ let quoteState = {
   topsOpen: false,
   feesOpen: false,
   hwOpen:   true,
+  // Per-unit labour hours: { [unitId]: hours } — only used when
+  // labourConfig.mode === 'per-unit'. Default 0 for any unit not present.
+  unitLabourHours: {},
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -10771,6 +10774,7 @@ try {
   if (qs.topsOpen   !== undefined) quoteState.topsOpen   = qs.topsOpen;
   if (qs.feesOpen   !== undefined) quoteState.feesOpen   = qs.feesOpen;
   if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
+  if (qs.unitLabourHours && typeof qs.unitLabourHours === 'object') quoteState.unitLabourHours = qs.unitLabourHours;
 } catch(e) {}
 
 function saveQuoteState() {
