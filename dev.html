@@ -17050,7 +17050,11 @@ function renderSyncBadge() {
 
 function saveCostingPrices() {
   try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
-  // Sync customHardware to cloud templates so it persists across devices/jobs
+  // labourConfig piggybacks on saveCostingPrices because the rate setup UI
+  // lives in the same Prices/My Costs tab and is conceptually a "cost" setting.
+  try { localStorage.setItem('cutlist_labour_config', JSON.stringify(labourConfig)); } catch(e) {}
+  // Sync customHardware + labourConfig to cloud templates so they persist
+  // across devices/jobs.
   if (sbUser) pushTemplatesToCloud();
 }
 
