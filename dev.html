@@ -9187,8 +9187,8 @@ function saveAddonPresetsLocal() {
   try { localStorage.setItem('cutlist_addon_presets', JSON.stringify(addonPresets)); } catch(e) {}
 }
 
-function saveAddonPreset(secId) {
-  const name = prompt('Name this preset (e.g. "Bedroom A plant-ons"):');
+async function saveAddonPreset(secId) {
+  const name = await inputPrompt('Name this preset:', 'e.g. Bedroom A plant-ons');
   if (!name || !name.trim()) return;
   const section = bedroomAddons[secId];
   const preset = {
