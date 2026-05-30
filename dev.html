@@ -7486,6 +7486,10 @@ function generateCutlist() {
 
   // Store for xlsx export
   window._lastCutlist = { consolidated, byCat, catOrder, dateTimeStr, jobClient, jobHouse, jobAddress, jobNotes, matSummaryText, matSummaryLines };
+  // Mark cutlist freshness — clear the stale pill that scheduleAutoSave sets.
+  _cutlistEverGenerated = true;
+  _cutlistDirty = false;
+  try { _refreshCutlistDirtyBadge(); } catch(e) {}
 
   // Switch to cutlist tab
   document.getElementById('quote-view').style.display = 'none';
