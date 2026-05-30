@@ -19890,6 +19890,8 @@ function backToQuote() {
   if (_bqTab) _bqTab.classList.add('active');
 }
 
+let _jobDetailsFlashTimer = null;
+let _jobDetailsFlashClearTimer = null;
 function saveJobDetails() {
   try {
     localStorage.setItem('cutlist_job', JSON.stringify({
@@ -19900,6 +19902,19 @@ function saveJobDetails() {
     }));
   } catch(e) {}
   try { refreshJobDetailsIndicator(); } catch(e) {}
+  // Debounced visual confirmation — wait 500ms after the last keystroke,
+  // then flash the 📋 DETAILS button green for 1.5s. Keeps non-typed callers
+  // (e.g. programmatic saves) silent unless the user is actually editing.
+  try {
+    const btn = document.getElementById('job-details-btn');
+    if (!btn) return;
+    if (_jobDetailsFlashTimer) clearTimeout(_jobDetailsFlashTimer);
+    _jobDetailsFlashTimer = setTimeout(() => {
+      btn.classList.add('saved-flash');
+      if (_jobDetailsFlashClearTimer) clearTimeout(_jobDetailsFlashClearTimer);
+      _jobDetailsFlashClearTimer = setTimeout(() => btn.classList.remove('saved-flash'), 1500);
+    }, 500);
+  } catch(e) {}
 }
 
 function loadJobDetails() {
