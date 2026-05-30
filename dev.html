@@ -9191,7 +9191,7 @@ function saveAddonPresetsLocal() {
 }
 
 async function saveAddonPreset(secId) {
-  const name = await inputPrompt('Name this preset:', 'e.g. Bedroom A plant-ons');
+  const name = await inputPrompt('Name this preset:', 'e.g. Bedroom A plant-ons', 'SAVE');
   if (!name || !name.trim()) return;
   const section = bedroomAddons[secId];
   const preset = {
