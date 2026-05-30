@@ -4934,7 +4934,7 @@ function inputPrompt(message, defaultValue, confirmLabel) {
     cancelBtn.addEventListener('click', () => finish(null));
     const okBtn = document.createElement('button');
     okBtn.className = 'toast-primary';
-    okBtn.textContent = 'RENAME';
+    okBtn.textContent = confirmLabel || 'RENAME';
     okBtn.addEventListener('click', () => {
       const v = input.value.trim();
       finish(v ? v : null);
