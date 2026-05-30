@@ -2987,6 +2987,12 @@ body.supplier-theme #job-sync-status.sync-success,
 body.user-light-theme #job-sync-status.sync-success { background: rgba(90,154,84,0.12); border-color: rgba(90,154,84,0.40); color: #2a5a24; }
 body.supplier-theme #job-sync-status.sync-error,
 body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64,0.12); border-color: rgba(192,64,64,0.40); color: #6a1818; }
+
+/* Brief confirmation flash on #job-details-btn after a saveJobDetails() write
+   settles. Debounced (500ms after last keystroke) so the button doesn't flicker
+   while the user is mid-typing. Driven by JS adding/removing .saved-flash. */
+#job-details-btn.saved-flash { color: var(--green) !important; transition: color 0.25s ease; }
+#job-details-btn.saved-flash > span:nth-child(2) { color: var(--green) !important; }
 </style>
 </head>
 <body>
