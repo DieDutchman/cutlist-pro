@@ -17726,10 +17726,11 @@ async function renameEdge(oldKey) {
 }
 
 
-function promptAddEdge(mat) {
-  const size  = prompt(`Add edging size for "${mat}" (e.g. 1mm, 2mm):`);
+async function promptAddEdge(mat) {
+  const size = await inputPrompt(`Add edging size for "${mat}":`, 'e.g. 1mm, 2mm');
   if (!size || !size.trim()) return;
-  const price = parseFloat(prompt(`Price per metre for ${mat} ${size.trim()} edging (R):`));
+  const priceStr = await inputPrompt(`Price per metre for ${mat} ${size.trim()} edging (R):`, '0');
+  const price = parseFloat(priceStr);
   if (isNaN(price)) return;
   const edgeKey = (mat === 'Picco White' ? 'White Edging' : mat + ' Edging') + ' ' + size.trim();
   if (EDGES.includes(edgeKey)) { showToast(`"${edgeKey}" already exists.`, 'warning'); return; }
