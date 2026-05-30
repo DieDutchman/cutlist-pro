@@ -12808,6 +12808,14 @@ async function loadTemplatesFromCloud() {
       costingPrices.customHardware = t.customHardware;
       console.log('[Templates] Loaded customHardware:', t.customHardware.length, 'items');
     }
+    if (t.labourConfig && typeof t.labourConfig === 'object') {
+      if (t.labourConfig.enabled     !== undefined) labourConfig.enabled     = !!t.labourConfig.enabled;
+      if (t.labourConfig.ratePerHour !== undefined) labourConfig.ratePerHour = parseFloat(t.labourConfig.ratePerHour) || 0;
+      if (t.labourConfig.mode === 'per-sqm' || t.labourConfig.mode === 'per-unit') labourConfig.mode = t.labourConfig.mode;
+      if (t.labourConfig.perSqmRate  !== undefined) labourConfig.perSqmRate  = parseFloat(t.labourConfig.perSqmRate)  || 0;
+      try { localStorage.setItem('cutlist_labour_config', JSON.stringify(labourConfig)); } catch(e) {}
+      console.log('[Templates] Loaded labourConfig:', labourConfig);
+    }
     if (Array.isArray(t.addonPresets)) {
       addonPresets.length = 0;
       t.addonPresets.forEach(p => addonPresets.push(p));
