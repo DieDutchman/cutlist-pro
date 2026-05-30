@@ -11325,6 +11325,10 @@ function _renderQuoteView() {
         <span class="label">Extras</span>
         <span class="val" id="qv-val-extras">${fmt(extrasTotal)}</span>
       </div>` : ''}
+      ${(labourConfig.enabled && calcLabourCost() > 0) ? `<div class="qv-total-row">
+        <span class="label">🛠 Labour <span style="font-size:10px;color:var(--text-muted)">(${labourConfig.mode === 'per-sqm' ? 'per m²' : 'per unit'})</span></span>
+        <span class="val" id="qv-val-labour">${fmt(calcLabourCost())}</span>
+      </div>` : '<span id="qv-val-labour" style="display:none"></span>'}
       <div class="qv-total-row">
         <span class="label">Subtotal (excl. markup)</span>
         <span class="val" id="qv-val-sub">${fmt(subtotal)}</span>
