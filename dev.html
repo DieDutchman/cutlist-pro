@@ -17730,10 +17730,11 @@ async function renameEdge(oldKey) {
 
 
 async function promptAddEdge(mat) {
-  const size = await inputPrompt(`Add edging size for "${mat}":`, 'e.g. 1mm, 2mm');
-  if (!size || !size.trim()) return;
-  const priceStr = await inputPrompt(`Price per metre for ${mat} ${size.trim()} edging (R):`, '0');
-  const price = parseFloat(priceStr);
+  const result = await twoFieldPrompt(`Add edging for "${mat}"`, [{label:'Size', placeholder:'e.g. 1mm, 2mm'},{label:'Price /m (R)', placeholder:'0', type:'number'}]);
+  if (!result) return;
+  const size = result[0].trim();
+  const price = parseFloat(result[1]);
+  if (!size) return;
   if (isNaN(price)) return;
   const edgeKey = (mat === 'Picco White' ? 'White Edging' : mat + ' Edging') + ' ' + size.trim();
   if (EDGES.includes(edgeKey)) { showToast(`"${edgeKey}" already exists.`, 'warning'); return; }
