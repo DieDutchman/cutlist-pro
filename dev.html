@@ -12225,6 +12225,18 @@ function downloadQuoteXLSX() {
     rows.push([]);
   }
 
+  // Labour (flat — no markup, no VAT layered on yet)
+  const labourTotalXLSX = calcLabourCost();
+  if (labourConfig.enabled && labourTotalXLSX > 0) {
+    rows.push(['LABOUR', '', '', '', '']);
+    const labourDesc = labourConfig.mode === 'per-sqm'
+      ? `Labour @ R${(labourConfig.perSqmRate||0).toFixed(2)}/m²`
+      : `Labour @ R${(labourConfig.ratePerHour||0).toFixed(2)}/hr`;
+    rows.push(['', labourDesc, '', '', labourTotalXLSX]);
+    grandSub += labourTotalXLSX;
+    rows.push([]);
+  }
+
   // Board surcharge (applies only to board material cost, same logic as quote view)
   const _xlsxSurchargePct     = costingPrices.extras.boardSurcharge || 0;
   const _xlsxSurchargeEnabled = quoteState.boardSurchargeEnabled !== false;
