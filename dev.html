@@ -6898,9 +6898,12 @@ function _renderPanel() {
       <span style="font-size:11px;color:var(--text-muted)">${units.length} unit${units.length===1?'':'s'}</span>
     </div>` : '';
 
-  // Empty-state nudge — visible when this section has units but every qty is 0
+  // Empty-state nudge — visible when this section has units but every qty is 0.
+  // Suppress for superuser / admin browsing template sections (they aren't
+  // necessarily planning to quote — the nudge is noise for them). isUserMode
+  // is the local const computed above (usesUserUnits() && userRooms.length > 0).
   const _allQtyZero = units.every(u => (quantities[u.id] || 0) === 0);
-  const _emptyNudge = (units.length > 0 && _allQtyZero) ? `
+  const _emptyNudge = (isUserMode && units.length > 0 && _allQtyZero) ? `
     <div style="margin:8px 0 4px;padding:9px 14px;background:rgba(212,145,58,0.10);border:1px solid rgba(212,145,58,0.25);color:var(--text-muted);font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.2px;line-height:1.5">
       <span style="color:var(--amber)">Start here</span> — set a quantity (Qty) for any unit to add it to your cutlist
     </div>` : '';
