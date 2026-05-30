@@ -5616,6 +5616,9 @@ function pushTemplatesToCloud() {
         customHardware:   costingPrices.customHardware,
         materialConfig:   JSON.parse(JSON.stringify(materialConfig)),
         unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
+        // labourConfig is global per-supplier setup (rate + mode) — round-trips
+        // alongside customHardware so a fresh login picks up both at once.
+        labourConfig:     { ...labourConfig },
       };
       // Superuser only: persist their custom rooms + room-scoped userUnits in
       // the same profile templates blob so they survive logout. Other roles
