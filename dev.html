@@ -12335,6 +12335,30 @@ function setMatFullSheet(mat, isFullSheet) {
   renderPricesView();
 }
 
+// ── Labour estimation ───────────────────────────────────────────────────────
+// Cabinet-maker labour cost added to the Quote and used as the P&L "expected"
+// labour figure. Two modes:
+//   per-unit — hours stored per-unit in quoteState.unitLabourHours[unitId],
+//              multiplied by unit qty × ratePerHour
+//   per-sqm  — sums (h/1000)*(w/1000)*partQty*unitQty across every selected
+//              part and multiplies by perSqmRate
+// Persisted alongside costingPrices via saveCostingPrices / templates blob.
+let labourConfig = {
+  enabled:     false,
+  ratePerHour: 0,
+  mode:        'per-unit',  // 'per-unit' | 'per-sqm'
+  perSqmRate:  0,
+};
+try {
+  const _labourSaved = JSON.parse(localStorage.getItem('cutlist_labour_config') || '{}');
+  if (_labourSaved && typeof _labourSaved === 'object') {
+    if (_labourSaved.enabled     !== undefined) labourConfig.enabled     = !!_labourSaved.enabled;
+    if (_labourSaved.ratePerHour !== undefined) labourConfig.ratePerHour = parseFloat(_labourSaved.ratePerHour) || 0;
+    if (_labourSaved.mode === 'per-sqm' || _labourSaved.mode === 'per-unit') labourConfig.mode = _labourSaved.mode;
+    if (_labourSaved.perSqmRate  !== undefined) labourConfig.perSqmRate  = parseFloat(_labourSaved.perSqmRate)  || 0;
+  }
+} catch(e) {}
+
 // Default prices per m² for boards, per m for edging, and flat extras
 const costingPrices = {
   mat: {
