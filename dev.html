@@ -6532,13 +6532,24 @@ const _ALT_TAB_MAP = {
 };
 document.addEventListener('keydown', function(ev) {
   if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
-  const section = _ALT_TAB_MAP[ev.key];
-  if (!section) return;
+  // Suppress while typing in form fields so it doesn't fight with browser
+  // shortcuts inside inputs / textareas / selects / contenteditable.
   const ae = document.activeElement;
   if (ae) {
     const tag = ae.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
   }
+  // Alt+R — regenerate the cutlist when it's dirty. Mirrors the amber
+  // ↻ REGENERATE CUTLIST pill that appears in the cutlist header. No-op if
+  // nothing has changed since the last generate — avoids needless rerenders.
+  if (ev.key === 'r' || ev.key === 'R') {
+    if (!_cutlistDirty) return;
+    ev.preventDefault();
+    try { generateCutlist(); } catch(e) {}
+    return;
+  }
+  const section = _ALT_TAB_MAP[ev.key];
+  if (!section) return;
   const btn = document.querySelector('.tab[data-section="' + section + '"]');
   if (!btn) return;
   // Respect role-gating: don't switch into a tab that is hidden for this user
