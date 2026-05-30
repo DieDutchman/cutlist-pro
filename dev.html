@@ -18864,6 +18864,52 @@ function _renderPricesView() {
         </div>` : ''}
       </div>
 
+      <!-- Labour -->
+      <div style="margin-top:28px">
+        <div class="pp-section-head" style="margin-top:0">
+          <span>Labour</span>
+          <span class="pp-section-sub">Estimate cabinet-making labour cost per job — added to the quote total</span>
+        </div>
+        <div style="border:1px solid var(--border);padding:14px 16px;border-radius:4px;background:var(--bg3)">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;margin-bottom:14px">
+            <input autocomplete="off" type="checkbox" ${labourConfig.enabled ? 'checked' : ''} ${admin ? '' : 'disabled'}
+              onchange="labourConfig.enabled=this.checked;saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+              style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
+            <span style="font-size:13px;color:var(--text-dim);flex:1">Include labour in quote</span>
+            ${labourConfig.enabled ? `<span style="font-size:10px;color:#4caf82;font-family:'Barlow',sans-serif;letter-spacing:0.5px;font-weight:600">● ENABLED</span>` : `<span style="font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px">○ DISABLED</span>`}
+          </label>
+          ${labourConfig.enabled ? `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+              <span style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px;width:60px">MODE</span>
+              <div class="pp-toggle-group">
+                <button onclick="labourConfig.mode='per-unit';saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+                  class="${labourConfig.mode==='per-unit'?'is-active':''}" ${admin ? '' : 'disabled'}>Per Unit</button>
+                <button onclick="labourConfig.mode='per-sqm';saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+                  class="${labourConfig.mode==='per-sqm'?'is-active':''}" ${admin ? '' : 'disabled'}>Per Sqm</button>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);font-style:italic">${labourConfig.mode === 'per-sqm' ? 'Rate × total part area (m²) across all selected units' : 'Hours per unit set on the Quote tab × rate × unit qty'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px;width:60px">RATE</span>
+              <span style="font-size:11px;color:var(--text-muted)">R</span>
+              ${labourConfig.mode === 'per-sqm' ? `
+                <input autocomplete="off" type="number" min="0" step="0.01" value="${labourConfig.perSqmRate || ''}" placeholder="0.00" ${ro}
+                  style="width:120px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:6px 10px;font-size:13px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="labourConfig.perSqmRate=parseFloat(this.value)||0;saveCostingPrices();if(document.getElementById('quote-price-view'))refreshQuoteTotals();">
+                <span style="font-size:11px;color:var(--text-muted)">per m²</span>
+              ` : `
+                <input autocomplete="off" type="number" min="0" step="0.01" value="${labourConfig.ratePerHour || ''}" placeholder="0.00" ${ro}
+                  style="width:120px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:6px 10px;font-size:13px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="labourConfig.ratePerHour=parseFloat(this.value)||0;saveCostingPrices();if(document.getElementById('quote-price-view'))refreshQuoteTotals();">
+                <span style="font-size:11px;color:var(--text-muted)">per hour</span>
+              `}
+            </div>
+          ` : `<div style="font-size:11px;color:var(--text-muted);font-style:italic;padding:4px 0">Enable labour to add a labour line to every quote.</div>`}
+        </div>
+      </div>
+
     </div>`;
 }
 
