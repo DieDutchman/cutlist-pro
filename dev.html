@@ -10865,9 +10865,10 @@ function _renderQuoteView() {
   const dieselTotal    = quoteState.dieselFee   ? (quoteState.dieselFeeAmt||1800)  : 0;
   const deliveryTotal  = quoteState.deliveryFee ? (quoteState.deliveryFeeAmt||0)   : 0;
   const extrasTotal    = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const labourTotal    = calcLabourCost();
   const unitsWithMarkup = unitsTotal * (1 + quoteState.markup);
-  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
 
   // ── Main area: unit breakdown ──
   let mainHtml = `
