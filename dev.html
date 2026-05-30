@@ -12006,6 +12006,44 @@ function computeJobMatBreakdown() {
   return { matBreakdown, edgeBreakdown, cutLabelExpected, cutLabelSheets };
 }
 
+// ── Labour cost calculation ─────────────────────────────────────────────────
+// Returns 0 when labour is disabled. Two modes:
+//   per-sqm  — every part on every selected unit contributes
+//              (h/1000) * (w/1000) * partQty * unitQty m² × perSqmRate
+//   per-unit — quoteState.unitLabourHours[id] (default 0) × unitQty × ratePerHour
+// Excluded from board surcharge by design — labour is added to the totals
+// after the surcharge runs against board cost only.
+function calcLabourCost() {
+  if (!labourConfig.enabled) return 0;
+  const allUnits = getEffectiveUnits();
+  if (labourConfig.mode === 'per-sqm') {
+    const rate = parseFloat(labourConfig.perSqmRate) || 0;
+    if (rate <= 0) return 0;
+    let totalSqm = 0;
+    allUnits.forEach(u => {
+      const uQty = quantities[u.id] || 0;
+      if (uQty === 0 || !u.parts) return;
+      u.parts.forEach(p => {
+        if (!p.l || !p.w) return;
+        totalSqm += (p.l / 1000) * (p.w / 1000) * (p.qty || 1) * uQty;
+      });
+    });
+    return totalSqm * rate;
+  }
+  // per-unit
+  const rate = parseFloat(labourConfig.ratePerHour) || 0;
+  if (rate <= 0) return 0;
+  let total = 0;
+  allUnits.forEach(u => {
+    const uQty = quantities[u.id] || 0;
+    if (uQty === 0) return;
+    const hrs = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+    if (hrs <= 0) return;
+    total += hrs * uQty * rate;
+  });
+  return total;
+}
+
 function refreshQuoteTotals() {
   const t = computeQuoteTotals();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -12016,12 +12054,26 @@ function refreshQuoteTotals() {
   set('qv-val-diesel',    fmt(t.dieselTotal));
   set('qv-val-delivery',  fmt(t.deliveryTotal));
   set('qv-val-extras',    fmt(t.extrasTotal));
+  set('qv-val-labour',    fmt(t.labourTotal));
   set('qv-val-sub',       fmt(t.subtotal));
   set('qv-val-grand',     fmt(t.grand));
   set('qv-val-vat',       fmt(t.grand * 0.15));
   set('qv-val-grand-vat', fmt(t.grand * 1.15));
   const td = document.getElementById('qv-tops-total');
   if (td) td.textContent = t.topsTotal > 0 ? fmt(t.topsTotal) : '—';
+  // Update per-unit labour line totals if any are present
+  if (labourConfig.enabled && labourConfig.mode === 'per-unit') {
+    document.querySelectorAll('[data-labour-line]').forEach(el => {
+      const uid  = el.getAttribute('data-labour-line');
+      const allUnits = getEffectiveUnits();
+      const u = allUnits.find(x => x.id === uid);
+      if (!u) return;
+      const uQty = quantities[u.id] || 0;
+      const hrs  = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+      const rate = parseFloat(labourConfig.ratePerHour) || 0;
+      el.textContent = fmt(hrs * uQty * rate);
+    });
+  }
 }
 
 function switchToUnits() {
