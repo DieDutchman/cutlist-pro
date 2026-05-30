@@ -11901,10 +11901,14 @@ function computeQuoteTotals() {
     'Hardware – Other':    _hwRaw.other,
   };
 
-  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  // Labour — added after board surcharge so the surcharge stays board-only.
+  // No markup is applied to labour: it's a flat cost flowing straight to grand
+  // total, mirroring how Tops / Fees / Extras are treated.
+  const labourTotal  = calcLabourCost();
+  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
   const markup       = quoteState.markup || 0;
-  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, labourTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
