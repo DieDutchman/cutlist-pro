@@ -5013,6 +5013,7 @@ function twoFieldPrompt(title, fields) {
       document.removeEventListener('keydown', keyHandler, true);
       t.classList.remove('toast-show'); t.classList.add('toast-hide');
       setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
       resolve(val);
     };
     // Inline "Required" error message under first input (created lazily).
