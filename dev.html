@@ -4872,6 +4872,8 @@ function confirmAction(message, opts) {
   const confirmLabel = opts.confirmLabel || 'CONFIRM';
   const cancelLabel  = opts.cancelLabel  || 'CANCEL';
   const type = opts.type || 'warning';
+  // Capture trigger so we can restore focus when the toast closes.
+  const triggerEl = document.activeElement;
   const handle = showToast(message, type, {
     duration: opts.duration === undefined ? 10000 : opts.duration,
     actions: [
@@ -4880,7 +4882,10 @@ function confirmAction(message, opts) {
     ]
   });
   if (!handle || !handle.actionPromise) return Promise.resolve(false);
-  return handle.actionPromise.then(v => v === true);
+  return handle.actionPromise.then(v => {
+    try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
+    return v === true;
+  });
 }
 
 // Promise-returning inline text input (replaces window.prompt)
