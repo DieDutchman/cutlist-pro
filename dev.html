@@ -15868,10 +15868,10 @@ function buildUpmPartRow(p, i) {
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="l" type="number" min="0" value="${p.l||0}"></td>
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="w" type="number" min="0" value="${p.w||0}"></td>
     <td><select autocomplete="off" class="pp-select" data-f="mat">${matOpts(p.mat||'Picco White')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el1" title="L1 — long edge 1 (height of part)">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el2" title="L2 — long edge 2 (opposite height edge)">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="pp-input" data-f="holes" value="${safe(p.holes)}" placeholder="e.g. 2 per door"></td>
     <td class="upm-del-cell"><button type="button" class="pp-btn is-danger is-sm is-icon" onclick="upmRemovePartRow(this)" title="Remove part" aria-label="Remove part">&times;</button></td>
   </tr>`;
