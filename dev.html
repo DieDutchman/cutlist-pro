@@ -6439,6 +6439,35 @@ document.addEventListener('click', function(ev) {
 document.addEventListener('keydown', function(ev) {
   if (ev.key === 'Escape') closeMoreMenu();
 });
+
+// ── Alt+1..5 — primary tab keyboard shortcuts ─────────────────────────────
+// Alex (and other power users) review Panels → Cutlist → Quote → Summary
+// every cycle; this lets them switch tabs without mouse hops.
+// Suppressed when typing in form fields so it doesn't fight with browser
+// shortcuts inside inputs / textareas / selects / contenteditable.
+const _ALT_TAB_MAP = {
+  '1': '__panels__',
+  '2': '__cutlist__',
+  '3': '__quote__',
+  '4': '__summary__',
+  '5': '__optimize__'
+};
+document.addEventListener('keydown', function(ev) {
+  if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+  const section = _ALT_TAB_MAP[ev.key];
+  if (!section) return;
+  const ae = document.activeElement;
+  if (ae) {
+    const tag = ae.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
+  }
+  const btn = document.querySelector('.tab[data-section="' + section + '"]');
+  if (!btn) return;
+  // Respect role-gating: don't switch into a tab that is hidden for this user
+  if (btn.style.display === 'none') return;
+  ev.preventDefault();
+  try { switchTab(btn, section); } catch(e) {}
+});
 // Highlight the More trigger when the active tab lives inside the panel
 function syncMoreTriggerActive() {
   const wrap = document.getElementById('more-wrap');
