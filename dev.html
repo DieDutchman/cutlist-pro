@@ -10903,6 +10903,28 @@ function _renderQuoteView() {
         <td class="qv-unit-price">${fmt(price)}</td>
         <td class="qv-line-total">${fmt(lineTotal)}</td>
       </tr>`;
+      // Per-unit labour input — only when labour is enabled in per-unit mode.
+      // Per-sqm mode derives labour automatically and doesn't need this row.
+      if (labourConfig.enabled && labourConfig.mode === 'per-unit') {
+        const hrs       = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+        const rate      = parseFloat(labourConfig.ratePerHour) || 0;
+        const labourLine = hrs * qty * rate;
+        mainHtml += `<tr style="background:rgba(100,160,255,0.04)">
+          <td class="qv-qty" style="color:var(--text-muted)"></td>
+          <td class="qv-unit-name" style="color:var(--text-muted);font-size:12px;padding-left:24px">
+            <span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="color:#7ab0ff;font-weight:500">🛠 Labour</span>
+              <input autocomplete="off" type="number" min="0" step="0.25" value="${hrs || ''}" placeholder="0"
+                style="width:64px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                oninput="(function(v){if(!quoteState.unitLabourHours)quoteState.unitLabourHours={};quoteState.unitLabourHours['${u.id}']=parseFloat(v)||0;saveQuoteState();refreshQuoteTotals();})(this.value)">
+              <span style="font-size:11px;color:var(--text-muted)">hrs × ${qty} × R${rate.toFixed(0)}/hr</span>
+            </span>
+          </td>
+          <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)"></td>
+          <td class="qv-line-total" style="color:var(--text-muted)" data-labour-line="${u.id}">${fmt(labourLine)}</td>
+        </tr>`;
+      }
       // Special services for this unit
       (unitSpecialServices[u.id] || []).forEach(s => {
         const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
