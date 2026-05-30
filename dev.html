@@ -2977,6 +2977,11 @@ body.user-light-theme .toast-actions button.toast-primary {
 #job-sync-status.sync-success { color: #6aaa64; background: rgba(106,170,100,0.10); border-color: rgba(106,170,100,0.35); }
 #job-sync-status.sync-error   { color: #e06060; background: rgba(224,96,96,0.10); border-color: rgba(224,96,96,0.40); }
 #job-sync-status.sync-neutral { color: var(--text-dim); background: rgba(255,255,255,0.03); border-color: var(--border); }
+@keyframes regenPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(212,145,58,0.6); }
+  60%  { box-shadow: 0 0 0 7px rgba(212,145,58,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
+}
 @keyframes sync-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
