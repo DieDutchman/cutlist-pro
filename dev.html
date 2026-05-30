@@ -7205,6 +7205,9 @@ async function clearAll() {
   renderPanel();
   window._lastCutlist = null;
   window._lastSummary = null;
+  // New job — there is no cutlist yet, so suppress the stale pill.
+  _cutlistEverGenerated = false;
+  _cutlistDirty = false;
   // Clear job details
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id);
