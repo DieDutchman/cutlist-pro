@@ -4970,6 +4970,62 @@ function inputPrompt(message, defaultValue, confirmLabel) {
   });
 }
 
+// Two-field modal prompt. fields=[{label,placeholder,type?}]. Returns [val0,val1] or null.
+function twoFieldPrompt(title, fields) {
+  return new Promise((resolve) => {
+    const container = document.getElementById('toast-container');
+    if (!container) { resolve(null); return; }
+    const t = document.createElement('div');
+    t.className = 'toast toast-info';
+    t.setAttribute('role', 'dialog');
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon'; icon.textContent = TOAST_ICONS.info || 'ℹ';
+    t.appendChild(icon);
+    const body = document.createElement('div'); body.style.flex = '1';
+    const hdr = document.createElement('div'); hdr.className = 'toast-msg'; hdr.textContent = title;
+    body.appendChild(hdr);
+    const inputs = fields.map(f => {
+      const wrap = document.createElement('div'); wrap.style.marginTop = '8px';
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:3px'; lbl.textContent = f.label;
+      const inp = document.createElement('input');
+      inp.type = f.type || 'text'; inp.placeholder = f.placeholder || '';
+      inp.style.cssText = 'display:block;width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;outline:none;box-sizing:border-box';
+      inp.addEventListener('focus', () => inp.style.borderColor = 'var(--amber)');
+      inp.addEventListener('blur',  () => inp.style.borderColor = 'var(--border)');
+      wrap.appendChild(lbl); wrap.appendChild(inp); body.appendChild(wrap);
+      return inp;
+    });
+    let resolved = false;
+    const finish = (val) => {
+      if (resolved) return; resolved = true;
+      document.removeEventListener('keydown', keyHandler, true);
+      t.classList.remove('toast-show'); t.classList.add('toast-hide');
+      setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      resolve(val);
+    };
+    const row = document.createElement('div'); row.className = 'toast-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'CANCEL'; cancelBtn.addEventListener('click', () => finish(null));
+    const okBtn = document.createElement('button');
+    okBtn.className = 'toast-primary'; okBtn.textContent = 'ADD';
+    okBtn.addEventListener('click', () => finish(inputs.map(i => i.value)));
+    row.appendChild(cancelBtn); row.appendChild(okBtn); body.appendChild(row);
+    t.appendChild(body);
+    const close = document.createElement('button');
+    close.className = 'toast-close'; close.setAttribute('aria-label','Dismiss');
+    close.textContent = '×'; close.addEventListener('click', () => finish(null));
+    t.appendChild(close);
+    const keyHandler = (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(null); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); finish(inputs.map(i => i.value)); }
+    };
+    document.addEventListener('keydown', keyHandler, true);
+    container.appendChild(t);
+    requestAnimationFrame(() => { t.classList.add('toast-show'); try { inputs[0].focus(); } catch(_) {} });
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
 // SCROLL PRESERVATION — prevents page jumping when inputs re-render views
 // ═══════════════════════════════════════════════════════════
