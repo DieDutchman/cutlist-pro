@@ -10917,7 +10917,7 @@ function _renderQuoteView() {
               <input autocomplete="off" type="number" min="0" step="0.25" value="${hrs || ''}" placeholder="0"
                 style="width:64px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
                 onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
-                oninput="(function(v){if(!quoteState.unitLabourHours)quoteState.unitLabourHours={};quoteState.unitLabourHours['${u.id}']=parseFloat(v)||0;saveQuoteState();refreshQuoteTotals();})(this.value)">
+                oninput="(function(v){if(!quoteState.unitLabourHours)quoteState.unitLabourHours={};quoteState.unitLabourHours['${u.id}']=parseFloat(v)||0;saveQuoteState();refreshQuoteTotals();try{scheduleAutoSave();}catch(e){}})(this.value)">
               <span style="font-size:11px;color:var(--text-muted)">hrs × ${qty} × R${rate.toFixed(0)}/hr</span>
             </span>
           </td>
