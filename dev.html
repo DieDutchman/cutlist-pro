@@ -15883,8 +15883,22 @@ function saveUnitParts(unitId) {
 
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
+  // State changed since last cutlist render — mark stale + refresh the
+  // regenerate badge if the cutlist tab is currently visible.
+  if (_cutlistEverGenerated) {
+    _cutlistDirty = true;
+    try { _refreshCutlistDirtyBadge(); } catch(e) {}
+  }
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => saveJobToCloud(), 4000);
+}
+
+// Toggle visibility of the inline "Cutlist may be out of date" pill that
+// _renderCutlistDirtyBadge inserts into the cutlist header toolbar.
+function _refreshCutlistDirtyBadge() {
+  const pill = document.getElementById('cutlist-regen-pill');
+  if (!pill) return; // cutlist not currently rendered
+  pill.style.display = (_cutlistEverGenerated && _cutlistDirty) ? '' : 'none';
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
