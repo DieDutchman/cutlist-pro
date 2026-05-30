@@ -4984,6 +4984,8 @@ function twoFieldPrompt(title, fields) {
   return new Promise((resolve) => {
     const container = document.getElementById('toast-container');
     if (!container) { resolve(null); return; }
+    // Capture trigger so we can restore focus when the modal closes.
+    const triggerEl = document.activeElement;
     const t = document.createElement('div');
     t.className = 'toast toast-info';
     t.setAttribute('role', 'dialog');
