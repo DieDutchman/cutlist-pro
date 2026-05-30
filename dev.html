@@ -6837,6 +6837,8 @@ function switchTab(btn, section) {
     document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('pl-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'block';
+    // Reset stale label from a prior import session so the text field starts empty.
+    if (importState && importState.status === 'idle') importState.label = '';
     renderImportView();
     return;
   }
