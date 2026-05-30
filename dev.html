@@ -6476,6 +6476,56 @@ document.addEventListener('keydown', function(ev) {
   ev.preventDefault();
   try { switchTab(btn, section); } catch(e) {}
 });
+// ── Edge codes popover (L1 / L2 / W1 / W2 quick reference) ───────────────
+// Jordan edits edging on parts in Panels / Cutlist tabs and needs the
+// L1/L2/W1/W2 explanation without diving into the Import tab. Each editor
+// surface gets a small "ℹ Edge codes" trigger that calls this function.
+// One popover at a time; click outside / Escape dismisses.
+function showEdgeCodesInfo(ev) {
+  if (ev) { try { ev.stopPropagation(); ev.preventDefault(); } catch(_) {} }
+  // Toggle: if already open, close it.
+  const existing = document.getElementById('edge-codes-popover');
+  if (existing) { existing.remove(); return; }
+  const pop = document.createElement('div');
+  pop.id = 'edge-codes-popover';
+  pop.style.cssText = 'position:fixed;z-index:10000;background:var(--bg2);border:1px solid var(--amber-dim);box-shadow:0 6px 24px rgba(0,0,0,0.55);padding:14px 16px;max-width:340px;font-family:\'Barlow\',sans-serif;font-size:12px;color:var(--text);line-height:1.55';
+  pop.innerHTML = '<div style="font-weight:600;font-size:11px;letter-spacing:1px;color:var(--amber);text-transform:uppercase;margin-bottom:8px;font-family:\'Oswald\',sans-serif">Edge Abbreviations</div>'
+    + '<div style="display:grid;grid-template-columns:32px 1fr;gap:6px 10px;align-items:start">'
+    + '<span style="color:var(--amber-dim);font-weight:600">L1</span><span>Long edge 1 — the <strong>height</strong> dimension (left or right vertical edge)</span>'
+    + '<span style="color:var(--amber-dim);font-weight:600">L2</span><span>Long edge 2 — the opposite <strong>height</strong> edge</span>'
+    + '<span style="color:var(--amber-dim);font-weight:600">W1</span><span>Short edge 1 — the <strong>width</strong> dimension (top or bottom horizontal edge)</span>'
+    + '<span style="color:var(--amber-dim);font-weight:600">W2</span><span>Short edge 2 — the opposite <strong>width</strong> edge</span>'
+    + '</div>'
+    + '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Click anywhere outside to close.</div>';
+  document.body.appendChild(pop);
+  // Position near the trigger if we have one, otherwise centre.
+  const trigger = ev && ev.currentTarget ? ev.currentTarget : (ev && ev.target);
+  if (trigger && trigger.getBoundingClientRect) {
+    const r = trigger.getBoundingClientRect();
+    const pr = pop.getBoundingClientRect();
+    let top = r.bottom + 6;
+    let left = r.left;
+    if (left + pr.width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pr.width - 8);
+    if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 6);
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+  } else {
+    pop.style.top = '50%'; pop.style.left = '50%'; pop.style.transform = 'translate(-50%,-50%)';
+  }
+  const close = (e) => {
+    if (e && pop.contains(e.target)) return;
+    pop.remove();
+    document.removeEventListener('mousedown', close, true);
+    document.removeEventListener('keydown', escClose, true);
+  };
+  const escClose = (e) => { if (e.key === 'Escape') close(); };
+  // Defer so the click that opened it doesn't immediately close it.
+  setTimeout(() => {
+    document.addEventListener('mousedown', close, true);
+    document.addEventListener('keydown', escClose, true);
+  }, 0);
+}
+
 // Highlight the More trigger when the active tab lives inside the panel
 function syncMoreTriggerActive() {
   const wrap = document.getElementById('more-wrap');
