@@ -5489,6 +5489,14 @@ const unitOverrides = {};
 const deletedUnits = new Set();
 const archivedUnitIds = new Set(); // job-scoped; saved/restored in getJobState/applyState
 
+// ── Cutlist freshness tracker ────────────────────────────────────────────
+// _cutlistEverGenerated flips true once generateCutlist() has produced a
+// _lastCutlist for this session. _cutlistDirty flags that state has changed
+// since the last successful generation (autosave / captureState fire it).
+// Together they drive the inline "↻ Regenerate" badge in the cutlist header.
+let _cutlistEverGenerated = false;
+let _cutlistDirty = false;
+
 // ── Declared early so getEffectiveUnits() can safely read it at startup ───────
 let sbRole = 'admin'; // overwritten after login — defaults to admin so startup renders correctly
 let sbLastJobId = null; // restored from profiles.last_job_id on login
