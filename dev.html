@@ -25451,7 +25451,14 @@ function _renderPLView() {
   // the supplier invoice; inv.vatIncluded carries that flag (default true for
   // backwards compat). _invInclVAT normalises each line back to incl-VAT so
   // the existing /1.15 math still derives the correct excl-VAT figures.
-  const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
+  // Labour: user-entered manual figure wins; otherwise fall back to the
+  // estimated labour from labourConfig (saved in the snap as labourExpected).
+  // This way the P&L always has a labour line even before the maker types
+  // an actual figure — matching the quote's labour estimate exactly.
+  const _manualLabour     = parseFloat(pd?.labourCost) || 0;
+  const _estimatedLabour  = parseFloat(snap?.labourExpected) || 0;
+  const labourCost        = _manualLabour > 0 ? _manualLabour : _estimatedLabour;   // no VAT — straight out of profit
+  const labourIsEstimate  = _manualLabour <= 0 && _estimatedLabour > 0;
   const invoiceTotal      = invs.reduce((s,inv) => s + _invInclVAT(inv), 0);
   const invoiceVAT        = invoiceTotal * 15 / 115;           // input VAT claimable
   const invoiceExclVAT    = invoiceTotal / 1.15;               // true material cost excl VAT
