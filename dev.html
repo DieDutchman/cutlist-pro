@@ -4884,9 +4884,9 @@ function confirmAction(message, opts) {
 }
 
 // Promise-returning inline text input (replaces window.prompt)
-// Usage: const v = await inputPrompt('Rename room:', currentName); if (v === null) return;
+// Usage: const v = await inputPrompt('Rename room:', currentName, 'RENAME'); if (v === null) return;
 // Returns trimmed string on confirm, null on cancel/escape/dismiss.
-function inputPrompt(message, defaultValue) {
+function inputPrompt(message, defaultValue, confirmLabel) {
   return new Promise((resolve) => {
     const container = document.getElementById('toast-container');
     if (!container) { resolve(null); return; }
