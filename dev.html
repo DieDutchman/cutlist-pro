@@ -8828,10 +8828,10 @@ function buildPartRow(p, i) {
     <td><input autocomplete="off" class="part-cell-input num" data-f="l" type="number" min="0" value="${p.l||0}" style="width:65px"></td>
     <td><input autocomplete="off" class="part-cell-input num" data-f="w" type="number" min="0" value="${p.w||0}" style="width:65px"></td>
     <td><select autocomplete="off" class="editor-mat-select" data-f="mat">${matOpts(p.mat||'Picco White')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el1" title="L1 — long edge 1 (height of part)">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el2" title="L2 — long edge 2 (opposite height edge)">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
     <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part">×</button></td>
   </tr>`;
