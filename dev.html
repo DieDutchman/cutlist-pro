@@ -7384,7 +7384,11 @@ function generateCutlist() {
       <div class="cutlist-title">Cutlist${jobClient ? ' — ' + jobClient : ''}</div>
       <div class="cutlist-meta">${totalLines} unique sizes &nbsp;·&nbsp; ${totalParts} total pieces</div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button id="cutlist-regen-pill" type="button"
+        onclick="generateCutlist()"
+        title="Cutlist may be out of date — click to regenerate"
+        style="display:none;background:rgba(212,145,58,0.12);border:1px solid rgba(212,145,58,0.45);color:var(--amber);font-size:11px;padding:4px 10px;font-family:'Barlow',sans-serif;letter-spacing:0.3px;cursor:pointer;line-height:1;display:none">↻ Regenerate</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(true)">⊞ Expand All</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(false)">⊟ Collapse All</button>
       <button class="btn btn-excel" onclick="downloadXLSX()">⬇ Download .xlsx</button>
