@@ -5004,12 +5004,34 @@ function twoFieldPrompt(title, fields) {
       setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
       resolve(val);
     };
+    // Inline "Required" error message under first input (created lazily).
+    let errMsg = null;
+    const showFirstFieldError = () => {
+      inputs[0].style.borderColor = '#e05252';
+      if (!errMsg) {
+        errMsg = document.createElement('div');
+        errMsg.style.cssText = 'font-size:11px;color:#e05252;margin-top:3px';
+        errMsg.textContent = 'Required';
+        // Insert directly after the first input.
+        if (inputs[0].parentNode) inputs[0].parentNode.appendChild(errMsg);
+      }
+      try { inputs[0].focus(); } catch(_) {}
+    };
+    // Clear error state as soon as the user starts typing in the first field.
+    inputs[0].addEventListener('input', () => {
+      inputs[0].style.borderColor = 'var(--amber)';
+      if (errMsg && errMsg.parentNode) { errMsg.parentNode.removeChild(errMsg); errMsg = null; }
+    }, { once: true });
+    const tryFinish = () => {
+      if (inputs[0].value.trim() === '') { showFirstFieldError(); return; }
+      finish(inputs.map(i => i.value));
+    };
     const row = document.createElement('div'); row.className = 'toast-actions';
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'CANCEL'; cancelBtn.addEventListener('click', () => finish(null));
     const okBtn = document.createElement('button');
     okBtn.className = 'toast-primary'; okBtn.textContent = 'ADD';
-    okBtn.addEventListener('click', () => finish(inputs.map(i => i.value)));
+    okBtn.addEventListener('click', tryFinish);
     row.appendChild(cancelBtn); row.appendChild(okBtn); body.appendChild(row);
     t.appendChild(body);
     const close = document.createElement('button');
@@ -5018,7 +5040,7 @@ function twoFieldPrompt(title, fields) {
     t.appendChild(close);
     const keyHandler = (ev) => {
       if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(null); }
-      else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); finish(inputs.map(i => i.value)); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); tryFinish(); }
     };
     document.addEventListener('keydown', keyHandler, true);
     container.appendChild(t);
