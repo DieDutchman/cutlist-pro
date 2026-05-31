@@ -11338,6 +11338,7 @@ function _renderQuoteView() {
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input autocomplete="off" type="number" min="0" value="${quoteState.dieselFeeAmt||1800}"
+          title="Diesel / travel cost for site visit or delivery in Rand"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.dieselFeeAmt=parseFloat(this.value)||1800;saveQuoteState();refreshQuoteTotals()">
