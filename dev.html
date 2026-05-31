@@ -16170,10 +16170,23 @@ function buildUpmPartRow(p, i) {
 function upmRemovePartRow(btn) {
   const tr = btn?.closest('tr');
   if (!tr) return;
+  const get = f => { const el = tr.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
+  const snap = { name: get('name'), qty: get('qty'), l: get('l'), w: get('w'), mat: get('mat'), el1: get('el1'), el2: get('el2'), ew1: get('ew1'), ew2: get('ew2'), holes: get('holes') };
+  const label = snap.name.trim() || `${snap.l||0} × ${snap.w||0}`;
   tr.classList.add('is-removing');
   setTimeout(() => {
     tr.remove();
     _upmRenumberAndCount();
+    showToast(`"${label}" removed`, 'info', { duration: 6000, actions: [{ label: 'UNDO', onclick: () => {
+      const tbody = document.getElementById('upm-parts-tbody');
+      if (!tbody) return;
+      const idx = tbody.querySelectorAll('tr').length;
+      const row = document.createElement('tr');
+      row.dataset.idx = idx;
+      row.innerHTML = buildUpmPartRow({ name: snap.name, qty: parseInt(snap.qty)||1, l: parseInt(snap.l)||0, w: parseInt(snap.w)||0, mat: snap.mat||'Picco White', el1: snap.el1||'', el2: snap.el2||'', ew1: snap.ew1||'', ew2: snap.ew2||'', holes: snap.holes||'' }, idx).match(/<tr[^>]*>([\s\S]*)<\/tr>/)[1];
+      tbody.appendChild(row);
+      _upmRenumberAndCount();
+    }}]});
   }, 170);
 }
 
