@@ -11526,6 +11526,16 @@ function _renderQuoteView() {
   _wireToggle('qv-head-hw',      () => { quoteState.hwOpen   = !quoteState.hwOpen;   saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
 
+  // Per-room Hardware breakdown toggles — one wire per visible room HW row.
+  sectionData.forEach(({ sec }) => {
+    _wireToggle(`qv-room-hw-${sec.id}`, () => {
+      if (!quoteState.hwBreakdownOpen || typeof quoteState.hwBreakdownOpen !== 'object') quoteState.hwBreakdownOpen = {};
+      quoteState.hwBreakdownOpen[sec.id] = !quoteState.hwBreakdownOpen[sec.id];
+      saveQuoteState();
+      renderQuoteView();
+    });
+  });
+
   // Always sync totals via the single source of truth, regardless of what was baked into the HTML
   refreshQuoteTotals();
 }
