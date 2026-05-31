@@ -11032,7 +11032,87 @@ function _renderQuoteView() {
         ${sec.label} subtotal
       </td>
       <td class="qv-line-total">${fmt(secDisplayTotal)}</td>
-    </tr></tbody></table>`;
+    </tr>`;
+
+    // Cache for global Hardware summary further down (avoids second calcUnitCost pass).
+    _roomHw[sec.id] = _rh;
+
+    // ── Per-room Hardware breakdown ───────────────────────────────
+    // Respect section-level HW flags: skip room entirely if all three are off.
+    const _roomHasHw = sectionHasHinges(sec.id) || sectionHasRunners(sec.id) || sectionHasHandles(sec.id);
+    if (_roomHasHw) {
+      const _hw = costingPrices.hardware;
+      const _hingePriceR  = quoteState.hingeType  === 'soft' ? _hw.hingeSoft  : _hw.hingeNormal;
+      const _runnerPriceR = quoteState.runnerType === 'soft' ? _hw.runnerSoft : _hw.runnerNormal;
+      const _hingeLabelR  = quoteState.hingeType  === 'soft' ? 'Soft-close' : 'Normal';
+      const _runnerLabelR = quoteState.runnerType === 'soft' ? 'Soft-close' : 'Normal';
+
+      // Build the per-room subtotal so the header value matches the rows.
+      let _hingeCostR = 0, _h160CostR = 0, _h240CostR = 0, _runnerCostR = 0;
+      const _runnerRows = [];
+      if (sectionHasHinges(sec.id) && _rh.hinges > 0) {
+        _hingeCostR = _rh.hinges * _hingePriceR;
+      }
+      if (sectionHasRunners(sec.id)) {
+        RUNNER_STANDARD_SIZES.forEach(size => {
+          const count = _rh.runnerSets[size];
+          if (!count) return;
+          const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
+          const price  = hwItem ? hwItem.pricePerUnit : _runnerPriceR;
+          const label  = hwItem ? hwItem.name : `${_runnerLabelR} Runners ${size}mm`;
+          _runnerCostR += count * price;
+          _runnerRows.push({ label, count, price });
+        });
+        const unsized = _rh.runnerSets[0];
+        if (unsized) {
+          _runnerCostR += unsized * _runnerPriceR;
+          _runnerRows.push({ label: `${_runnerLabelR} Runners`, count: unsized, price: _runnerPriceR });
+        }
+      }
+      if (sectionHasHandles(sec.id) && _rh.h160 > 0) _h160CostR = _rh.h160 * _hw.handle160;
+      if (sectionHasHandles(sec.id) && _rh.h240 > 0) _h240CostR = _rh.h240 * _hw.handle240;
+
+      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR;
+      // Only render the Hardware row when there is actually something to show.
+      if (_roomHwTotal > 0) {
+        const _open = !!(quoteState.hwBreakdownOpen && quoteState.hwBreakdownOpen[sec.id]);
+        const _toggleId = `qv-room-hw-${sec.id}`;
+        mainHtml += `<tr class="qv-room-hw-head" id="${_toggleId}" style="cursor:pointer;user-select:none;background:rgba(212,145,58,0.04)">
+          <td class="qv-qty"></td>
+          <td class="qv-unit-name" style="color:var(--text);font-weight:500">
+            🔩 Hardware
+            <span style="font-size:11px;color:var(--amber);margin-left:6px;display:inline-block;transition:transform 0.2s;transform:rotate(${_open?'180':'0'}deg)">▾</span>
+          </td>
+          <td class="qv-unit-price"></td>
+          <td class="qv-line-total">${fmt(_roomHwTotal)}</td>
+        </tr>`;
+        if (_open) {
+          const _subRow = (lbl, qtyTxt, amt) => `<tr class="qv-room-hw-sub">
+            <td class="qv-qty"></td>
+            <td class="qv-unit-name" style="color:var(--text-muted);font-size:12px;padding-left:24px">
+              ↳ ${lbl}
+              <span style="font-size:10px;color:var(--text-muted);opacity:0.75;margin-left:6px">${qtyTxt}</span>
+            </td>
+            <td class="qv-unit-price"></td>
+            <td class="qv-line-total" style="color:var(--text-muted);font-size:12px">${fmt(amt)}</td>
+          </tr>`;
+          if (_hingeCostR > 0) {
+            mainHtml += _subRow(`${_hingeLabelR} Hinges`, `${_rh.hinges} pcs × R${_hingePriceR.toFixed(0)}`, _hingeCostR);
+          }
+          _runnerRows.forEach(r => {
+            mainHtml += _subRow(r.label, `${r.count} set${r.count!==1?'s':''} × R${r.price.toFixed(0)}`, r.count * r.price);
+          });
+          if (_h160CostR > 0) {
+            mainHtml += _subRow('Handles 160mm', `${_rh.h160} pcs × R${_hw.handle160.toFixed(0)}`, _h160CostR);
+          }
+          if (_h240CostR > 0) {
+            mainHtml += _subRow('Handles 240mm', `${_rh.h240} pcs × R${_hw.handle240.toFixed(0)}`, _h240CostR);
+          }
+        }
+      }
+    }
+
+    mainHtml += `</tbody></table>`;
   });
 
   // ── Custom Panels section in quote ──────────────────────────────
