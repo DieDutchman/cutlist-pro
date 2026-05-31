@@ -10925,10 +10925,6 @@ function _renderQuoteView() {
       No units selected yet — go to the unit tabs and enter quantities first.</div>`;
   }
 
-  // Per-room hardware aggregation cache — reused by the global Hardware
-  // summary block further down so calcUnitCost is only called once per unit.
-  const _roomHw = {}; // { [sec.id]: { hinges, h160, h240, runnerSets:{} } }
-
   sectionData.forEach(({ sec, units }) => {
     mainHtml += `<div class="qv-section-head">${sec.label}</div>
       <table class="qv-table"><tbody>`;
