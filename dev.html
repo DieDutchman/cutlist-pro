@@ -16293,6 +16293,11 @@ function saveUnitParts(unitId) {
     });
   });
 
+  if (skippedWithDims > 0) {
+    showToast(`${skippedWithDims} part${skippedWithDims > 1 ? 's' : ''} missing a name — add names before saving.`, 'warning');
+    return;
+  }
+
   if (isBuiltin) {
     unitOverrides[unitId] = {
       ...(unitOverrides[unitId] || {}),
