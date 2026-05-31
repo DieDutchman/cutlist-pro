@@ -11403,7 +11403,7 @@ function _renderQuoteView() {
     <div class="qv-card-title">Markup</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <input autocomplete="off" type="range" class="wb-slider" min="20" max="100" step="1"
-        value="${markupPct}" style="flex:1"
+        value="${markupPct}" style="flex:1" title="Markup percentage applied to unit material cost (e.g. 40 = 40% markup)"
         oninput="quoteState.markup=parseInt(this.value)/100;saveQuoteState();
           document.getElementById('qv-markup-pct').textContent=this.value+'%';
           document.getElementById('qv-markup-line').textContent='+ '+this.value+'% markup on units';
