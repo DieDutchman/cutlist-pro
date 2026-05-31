@@ -10942,6 +10942,16 @@ function _renderQuoteView() {
       const price = unitCostCache[u.id] || 0;
       const lineTotal = qty * price;
       secDisplayTotal += lineTotal;
+      // Hardware tally for this unit — only when the unit actually has parts
+      // (calcUnitCost short-circuits otherwise). Uses per-unit flags so the
+      // numbers match the costing-tab logic exactly.
+      if (qty && u.parts && u.parts.length > 0) {
+        const _c = calcUnitCost(u, qty);
+        if (unitHasHinges (u.id)) _rh.hinges += _c.hingeCount    || 0;
+        if (unitHasHandles(u.id)) _rh.h160   += _c.handle160Count || 0;
+        if (unitHasHandles(u.id)) _rh.h240   += _c.handle240Count || 0;
+        if (unitHasRunners(u.id) && _c.runnerSets) mergeRunnerSets(_rh.runnerSets, _c.runnerSets);
+      }
       mainHtml += `<tr>
         <td class="qv-qty">${qty}×</td>
         <td class="qv-unit-name">${u.name}</td>
