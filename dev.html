@@ -11203,15 +11203,26 @@ function _renderQuoteView() {
   let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
   const allRunnerSets = {};
 
-  sectionData.forEach(({ units }) => {
-    units.forEach(u => {
-      const qty = quantities[u.id] || 0;
-      if (!qty || !u.parts || u.parts.length === 0) return;
-      const c = calcUnitCost(u, qty);
-      // Per-type section flags — skip excluded counts so the Quote hardware
-      // summary matches the costing-tab totals.
-      if (unitHasHinges (u.id)) totalHinges    += c.hingeCount    || 0;
-      if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
+  // Prefer per-room totals already aggregated in the left-panel pass — avoids a
+  // second calcUnitCost pass over every unit. _roomHw is keyed by sec.id and
+  // already respects the per-unit section flags applied during that loop.
+  sectionData.forEach(({ sec }) => {
+    const rh = _roomHw[sec.id];
+    if (!rh) return;
+    totalHinges    += rh.hinges || 0;
+    totalHandle160 += rh.h160   || 0;
+    totalHandle240 += rh.h240   || 0;
+    if (rh.runnerSets) mergeRunnerSets(allRunnerSets, rh.runnerSets);
+  });
+
+  // Fallback path (kept dead — left for reference of what the loop used to do):
+  // sectionData.forEach(({ units }) => {
+  //   units.forEach(u => {
+  //     const qty = quantities[u.id] || 0;
+  //     if (!qty || !u.parts || u.parts.length === 0) return;
+  //     const c = calcUnitCost(u, qty);
+  //     if (unitHasHinges (u.id)) totalHinges    += c.hingeCount    || 0;
+  //     if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
       if (unitHasHandles(u.id)) totalHandle240 += c.handle240Count || 0;
       if (unitHasRunners(u.id) && c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     });
