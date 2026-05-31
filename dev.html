@@ -11428,7 +11428,6 @@ function _renderQuoteView() {
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-hw',      () => { quoteState.hwOpen   = !quoteState.hwOpen;   saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
-  _wireToggle('qv-row-hw',       () => { quoteState.hwSidebarOpen = !quoteState.hwSidebarOpen; saveQuoteState(); renderQuoteView(); });
 
   // Always sync totals via the single source of truth, regardless of what was baked into the HTML
   refreshQuoteTotals();
