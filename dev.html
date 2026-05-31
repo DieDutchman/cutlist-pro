@@ -11379,58 +11379,10 @@ function _renderQuoteView() {
         <span class="label">Delivery <span style="font-size:10px;color:var(--text-muted)">(material delivery)</span></span>
         <span class="val" id="qv-val-delivery">${fmt(deliveryTotal)}</span>
       </div>` : ''}
-      ${hasAutoHw ? (() => {
-        // Build sub-row breakdown reusing values already computed above
-        // (totalHinges, hingePrice, allRunnerSets, totalHandle160/240, hw, runnerPrice, runnerLabel).
-        // Only emit rows where qty > 0, and only when the user expands.
-        const _sub = (lbl, qtyTxt, amt) => `
-          <div class="qv-total-row" style="padding:3px 0 3px 18px;border-bottom:none;font-size:12px">
-            <span class="label" style="font-size:12px;color:var(--text-muted)">↳ ${lbl}
-              <span style="font-size:10px;color:var(--text-muted);opacity:0.75;margin-left:6px">${qtyTxt}</span>
-            </span>
-            <span class="val" style="font-size:12px;color:var(--text-dim)">${fmt(amt)}</span>
-          </div>`;
-        let subRows = '';
-        if (totalHinges > 0) {
-          subRows += _sub(`${hingeLabel} Hinges`, `${totalHinges} × R${hingePrice.toFixed(0)}`, hingeCostTotal);
-        }
-        // Sized runners (each standard size that has count > 0)
-        RUNNER_STANDARD_SIZES.forEach(size => {
-          const count = allRunnerSets[size];
-          if (!count) return;
-          const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
-          const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
-          const label  = hwItem ? hwItem.name : `${runnerLabel} Runners ${size}mm`;
-          subRows += _sub(label, `${count} set${count!==1?'s':''} × R${price.toFixed(0)}`, count * price);
-        });
-        // Unsized runners (size 0 bucket)
-        if (allRunnerSets[0]) {
-          const count = allRunnerSets[0];
-          subRows += _sub(`${runnerLabel} Runners`, `${count} set${count!==1?'s':''} × R${runnerPrice.toFixed(0)}`, count * runnerPrice);
-        }
-        if (totalHandle160 > 0) {
-          subRows += _sub('Handles 160mm', `${totalHandle160} × R${hw.handle160.toFixed(0)}`, handle160Total);
-        }
-        if (totalHandle240 > 0) {
-          subRows += _sub('Handles 240mm', `${totalHandle240} × R${hw.handle240.toFixed(0)}`, handle240Total);
-        }
-        // Handling line — always show when expanded, mirrors costing-tab breakdown
-        subRows += `
-          <div class="qv-total-row" style="padding:3px 0 6px 18px;border-bottom:none;font-size:11px">
-            <span class="label" style="font-size:11px;color:var(--text-muted);opacity:0.7">↳ Handling (${Math.round(HW_HANDLING*100)}%)</span>
-            <span class="val" style="font-size:11px;color:var(--text-muted);opacity:0.7">${fmt(autoHwHandling)}</span>
-          </div>`;
-        const open = !!quoteState.hwSidebarOpen;
-        return `<div class="qv-total-row" style="cursor:pointer;user-select:none" id="qv-row-hw"
-            title="Click to ${open?'hide':'show'} hardware breakdown">
-            <span class="label">🔩 Hardware
-              <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span>
-              <span style="font-size:11px;color:var(--amber);margin-left:6px;display:inline-block;transition:transform 0.2s;transform:rotate(${open?'180':'0'}deg)">▾</span>
-            </span>
-            <span class="val" id="qv-val-hw">${fmt(autoHwGrand)}</span>
-          </div>
-          ${open ? `<div id="qv-hw-breakdown" style="border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:0">${subRows}</div>` : ''}`;
-      })() : ''}
+      ${hasAutoHw ? `<div class="qv-total-row">
+        <span class="label">🔩 Hardware <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></span>
+        <span class="val" id="qv-val-hw">${fmt(autoHwGrand)}</span>
+      </div>` : ''}
       ${extrasTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Extras</span>
         <span class="val" id="qv-val-extras">${fmt(extrasTotal)}</span>
