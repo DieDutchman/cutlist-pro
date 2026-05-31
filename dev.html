@@ -11226,87 +11226,9 @@ function _renderQuoteView() {
   const autoHwGrand      = autoHwTotal + autoHwHandling;
   const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
 
-  if (hasAutoHw) {
-    // Build rows for each hardware type
-    let hwRows = '';
-    if (totalHinges > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Hinges – ${hingeLabel}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHinges} × R${hingePrice.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(hingeCostTotal)}</span>
-          </div>
-        </div>`;
-    }
-    // Runners — grouped by size
-    RUNNER_STANDARD_SIZES.forEach(size => {
-      const count = allRunnerSets[size];
-      if (!count) return;
-      const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
-      const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
-      const label  = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">${label}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${price.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * price)}</span>
-          </div>
-        </div>`;
-    });
-    if (allRunnerSets[0]) {
-      const count = allRunnerSets[0];
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Runners – ${runnerLabel}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${runnerPrice.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * runnerPrice)}</span>
-          </div>
-        </div>`;
-    }
-    if (totalHandle160 > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Handles 160mm</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle160} × R${hw.handle160.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle160Total)}</span>
-          </div>
-        </div>`;
-    }
-    if (totalHandle240 > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Handles 240mm</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle240} × R${hw.handle240.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle240Total)}</span>
-          </div>
-        </div>`;
-    }
-    // Handling + total
-    hwRows += `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-        <span style="font-size:11px;color:var(--text-muted)">Handling (${Math.round(HW_HANDLING*100)}%)</span>
-        <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${fmt(autoHwHandling)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px">
-        <span style="font-weight:500;font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">HARDWARE TOTAL</span>
-        <span style="font-size:14px;color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600">${fmt(autoHwGrand)}</span>
-      </div>`;
-
-    mainHtml += `
-    <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()" id="qv-head-hw">
-      <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
-        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
-      </span>
-      <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.hwOpen?'90':'0'}deg)">▶</span>
-    </div>
-    ${quoteState.hwOpen ? `<div style="padding:4px 0 12px">${hwRows}</div>` : ''}`;
-  }
+  // Standalone Hardware section removed — hardware now lives per-room (🔩 Hardware ▾ row
+  // inside each room table) and the aggregate is shown in the sidebar Hardware total row.
+  // Keep hasAutoHw / autoHwGrand / autoHwHandling computed above — the sidebar uses them.
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
