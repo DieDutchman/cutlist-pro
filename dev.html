@@ -10793,7 +10793,8 @@ let quoteState = {
   topsOpen: false,
   feesOpen: false,
   hwOpen:   true,
-  hwSidebarOpen: false,
+  // Per-room left-panel hardware breakdown open/closed: { [sectionId]: bool }
+  hwBreakdownOpen: {},
   // Per-unit labour hours: { [unitId]: hours } — only used when
   // labourConfig.mode === 'per-unit'. Default 0 for any unit not present.
   unitLabourHours: {},
