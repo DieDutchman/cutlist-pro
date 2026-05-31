@@ -11030,9 +11030,6 @@ function _renderQuoteView() {
       <td class="qv-line-total">${fmt(secDisplayTotal)}</td>
     </tr>`;
 
-    // Cache for global Hardware summary further down (avoids second calcUnitCost pass).
-    _roomHw[sec.id] = _rh;
-
     // ── Per-room Hardware breakdown ───────────────────────────────
     // Respect section-level HW flags: skip room entirely if all three are off.
     const _roomHasHw = sectionHasHinges(sec.id) || sectionHasRunners(sec.id) || sectionHasHandles(sec.id);
