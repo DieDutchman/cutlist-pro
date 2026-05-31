@@ -16266,10 +16266,19 @@ function saveUnitParts(unitId) {
 
   const rows = document.querySelectorAll('#upm-parts-tbody tr');
   const parts = [];
+  let skippedWithDims = 0;
   rows.forEach(row => {
     const get = f => { const el = row.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
     const name = get('name').trim();
-    if (!name) return;
+    if (!name) {
+      const l = parseInt(get('l')) || 0, w = parseInt(get('w')) || 0;
+      if (l > 0 || w > 0) {
+        const nameEl = row.querySelector('[data-f="name"]');
+        if (nameEl) { nameEl.style.borderColor = '#e05252'; nameEl.focus(); }
+        skippedWithDims++;
+      }
+      return;
+    }
     parts.push({
       name,
       qty:   parseInt(get('qty'))  || 1,
