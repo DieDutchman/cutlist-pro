@@ -26762,7 +26762,11 @@ function openOptimizer() {
 function collectOptimizerParts() {
   // Prefer the last-generated cutlist. Fall back to generating one on the fly.
   if (!window._lastCutlist) {
-    try { generateCutlist(); } catch (e) { /* ignore */ }
+    try { generateCutlist(); } catch (e) {
+      console.error('generateCutlist failed:', e);
+      showToast('Could not generate cutlist: ' + (e && e.message ? e.message : e), 'error');
+      return [];
+    }
   }
   const cl = window._lastCutlist;
   if (!cl || !cl.consolidated) return [];
