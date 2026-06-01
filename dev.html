@@ -14280,6 +14280,7 @@ async function submitFeedback() {
     statusEl.style.color = '#5dba6e';
     statusEl.textContent = '\u2713 Feedback sent \u2014 thank you!';
     document.getElementById('fb-message').value = '';
+    sendBtn.disabled = false;
     setTimeout(() => closeFeedbackModal(), 1800);
   } catch(e) {
     statusEl.style.color = '#e07070';
@@ -14664,9 +14665,9 @@ async function updateTrialExpiry(userId, dateVal) {
   const statusEl = document.getElementById(`user-status-${userId}`);
   if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ trial_expires_at: dateVal || null }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -15062,11 +15063,12 @@ ${message ? '\nMessage:\n' + message : ''}`.trim();
 async function updateUserRole(userId, newRole, selectEl) {
   const statusEl = document.getElementById(`user-status-${userId}`);
   if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  const prevRole = selectEl.value;
   selectEl.disabled = true;
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({ role: newRole })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -15080,7 +15082,7 @@ async function updateUserRole(userId, newRole, selectEl) {
     }
   } catch(e) {
     if (statusEl) { statusEl.textContent = '✕ Failed'; statusEl.style.color = '#e07070'; }
-    selectEl.value = selectEl.value === 'admin' ? 'user' : 'admin'; // revert
+    selectEl.value = prevRole;
   }
   selectEl.disabled = false;
 }
@@ -20919,6 +20921,8 @@ function loadSnapshot(name) {
   const snap = getSnapshots().find(s => s.name === name);
   if (!snap) return;
   applyState(snap.state);
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveJobToCloud(), 4000);
   closeQuoteManager();
 }
 
