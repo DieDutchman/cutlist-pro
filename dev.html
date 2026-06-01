@@ -13941,9 +13941,43 @@ function showUsersTab(tab) {
   if (isTemplates) loadTemplatesAdmin();
 }
 let _usersModalEscHandler = null;
+let _usersModalTrapHandler = null;
+let _usersModalTrigger = null;
+
+function _usersModalTrapFocus(modal) {
+  const focusable = () => Array.from(modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => !el.closest('[style*="display: none"]') && !el.closest('[hidden]'));
+
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const els = focusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  modal.addEventListener('keydown', handler);
+  return handler;
+}
+
 function openUsersModal() {
-  document.getElementById('users-modal').style.display = 'flex';
+  _usersModalTrigger = document.activeElement;
+  const modal = document.getElementById('users-modal');
+  modal.style.display = 'flex';
   loadUsersModal();
+  // Move focus to the first focusable element inside the modal
+  requestAnimationFrame(() => {
+    const shell = modal.querySelector('[role="dialog"]');
+    const target = (shell || modal).querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (target) target.focus();
+  });
+  // Focus trap
+  if (_usersModalTrapHandler) modal.removeEventListener('keydown', _usersModalTrapHandler);
+  _usersModalTrapHandler = _usersModalTrapFocus(modal);
   // Escape-to-close (stored so it can be removed on close)
   if (_usersModalEscHandler) document.removeEventListener('keydown', _usersModalEscHandler);
   _usersModalEscHandler = function(ev) {
@@ -13952,10 +13986,19 @@ function openUsersModal() {
   document.addEventListener('keydown', _usersModalEscHandler);
 }
 function closeUsersModal() {
-  document.getElementById('users-modal').style.display = 'none';
+  const modal = document.getElementById('users-modal');
+  modal.style.display = 'none';
+  if (_usersModalTrapHandler) {
+    modal.removeEventListener('keydown', _usersModalTrapHandler);
+    _usersModalTrapHandler = null;
+  }
   if (_usersModalEscHandler) {
     document.removeEventListener('keydown', _usersModalEscHandler);
     _usersModalEscHandler = null;
+  }
+  if (_usersModalTrigger) {
+    _usersModalTrigger.focus();
+    _usersModalTrigger = null;
   }
 }
 
@@ -16006,6 +16049,29 @@ function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
 // USER UNIT PARTS MODAL (inline parts editor)
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Closes the unit parts modal and restores focus to the element that opened it.
+// All close paths (X button, Cancel, backdrop, Escape) call this function.
+function closeUnitPartsModal() {
+  const modal = document.getElementById('upm-modal');
+  if (!modal) return;
+  // Remove focus-trap listener stored on the element
+  if (modal._upmTrapHandler) {
+    modal.removeEventListener('keydown', modal._upmTrapHandler);
+    modal._upmTrapHandler = null;
+  }
+  // Remove Escape listener stored on the element
+  if (modal._upmEscHandler) {
+    document.removeEventListener('keydown', modal._upmEscHandler);
+    modal._upmEscHandler = null;
+  }
+  modal.remove();
+  // Restore focus to the trigger element that was active when the modal opened
+  if (modal._upmTrigger) {
+    modal._upmTrigger.focus();
+    modal._upmTrigger = null;
+  }
+}
+
 function openUnitPartsModal(unitId) {
   // Find unit across all sources
   const unit = userUnits.find(u => u.id === unitId)
@@ -16013,6 +16079,8 @@ function openUnitPartsModal(unitId) {
             || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
+  // Store the trigger before removing any existing modal
+  const upmTrigger = document.activeElement;
   document.getElementById('upm-modal')?.remove();
   // Apply current wood/edging selection so parts show the actual colours, not template defaults
   const resolvedParts = (unit.parts || []).map(p => applyMaterials(p, unit));
@@ -16052,6 +16120,8 @@ function openUnitPartsModal(unitId) {
 
   const modal = document.createElement('div');
   modal.id = 'upm-modal';
+  // Store the trigger on the element so closeUnitPartsModal() can access it
+  modal._upmTrigger = upmTrigger;
   modal.innerHTML = `
     <div class="upm-shell" role="dialog" aria-modal="true" aria-label="Edit unit parts">
       <div class="upm-head">
@@ -16065,7 +16135,7 @@ function openUnitPartsModal(unitId) {
             Showing your current wood &amp; edging selection. Edit dimensions, swap materials, or remove parts &mdash; then save to update this unit.
           </div>
         </div>
-        <button type="button" class="upm-close" onclick="document.getElementById('upm-modal').remove()" aria-label="Close" title="Close">&times;</button>
+        <button type="button" class="upm-close" onclick="closeUnitPartsModal()" aria-label="Close" title="Close">&times;</button>
       </div>
 
       <div class="upm-body">
@@ -16080,25 +16150,49 @@ function openUnitPartsModal(unitId) {
       <div class="upm-foot">
         <div class="upm-foot-meta">Unit &middot; ${safeName}</div>
         <div class="upm-foot-spacer"></div>
-        <button type="button" class="pp-btn" onclick="document.getElementById('upm-modal').remove()">Cancel</button>
+        <button type="button" class="pp-btn" onclick="closeUnitPartsModal()">Cancel</button>
         <button type="button" class="pp-btn is-amber" onclick="saveUnitParts('${unitId}')">Save Parts</button>
       </div>
     </div>`;
 
   // Backdrop click to close (but not clicks inside the shell)
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) closeUnitPartsModal();
   });
-  // Escape to close
-  const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      modal.remove();
-      document.removeEventListener('keydown', escHandler);
+
+  // Focus trap: keep Tab cycling within the modal
+  const focusable = () => Array.from(modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => !el.closest('[style*="display: none"]') && !el.closest('[hidden]'));
+
+  const trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const els = focusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   };
+  modal.addEventListener('keydown', trapHandler);
+  modal._upmTrapHandler = trapHandler;
+
+  // Escape to close
+  const escHandler = (e) => {
+    if (e.key === 'Escape') closeUnitPartsModal();
+  };
   document.addEventListener('keydown', escHandler);
+  modal._upmEscHandler = escHandler;
 
   document.body.appendChild(modal);
+
+  // Move focus to the first focusable element (close button) after paint
+  requestAnimationFrame(() => {
+    const target = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (target) target.focus();
+  });
 }
 
 // Build a single row for the redesigned unit parts modal.
@@ -16281,7 +16375,7 @@ function saveUnitParts(unitId) {
     unit.parts = parts;
   }
 
-  document.getElementById('upm-modal').remove();
+  closeUnitPartsModal();
   if (source === 'user') { scheduleAutoSave(); }
   else { saveCustomUnits(); }
   renderPanel();
