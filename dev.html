@@ -6005,6 +6005,9 @@ function openTemplateEditor(id) {
 async function submitTemplateEditor(id) {
   const errEl = document.getElementById('tpl-edit-err');
   if (errEl) errEl.textContent = '';
+  const modal = document.getElementById('tpl-edit-modal');
+  const saveBtn = modal ? modal.querySelector('button[onclick^="submitTemplateEditor"]') : null;
+  if (saveBtn) saveBtn.disabled = true;
   const name = document.getElementById('tpl-f-name').value.trim();
   const category = document.getElementById('tpl-f-cat').value;
   const subcategory = document.getElementById('tpl-f-sub').value.trim();
@@ -6012,16 +6015,22 @@ async function submitTemplateEditor(id) {
   const metaTxt  = document.getElementById('tpl-f-meta').value.trim()  || '{}';
   const active   = document.getElementById('tpl-f-active').checked;
 
-  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; return; }
+  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; if (saveBtn) saveBtn.disabled = false; return; }
   let parts, meta;
   try { parts = JSON.parse(partsTxt); if (!Array.isArray(parts)) throw new Error('parts must be a JSON array'); }
-  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; return; }
+  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; if (saveBtn) saveBtn.disabled = false; return; }
   try { meta  = JSON.parse(metaTxt); if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) throw new Error('meta must be a JSON object'); }
-  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; return; }
+  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; if (saveBtn) saveBtn.disabled = false; return; }
 
   const payload = { id, name, category, subcategory, parts, meta, active };
-  const ok = await saveTemplate(payload);
-  if (ok) document.getElementById('tpl-edit-modal')?.remove();
+  try {
+    const ok = await saveTemplate(payload);
+    if (ok) { document.getElementById('tpl-edit-modal')?.remove(); return; }
+    if (saveBtn) saveBtn.disabled = false;
+  } catch(e) {
+    if (errEl) errEl.textContent = e.message || 'Save failed.';
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 // Quantities — seed from all effective units
@@ -6808,7 +6817,9 @@ function switchTab(btn, section) {
     // Pull fresh items from cloud when the tab is opened (cross-device sync)
     // but render immediately from local state first so there's no blank flash
     renderMaterialsView();
-    if (sbUser) loadTemplatesFromCloud().then(() => renderMaterialsView());
+    if (sbUser) loadTemplatesFromCloud()
+      .then(() => renderMaterialsView())
+      .catch(e => { console.warn('[Templates] cloud load failed:', e.message); renderMaterialsView(); });
     return;
   }
 
@@ -13702,7 +13713,8 @@ async function saveJobToCloud() {
   const state   = getJobState();
 
   setJobSyncStatus('↻ Saving…', 'var(--amber-dim)');
-  document.getElementById('job-save-btn').disabled = true;
+  const saveBtn = document.getElementById('job-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
 
   try {
     // If client name is filled but no client linked, auto-create the client first
@@ -13756,7 +13768,7 @@ async function saveJobToCloud() {
       });
     } catch(_) {}
   }
-  document.getElementById('job-save-btn').disabled = false;
+  if (saveBtn) saveBtn.disabled = false;
 }
 
 async function loadJobFromSelect() {
