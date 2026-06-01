@@ -4477,12 +4477,12 @@ body.user-light-theme .pp-vat-select {
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
       <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
-        <button class="tab" role="menuitem" aria-selected="false" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
+        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
+        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
+        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
+        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
+        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
+        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
       </div>
     </span>
   </div>
@@ -6674,6 +6674,7 @@ function syncMoreTriggerActive() {
 
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => {
+    if (t.getAttribute('role') === 'menuitem') return;
     t.classList.remove('active');
     if (t.hasAttribute('aria-selected')) t.setAttribute('aria-selected', 'false');
   });
@@ -7077,6 +7078,7 @@ function _renderPanel() {
     const ovBtn = !noParts
       ? `<button class="unit-action-btn is-icon${ovActive ? ' is-active' : ''}"
            title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
+           aria-label="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
            onclick="toggleUnitMatOverride('${u.id}')"><span class="uab-glyph">🎨</span></button>`
       : '';
 
@@ -7084,6 +7086,7 @@ function _renderPanel() {
     const svcBtn = costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user')
       ? `<button class="unit-action-btn is-icon${hasSvcOverride ? ' is-active-green' : ''}"
            title="Special services for this unit"
+           aria-label="Special services for this unit"
            onclick="openSpecialServicesPopup('${u.id}','unit',this)"><span class="uab-glyph">⚙</span></button>`
       : '';
 
