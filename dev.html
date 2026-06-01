@@ -16,9 +16,9 @@
     --bg4: #2e2e2e;
     --amber: #d4913a;
     --amber-light: #e8a84e;
-    --amber-dim: #7a5020;
+    --amber-dim: #c07838;
     --text: #e8e0d0;
-    --text-dim: #8a7e6e;
+    --text-dim: #a0927f;
     --text-muted: #9c8470;
     --border: #333028;
     --border-light: #4a4438;
@@ -186,6 +186,22 @@
   }
   .nav-row + .nav-divider { display: block; }
 
+  /* ── GLOBAL KEYBOARD FOCUS INDICATOR ──────────────────────────────────
+     Provides a visible amber outline for keyboard users on any interactive
+     element, including those that suppress outline via inline styles or
+     class-level rules. !important is required to override inline style=""
+     declarations (specificity-immune). Elements with a dedicated custom
+     :focus-visible rule (e.g. .unit-action-btn) set outline:none !important
+     there to suppress the redundant ring while keeping their box-shadow. */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a[href]:focus-visible {
+    outline: 2px solid var(--amber) !important;
+    outline-offset: 2px !important;
+  }
+
   .tab {
     font-family: 'Barlow', sans-serif;
     font-size: 12px;
@@ -207,7 +223,7 @@
   .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
   .tab .count {
     display: inline-block;
-    background: var(--amber-dim);
+    background: #7a5020;
     color: var(--amber-light);
     font-size: 10px;
     padding: 1px 5px;
@@ -435,7 +451,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.25);
   }
   .unit-action-btn:focus-visible {
-    outline: none;
+    outline: none !important;
     box-shadow: 0 0 0 2px rgba(212,145,58,0.30);
     border-color: var(--amber);
   }
@@ -2983,7 +2999,10 @@ body.user-light-theme .toast-actions button.toast-primary {
   100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  #cutlist-regen-pill { animation: none; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 @keyframes sync-spin {
   from { transform: rotate(0deg); }
@@ -4433,37 +4452,37 @@ body.user-light-theme .pp-vat-select {
 <div class="nav-tabs" id="navTabs">
   <div class="nav-row">
     <span class="nav-row-label">Rooms</span>
-    <button class="tab active" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
-    <button class="tab" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
-    <button class="tab" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">🛏 Spare Bed <span class="count" id="cnt-sparebedroom">0</span></button>
-    <button class="tab" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
-    <button class="tab" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
-    <button class="tab" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
-    <button class="tab" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
+    <button class="tab active" role="tab" aria-selected="true" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">🛏 Spare Bed <span class="count" id="cnt-sparebedroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
   </div>
   <hr class="nav-divider">
   <div class="nav-row" id="tools-row">
     <span class="nav-row-label">Tools</span>
     <!-- Primary tools: most-used flow tabs -->
-    <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" aria-controls="panels-view" title="Panels (Alt+1)">🪵 Panels</button>
-    <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" aria-controls="cutlist-view" title="Cutlist (Alt+2)">✦ Cutlist</button>
-    <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" aria-controls="quote-price-view" title="Quote (Alt+3)">💰 Quote</button>
-    <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" aria-controls="optimize-view" title="Sheet Optimizer (Alt+5)">▦ Sheet Optimizer</button>
-    <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" aria-controls="editor-view">✏ Edit Units</button>
-    <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" aria-controls="summary-view" title="Summary (Alt+4)">☰ Summary</button>
-    <button class="tab" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab" aria-controls="costing-view">📐 Costing</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" aria-controls="panels-view" title="Panels (Alt+1)">🪵 Panels</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" aria-controls="cutlist-view" title="Cutlist (Alt+2)">✦ Cutlist</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" aria-controls="quote-price-view" title="Quote (Alt+3)">💰 Quote</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" aria-controls="optimize-view" title="Sheet Optimizer (Alt+5)">▦ Sheet Optimizer</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" aria-controls="editor-view">✏ Edit Units</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" aria-controls="summary-view" title="Summary (Alt+4)">☰ Summary</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab" aria-controls="costing-view">📐 Costing</button>
     <!-- Overflow: less-frequent tools live inside the More dropdown.
          Buttons keep their original ids, data-section, and switchTab handlers so
          all existing show/hide and role-gating logic continues to work. -->
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
       <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
-        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
-        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
-        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
-        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
-        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
-        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
+        <button class="tab" role="menuitem" aria-selected="false" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
       </div>
     </span>
   </div>
@@ -6654,8 +6673,12 @@ function syncMoreTriggerActive() {
 }
 
 function switchTab(btn, section) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.remove('active');
+    if (t.hasAttribute('aria-selected')) t.setAttribute('aria-selected', 'false');
+  });
   btn.classList.add('active');
+  if (btn.hasAttribute('aria-selected')) btn.setAttribute('aria-selected', 'true');
   // Reflect overflow-tab activation on the More trigger
   try { syncMoreTriggerActive(); } catch(e) {}
 
@@ -14994,6 +15017,8 @@ function renderUserRoomsNav() {
   userRooms.forEach(room => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (currentSection === room.id ? ' active' : '');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', currentSection === room.id ? 'true' : 'false');
     btn.dataset.section = room.id;
     // Defensive fallbacks: legacy job state may lack name/icon. Without these,
     // the .tab CSS uppercases the raw id, producing "UR_177..." in the nav.
