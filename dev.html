@@ -7642,7 +7642,7 @@ function generateCutlist() {
     const pieceCount = parts.reduce((s,p)=>s+p.qty,0);
     const secId = 'cl-sec-' + cat.replace(/[^a-zA-Z0-9]/g, '_');
     html += `<div class="cutlist-section">
-      <div class="cutlist-section-title" onclick="toggleCutlistSection('${secId}')">
+      <div class="cutlist-section-title" id="${secId}-hdr" role="button" tabindex="0" aria-expanded="true" aria-controls="${secId}" onclick="toggleCutlistSection('${secId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCutlistSection('${secId}');}">
         <span>${cat} <span style="font-size:11px;opacity:0.7;letter-spacing:1px">(${pieceCount} piece${pieceCount!==1?'s':''})</span></span>
         <span id="${secId}-chev" class="cutlist-section-chev">▼</span>
       </div>
@@ -7893,15 +7893,19 @@ function getCatTag(part) {
 function toggleCutlistSection(id) {
   const body = document.getElementById(id);
   const chev = document.getElementById(id + '-chev');
+  const hdr  = document.getElementById(id + '-hdr');
   if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : '';
   if (chev) chev.style.transform = open ? 'rotate(-90deg)' : '';
+  if (hdr)  hdr.setAttribute('aria-expanded', String(!open));
 }
 
 function cutlistExpandAll(expand) {
   document.querySelectorAll('.cutlist-section-body').forEach(el => {
     el.style.display = expand ? '' : 'none';
+    const hdr = document.getElementById(el.id + '-hdr');
+    if (hdr) hdr.setAttribute('aria-expanded', String(expand));
   });
   document.querySelectorAll('.cutlist-section-chev').forEach(el => {
     el.style.transform = expand ? '' : 'rotate(-90deg)';
@@ -7911,18 +7915,22 @@ function cutlistExpandAll(expand) {
 function costingToggle(id) {
   const block = document.getElementById(id);
   const chevron = document.getElementById(id + '-chev');
+  const hdr = document.getElementById(id + '-hdr');
   if (!block) return;
   const open = block.style.display === 'none';
   block.style.display = open ? 'block' : 'none';
   if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+  if (hdr) hdr.setAttribute('aria-expanded', String(open));
 }
 
 function costingExpandAll(expand) {
   document.querySelectorAll('[id^="cv-block-"]').forEach(el => {
-    if (el.id.endsWith('-chev')) return;
+    if (el.id.endsWith('-chev') || el.id.endsWith('-hdr')) return;
     el.style.display = expand ? 'block' : 'none';
     const chevron = document.getElementById(el.id + '-chev');
     if (chevron) chevron.style.transform = expand ? 'rotate(90deg)' : '';
+    const hdr = document.getElementById(el.id + '-hdr');
+    if (hdr) hdr.setAttribute('aria-expanded', String(expand));
   });
 }
 
@@ -9509,7 +9517,7 @@ function buildPlantOnCard(secId) {
     </div>` : '';
 
   return `<div class="addon-card ${po.enabled ? 'active' : ''}">
-    <div class="addon-header" onclick="bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${po.enabled}" onclick="bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}}">
       <span class="addon-icon">🪵</span>
       <span class="addon-label">Plant-on Panels <span style="font-size:11px;color:var(--text-muted)">${po.enabled && po.items.length > 0 ? '('+po.items.length+' panel'+(po.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${po.enabled ? 'on' : ''}">${po.enabled ? 'ON' : 'OFF'}</span>
@@ -9597,7 +9605,7 @@ function buildSpacersCard(secId) {
     </div>` : '';
 
   return `<div class="addon-card ${sp.enabled ? 'active' : ''}">
-    <div class="addon-header" onclick="bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${sp.enabled}" onclick="bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}}">
       <span class="addon-icon">📐</span>
       <span class="addon-label">Spacers / Fillers <span style="font-size:11px;color:var(--text-muted)">${sp.enabled && sp.items.length > 0 ? '('+sp.items.length+' piece'+(sp.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${sp.enabled ? 'on' : ''}">${sp.enabled ? 'ON' : 'OFF'}</span>
@@ -19614,7 +19622,7 @@ function _renderCostingView() {
 
     const cvId = `cv-block-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
+      <div id="${cvId}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${u.name} <span style="color:var(--text-muted);font-weight:400;font-size:10px">× ${unitQty}</span></span>
@@ -19754,7 +19762,7 @@ function _renderCostingView() {
     }).join('');
 
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
+      <div id="${cvId}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${secLabel} — Addons</span>
@@ -20165,7 +20173,7 @@ function _refreshCostingResults() {
 
     const cvId2 = `cv-block-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId2}')">
+      <div id="${cvId2}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId2}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId2}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId2}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId2}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${u.name} <span style="color:var(--text-muted);font-weight:400;font-size:10px">× ${unitQty}</span></span>
@@ -20232,7 +20240,7 @@ function _refreshCostingResults() {
       return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${bSh.toFixed(2)}${fsBadge2}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
     }).join('');
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')">
+      <div id="${cvId3}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId3}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId3}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId3}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${secLabel} — Addons</span>
