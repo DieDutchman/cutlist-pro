@@ -5839,15 +5839,15 @@ async function saveTemplate(payload) {
   try {
     let res;
     if (id) {
-      res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify(body),
       });
     } else {
-      res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates`, {
         method: 'POST',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify(body),
       });
     }
@@ -5866,9 +5866,9 @@ async function saveTemplate(payload) {
 
 async function toggleTemplateActive(id, makeActive) {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ active: !!makeActive, updated_at: new Date().toISOString() }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -5882,9 +5882,9 @@ async function toggleTemplateActive(id, makeActive) {
 async function deleteTemplate(id, name) {
   if (!(await confirmAction(`Delete template "${name}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     await loadUnitTemplates();
@@ -5916,9 +5916,9 @@ async function seedUnitTemplates() {
   }));
   _setTplStatus(`Seeding ${rows.length} templates…`);
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates`, {
       method: 'POST',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify(rows),
     });
     if (!res.ok) {
@@ -11208,7 +11208,7 @@ function _renderQuoteView() {
       <div class="qv-tops-row">
         <span class="qv-tops-label">Type</span>
         <select autocomplete="off" class="qv-tops-input" style="width:200px;font-family:'Barlow',sans-serif;font-size:13px"
-          onchange="const t=this.options[this.selectedIndex];quoteState.tops.type=t.value;quoteState.tops.pricePerM2=parseInt(t.dataset.price);saveQuoteState();refreshQuoteTotals()">
+          onchange="const t=this.options[this.selectedIndex];quoteState.tops.type=t.value;quoteState.tops.pricePerM2=parseInt(t.dataset.price)||0;saveQuoteState();refreshQuoteTotals()">
           ${topsOpts}
         </select>
       </div>
@@ -13465,6 +13465,8 @@ function clientEditClose() {
 
 async function clientEditSave() {
   if (!currentClientId) return;
+  const saveBtn = document.querySelector('#client-edit-modal button[onclick="clientEditSave()"]');
+  if (saveBtn) saveBtn.disabled = true;
   const body = {
     name:    document.getElementById('ce-name').value.trim(),
     phone:   document.getElementById('ce-phone').value.trim(),
@@ -13473,7 +13475,7 @@ async function clientEditSave() {
     notes:   document.getElementById('ce-notes').value,
     updated_at: new Date().toISOString(),
   };
-  if (!body.name) { showToast('Client name is required.', 'warning'); return; }
+  if (!body.name) { if (saveBtn) saveBtn.disabled = false; showToast('Client name is required.', 'warning'); return; }
   try {
     const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients?id=eq.${currentClientId}`, {
       method: 'PATCH',
@@ -13491,10 +13493,12 @@ async function clientEditSave() {
       const ad  = document.getElementById('job-address'); if (ad)   ad.value  = upd.address || '';
       saveJobDetails();
     }
+    if (saveBtn) saveBtn.disabled = false;
     clientEditClose();
     setJobSyncStatus('✓ Client updated', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 2500);
   } catch(e) {
+    if (saveBtn) saveBtn.disabled = false;
     showToast('Save failed: ' + e.message, 'error');
   }
 }
@@ -21599,7 +21603,7 @@ Rules:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SB_KEY}`,
+        'Authorization': `Bearer ${sbToken || SB_KEY}`,
       },
       body: JSON.stringify({ rawText, systemPrompt }),
     });
