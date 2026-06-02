@@ -16,10 +16,10 @@
     --bg4: #2e2e2e;
     --amber: #d4913a;
     --amber-light: #e8a84e;
-    --amber-dim: #7a5020;
+    --amber-dim: #c07838;
     --text: #e8e0d0;
-    --text-dim: #8a7e6e;
-    --text-muted: #4a4438;
+    --text-dim: #a0927f;
+    --text-muted: #9c8470;
     --border: #333028;
     --border-light: #4a4438;
     --green: #6aaa64;
@@ -186,6 +186,22 @@
   }
   .nav-row + .nav-divider { display: block; }
 
+  /* ── GLOBAL KEYBOARD FOCUS INDICATOR ──────────────────────────────────
+     Provides a visible amber outline for keyboard users on any interactive
+     element, including those that suppress outline via inline styles or
+     class-level rules. !important is required to override inline style=""
+     declarations (specificity-immune). Elements with a dedicated custom
+     :focus-visible rule (e.g. .unit-action-btn) set outline:none !important
+     there to suppress the redundant ring while keeping their box-shadow. */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a[href]:focus-visible {
+    outline: 2px solid var(--amber) !important;
+    outline-offset: 2px !important;
+  }
+
   .tab {
     font-family: 'Barlow', sans-serif;
     font-size: 12px;
@@ -207,7 +223,7 @@
   .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
   .tab .count {
     display: inline-block;
-    background: var(--amber-dim);
+    background: #7a5020;
     color: var(--amber-light);
     font-size: 10px;
     padding: 1px 5px;
@@ -435,7 +451,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.25);
   }
   .unit-action-btn:focus-visible {
-    outline: none;
+    outline: none !important;
     box-shadow: 0 0 0 2px rgba(212,145,58,0.30);
     border-color: var(--amber);
   }
@@ -2983,7 +2999,10 @@ body.user-light-theme .toast-actions button.toast-primary {
   100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  #cutlist-regen-pill { animation: none; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 @keyframes sync-spin {
   from { transform: rotate(0deg); }
@@ -4433,25 +4452,25 @@ body.user-light-theme .pp-vat-select {
 <div class="nav-tabs" id="navTabs">
   <div class="nav-row">
     <span class="nav-row-label">Rooms</span>
-    <button class="tab active" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
-    <button class="tab" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
-    <button class="tab" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">🛏 Spare Bed <span class="count" id="cnt-sparebedroom">0</span></button>
-    <button class="tab" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
-    <button class="tab" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
-    <button class="tab" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
-    <button class="tab" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
+    <button class="tab active" role="tab" aria-selected="true" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="sparebedroom" onclick="switchTab(this,'sparebedroom')">🛏 Spare Bed <span class="count" id="cnt-sparebedroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="linnekast" onclick="switchTab(this,'linnekast')">🚪 Linne Kas <span class="count" id="cnt-linnekast">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="bathroom" onclick="switchTab(this,'bathroom')">🚿 Badkamer <span class="count" id="cnt-bathroom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="custom" onclick="switchTab(this,'custom')">✦ Custom <span class="count" id="cnt-custom">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
   </div>
   <hr class="nav-divider">
   <div class="nav-row" id="tools-row">
     <span class="nav-row-label">Tools</span>
     <!-- Primary tools: most-used flow tabs -->
-    <button class="tab" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" title="Panels (Alt+1)">🪵 Panels</button>
-    <button class="tab" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" title="Cutlist (Alt+2)">✦ Cutlist</button>
-    <button class="tab" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" title="Quote (Alt+3)">💰 Quote</button>
-    <button class="tab" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" title="Sheet Optimizer (Alt+5)">▦ Sheet Optimizer</button>
-    <button class="tab" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab">✏ Edit Units</button>
-    <button class="tab" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" title="Summary (Alt+4)">☰ Summary</button>
-    <button class="tab" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab">📐 Costing</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" aria-controls="panels-view" title="Panels (Alt+1)">🪵 Panels</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" aria-controls="cutlist-view" title="Cutlist (Alt+2)">✦ Cutlist</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" aria-controls="quote-price-view" title="Quote (Alt+3)">💰 Quote</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" aria-controls="optimize-view" title="Sheet Optimizer (Alt+5)">▦ Sheet Optimizer</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" aria-controls="editor-view">✏ Edit Units</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" aria-controls="summary-view" title="Summary (Alt+4)">☰ Summary</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab" aria-controls="costing-view">📐 Costing</button>
     <!-- Overflow: less-frequent tools live inside the More dropdown.
          Buttons keep their original ids, data-section, and switchTab handlers so
          all existing show/hide and role-gating logic continues to work. -->
@@ -4872,6 +4891,8 @@ function confirmAction(message, opts) {
   const confirmLabel = opts.confirmLabel || 'CONFIRM';
   const cancelLabel  = opts.cancelLabel  || 'CANCEL';
   const type = opts.type || 'warning';
+  // Capture trigger so we can restore focus when the toast closes.
+  const triggerEl = document.activeElement;
   const handle = showToast(message, type, {
     duration: opts.duration === undefined ? 10000 : opts.duration,
     actions: [
@@ -4880,16 +4901,22 @@ function confirmAction(message, opts) {
     ]
   });
   if (!handle || !handle.actionPromise) return Promise.resolve(false);
-  return handle.actionPromise.then(v => v === true);
+  return handle.actionPromise.then(v => {
+    try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
+    return v === true;
+  });
 }
 
 // Promise-returning inline text input (replaces window.prompt)
-// Usage: const v = await inputPrompt('Rename room:', currentName); if (v === null) return;
+// Usage: const v = await inputPrompt('Rename room:', currentName, 'RENAME'); if (v === null) return;
 // Returns trimmed string on confirm, null on cancel/escape/dismiss.
-function inputPrompt(message, defaultValue) {
+function inputPrompt(message, defaultValue, confirmLabel) {
   return new Promise((resolve) => {
     const container = document.getElementById('toast-container');
     if (!container) { resolve(null); return; }
+
+    // Capture trigger so we can restore focus when the modal closes.
+    const triggerEl = document.activeElement;
 
     const t = document.createElement('div');
     t.className = 'toast toast-info';
@@ -4924,6 +4951,7 @@ function inputPrompt(message, defaultValue) {
       t.classList.remove('toast-show');
       t.classList.add('toast-hide');
       setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
       resolve(val);
     };
 
@@ -4934,7 +4962,7 @@ function inputPrompt(message, defaultValue) {
     cancelBtn.addEventListener('click', () => finish(null));
     const okBtn = document.createElement('button');
     okBtn.className = 'toast-primary';
-    okBtn.textContent = 'RENAME';
+    okBtn.textContent = confirmLabel || 'RENAME';
     okBtn.addEventListener('click', () => {
       const v = input.value.trim();
       finish(v ? v : null);
@@ -4967,6 +4995,87 @@ function inputPrompt(message, defaultValue) {
       t.classList.add('toast-show');
       try { input.focus(); input.select(); } catch(_) {}
     });
+  });
+}
+
+// Two-field modal prompt. fields=[{label,placeholder,type?}]. Returns [val0,val1] or null.
+function twoFieldPrompt(title, fields) {
+  return new Promise((resolve) => {
+    const container = document.getElementById('toast-container');
+    if (!container) { resolve(null); return; }
+    // Capture trigger so we can restore focus when the modal closes.
+    const triggerEl = document.activeElement;
+    const t = document.createElement('div');
+    t.className = 'toast toast-info';
+    t.setAttribute('role', 'dialog');
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon'; icon.textContent = TOAST_ICONS.info || 'ℹ';
+    t.appendChild(icon);
+    const body = document.createElement('div'); body.style.flex = '1';
+    const hdr = document.createElement('div'); hdr.className = 'toast-msg'; hdr.textContent = title;
+    body.appendChild(hdr);
+    const inputs = fields.map(f => {
+      const wrap = document.createElement('div'); wrap.style.marginTop = '8px';
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:3px'; lbl.textContent = f.label;
+      const inp = document.createElement('input');
+      inp.type = f.type || 'text'; inp.placeholder = f.placeholder || '';
+      inp.style.cssText = 'display:block;width:100%;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;outline:none;box-sizing:border-box';
+      inp.addEventListener('focus', () => inp.style.borderColor = 'var(--amber)');
+      inp.addEventListener('blur',  () => inp.style.borderColor = 'var(--border)');
+      wrap.appendChild(lbl); wrap.appendChild(inp); body.appendChild(wrap);
+      return inp;
+    });
+    let resolved = false;
+    const finish = (val) => {
+      if (resolved) return; resolved = true;
+      document.removeEventListener('keydown', keyHandler, true);
+      t.classList.remove('toast-show'); t.classList.add('toast-hide');
+      setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 220);
+      try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
+      resolve(val);
+    };
+    // Inline "Required" error message under first input (created lazily).
+    let errMsg = null;
+    const showFirstFieldError = () => {
+      inputs[0].style.borderColor = '#e05252';
+      if (!errMsg) {
+        errMsg = document.createElement('div');
+        errMsg.style.cssText = 'font-size:11px;color:#e05252;margin-top:3px';
+        errMsg.textContent = 'Required';
+        // Insert directly after the first input.
+        if (inputs[0].parentNode) inputs[0].parentNode.appendChild(errMsg);
+      }
+      try { inputs[0].focus(); } catch(_) {}
+    };
+    // Clear error state as soon as the user starts typing in the first field.
+    inputs[0].addEventListener('input', () => {
+      inputs[0].style.borderColor = 'var(--amber)';
+      if (errMsg && errMsg.parentNode) { errMsg.parentNode.removeChild(errMsg); errMsg = null; }
+    }, { once: true });
+    const tryFinish = () => {
+      if (inputs[0].value.trim() === '') { showFirstFieldError(); return; }
+      finish(inputs.map(i => i.value));
+    };
+    const row = document.createElement('div'); row.className = 'toast-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'CANCEL'; cancelBtn.addEventListener('click', () => finish(null));
+    const okBtn = document.createElement('button');
+    okBtn.className = 'toast-primary'; okBtn.textContent = 'ADD';
+    okBtn.addEventListener('click', tryFinish);
+    row.appendChild(cancelBtn); row.appendChild(okBtn); body.appendChild(row);
+    t.appendChild(body);
+    const close = document.createElement('button');
+    close.className = 'toast-close'; close.setAttribute('aria-label','Dismiss');
+    close.textContent = '×'; close.addEventListener('click', () => finish(null));
+    t.appendChild(close);
+    const keyHandler = (ev) => {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(null); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); tryFinish(); }
+    };
+    document.addEventListener('keydown', keyHandler, true);
+    container.appendChild(t);
+    requestAnimationFrame(() => { t.classList.add('toast-show'); try { inputs[0].focus(); } catch(_) {} });
   });
 }
 
@@ -5560,6 +5669,9 @@ function pushTemplatesToCloud() {
         customHardware:   costingPrices.customHardware,
         materialConfig:   JSON.parse(JSON.stringify(materialConfig)),
         unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
+        // labourConfig is global per-supplier setup (rate + mode) — round-trips
+        // alongside customHardware so a fresh login picks up both at once.
+        labourConfig:     { ...labourConfig },
       };
       // Superuser only: persist their custom rooms + room-scoped userUnits in
       // the same profile templates blob so they survive logout. Other roles
@@ -5727,15 +5839,15 @@ async function saveTemplate(payload) {
   try {
     let res;
     if (id) {
-      res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify(body),
       });
     } else {
-      res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+      res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates`, {
         method: 'POST',
-        headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify(body),
       });
     }
@@ -5754,9 +5866,9 @@ async function saveTemplate(payload) {
 
 async function toggleTemplateActive(id, makeActive) {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ active: !!makeActive, updated_at: new Date().toISOString() }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -5770,9 +5882,9 @@ async function toggleTemplateActive(id, makeActive) {
 async function deleteTemplate(id, name) {
   if (!(await confirmAction(`Delete template "${name}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     await loadUnitTemplates();
@@ -5804,9 +5916,9 @@ async function seedUnitTemplates() {
   }));
   _setTplStatus(`Seeding ${rows.length} templates…`);
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/unit_templates`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/unit_templates`, {
       method: 'POST',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify(rows),
     });
     if (!res.ok) {
@@ -5893,6 +6005,9 @@ function openTemplateEditor(id) {
 async function submitTemplateEditor(id) {
   const errEl = document.getElementById('tpl-edit-err');
   if (errEl) errEl.textContent = '';
+  const modal = document.getElementById('tpl-edit-modal');
+  const saveBtn = modal ? modal.querySelector('button[onclick^="submitTemplateEditor"]') : null;
+  if (saveBtn) saveBtn.disabled = true;
   const name = document.getElementById('tpl-f-name').value.trim();
   const category = document.getElementById('tpl-f-cat').value;
   const subcategory = document.getElementById('tpl-f-sub').value.trim();
@@ -5900,16 +6015,22 @@ async function submitTemplateEditor(id) {
   const metaTxt  = document.getElementById('tpl-f-meta').value.trim()  || '{}';
   const active   = document.getElementById('tpl-f-active').checked;
 
-  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; return; }
+  if (!name) { if (errEl) errEl.textContent = 'Name is required.'; if (saveBtn) saveBtn.disabled = false; return; }
   let parts, meta;
   try { parts = JSON.parse(partsTxt); if (!Array.isArray(parts)) throw new Error('parts must be a JSON array'); }
-  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; return; }
+  catch(e) { if (errEl) errEl.textContent = 'Parts JSON: ' + e.message; if (saveBtn) saveBtn.disabled = false; return; }
   try { meta  = JSON.parse(metaTxt); if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) throw new Error('meta must be a JSON object'); }
-  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; return; }
+  catch(e) { if (errEl) errEl.textContent = 'Meta JSON: ' + e.message; if (saveBtn) saveBtn.disabled = false; return; }
 
   const payload = { id, name, category, subcategory, parts, meta, active };
-  const ok = await saveTemplate(payload);
-  if (ok) document.getElementById('tpl-edit-modal')?.remove();
+  try {
+    const ok = await saveTemplate(payload);
+    if (ok) { document.getElementById('tpl-edit-modal')?.remove(); return; }
+    if (saveBtn) saveBtn.disabled = false;
+  } catch(e) {
+    if (errEl) errEl.textContent = e.message || 'Save failed.';
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 // Quantities — seed from all effective units
@@ -6476,13 +6597,24 @@ const _ALT_TAB_MAP = {
 };
 document.addEventListener('keydown', function(ev) {
   if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
-  const section = _ALT_TAB_MAP[ev.key];
-  if (!section) return;
+  // Suppress while typing in form fields so it doesn't fight with browser
+  // shortcuts inside inputs / textareas / selects / contenteditable.
   const ae = document.activeElement;
   if (ae) {
     const tag = ae.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
   }
+  // Alt+R — regenerate the cutlist when it's dirty. Mirrors the amber
+  // ↻ REGENERATE CUTLIST pill that appears in the cutlist header. No-op if
+  // nothing has changed since the last generate — avoids needless rerenders.
+  if (ev.key === 'r' || ev.key === 'R') {
+    if (!_cutlistDirty) return;
+    ev.preventDefault();
+    try { generateCutlist(); } catch(e) {}
+    return;
+  }
+  const section = _ALT_TAB_MAP[ev.key];
+  if (!section) return;
   const btn = document.querySelector('.tab[data-section="' + section + '"]');
   if (!btn) return;
   // Respect role-gating: don't switch into a tab that is hidden for this user
@@ -6550,8 +6682,13 @@ function syncMoreTriggerActive() {
 }
 
 function switchTab(btn, section) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.getAttribute('role') === 'menuitem') return;
+    t.classList.remove('active');
+    if (t.hasAttribute('aria-selected')) t.setAttribute('aria-selected', 'false');
+  });
   btn.classList.add('active');
+  if (btn.hasAttribute('aria-selected')) btn.setAttribute('aria-selected', 'true');
   // Reflect overflow-tab activation on the More trigger
   try { syncMoreTriggerActive(); } catch(e) {}
 
@@ -6680,7 +6817,9 @@ function switchTab(btn, section) {
     // Pull fresh items from cloud when the tab is opened (cross-device sync)
     // but render immediately from local state first so there's no blank flash
     renderMaterialsView();
-    if (sbUser) loadTemplatesFromCloud().then(() => renderMaterialsView());
+    if (sbUser) loadTemplatesFromCloud()
+      .then(() => renderMaterialsView())
+      .catch(e => { console.warn('[Templates] cloud load failed:', e.message); renderMaterialsView(); });
     return;
   }
 
@@ -6733,6 +6872,8 @@ function switchTab(btn, section) {
     document.getElementById('imported-cutlist-view').style.display = 'none';
     document.getElementById('pl-view').style.display = 'none';
     document.getElementById('import-view').style.display = 'block';
+    // Reset stale label from a prior import session so the text field starts empty.
+    if (importState && importState.status === 'idle') importState.label = '';
     renderImportView();
     return;
   }
@@ -6948,6 +7089,7 @@ function _renderPanel() {
     const ovBtn = !noParts
       ? `<button class="unit-action-btn is-icon${ovActive ? ' is-active' : ''}"
            title="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
+           aria-label="${ovActive ? 'Custom material active — click to remove' : 'Set custom material for this unit'}"
            onclick="toggleUnitMatOverride('${u.id}')"><span class="uab-glyph">🎨</span></button>`
       : '';
 
@@ -6955,6 +7097,7 @@ function _renderPanel() {
     const svcBtn = costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user')
       ? `<button class="unit-action-btn is-icon${hasSvcOverride ? ' is-active-green' : ''}"
            title="Special services for this unit"
+           aria-label="Special services for this unit"
            onclick="openSpecialServicesPopup('${u.id}','unit',this)"><span class="uab-glyph">⚙</span></button>`
       : '';
 
@@ -7457,7 +7600,7 @@ function generateCutlist() {
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button id="cutlist-regen-pill" type="button"
         onclick="generateCutlist()"
-        title="Cutlist may be out of date — click to regenerate"
+        title="Cutlist may be out of date — click to regenerate (Alt+R)"
         style="display:none;background:var(--amber);border:none;color:#1a1208;font-size:12px;font-weight:700;padding:7px 16px;font-family:'Barlow',sans-serif;letter-spacing:0.5px;cursor:pointer;line-height:1;border-radius:2px;animation:regenPulse 1.8s ease-in-out infinite;box-shadow:0 0 0 0 rgba(212,145,58,0.5)">↻ REGENERATE CUTLIST</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(true)">⊞ Expand All</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="cutlistExpandAll(false)">⊟ Collapse All</button>
@@ -7510,7 +7653,7 @@ function generateCutlist() {
     const pieceCount = parts.reduce((s,p)=>s+p.qty,0);
     const secId = 'cl-sec-' + cat.replace(/[^a-zA-Z0-9]/g, '_');
     html += `<div class="cutlist-section">
-      <div class="cutlist-section-title" onclick="toggleCutlistSection('${secId}')">
+      <div class="cutlist-section-title" id="${secId}-hdr" role="button" tabindex="0" aria-expanded="true" aria-controls="${secId}" onclick="toggleCutlistSection('${secId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCutlistSection('${secId}');}">
         <span>${cat} <span style="font-size:11px;opacity:0.7;letter-spacing:1px">(${pieceCount} piece${pieceCount!==1?'s':''})</span></span>
         <span id="${secId}-chev" class="cutlist-section-chev">▼</span>
       </div>
@@ -7761,15 +7904,19 @@ function getCatTag(part) {
 function toggleCutlistSection(id) {
   const body = document.getElementById(id);
   const chev = document.getElementById(id + '-chev');
+  const hdr  = document.getElementById(id + '-hdr');
   if (!body) return;
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : '';
   if (chev) chev.style.transform = open ? 'rotate(-90deg)' : '';
+  if (hdr)  hdr.setAttribute('aria-expanded', String(!open));
 }
 
 function cutlistExpandAll(expand) {
   document.querySelectorAll('.cutlist-section-body').forEach(el => {
     el.style.display = expand ? '' : 'none';
+    const hdr = document.getElementById(el.id + '-hdr');
+    if (hdr) hdr.setAttribute('aria-expanded', String(expand));
   });
   document.querySelectorAll('.cutlist-section-chev').forEach(el => {
     el.style.transform = expand ? '' : 'rotate(-90deg)';
@@ -7779,18 +7926,22 @@ function cutlistExpandAll(expand) {
 function costingToggle(id) {
   const block = document.getElementById(id);
   const chevron = document.getElementById(id + '-chev');
+  const hdr = document.getElementById(id + '-hdr');
   if (!block) return;
   const open = block.style.display === 'none';
   block.style.display = open ? 'block' : 'none';
   if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+  if (hdr) hdr.setAttribute('aria-expanded', String(open));
 }
 
 function costingExpandAll(expand) {
   document.querySelectorAll('[id^="cv-block-"]').forEach(el => {
-    if (el.id.endsWith('-chev')) return;
+    if (el.id.endsWith('-chev') || el.id.endsWith('-hdr')) return;
     el.style.display = expand ? 'block' : 'none';
     const chevron = document.getElementById(el.id + '-chev');
     if (chevron) chevron.style.transform = expand ? 'rotate(90deg)' : '';
+    const hdr = document.getElementById(el.id + '-hdr');
+    if (hdr) hdr.setAttribute('aria-expanded', String(expand));
   });
 }
 
@@ -8772,10 +8923,10 @@ function buildPartRow(p, i) {
     <td><input autocomplete="off" class="part-cell-input num" data-f="l" type="number" min="0" value="${p.l||0}" style="width:65px"></td>
     <td><input autocomplete="off" class="part-cell-input num" data-f="w" type="number" min="0" value="${p.w||0}" style="width:65px"></td>
     <td><select autocomplete="off" class="editor-mat-select" data-f="mat">${matOpts(p.mat||'Picco White')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
-    <td><select autocomplete="off" class="editor-mat-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el1" title="L1 — long edge 1 (height of part)">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="el2" title="L2 — long edge 2 (opposite height edge)">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="editor-mat-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
     <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part">×</button></td>
   </tr>`;
@@ -9191,7 +9342,7 @@ function saveAddonPresetsLocal() {
 }
 
 async function saveAddonPreset(secId) {
-  const name = await inputPrompt('Name this preset:', 'e.g. Bedroom A plant-ons');
+  const name = await inputPrompt('Name this preset:', 'e.g. Bedroom A plant-ons', 'SAVE');
   if (!name || !name.trim()) return;
   const section = bedroomAddons[secId];
   const preset = {
@@ -9377,7 +9528,7 @@ function buildPlantOnCard(secId) {
     </div>` : '';
 
   return `<div class="addon-card ${po.enabled ? 'active' : ''}">
-    <div class="addon-header" onclick="bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${po.enabled}" onclick="bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].plantOn.enabled=!bedroomAddons['${secId}'].plantOn.enabled;${save}}">
       <span class="addon-icon">🪵</span>
       <span class="addon-label">Plant-on Panels <span style="font-size:11px;color:var(--text-muted)">${po.enabled && po.items.length > 0 ? '('+po.items.length+' panel'+(po.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${po.enabled ? 'on' : ''}">${po.enabled ? 'ON' : 'OFF'}</span>
@@ -9465,7 +9616,7 @@ function buildSpacersCard(secId) {
     </div>` : '';
 
   return `<div class="addon-card ${sp.enabled ? 'active' : ''}">
-    <div class="addon-header" onclick="bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${sp.enabled}" onclick="bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].spacers.enabled=!bedroomAddons['${secId}'].spacers.enabled;${save}}">
       <span class="addon-icon">📐</span>
       <span class="addon-label">Spacers / Fillers <span style="font-size:11px;color:var(--text-muted)">${sp.enabled && sp.items.length > 0 ? '('+sp.items.length+' piece'+(sp.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${sp.enabled ? 'on' : ''}">${sp.enabled ? 'ON' : 'OFF'}</span>
@@ -10687,6 +10838,11 @@ let quoteState = {
   topsOpen: false,
   feesOpen: false,
   hwOpen:   true,
+  // Per-room left-panel hardware breakdown open/closed: { [sectionId]: bool }
+  hwBreakdownOpen: {},
+  // Per-unit labour hours: { [unitId]: hours } — only used when
+  // labourConfig.mode === 'per-unit'. Default 0 for any unit not present.
+  unitLabourHours: {},
 };
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
@@ -10704,6 +10860,8 @@ try {
   if (qs.topsOpen   !== undefined) quoteState.topsOpen   = qs.topsOpen;
   if (qs.feesOpen   !== undefined) quoteState.feesOpen   = qs.feesOpen;
   if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
+  if (qs.hwBreakdownOpen && typeof qs.hwBreakdownOpen === 'object') quoteState.hwBreakdownOpen = qs.hwBreakdownOpen;
+  if (qs.unitLabourHours && typeof qs.unitLabourHours === 'object') quoteState.unitLabourHours = qs.unitLabourHours;
 } catch(e) {}
 
 function saveQuoteState() {
@@ -10791,9 +10949,10 @@ function _renderQuoteView() {
   const dieselTotal    = quoteState.dieselFee   ? (quoteState.dieselFeeAmt||1800)  : 0;
   const deliveryTotal  = quoteState.deliveryFee ? (quoteState.deliveryFeeAmt||0)   : 0;
   const extrasTotal    = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const labourTotal    = calcLabourCost();
   const unitsWithMarkup = unitsTotal * (1 + quoteState.markup);
-  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
 
   // ── Main area: unit breakdown ──
   let mainHtml = `
@@ -10816,18 +10975,53 @@ function _renderQuoteView() {
       <table class="qv-table"><tbody>`;
 
     let secDisplayTotal = 0;
+    // Tally this room's hardware while we iterate its units.
+    const _rh = { hinges: 0, h160: 0, h240: 0, runnerSets: {} };
 
     units.forEach(u => {
       const qty   = quantities[u.id] || 0;
       const price = unitCostCache[u.id] || 0;
       const lineTotal = qty * price;
       secDisplayTotal += lineTotal;
+      // Hardware tally for this unit — only when the unit actually has parts
+      // (calcUnitCost short-circuits otherwise). Uses per-unit flags so the
+      // numbers match the costing-tab logic exactly.
+      if (qty && u.parts && u.parts.length > 0) {
+        const _c = calcUnitCost(u, qty);
+        if (unitHasHinges (u.id)) _rh.hinges += _c.hingeCount    || 0;
+        if (unitHasHandles(u.id)) _rh.h160   += _c.handle160Count || 0;
+        if (unitHasHandles(u.id)) _rh.h240   += _c.handle240Count || 0;
+        if (unitHasRunners(u.id) && _c.runnerSets) mergeRunnerSets(_rh.runnerSets, _c.runnerSets);
+      }
       mainHtml += `<tr>
         <td class="qv-qty">${qty}×</td>
         <td class="qv-unit-name">${u.name}</td>
         <td class="qv-unit-price">${fmt(price)}</td>
         <td class="qv-line-total">${fmt(lineTotal)}</td>
       </tr>`;
+      // Per-unit labour input — only when labour is enabled in per-unit mode.
+      // Per-sqm mode derives labour automatically and doesn't need this row.
+      if (labourConfig.enabled && labourConfig.mode === 'per-unit') {
+        const hrs       = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+        const rate      = parseFloat(labourConfig.ratePerHour) || 0;
+        const labourLine = hrs * qty * rate;
+        mainHtml += `<tr style="background:rgba(100,160,255,0.04)">
+          <td class="qv-qty" style="color:var(--text-muted)"></td>
+          <td class="qv-unit-name" style="color:var(--text-muted);font-size:12px;padding-left:24px">
+            <span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="color:#7ab0ff;font-weight:500">🛠 Labour</span>
+              <input autocomplete="off" type="number" min="0" step="0.25" value="${hrs || ''}" placeholder="0"
+                title="Hours of labour to build this cabinet unit (multiplied by unit quantity and hourly rate)"
+                style="width:64px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:2px 6px;font-size:12px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                oninput="(function(v){if(!quoteState.unitLabourHours)quoteState.unitLabourHours={};quoteState.unitLabourHours['${u.id}']=parseFloat(v)||0;saveQuoteState();refreshQuoteTotals();try{scheduleAutoSave();}catch(e){}})(this.value)">
+              <span style="font-size:11px;color:var(--text-muted)">hrs × ${qty} × R${rate.toFixed(0)}/hr</span>
+            </span>
+          </td>
+          <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)"></td>
+          <td class="qv-line-total" style="color:var(--text-muted)" data-labour-line="${u.id}">${fmt(labourLine)}</td>
+        </tr>`;
+      }
       // Special services for this unit
       (unitSpecialServices[u.id] || []).forEach(s => {
         const svc = costingPrices.specialServices.find(x => x.id === s.serviceId);
@@ -10879,7 +11073,84 @@ function _renderQuoteView() {
         ${sec.label} subtotal
       </td>
       <td class="qv-line-total">${fmt(secDisplayTotal)}</td>
-    </tr></tbody></table>`;
+    </tr>`;
+
+    // ── Per-room Hardware breakdown ───────────────────────────────
+    // Respect section-level HW flags: skip room entirely if all three are off.
+    const _roomHasHw = sectionHasHinges(sec.id) || sectionHasRunners(sec.id) || sectionHasHandles(sec.id);
+    if (_roomHasHw) {
+      const _hw = costingPrices.hardware;
+      const _hingePriceR  = quoteState.hingeType  === 'soft' ? _hw.hingeSoft  : _hw.hingeNormal;
+      const _runnerPriceR = quoteState.runnerType === 'soft' ? _hw.runnerSoft : _hw.runnerNormal;
+      const _hingeLabelR  = quoteState.hingeType  === 'soft' ? 'Soft-close' : 'Normal';
+      const _runnerLabelR = quoteState.runnerType === 'soft' ? 'Soft-close' : 'Normal';
+
+      // Build the per-room subtotal so the header value matches the rows.
+      let _hingeCostR = 0, _h160CostR = 0, _h240CostR = 0, _runnerCostR = 0;
+      const _runnerRows = [];
+      if (sectionHasHinges(sec.id) && _rh.hinges > 0) {
+        _hingeCostR = _rh.hinges * _hingePriceR;
+      }
+      if (sectionHasRunners(sec.id)) {
+        RUNNER_STANDARD_SIZES.forEach(size => {
+          const count = _rh.runnerSets[size];
+          if (!count) return;
+          const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
+          const price  = hwItem ? hwItem.pricePerUnit : _runnerPriceR;
+          const label  = hwItem ? hwItem.name : `${_runnerLabelR} Runners ${size}mm`;
+          _runnerCostR += count * price;
+          _runnerRows.push({ label, count, price });
+        });
+        const unsized = _rh.runnerSets[0];
+        if (unsized) {
+          _runnerCostR += unsized * _runnerPriceR;
+          _runnerRows.push({ label: `${_runnerLabelR} Runners`, count: unsized, price: _runnerPriceR });
+        }
+      }
+      if (sectionHasHandles(sec.id) && _rh.h160 > 0) _h160CostR = _rh.h160 * _hw.handle160;
+      if (sectionHasHandles(sec.id) && _rh.h240 > 0) _h240CostR = _rh.h240 * _hw.handle240;
+
+      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR;
+      // Only render the Hardware row when there is actually something to show.
+      if (_roomHwTotal > 0) {
+        const _open = !!(quoteState.hwBreakdownOpen && quoteState.hwBreakdownOpen[sec.id]);
+        const _toggleId = `qv-room-hw-${sec.id}`;
+        mainHtml += `<tr class="qv-room-hw-head" id="${_toggleId}" style="cursor:pointer;user-select:none;background:rgba(212,145,58,0.04)">
+          <td class="qv-qty"></td>
+          <td class="qv-unit-name" style="color:var(--text);font-weight:500">
+            🔩 Hardware
+            <span style="font-size:11px;color:var(--amber);margin-left:6px;display:inline-block;transition:transform 0.2s;transform:rotate(${_open?'180':'0'}deg)">▾</span>
+          </td>
+          <td class="qv-unit-price"></td>
+          <td class="qv-line-total">${fmt(_roomHwTotal)}</td>
+        </tr>`;
+        if (_open) {
+          const _subRow = (lbl, qtyTxt, amt) => `<tr class="qv-room-hw-sub">
+            <td class="qv-qty"></td>
+            <td class="qv-unit-name" style="color:var(--text-muted);font-size:12px;padding-left:24px">
+              ↳ ${lbl}
+              <span style="font-size:10px;color:var(--text-muted);opacity:0.75;margin-left:6px">${qtyTxt}</span>
+            </td>
+            <td class="qv-unit-price"></td>
+            <td class="qv-line-total" style="color:var(--text-muted);font-size:12px">${fmt(amt)}</td>
+          </tr>`;
+          if (_hingeCostR > 0) {
+            mainHtml += _subRow(`${_hingeLabelR} Hinges`, `${_rh.hinges} pcs × R${_hingePriceR.toFixed(0)}`, _hingeCostR);
+          }
+          _runnerRows.forEach(r => {
+            mainHtml += _subRow(r.label, `${r.count} set${r.count!==1?'s':''} × R${r.price.toFixed(0)}`, r.count * r.price);
+          });
+          if (_h160CostR > 0) {
+            mainHtml += _subRow('Handles 160mm', `${_rh.h160} pcs × R${_hw.handle160.toFixed(0)}`, _h160CostR);
+          }
+          if (_h240CostR > 0) {
+            mainHtml += _subRow('Handles 240mm', `${_rh.h240} pcs × R${_hw.handle240.toFixed(0)}`, _h240CostR);
+          }
+        }
+      }
+    }
+
+    mainHtml += `</tbody></table>`;
   });
 
   // ── Custom Panels section in quote ──────────────────────────────
@@ -10937,7 +11208,7 @@ function _renderQuoteView() {
       <div class="qv-tops-row">
         <span class="qv-tops-label">Type</span>
         <select autocomplete="off" class="qv-tops-input" style="width:200px;font-family:'Barlow',sans-serif;font-size:13px"
-          onchange="const t=this.options[this.selectedIndex];quoteState.tops.type=t.value;quoteState.tops.pricePerM2=parseInt(t.dataset.price);saveQuoteState();refreshQuoteTotals()">
+          onchange="const t=this.options[this.selectedIndex];quoteState.tops.type=t.value;quoteState.tops.pricePerM2=parseInt(t.dataset.price)||0;saveQuoteState();refreshQuoteTotals()">
           ${topsOpts}
         </select>
       </div>
@@ -11000,87 +11271,9 @@ function _renderQuoteView() {
   const autoHwGrand      = autoHwTotal + autoHwHandling;
   const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
 
-  if (hasAutoHw) {
-    // Build rows for each hardware type
-    let hwRows = '';
-    if (totalHinges > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Hinges – ${hingeLabel}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHinges} × R${hingePrice.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(hingeCostTotal)}</span>
-          </div>
-        </div>`;
-    }
-    // Runners — grouped by size
-    RUNNER_STANDARD_SIZES.forEach(size => {
-      const count = allRunnerSets[size];
-      if (!count) return;
-      const hwItem = _findRunnerHwItem(size, quoteState.runnerType||'soft');
-      const price  = hwItem ? hwItem.pricePerUnit : runnerPrice;
-      const label  = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">${label}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${price.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * price)}</span>
-          </div>
-        </div>`;
-    });
-    if (allRunnerSets[0]) {
-      const count = allRunnerSets[0];
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Runners – ${runnerLabel}</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${count} set${count!==1?'s':''} × R${runnerPrice.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(count * runnerPrice)}</span>
-          </div>
-        </div>`;
-    }
-    if (totalHandle160 > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Handles 160mm</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle160} × R${hw.handle160.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle160Total)}</span>
-          </div>
-        </div>`;
-    }
-    if (totalHandle240 > 0) {
-      hwRows += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:13px;color:var(--text)">Handles 240mm</span>
-          <div style="display:flex;align-items:center;gap:14px">
-            <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${totalHandle240} × R${hw.handle240.toFixed(0)}</span>
-            <span style="font-size:13px;color:var(--amber);min-width:70px;text-align:right;font-family:'JetBrains Mono',monospace">${fmt(handle240Total)}</span>
-          </div>
-        </div>`;
-    }
-    // Handling + total
-    hwRows += `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-        <span style="font-size:11px;color:var(--text-muted)">Handling (${Math.round(HW_HANDLING*100)}%)</span>
-        <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${fmt(autoHwHandling)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px">
-        <span style="font-weight:500;font-size:12px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">HARDWARE TOTAL</span>
-        <span style="font-size:14px;color:var(--amber);font-family:'JetBrains Mono',monospace;font-weight:600">${fmt(autoHwGrand)}</span>
-      </div>`;
-
-    mainHtml += `
-    <div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-      onclick="quoteState.hwOpen=!quoteState.hwOpen;saveQuoteState();renderQuoteView()" id="qv-head-hw">
-      <span>🔩 Hardware <span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(autoHwGrand)}</span>
-        <span style="font-size:10px;color:var(--text-muted);margin-left:6px">(auto-calculated from units)</span>
-      </span>
-      <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.hwOpen?'90':'0'}deg)">▶</span>
-    </div>
-    ${quoteState.hwOpen ? `<div style="padding:4px 0 12px">${hwRows}</div>` : ''}`;
-  }
+  // Standalone Hardware section removed — hardware now lives per-room (🔩 Hardware ▾ row
+  // inside each room table) and the aggregate is shown in the sidebar Hardware total row.
+  // Keep hasAutoHw / autoHwGrand / autoHwHandling computed above — the sidebar uses them.
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
@@ -11097,6 +11290,7 @@ function _renderQuoteView() {
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input autocomplete="off" type="number" min="0" value="${quoteState.consultFeeAmt||500}"
+          title="Flat consultation fee in Rand (excl. VAT)"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.consultFeeAmt=parseFloat(this.value)||500;saveQuoteState();refreshQuoteTotals()">
@@ -11111,6 +11305,7 @@ function _renderQuoteView() {
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input autocomplete="off" type="number" min="0" value="${quoteState.dieselFeeAmt||1800}"
+          title="Diesel / travel cost for site visit or delivery in Rand"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.dieselFeeAmt=parseFloat(this.value)||1800;saveQuoteState();refreshQuoteTotals()">
@@ -11124,7 +11319,7 @@ function _renderQuoteView() {
       <span style="display:flex;align-items:center;gap:4px">
         <span style="font-size:11px;color:var(--text-muted)">R</span>
         <input autocomplete="off" type="number" min="0" value="${quoteState.deliveryFeeAmt||0}"
-          placeholder="0"
+          placeholder="0" title="Material delivery fee charged by supplier in Rand"
           style="width:72px;background:var(--bg3);border:1px solid var(--border);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 6px;text-align:right;outline:none"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
           onchange="quoteState.deliveryFeeAmt=parseFloat(this.value)||0;saveQuoteState();refreshQuoteTotals()">
@@ -11175,7 +11370,7 @@ function _renderQuoteView() {
     <div class="qv-card-title">Markup</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <input autocomplete="off" type="range" class="wb-slider" min="20" max="100" step="1"
-        value="${markupPct}" style="flex:1"
+        value="${markupPct}" style="flex:1" title="Markup percentage applied to unit material cost (e.g. 40 = 40% markup)"
         oninput="quoteState.markup=parseInt(this.value)/100;saveQuoteState();
           document.getElementById('qv-markup-pct').textContent=this.value+'%';
           document.getElementById('qv-markup-line').textContent='+ '+this.value+'% markup on units';
@@ -11251,6 +11446,10 @@ function _renderQuoteView() {
         <span class="label">Extras</span>
         <span class="val" id="qv-val-extras">${fmt(extrasTotal)}</span>
       </div>` : ''}
+      ${(labourConfig.enabled && labourTotal > 0) ? `<div class="qv-total-row">
+        <span class="label">🛠 Labour <span style="font-size:10px;color:var(--text-muted)">(${labourConfig.mode === 'per-sqm' ? 'per m²' : 'per unit'})</span></span>
+        <span class="val" id="qv-val-labour">${fmt(labourTotal)}</span>
+      </div>` : '<span id="qv-val-labour" style="display:none"></span>'}
       <div class="qv-total-row">
         <span class="label">Subtotal (excl. markup)</span>
         <span class="val" id="qv-val-sub">${fmt(subtotal)}</span>
@@ -11286,8 +11485,17 @@ function _renderQuoteView() {
     if (el) el.addEventListener('click', fn);
   };
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
-  _wireToggle('qv-head-hw',      () => { quoteState.hwOpen   = !quoteState.hwOpen;   saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
+
+  // Per-room Hardware breakdown toggles — one wire per visible room HW row.
+  sectionData.forEach(({ sec }) => {
+    _wireToggle(`qv-room-hw-${sec.id}`, () => {
+      if (!quoteState.hwBreakdownOpen || typeof quoteState.hwBreakdownOpen !== 'object') quoteState.hwBreakdownOpen = {};
+      quoteState.hwBreakdownOpen[sec.id] = !quoteState.hwBreakdownOpen[sec.id];
+      saveQuoteState();
+      renderQuoteView();
+    });
+  });
 
   // Always sync totals via the single source of truth, regardless of what was baked into the HTML
   refreshQuoteTotals();
@@ -11827,10 +12035,14 @@ function computeQuoteTotals() {
     'Hardware – Other':    _hwRaw.other,
   };
 
-  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
+  // Labour — added after board surcharge so the surcharge stays board-only.
+  // No markup is applied to labour: it's a flat cost flowing straight to grand
+  // total, mirroring how Tops / Fees / Extras are treated.
+  const labourTotal  = calcLabourCost();
+  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
   const markup       = quoteState.markup || 0;
-  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal;
-  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, labourTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
@@ -11932,6 +12144,44 @@ function computeJobMatBreakdown() {
   return { matBreakdown, edgeBreakdown, cutLabelExpected, cutLabelSheets };
 }
 
+// ── Labour cost calculation ─────────────────────────────────────────────────
+// Returns 0 when labour is disabled. Two modes:
+//   per-sqm  — every part on every selected unit contributes
+//              (h/1000) * (w/1000) * partQty * unitQty m² × perSqmRate
+//   per-unit — quoteState.unitLabourHours[id] (default 0) × unitQty × ratePerHour
+// Excluded from board surcharge by design — labour is added to the totals
+// after the surcharge runs against board cost only.
+function calcLabourCost() {
+  if (!labourConfig.enabled) return 0;
+  const allUnits = getEffectiveUnits();
+  if (labourConfig.mode === 'per-sqm') {
+    const rate = parseFloat(labourConfig.perSqmRate) || 0;
+    if (rate <= 0) return 0;
+    let totalSqm = 0;
+    allUnits.forEach(u => {
+      const uQty = quantities[u.id] || 0;
+      if (uQty === 0 || !u.parts) return;
+      u.parts.forEach(p => {
+        if (!p.l || !p.w) return;
+        totalSqm += (p.l / 1000) * (p.w / 1000) * (p.qty || 1) * uQty;
+      });
+    });
+    return totalSqm * rate;
+  }
+  // per-unit
+  const rate = parseFloat(labourConfig.ratePerHour) || 0;
+  if (rate <= 0) return 0;
+  let total = 0;
+  allUnits.forEach(u => {
+    const uQty = quantities[u.id] || 0;
+    if (uQty === 0) return;
+    const hrs = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+    if (hrs <= 0) return;
+    total += hrs * uQty * rate;
+  });
+  return total;
+}
+
 function refreshQuoteTotals() {
   const t = computeQuoteTotals();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -11942,12 +12192,26 @@ function refreshQuoteTotals() {
   set('qv-val-diesel',    fmt(t.dieselTotal));
   set('qv-val-delivery',  fmt(t.deliveryTotal));
   set('qv-val-extras',    fmt(t.extrasTotal));
+  set('qv-val-labour',    fmt(t.labourTotal));
   set('qv-val-sub',       fmt(t.subtotal));
   set('qv-val-grand',     fmt(t.grand));
   set('qv-val-vat',       fmt(t.grand * 0.15));
   set('qv-val-grand-vat', fmt(t.grand * 1.15));
   const td = document.getElementById('qv-tops-total');
   if (td) td.textContent = t.topsTotal > 0 ? fmt(t.topsTotal) : '—';
+  // Update per-unit labour line totals if any are present
+  if (labourConfig.enabled && labourConfig.mode === 'per-unit') {
+    document.querySelectorAll('[data-labour-line]').forEach(el => {
+      const uid  = el.getAttribute('data-labour-line');
+      const allUnits = getEffectiveUnits();
+      const u = allUnits.find(x => x.id === uid);
+      if (!u) return;
+      const uQty = quantities[u.id] || 0;
+      const hrs  = parseFloat(quoteState.unitLabourHours?.[u.id]) || 0;
+      const rate = parseFloat(labourConfig.ratePerHour) || 0;
+      el.textContent = fmt(hrs * uQty * rate);
+    });
+  }
 }
 
 function switchToUnits() {
@@ -12068,6 +12332,18 @@ function downloadQuoteXLSX() {
     rows.push([]);
   }
 
+  // Labour (flat — no markup, no VAT layered on yet)
+  const labourTotalXLSX = calcLabourCost();
+  if (labourConfig.enabled && labourTotalXLSX > 0) {
+    rows.push(['LABOUR', '', '', '', '']);
+    const labourDesc = labourConfig.mode === 'per-sqm'
+      ? `Labour @ R${(labourConfig.perSqmRate||0).toFixed(2)}/m²`
+      : `Labour @ R${(labourConfig.ratePerHour||0).toFixed(2)}/hr`;
+    rows.push(['', labourDesc, '', '', labourTotalXLSX]);
+    grandSub += labourTotalXLSX;
+    rows.push([]);
+  }
+
   // Board surcharge (applies only to board material cost, same logic as quote view)
   const _xlsxSurchargePct     = costingPrices.extras.boardSurcharge || 0;
   const _xlsxSurchargeEnabled = quoteState.boardSurchargeEnabled !== false;
@@ -12081,9 +12357,12 @@ function downloadQuoteXLSX() {
     rows.push([]);
   }
 
-  // Totals block — markup applies to units + surcharge; tops/fees/extras excluded
+  // Totals block — markup applies to units + surcharge; tops/fees/extras/labour excluded.
+  // Labour is a flat cost (no markup, no VAT layered separately) — mirrors the
+  // way Tops/Fees/Extras flow straight through the totals on the Quote tab.
   const unitsSubtotal = grandSub - (topsTotal || 0) - (consultTotal || 0) - (dieselTotal || 0)
-    - quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    - quoteState.extras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0)
+    - (labourTotalXLSX || 0);
   const nonMarkupTotal = grandSub - unitsSubtotal;
 
   rows.push(['', 'Units Subtotal (excl. markup)', '', '', unitsSubtotal]);
@@ -12267,6 +12546,30 @@ function setMatFullSheet(mat, isFullSheet) {
   refreshCostingResults();
   renderPricesView();
 }
+
+// ── Labour estimation ───────────────────────────────────────────────────────
+// Cabinet-maker labour cost added to the Quote and used as the P&L "expected"
+// labour figure. Two modes:
+//   per-unit — hours stored per-unit in quoteState.unitLabourHours[unitId],
+//              multiplied by unit qty × ratePerHour
+//   per-sqm  — sums (h/1000)*(w/1000)*partQty*unitQty across every selected
+//              part and multiplies by perSqmRate
+// Persisted alongside costingPrices via saveCostingPrices / templates blob.
+let labourConfig = {
+  enabled:     false,
+  ratePerHour: 0,
+  mode:        'per-unit',  // 'per-unit' | 'per-sqm'
+  perSqmRate:  0,
+};
+try {
+  const _labourSaved = JSON.parse(localStorage.getItem('cutlist_labour_config') || '{}');
+  if (_labourSaved && typeof _labourSaved === 'object') {
+    if (_labourSaved.enabled     !== undefined) labourConfig.enabled     = !!_labourSaved.enabled;
+    if (_labourSaved.ratePerHour !== undefined) labourConfig.ratePerHour = parseFloat(_labourSaved.ratePerHour) || 0;
+    if (_labourSaved.mode === 'per-sqm' || _labourSaved.mode === 'per-unit') labourConfig.mode = _labourSaved.mode;
+    if (_labourSaved.perSqmRate  !== undefined) labourConfig.perSqmRate  = parseFloat(_labourSaved.perSqmRate)  || 0;
+  }
+} catch(e) {}
 
 // Default prices per m² for boards, per m for edging, and flat extras
 const costingPrices = {
@@ -12709,6 +13012,14 @@ async function loadTemplatesFromCloud() {
     if (Array.isArray(t.customHardware)) {
       costingPrices.customHardware = t.customHardware;
       console.log('[Templates] Loaded customHardware:', t.customHardware.length, 'items');
+    }
+    if (t.labourConfig && typeof t.labourConfig === 'object') {
+      if (t.labourConfig.enabled     !== undefined) labourConfig.enabled     = !!t.labourConfig.enabled;
+      if (t.labourConfig.ratePerHour !== undefined) labourConfig.ratePerHour = parseFloat(t.labourConfig.ratePerHour) || 0;
+      if (t.labourConfig.mode === 'per-sqm' || t.labourConfig.mode === 'per-unit') labourConfig.mode = t.labourConfig.mode;
+      if (t.labourConfig.perSqmRate  !== undefined) labourConfig.perSqmRate  = parseFloat(t.labourConfig.perSqmRate)  || 0;
+      try { localStorage.setItem('cutlist_labour_config', JSON.stringify(labourConfig)); } catch(e) {}
+      console.log('[Templates] Loaded labourConfig:', labourConfig);
     }
     if (Array.isArray(t.addonPresets)) {
       addonPresets.length = 0;
@@ -13154,6 +13465,8 @@ function clientEditClose() {
 
 async function clientEditSave() {
   if (!currentClientId) return;
+  const saveBtn = document.querySelector('#client-edit-modal button[onclick="clientEditSave()"]');
+  if (saveBtn) saveBtn.disabled = true;
   const body = {
     name:    document.getElementById('ce-name').value.trim(),
     phone:   document.getElementById('ce-phone').value.trim(),
@@ -13162,7 +13475,7 @@ async function clientEditSave() {
     notes:   document.getElementById('ce-notes').value,
     updated_at: new Date().toISOString(),
   };
-  if (!body.name) { showToast('Client name is required.', 'warning'); return; }
+  if (!body.name) { if (saveBtn) saveBtn.disabled = false; showToast('Client name is required.', 'warning'); return; }
   try {
     const res = await fetchWithAuth(`${SB_URL}/rest/v1/clients?id=eq.${currentClientId}`, {
       method: 'PATCH',
@@ -13180,10 +13493,12 @@ async function clientEditSave() {
       const ad  = document.getElementById('job-address'); if (ad)   ad.value  = upd.address || '';
       saveJobDetails();
     }
+    if (saveBtn) saveBtn.disabled = false;
     clientEditClose();
     setJobSyncStatus('✓ Client updated', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 2500);
   } catch(e) {
+    if (saveBtn) saveBtn.disabled = false;
     showToast('Save failed: ' + e.message, 'error');
   }
 }
@@ -13402,7 +13717,8 @@ async function saveJobToCloud() {
   const state   = getJobState();
 
   setJobSyncStatus('↻ Saving…', 'var(--amber-dim)');
-  document.getElementById('job-save-btn').disabled = true;
+  const saveBtn = document.getElementById('job-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
 
   try {
     // If client name is filled but no client linked, auto-create the client first
@@ -13456,7 +13772,7 @@ async function saveJobToCloud() {
       });
     } catch(_) {}
   }
-  document.getElementById('job-save-btn').disabled = false;
+  if (saveBtn) saveBtn.disabled = false;
 }
 
 async function loadJobFromSelect() {
@@ -13577,6 +13893,46 @@ async function deleteCurrentJob() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     currentJobId = null;
+    // Cancel any pending auto-save so it cannot resurrect the deleted job
+    clearTimeout(autoSaveTimer);
+    // Clear persisted job references so a page reload doesn't try to fetch it
+    try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
+    persistLastJobId(null);
+    // Reset in-memory state to match a clean new-job baseline
+    currentJobStatus = 'draft';
+    _jobRestoreFailed = false;
+    currentJobPriceSnapshot = null;
+    currentClientId = null;
+    _updateClientButtonsVisibility();
+    try { refreshJobDetailsIndicator(); } catch(e) {}
+    const _jsWrap = document.getElementById('job-status-wrap');
+    if (_jsWrap) _jsWrap.style.display = 'none';
+    ['job-client','job-house','job-address','job-notes'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+    Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
+    Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
+    Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
+    if (!isSuperuser()) { userRooms = []; userUnits = []; }
+    panelsState.items = []; panelsState.label = '';
+    Object.keys(quoteState).forEach(k => delete quoteState[k]);
+    quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
+    quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
+    quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+    archivedUnitIds.clear();
+    const _addonResetKeys = new Set([...Object.keys(bedroomAddons), ...getAddonSections()]);
+    _addonResetKeys.forEach(sec => {
+      bedroomAddons[sec] = {
+        plantOn: { enabled: false, items: [defaultAddon()] },
+        spacers: { enabled: false, items: [defaultSpacer()] },
+      };
+    });
+    if (!isSuperuser()) {
+      Object.keys(bedroomAddons).forEach(k => { if (!ADDON_SECTIONS.includes(k)) delete bedroomAddons[k]; });
+    }
+    try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
+    renderPanel(); updateCounts();
     await loadUserJobs();
     document.getElementById('job-delete-btn').style.display = 'none';
     setJobSyncStatus('Deleted', '#e07070');
@@ -13641,9 +13997,43 @@ function showUsersTab(tab) {
   if (isTemplates) loadTemplatesAdmin();
 }
 let _usersModalEscHandler = null;
+let _usersModalTrapHandler = null;
+let _usersModalTrigger = null;
+
+function _usersModalTrapFocus(modal) {
+  const focusable = () => Array.from(modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => !el.closest('[style*="display: none"]') && !el.closest('[hidden]'));
+
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const els = focusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  modal.addEventListener('keydown', handler);
+  return handler;
+}
+
 function openUsersModal() {
-  document.getElementById('users-modal').style.display = 'flex';
+  _usersModalTrigger = document.activeElement;
+  const modal = document.getElementById('users-modal');
+  modal.style.display = 'flex';
   loadUsersModal();
+  // Move focus to the first focusable element inside the modal
+  requestAnimationFrame(() => {
+    const shell = modal.querySelector('[role="dialog"]');
+    const target = (shell || modal).querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (target) target.focus();
+  });
+  // Focus trap
+  if (_usersModalTrapHandler) modal.removeEventListener('keydown', _usersModalTrapHandler);
+  _usersModalTrapHandler = _usersModalTrapFocus(modal);
   // Escape-to-close (stored so it can be removed on close)
   if (_usersModalEscHandler) document.removeEventListener('keydown', _usersModalEscHandler);
   _usersModalEscHandler = function(ev) {
@@ -13652,10 +14042,19 @@ function openUsersModal() {
   document.addEventListener('keydown', _usersModalEscHandler);
 }
 function closeUsersModal() {
-  document.getElementById('users-modal').style.display = 'none';
+  const modal = document.getElementById('users-modal');
+  modal.style.display = 'none';
+  if (_usersModalTrapHandler) {
+    modal.removeEventListener('keydown', _usersModalTrapHandler);
+    _usersModalTrapHandler = null;
+  }
   if (_usersModalEscHandler) {
     document.removeEventListener('keydown', _usersModalEscHandler);
     _usersModalEscHandler = null;
+  }
+  if (_usersModalTrigger) {
+    _usersModalTrigger.focus();
+    _usersModalTrigger = null;
   }
 }
 
@@ -13885,6 +14284,7 @@ async function submitFeedback() {
     statusEl.style.color = '#5dba6e';
     statusEl.textContent = '\u2713 Feedback sent \u2014 thank you!';
     document.getElementById('fb-message').value = '';
+    sendBtn.disabled = false;
     setTimeout(() => closeFeedbackModal(), 1800);
   } catch(e) {
     statusEl.style.color = '#e07070';
@@ -14269,9 +14669,9 @@ async function updateTrialExpiry(userId, dateVal) {
   const statusEl = document.getElementById(`user-status-${userId}`);
   if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ trial_expires_at: dateVal || null }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -14667,11 +15067,12 @@ ${message ? '\nMessage:\n' + message : ''}`.trim();
 async function updateUserRole(userId, newRole, selectEl) {
   const statusEl = document.getElementById(`user-status-${userId}`);
   if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--amber-dim)'; }
+  const prevRole = selectEl.value;
   selectEl.disabled = true;
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/profiles?id=eq.${userId}`, {
       method: 'PATCH',
-      headers: { ...authHeaders(), 'Prefer': 'return=representation' },
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({ role: newRole })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -14685,7 +15086,7 @@ async function updateUserRole(userId, newRole, selectEl) {
     }
   } catch(e) {
     if (statusEl) { statusEl.textContent = '✕ Failed'; statusEl.style.color = '#e07070'; }
-    selectEl.value = selectEl.value === 'admin' ? 'user' : 'admin'; // revert
+    selectEl.value = prevRole;
   }
   selectEl.disabled = false;
 }
@@ -14728,6 +15129,8 @@ function renderUserRoomsNav() {
   userRooms.forEach(room => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (currentSection === room.id ? ' active' : '');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', currentSection === room.id ? 'true' : 'false');
     btn.dataset.section = room.id;
     // Defensive fallbacks: legacy job state may lack name/icon. Without these,
     // the .tab CSS uppercases the raw id, producing "UR_177..." in the nav.
@@ -15704,6 +16107,29 @@ function confirmUnitEdit(unitId, origWidth, origHeight, isBuiltinHint) {
 // USER UNIT PARTS MODAL (inline parts editor)
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Closes the unit parts modal and restores focus to the element that opened it.
+// All close paths (X button, Cancel, backdrop, Escape) call this function.
+function closeUnitPartsModal() {
+  const modal = document.getElementById('upm-modal');
+  if (!modal) return;
+  // Remove focus-trap listener stored on the element
+  if (modal._upmTrapHandler) {
+    modal.removeEventListener('keydown', modal._upmTrapHandler);
+    modal._upmTrapHandler = null;
+  }
+  // Remove Escape listener stored on the element
+  if (modal._upmEscHandler) {
+    document.removeEventListener('keydown', modal._upmEscHandler);
+    modal._upmEscHandler = null;
+  }
+  modal.remove();
+  // Restore focus to the trigger element that was active when the modal opened
+  if (modal._upmTrigger) {
+    modal._upmTrigger.focus();
+    modal._upmTrigger = null;
+  }
+}
+
 function openUnitPartsModal(unitId) {
   // Find unit across all sources
   const unit = userUnits.find(u => u.id === unitId)
@@ -15711,6 +16137,8 @@ function openUnitPartsModal(unitId) {
             || getEffectiveUnits().find(u => u.id === unitId);
   if (!unit) return;
 
+  // Store the trigger before removing any existing modal
+  const upmTrigger = document.activeElement;
   document.getElementById('upm-modal')?.remove();
   // Apply current wood/edging selection so parts show the actual colours, not template defaults
   const resolvedParts = (unit.parts || []).map(p => applyMaterials(p, unit));
@@ -15750,6 +16178,8 @@ function openUnitPartsModal(unitId) {
 
   const modal = document.createElement('div');
   modal.id = 'upm-modal';
+  // Store the trigger on the element so closeUnitPartsModal() can access it
+  modal._upmTrigger = upmTrigger;
   modal.innerHTML = `
     <div class="upm-shell" role="dialog" aria-modal="true" aria-label="Edit unit parts">
       <div class="upm-head">
@@ -15763,7 +16193,7 @@ function openUnitPartsModal(unitId) {
             Showing your current wood &amp; edging selection. Edit dimensions, swap materials, or remove parts &mdash; then save to update this unit.
           </div>
         </div>
-        <button type="button" class="upm-close" onclick="document.getElementById('upm-modal').remove()" aria-label="Close" title="Close">&times;</button>
+        <button type="button" class="upm-close" onclick="closeUnitPartsModal()" aria-label="Close" title="Close">&times;</button>
       </div>
 
       <div class="upm-body">
@@ -15778,25 +16208,49 @@ function openUnitPartsModal(unitId) {
       <div class="upm-foot">
         <div class="upm-foot-meta">Unit &middot; ${safeName}</div>
         <div class="upm-foot-spacer"></div>
-        <button type="button" class="pp-btn" onclick="document.getElementById('upm-modal').remove()">Cancel</button>
+        <button type="button" class="pp-btn" onclick="closeUnitPartsModal()">Cancel</button>
         <button type="button" class="pp-btn is-amber" onclick="saveUnitParts('${unitId}')">Save Parts</button>
       </div>
     </div>`;
 
   // Backdrop click to close (but not clicks inside the shell)
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) closeUnitPartsModal();
   });
-  // Escape to close
-  const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      modal.remove();
-      document.removeEventListener('keydown', escHandler);
+
+  // Focus trap: keep Tab cycling within the modal
+  const focusable = () => Array.from(modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => !el.closest('[style*="display: none"]') && !el.closest('[hidden]'));
+
+  const trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const els = focusable();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   };
+  modal.addEventListener('keydown', trapHandler);
+  modal._upmTrapHandler = trapHandler;
+
+  // Escape to close
+  const escHandler = (e) => {
+    if (e.key === 'Escape') closeUnitPartsModal();
+  };
   document.addEventListener('keydown', escHandler);
+  modal._upmEscHandler = escHandler;
 
   document.body.appendChild(modal);
+
+  // Move focus to the first focusable element (close button) after paint
+  requestAnimationFrame(() => {
+    const target = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (target) target.focus();
+  });
 }
 
 // Build a single row for the redesigned unit parts modal.
@@ -15812,10 +16266,10 @@ function buildUpmPartRow(p, i) {
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="l" type="number" min="0" value="${p.l||0}"></td>
     <td class="upm-num-cell"><input autocomplete="off" class="pp-input is-num" data-f="w" type="number" min="0" value="${p.w||0}"></td>
     <td><select autocomplete="off" class="pp-select" data-f="mat">${matOpts(p.mat||'Picco White')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="el1">${edgeOpts(p.el1||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="el2">${edgeOpts(p.el2||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="ew1">${edgeOpts(p.ew1||'')}</select></td>
-    <td><select autocomplete="off" class="pp-select" data-f="ew2">${edgeOpts(p.ew2||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el1" title="L1 — long edge 1 (height of part)">${edgeOpts(p.el1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="el2" title="L2 — long edge 2 (opposite height edge)">${edgeOpts(p.el2||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
+    <td><select autocomplete="off" class="pp-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="pp-input" data-f="holes" value="${safe(p.holes)}" placeholder="e.g. 2 per door"></td>
     <td class="upm-del-cell"><button type="button" class="pp-btn is-danger is-sm is-icon" onclick="upmRemovePartRow(this)" title="Remove part" aria-label="Remove part">&times;</button></td>
   </tr>`;
@@ -15827,10 +16281,23 @@ function buildUpmPartRow(p, i) {
 function upmRemovePartRow(btn) {
   const tr = btn?.closest('tr');
   if (!tr) return;
+  const get = f => { const el = tr.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
+  const snap = { name: get('name'), qty: get('qty'), l: get('l'), w: get('w'), mat: get('mat'), el1: get('el1'), el2: get('el2'), ew1: get('ew1'), ew2: get('ew2'), holes: get('holes') };
+  const label = snap.name.trim() || `${snap.l||0} × ${snap.w||0}`;
   tr.classList.add('is-removing');
   setTimeout(() => {
     tr.remove();
     _upmRenumberAndCount();
+    showToast(`"${label}" removed`, 'info', { duration: 6000, action: { label: 'UNDO', fn: () => {
+      const tbody = document.getElementById('upm-parts-tbody');
+      if (!tbody) return;
+      const idx = tbody.querySelectorAll('tr').length;
+      const row = document.createElement('tr');
+      row.dataset.idx = idx;
+      row.innerHTML = buildUpmPartRow({ name: snap.name, qty: parseInt(snap.qty)||1, l: parseInt(snap.l)||0, w: parseInt(snap.w)||0, mat: snap.mat||'Picco White', el1: snap.el1||'', el2: snap.el2||'', ew1: snap.ew1||'', ew2: snap.ew2||'', holes: snap.holes||'' }, idx).match(/<tr[^>]*>([\s\S]*)<\/tr>/)[1];
+      tbody.appendChild(row);
+      _upmRenumberAndCount();
+    }}});
   }, 170);
 }
 
@@ -15923,10 +16390,19 @@ function saveUnitParts(unitId) {
 
   const rows = document.querySelectorAll('#upm-parts-tbody tr');
   const parts = [];
+  let skippedWithDims = 0;
   rows.forEach(row => {
     const get = f => { const el = row.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
     const name = get('name').trim();
-    if (!name) return;
+    if (!name) {
+      const l = parseInt(get('l')) || 0, w = parseInt(get('w')) || 0;
+      if (l > 0 || w > 0) {
+        const nameEl = row.querySelector('[data-f="name"]');
+        if (nameEl) { nameEl.style.borderColor = '#e05252'; nameEl.focus(); }
+        skippedWithDims++;
+      }
+      return;
+    }
     parts.push({
       name,
       qty:   parseInt(get('qty'))  || 1,
@@ -15941,6 +16417,11 @@ function saveUnitParts(unitId) {
     });
   });
 
+  if (skippedWithDims > 0) {
+    showToast(`${skippedWithDims} part${skippedWithDims > 1 ? 's' : ''} missing a name — add names before saving.`, 'warning');
+    return;
+  }
+
   if (isBuiltin) {
     unitOverrides[unitId] = {
       ...(unitOverrides[unitId] || {}),
@@ -15952,7 +16433,7 @@ function saveUnitParts(unitId) {
     unit.parts = parts;
   }
 
-  document.getElementById('upm-modal').remove();
+  closeUnitPartsModal();
   if (source === 'user') { scheduleAutoSave(); }
   else { saveCustomUnits(); }
   renderPanel();
@@ -16955,7 +17436,11 @@ function renderSyncBadge() {
 
 function saveCostingPrices() {
   try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
-  // Sync customHardware to cloud templates so it persists across devices/jobs
+  // labourConfig piggybacks on saveCostingPrices because the rate setup UI
+  // lives in the same Prices/My Costs tab and is conceptually a "cost" setting.
+  try { localStorage.setItem('cutlist_labour_config', JSON.stringify(labourConfig)); } catch(e) {}
+  // Sync customHardware + labourConfig to cloud templates so they persist
+  // across devices/jobs.
   if (sbUser) pushTemplatesToCloud();
 }
 
@@ -17730,10 +18215,11 @@ async function renameEdge(oldKey) {
 
 
 async function promptAddEdge(mat) {
-  const size = await inputPrompt(`Add edging size for "${mat}":`, 'e.g. 1mm, 2mm');
-  if (!size || !size.trim()) return;
-  const priceStr = await inputPrompt(`Price per metre for ${mat} ${size.trim()} edging (R):`, '0');
-  const price = parseFloat(priceStr);
+  const result = await twoFieldPrompt(`Add edging for "${mat}"`, [{label:'Size', placeholder:'e.g. 1mm, 2mm'},{label:'Price /m (R)', placeholder:'0', type:'number'}]);
+  if (!result) return;
+  const size = result[0].trim();
+  const price = parseFloat(result[1]);
+  if (!size) return;
   if (isNaN(price)) return;
   const edgeKey = (mat === 'Picco White' ? 'White Edging' : mat + ' Edging') + ' ' + size.trim();
   if (EDGES.includes(edgeKey)) { showToast(`"${edgeKey}" already exists.`, 'warning'); return; }
@@ -18670,6 +19156,52 @@ function _renderPricesView() {
         </div>` : ''}
       </div>
 
+      <!-- Labour -->
+      <div style="margin-top:28px">
+        <div class="pp-section-head" style="margin-top:0">
+          <span>Labour</span>
+          <span class="pp-section-sub">Estimate cabinet-making labour cost per job — added to the quote total</span>
+        </div>
+        <div style="border:1px solid var(--border);padding:14px 16px;border-radius:4px;background:var(--bg3)">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;margin-bottom:14px">
+            <input autocomplete="off" type="checkbox" ${labourConfig.enabled ? 'checked' : ''} ${admin ? '' : 'disabled'}
+              onchange="labourConfig.enabled=this.checked;saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+              style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer">
+            <span style="font-size:13px;color:var(--text-dim);flex:1">Include labour in quote</span>
+            ${labourConfig.enabled ? `<span style="font-size:10px;color:#4caf82;font-family:'Barlow',sans-serif;letter-spacing:0.5px;font-weight:600">● ENABLED</span>` : `<span style="font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px">○ DISABLED</span>`}
+          </label>
+          ${labourConfig.enabled ? `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+              <span style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px;width:60px">MODE</span>
+              <div class="pp-toggle-group">
+                <button onclick="labourConfig.mode='per-unit';saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+                  class="${labourConfig.mode==='per-unit'?'is-active':''}" ${admin ? '' : 'disabled'}>Per Unit</button>
+                <button onclick="labourConfig.mode='per-sqm';saveCostingPrices();renderPricesView();if(document.getElementById('quote-price-view'))renderQuoteView();"
+                  class="${labourConfig.mode==='per-sqm'?'is-active':''}" ${admin ? '' : 'disabled'}>Per Sqm</button>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);font-style:italic">${labourConfig.mode === 'per-sqm' ? 'Rate × total part area (m²) across all selected units' : 'Hours per unit set on the Quote tab × rate × unit qty'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.5px;width:60px">RATE</span>
+              <span style="font-size:11px;color:var(--text-muted)">R</span>
+              ${labourConfig.mode === 'per-sqm' ? `
+                <input autocomplete="off" type="number" min="0" step="0.01" value="${labourConfig.perSqmRate || ''}" placeholder="0.00" ${ro}
+                  style="width:120px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:6px 10px;font-size:13px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="labourConfig.perSqmRate=parseFloat(this.value)||0;saveCostingPrices();if(document.getElementById('quote-price-view'))refreshQuoteTotals();">
+                <span style="font-size:11px;color:var(--text-muted)">per m²</span>
+              ` : `
+                <input autocomplete="off" type="number" min="0" step="0.01" value="${labourConfig.ratePerHour || ''}" placeholder="0.00" ${ro}
+                  style="width:120px;background:var(--bg4);border:1px solid var(--border);color:var(--amber);padding:6px 10px;font-size:13px;outline:none;text-align:right;font-family:'JetBrains Mono',monospace"
+                  onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''"
+                  oninput="labourConfig.ratePerHour=parseFloat(this.value)||0;saveCostingPrices();if(document.getElementById('quote-price-view'))refreshQuoteTotals();">
+                <span style="font-size:11px;color:var(--text-muted)">per hour</span>
+              `}
+            </div>
+          ` : `<div style="font-size:11px;color:var(--text-muted);font-style:italic;padding:4px 0">Enable labour to add a labour line to every quote.</div>`}
+        </div>
+      </div>
+
     </div>`;
 }
 
@@ -19242,7 +19774,7 @@ function _renderCostingView() {
 
     const cvId = `cv-block-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
+      <div id="${cvId}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${u.name} <span style="color:var(--text-muted);font-weight:400;font-size:10px">× ${unitQty}</span></span>
@@ -19382,7 +19914,7 @@ function _renderCostingView() {
     }).join('');
 
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')">
+      <div id="${cvId}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%);transition:background 0.18s" onmouseover="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.16) 0%,rgba(212,145,58,0.05) 100%)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(212,145,58,0.10) 0%,rgba(212,145,58,0.03) 100%)'" onclick="costingToggle('${cvId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${secLabel} — Addons</span>
@@ -19793,7 +20325,7 @@ function _refreshCostingResults() {
 
     const cvId2 = `cv-block-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId2}')">
+      <div id="${cvId2}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId2}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId2}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId2}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId2}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${u.name} <span style="color:var(--text-muted);font-weight:400;font-size:10px">× ${unitQty}</span></span>
@@ -19860,7 +20392,7 @@ function _refreshCostingResults() {
       return `<tr><td>${label} <span style="font-size:11px;color:var(--text-muted)">${item.w}×${item.h}mm ${item.mat} × ${item.qty}</span></td><td class="num">${(lM*wM*item.qty).toFixed(3)}</td><td class="num">${bSh.toFixed(2)}${fsBadge2}</td><td class="num">R ${(costingPrices.mat[item.mat]||0).toFixed(0)}/sheet</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
     }).join('');
     mainHtml += `<div class="cv-unit-card" style="overflow:hidden;padding:0">
-      <div style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')">
+      <div id="${cvId3}-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="${cvId3}" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:9px 8px;background:rgba(212,145,58,0.07)" onclick="costingToggle('${cvId3}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();costingToggle('${cvId3}');}">
         <div style="display:flex;align-items:center;gap:8px">
           <span id="${cvId3}-chev" style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block">▶</span>
           <span style="color:var(--amber);font-size:11px;letter-spacing:1px">${secLabel} — Addons</span>
@@ -20393,6 +20925,8 @@ function loadSnapshot(name) {
   const snap = getSnapshots().find(s => s.name === name);
   if (!snap) return;
   applyState(snap.state);
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveJobToCloud(), 4000);
   closeQuoteManager();
 }
 
@@ -21069,7 +21603,7 @@ Rules:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SB_KEY}`,
+        'Authorization': `Bearer ${sbToken || SB_KEY}`,
       },
       body: JSON.stringify({ rawText, systemPrompt }),
     });
@@ -24532,6 +25066,7 @@ function plCalcFromState(state) {
       consult:        t.consultTotal,
       diesel:         t.dieselTotal,
       extras:         t.extrasTotal,
+      labourExpected: t.labourTotal || 0,
       markup:         t.markup,
       hardwareExpected: t.hardwareExpected,
       hardwareExtrasDetail: t.hardwareExtrasDetail || [],
@@ -25174,6 +25709,7 @@ function _renderPLView() {
         consult:        t.consultTotal,
         diesel:         t.dieselTotal,
         extras:         t.extrasTotal,
+        labourExpected: t.labourTotal || 0,
         markup:         t.markup,
         hardwareExpected: t.hardwareExpected,
         hardwareExtrasDetail: t.hardwareExtrasDetail || [],
@@ -25194,7 +25730,14 @@ function _renderPLView() {
   // the supplier invoice; inv.vatIncluded carries that flag (default true for
   // backwards compat). _invInclVAT normalises each line back to incl-VAT so
   // the existing /1.15 math still derives the correct excl-VAT figures.
-  const labourCost        = parseFloat(pd?.labourCost) || 0;   // no VAT — straight out of profit
+  // Labour: user-entered manual figure wins; otherwise fall back to the
+  // estimated labour from labourConfig (saved in the snap as labourExpected).
+  // This way the P&L always has a labour line even before the maker types
+  // an actual figure — matching the quote's labour estimate exactly.
+  const _manualLabour     = parseFloat(pd?.labourCost) || 0;
+  const _estimatedLabour  = parseFloat(snap?.labourExpected) || 0;
+  const labourCost        = _manualLabour > 0 ? _manualLabour : _estimatedLabour;   // no VAT — straight out of profit
+  const labourIsEstimate  = _manualLabour <= 0 && _estimatedLabour > 0;
   const invoiceTotal      = invs.reduce((s,inv) => s + _invInclVAT(inv), 0);
   const invoiceVAT        = invoiceTotal * 15 / 115;           // input VAT claimable
   const invoiceExclVAT    = invoiceTotal / 1.15;               // true material cost excl VAT
@@ -25888,13 +26431,14 @@ function _renderPLView() {
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px 0">
         <span style="font-weight:500;font-size:12px;color:var(--text-muted);white-space:nowrap;font-family:'Barlow',sans-serif;letter-spacing:0.3px">TOTAL LABOUR PAID</span>
         <span style="font-size:13px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:1px">R</span>
-        <input autocomplete="off" type="number" min="0" step="0.01" placeholder="0.00"
-          value="${labourCost > 0 ? labourCost : ''}"
+        <input autocomplete="off" type="number" min="0" step="0.01" placeholder="${_estimatedLabour > 0 ? _estimatedLabour.toFixed(2) + ' (est.)' : '0.00'}"
+          value="${_manualLabour > 0 ? _manualLabour : ''}"
           class="pp-input is-num"
           style="width:180px;height:40px;font-size:15px"
           oninput="plUpdateLabour('${selJobId}', this.value)"
           onblur="plUpdateLabourDone('${selJobId}')">
-        ${labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-style:italic">No VAT — full amount deducted from profit</span>` : ''}
+        ${labourIsEstimate ? `<span style="font-size:11px;color:var(--amber);font-style:italic">Using R ${labourCost.toFixed(2)} estimate from labour config — type a real figure to override</span>`
+          : (labourCost > 0 ? `<span style="font-size:11px;color:var(--text-muted);font-style:italic">No VAT — full amount deducted from profit</span>` : '')}
       </div>
     </div>
 
@@ -26278,7 +26822,11 @@ function openOptimizer() {
 function collectOptimizerParts() {
   // Prefer the last-generated cutlist. Fall back to generating one on the fly.
   if (!window._lastCutlist) {
-    try { generateCutlist(); } catch (e) { /* ignore */ }
+    try { generateCutlist(); } catch (e) {
+      console.error('generateCutlist failed:', e);
+      showToast('Could not generate cutlist: ' + (e && e.message ? e.message : e), 'error');
+      return [];
+    }
   }
   const cl = window._lastCutlist;
   if (!cl || !cl.consolidated) return [];
