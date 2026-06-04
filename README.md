@@ -29,9 +29,21 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 ### 📐 Costing / Margin View
 - Per-unit board cost breakdown (sheets used, edging metres, cut & label, drilling, hardware)
 - 20% waste factor applied to all board calculations
-- Hardware toggle per section — exclude hinges/runners/handles for sections that don't need them
+- Granular per-room hardware toggles — enable/disable handles, runners, and hinges independently per room
 - Supplier price sync via Supabase — all users see live prices
 - Per-board minimum sheet charge (e.g. 0.25 sheet minimum) — toggleable per material
+
+### 📊 P&L (Profit & Loss)
+- Side-by-side expected vs actual cost breakdown per material category (boards, edging, hardware, labour)
+- Labour cost input with estimate fallback from the costing config
+- **PDF Invoice Import** — upload a supplier invoice (PDF, JPG, or PNG) and Claude extracts every line item automatically; review and edit before committing
+  - Invoice Details strip: invoice number, supplier, date, and grand total pre-filled from the extraction and editable before import
+  - Duplicate detection: warns if the same invoice number + supplier has already been imported
+- **Imported Invoice Documents registry** — compact table above the invoice lines showing every imported PDF document (invoice #, supplier, date, total, line count); collapse/expand toggle; inline-editable invoice number and supplier; × removes the document and all its lines in one action
+- Manual invoice line entry with supplier, category, amount, and VAT incl/excl toggle
+- Invoice lines assignable to specific board types or edging to populate the Actual column in the material breakdown
+- Historical price snapshot — lock the supplier prices at job-quote time so re-opening a saved job doesn't shift the expected costs
+- Saved per-job to Supabase — P&L data travels with the job across devices
 
 ### 🧾 Supplier Prices
 - Admin sets board, edging, hardware, and extra prices
@@ -65,6 +77,11 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 ### 🔨 Unit Builder
 - Build completely custom units from scratch
 - Drag-and-drop part editor with edging per side
+
+### 🧩 Sheet Optimizer
+- Visual bin-packing layout — places all cut parts onto full sheets with minimal waste
+- Shows how many sheets are required and how parts are arranged across them
+- Useful for briefing the workshop before cutting
 
 ### 👥 User Management (Admin)
 - Invite users via Supabase email invite
@@ -153,7 +170,7 @@ create policy "Admin writes prices" on supplier_prices for all to authenticated 
 
 ## Configuration
 
-Open `cutlist_app_25.html` and update these constants near the top of the `<script>` block:
+Open `dev.html` and update these constants near the top of the `<script>` block:
 
 ```js
 const SB_URL = 'https://YOUR_PROJECT_ID.supabase.co';
@@ -184,6 +201,7 @@ This app is a single `.html` file with no dependencies to install.
 6. Switch to Quote tab → add hardware, bases, skirting
 7. Download Quote .xlsx → send to client
 8. Use Costing tab → check margins before confirming job
+9. As job progresses → import supplier invoices into P&L to track actual vs expected spend
 ```
 
 ---
