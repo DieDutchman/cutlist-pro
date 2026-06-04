@@ -24852,8 +24852,8 @@ function drawerSaveUnit() {
 // In-memory store: { [jobId]: { invoices: [{id,desc,supplier,amount}], importedDocs: [], notes:'' } }
 let plData = {};
 
-// Collapse state for the imported docs registry panel
-let plDocsCollapsed = false;
+// Per-document collapse state for the merged invoice section { [docId]: boolean }
+let plDocCollapsed = {};
 
 // Pending document-level metadata extracted from the current PDF/image import.
 // Set by plProcessPDFFile, consumed by plImportSelectedLines, then cleared.
@@ -25962,71 +25962,137 @@ function _renderPLView() {
     else unmatchedEdgeInclVAT += amt;
   });
 
-  // Invoice rows HTML
-  const invRowsHtml = invs.length === 0
-    ? `<div style="padding:32px 20px;font-size:12px;color:var(--text-muted);font-style:italic;text-align:center;letter-spacing:0.3px">
-        <div style="font-size:28px;margin-bottom:8px;opacity:0.4">📄</div>
-        No invoices added yet — add your actual costs below
-      </div>`
-    : invs.map((inv,i) => {
-      const hasQtyDetail  = inv.qty && inv.unit_price && inv.qty !== 1;
-      const isBoardLine   = (inv.category || '') === 'Boards';
-      const isEdgingLine  = (inv.category || '') === 'Edging';
-      return `
-      <div class="pp-inv-row" id="pl-inv-${inv.id}">
-        <div class="pp-inv-main">
-          <input autocomplete="off" type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
-            class="pp-input" style="flex:2;min-width:140px"
-            oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
-            onblur="plInvoiceBlur('${selJobId}')">
-          <input autocomplete="off" type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
-            class="pp-input" style="flex:1;min-width:100px"
-            oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
-            onblur="plInvoiceBlur('${selJobId}')">
-          <select autocomplete="off" class="pp-select" style="width:150px"
-            onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
-            onblur="plInvoiceBlur('${selJobId}')">
-            ${plInvoiceCategories().map(c =>
-              `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
-          </select>
-          <span style="font-weight:500;font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px" title="Line total — use the INCL/EXCL toggle to declare whether this amount includes VAT">R</span>
-          <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
-            class="pp-input is-num" style="width:112px"
-            title="Line total as printed on the supplier invoice. Use the toggle to the right to indicate whether it includes VAT or excludes VAT."
-            oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
-            onblur="plInvoiceBlur('${selJobId}')">
-          <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?"
-            onchange="plUpdateInvoice('${selJobId}','${inv.id}','vatIncluded',this.value==='incl');plInvoiceBlur('${selJobId}')">
-            <option value="incl" ${inv.vatIncluded !== false ? 'selected' : ''}>Incl VAT</option>
-            <option value="excl" ${inv.vatIncluded === false ? 'selected' : ''}>Excl VAT</option>
-          </select>
-          <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line">×</button>
-        </div>
-        ${hasQtyDetail ? `<div class="pp-inv-detail">
-          <span style="color:var(--amber-dim);letter-spacing:1.5px">⊳</span>
-          ${inv.qty} × R ${parseFloat(inv.unit_price).toFixed(2)} = R ${parseFloat(inv.amount).toFixed(2)}
-          <span style="color:var(--text-muted);opacity:0.7">${inv.vatIncluded === false ? '(excl VAT)' : '(incl VAT)'}</span>
-        </div>` : ''}
-        ${isBoardLine && allMatNames.length > 0 ? `<div class="pp-inv-detail" style="font-family:'Barlow',sans-serif;font-size:11px;background:rgba(106,170,212,0.03)">
-          <span class="pp-inv-tag" style="color:#6aaad4">▣ BOARD TYPE</span>
-          <select class="pp-select is-sm" style="min-width:200px"
-            onchange="plUpdateInvoice('${selJobId}','${inv.id}','mat',this.value);plInvoiceBlur('${selJobId}')">
-            <option value="">— unassigned —</option>
-            ${allMatNames.map(m => `<option value="${m}" ${(inv.mat||'')=== m?'selected':''}>${m}</option>`).join('')}
-          </select>
-          ${inv.mat ? `<span class="pp-inv-tag pp-inv-tag-ok">✓ LINKED</span>` : `<span class="pp-inv-tag">assign to see per-material variance</span>`}
-        </div>` : ''}
-        ${isEdgingLine && allEdgeNames.length > 0 ? `<div class="pp-inv-detail" style="font-family:'Barlow',sans-serif;font-size:11px;background:rgba(106,170,212,0.03)">
-          <span class="pp-inv-tag" style="color:#6aaad4">▤ EDGE TYPE</span>
-          <select class="pp-select is-sm" style="min-width:220px"
-            onchange="plUpdateInvoice('${selJobId}','${inv.id}','edgeKey',this.value);plInvoiceBlur('${selJobId}')">
-            <option value="">— unassigned —</option>
-            ${allEdgeNames.map(e => `<option value="${e}" ${(inv.edgeKey||'')=== e?'selected':''}>${e}</option>`).join('')}
-          </select>
-          ${inv.edgeKey ? `<span class="pp-inv-tag pp-inv-tag-ok">✓ LINKED</span>` : `<span class="pp-inv-tag">assign to see per-edge variance</span>`}
-        </div>` : ''}
-      </div>`;
-    }).join('');
+  // Helper: render a single invoice line row (used in both doc groups and manual lines)
+  const _renderInvRow = (inv, indented) => {
+    const hasQtyDetail = inv.qty && inv.unit_price && inv.qty !== 1;
+    const isBoardLine  = (inv.category || '') === 'Boards';
+    const isEdgingLine = (inv.category || '') === 'Edging';
+    const indentStyle  = indented ? 'padding-left:20px;border-left:3px solid transparent;margin-left:4px;' : '';
+    return `
+    <div class="pp-inv-row" id="pl-inv-${inv.id}" style="${indentStyle}">
+      <div class="pp-inv-main">
+        <input autocomplete="off" type="text" value="${(inv.desc||'').replace(/"/g,'&quot;')}" placeholder="Description"
+          class="pp-input" style="flex:2;min-width:140px"
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','desc',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+        <input autocomplete="off" type="text" value="${(inv.supplier||'').replace(/"/g,'&quot;')}" placeholder="Supplier"
+          class="pp-input" style="flex:1;min-width:100px"
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+        <select autocomplete="off" class="pp-select" style="width:150px"
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+          ${plInvoiceCategories().map(c =>
+            `<option value="${c}" ${inv.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <span style="font-weight:500;font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px" title="Line total — use the INCL/EXCL toggle to declare whether this amount includes VAT">R</span>
+        <input autocomplete="off" type="number" value="${inv.amount||''}" placeholder="0.00" min="0" step="0.01"
+          class="pp-input is-num" style="width:112px"
+          title="Line total as printed on the supplier invoice. Use the toggle to the right to indicate whether it includes VAT or excludes VAT."
+          oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
+          onblur="plInvoiceBlur('${selJobId}')">
+        <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?"
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','vatIncluded',this.value==='incl');plInvoiceBlur('${selJobId}')">
+          <option value="incl" ${inv.vatIncluded !== false ? 'selected' : ''}>Incl VAT</option>
+          <option value="excl" ${inv.vatIncluded === false ? 'selected' : ''}>Excl VAT</option>
+        </select>
+        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line">×</button>
+      </div>
+      ${hasQtyDetail ? `<div class="pp-inv-detail">
+        <span style="color:var(--amber-dim);letter-spacing:1.5px">⊳</span>
+        ${inv.qty} × R ${parseFloat(inv.unit_price).toFixed(2)} = R ${parseFloat(inv.amount).toFixed(2)}
+        <span style="color:var(--text-muted);opacity:0.7">${inv.vatIncluded === false ? '(excl VAT)' : '(incl VAT)'}</span>
+      </div>` : ''}
+      ${isBoardLine && allMatNames.length > 0 ? `<div class="pp-inv-detail" style="font-family:'Barlow',sans-serif;font-size:11px;background:rgba(106,170,212,0.03)">
+        <span class="pp-inv-tag" style="color:#6aaad4">▣ BOARD TYPE</span>
+        <select class="pp-select is-sm" style="min-width:200px"
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','mat',this.value);plInvoiceBlur('${selJobId}')">
+          <option value="">— unassigned —</option>
+          ${allMatNames.map(m => `<option value="${m}" ${(inv.mat||'')=== m?'selected':''}>${m}</option>`).join('')}
+        </select>
+        ${inv.mat ? `<span class="pp-inv-tag pp-inv-tag-ok">✓ LINKED</span>` : `<span class="pp-inv-tag">assign to see per-material variance</span>`}
+      </div>` : ''}
+      ${isEdgingLine && allEdgeNames.length > 0 ? `<div class="pp-inv-detail" style="font-family:'Barlow',sans-serif;font-size:11px;background:rgba(106,170,212,0.03)">
+        <span class="pp-inv-tag" style="color:#6aaad4">▤ EDGE TYPE</span>
+        <select class="pp-select is-sm" style="min-width:220px"
+          onchange="plUpdateInvoice('${selJobId}','${inv.id}','edgeKey',this.value);plInvoiceBlur('${selJobId}')">
+          <option value="">— unassigned —</option>
+          ${allEdgeNames.map(e => `<option value="${e}" ${(inv.edgeKey||'')=== e?'selected':''}>${e}</option>`).join('')}
+        </select>
+        ${inv.edgeKey ? `<span class="pp-inv-tag pp-inv-tag-ok">✓ LINKED</span>` : `<span class="pp-inv-tag">assign to see per-edge variance</span>`}
+      </div>` : ''}
+    </div>`;
+  };
+
+  // Group lines: by sourceDocId for imported, ungrouped for manual
+  const _importedDocs  = (pd && pd.importedDocs) || [];
+  const _linesByDoc    = {};
+  const _manualLines   = [];
+  const _fmtDocR = v => 'R ' + (parseFloat(v)||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
+  invs.forEach(inv => {
+    if (inv.sourceDocId) {
+      (_linesByDoc[inv.sourceDocId] = _linesByDoc[inv.sourceDocId] || []).push(inv);
+    } else {
+      _manualLines.push(inv);
+    }
+  });
+
+  // Build the combined invoice section body HTML
+  let invBodyHtml = '';
+
+  // Document groups
+  _importedDocs.forEach(doc => {
+    const isCollapsed = !!plDocCollapsed[doc.docId];
+    const docLines    = _linesByDoc[doc.docId] || [];
+    const docTotal    = doc.total > 0 ? _fmtDocR(doc.total) : (docLines.length > 0 ? _fmtDocR(docLines.reduce((s,l) => s + _invInclVAT(l), 0)) : '—');
+    invBodyHtml += `
+    <div style="margin-bottom:2px">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border-left:4px solid var(--amber);cursor:pointer;user-select:none"
+        onclick="plDocCollapsed['${doc.docId}']=!plDocCollapsed['${doc.docId}'];(function(){const v=document.getElementById('pl-view');if(v){v._selectedJobId='${selJobId}';renderPLView();}})()">
+        <span style="font-size:13px;color:var(--amber);width:14px;text-align:center;flex-shrink:0">${isCollapsed ? '▶' : '▼'}</span>
+        <input type="text" value="${(doc.invoiceNo||'').replace(/"/g,'&quot;')}"
+          style="flex:0 0 120px;background:transparent;border:1px solid transparent;color:var(--text);padding:2px 5px;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;letter-spacing:0.3px;outline:none;cursor:text"
+          onfocus="this.style.borderColor='var(--border)';event.stopPropagation()"
+          onblur="this.style.borderColor='transparent';plUpdateImportedDoc('${selJobId}','${doc.docId}','invoiceNo',this.value);plImportedDocBlur('${selJobId}')"
+          oninput="plUpdateImportedDoc('${selJobId}','${doc.docId}','invoiceNo',this.value)"
+          onclick="event.stopPropagation()"
+          placeholder="INV #">
+        <input type="text" value="${(doc.supplier||'').replace(/"/g,'&quot;')}"
+          style="flex:1;min-width:0;background:transparent;border:1px solid transparent;color:var(--text);padding:2px 5px;font-size:12px;font-family:'Barlow',sans-serif;outline:none;cursor:text"
+          onfocus="this.style.borderColor='var(--border)';event.stopPropagation()"
+          onblur="this.style.borderColor='transparent';plUpdateImportedDoc('${selJobId}','${doc.docId}','supplier',this.value);plImportedDocBlur('${selJobId}')"
+          oninput="plUpdateImportedDoc('${selJobId}','${doc.docId}','supplier',this.value)"
+          onclick="event.stopPropagation()"
+          placeholder="Supplier">
+        <span style="flex:0 0 auto;font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;white-space:nowrap">${doc.invoiceDate || ''}</span>
+        <span style="flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);white-space:nowrap">${docTotal}</span>
+        <button onclick="event.stopPropagation();plRemoveImportedDoc('${selJobId}','${doc.docId}')"
+          class="pp-btn is-danger is-icon is-sm" title="Remove this invoice and all its lines" style="font-size:13px;line-height:1;padding:2px 6px;flex-shrink:0">×</button>
+      </div>
+      ${isCollapsed ? '' : `<div style="border-left:4px solid var(--amber);margin-left:0">${docLines.map(inv => _renderInvRow(inv, true)).join('')}</div>`}
+    </div>`;
+  });
+
+  // Manual lines
+  if (_manualLines.length > 0) {
+    if (_importedDocs.length > 0) {
+      invBodyHtml += `
+    <div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;padding:0 4px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:10px;letter-spacing:1.5px;color:var(--text-muted);font-family:'Barlow',sans-serif;white-space:nowrap">MANUAL LINES</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>`;
+    }
+    invBodyHtml += _manualLines.map(inv => _renderInvRow(inv, false)).join('');
+  }
+
+  // Empty state
+  if (invs.length === 0) {
+    invBodyHtml = `<div style="padding:32px 20px;font-size:12px;color:var(--text-muted);font-style:italic;text-align:center;letter-spacing:0.3px">
+      <div style="font-size:28px;margin-bottom:8px;opacity:0.4">📄</div>
+      No invoices added yet — add your actual costs below
+    </div>`;
+  }
 
   // Category summary
   const catTotals = {};
@@ -26605,55 +26671,7 @@ function _renderPLView() {
       </div>
     </div>
 
-    <!-- Imported Invoice Documents registry -->
-    ${(()=>{
-      const importedDocs = (pd && pd.importedDocs) ? pd.importedDocs : [];
-      if (!importedDocs.length) return '';
-      const fmtR = v => 'R ' + (parseFloat(v)||0).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
-      const bodyHtml = plDocsCollapsed ? '' : `
-      <div style="border:1px solid var(--border);border-top:none">
-        <div style="display:flex;align-items:center;gap:0;padding:6px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted)">
-          <span style="flex:0 0 130px">INVOICE #</span>
-          <span style="flex:1;min-width:0">SUPPLIER</span>
-          <span style="flex:0 0 110px">DATE</span>
-          <span style="flex:0 0 100px;text-align:right">TOTAL</span>
-          <span style="flex:0 0 50px;text-align:center">LINES</span>
-          <span style="flex:0 0 36px"></span>
-        </div>
-        ${importedDocs.map(doc => `
-        <div style="display:flex;align-items:center;gap:0;padding:5px 12px;border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.05))">
-          <input type="text" value="${(doc.invoiceNo||'').replace(/"/g,'&quot;')}"
-            style="flex:0 0 130px;background:transparent;border:1px solid transparent;color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;min-width:0"
-            onfocus="this.style.borderColor='var(--border)'" onblur="this.style.borderColor='transparent';plUpdateImportedDoc('${selJobId}','${doc.docId}','invoiceNo',this.value);plImportedDocBlur('${selJobId}')"
-            oninput="plUpdateImportedDoc('${selJobId}','${doc.docId}','invoiceNo',this.value)"
-            placeholder="—">
-          <input type="text" value="${(doc.supplier||'').replace(/"/g,'&quot;')}"
-            style="flex:1;min-width:0;background:transparent;border:1px solid transparent;color:var(--text);padding:3px 5px;font-size:11px;font-family:'Barlow',sans-serif;outline:none"
-            onfocus="this.style.borderColor='var(--border)'" onblur="this.style.borderColor='transparent';plUpdateImportedDoc('${selJobId}','${doc.docId}','supplier',this.value);plImportedDocBlur('${selJobId}')"
-            oninput="plUpdateImportedDoc('${selJobId}','${doc.docId}','supplier',this.value)"
-            placeholder="—">
-          <span style="flex:0 0 110px;font-size:11px;color:var(--text-muted);padding:3px 5px;font-family:'Barlow',sans-serif">${doc.invoiceDate || '—'}</span>
-          <span style="flex:0 0 100px;text-align:right;font-size:11px;color:var(--text);padding:3px 5px;font-family:'JetBrains Mono',monospace">${doc.total > 0 ? fmtR(doc.total) : '—'}</span>
-          <span style="flex:0 0 50px;text-align:center;font-size:11px;color:var(--text-muted);padding:3px 5px;font-family:'JetBrains Mono',monospace">${doc.lineCount || 0}</span>
-          <span style="flex:0 0 36px;text-align:right">
-            <button onclick="plRemoveImportedDoc('${selJobId}','${doc.docId}')" class="pp-btn is-danger is-icon is-sm" title="Remove this document record and all its imported lines" style="font-size:13px;line-height:1;padding:2px 6px">×</button>
-          </span>
-        </div>`).join('')}
-      </div>`;
-      return `
-    <div style="margin-bottom:20px">
-      <div class="pp-section-head" style="cursor:default">
-        <span>Imported Invoice Documents</span>
-        <button onclick="plDocsCollapsed=!plDocsCollapsed;(function(){const v=document.getElementById('pl-view');if(v){v._selectedJobId='${selJobId}';renderPLView();}})()"
-          class="pp-btn" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:4px 10px;letter-spacing:0.3px">
-          ${plDocsCollapsed ? 'EXPAND' : 'COLLAPSE'}
-        </button>
-      </div>
-      ${bodyHtml}
-    </div>`;
-    })()}
-
-    <!-- Invoice entry section -->
+    <!-- Actual Costs — Invoice Lines (merged: doc groups + manual lines) -->
     <div style="margin-bottom:28px">
       <div class="pp-section-head">
         <span>Actual Costs — Invoice Lines</span>
@@ -26662,7 +26680,7 @@ function _renderPLView() {
         </button>
       </div>
       <div class="pp-inv-list" style="border-radius:0 0 4px 4px;border-top:none;margin-bottom:0">
-        ${invRowsHtml}
+        ${invBodyHtml}
       </div>
 
       <!-- Add invoice row -->
