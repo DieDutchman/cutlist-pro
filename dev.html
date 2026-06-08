@@ -27692,7 +27692,26 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts)
   // Waste / leftover rects — render BEFORE parts so parts sit on top.
   const wasteRects = (sheet.leftovers || [])
     .filter(r => r.w > 10 && r.h > 10)
-    .map(r => `<rect x="${(trim + r.x) * px}" y="${(trim + r.y) * px}" width="${r.w * px}" height="${r.h * px}" fill="url(#opt-hatch)" stroke="rgba(120,120,120,0.3)" stroke-width="0.5"/>`)
+    .map((r, ri) => {
+      const rx = (trim + r.x) * px;
+      const ry = (trim + r.y) * px;
+      const rw = r.w * px;
+      const rh = r.h * px;
+      const rect = `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="url(#opt-hatch)" stroke="rgba(120,120,120,0.3)" stroke-width="0.5"/>`;
+      // Dimension label — only when the off-cut is large enough to be readable.
+      let dimLabel = '';
+      if (rw >= 80 && rh >= 30) {
+        const cx = rx + rw / 2;
+        const cy = ry + rh / 2;
+        const wMM = Math.round(r.w);
+        const hMM = Math.round(r.h);
+        const shIdx = sheet.sheetIdx != null ? sheet.sheetIdx : 0;
+        const clipId = `clip-wst-${shIdx}-${ri}`;
+        dimLabel = `<defs><clipPath id="${clipId}"><rect x="${rx + 2}" y="${ry + 2}" width="${rw - 4}" height="${rh - 4}"/></clipPath></defs>`
+          + `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="9px" fill="var(--text-muted, #888)" font-family="monospace" clip-path="url(#${clipId})" style="pointer-events:none">${wMM} \xd7 ${hMM} mm</text>`;
+      }
+      return rect + dimLabel;
+    })
     .join('');
 
   // Cut lines — derived from placed part edges.
@@ -27791,7 +27810,7 @@ function renderOptimizerSheetSVG(sheet, sheetW, sheetH, colorKey, pxPerMM, opts)
     ? `<g><rect x="6" y="6" width="58" height="18" fill="var(--amber)" stroke="rgba(0,0,0,0.5)" stroke-width="0.6"/><text x="35" y="19" text-anchor="middle" font-size="11px" font-weight="700" fill="#000" font-family="'Barlow',sans-serif" style="pointer-events:none">SCRAP</text></g>`
     : '';
 
-  return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg class="opt-sheet-svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
     ${defs}
     <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent" stroke="${sheetStroke}" stroke-width="${sheetStrokeW}"/>
     ${wasteRects}
@@ -27817,6 +27836,7 @@ function renderOptimizer() {
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="renderOptimizer()">↻ Recalculate</button>
         <button class="btn btn-ghost" onclick="printOptimizer()">⊕ Print Layouts</button>
+        <button class="btn btn-ghost pp-btn" onclick="exportOptimizerPDF()">Export PDF</button>
         <button class="btn btn-ghost" onclick="backToQuote()">← Edit Units</button>
       </div>
     </div>
@@ -28048,6 +28068,38 @@ function applyOptimizerPreset(preset) {
 }
 
 function printOptimizer() { window.print(); }
+
+function exportOptimizerPDF() {
+  const sheets = document.querySelectorAll('.opt-sheet-svg');
+  if (!sheets.length) { alert('No sheets to export. Run the optimizer first.'); return; }
+
+  const sheetsHtml = Array.from(sheets).map((svg, i) => {
+    // Derive a label from the closest opt-sheet-head sibling for context.
+    const head = svg.closest('.opt-sheet') && svg.closest('.opt-sheet').querySelector('.opt-sheet-head');
+    const label = head ? head.textContent.trim().replace(/\s+/g, ' ') : `Sheet ${i + 1}`;
+    return `<div class="sheet-page">
+      <div class="sheet-label">${label}</div>
+      ${svg.outerHTML}
+    </div>`;
+  }).join('');
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { alert('Allow pop-ups to export PDF.'); return; }
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>Sheet Layout</title>
+    <style>
+      body { margin: 0; background: #fff; font-family: Arial, sans-serif; }
+      .sheet-page { page-break-after: always; padding: 10mm; box-sizing: border-box; }
+      .sheet-page:last-child { page-break-after: avoid; }
+      .sheet-label { font-size: 13pt; font-weight: bold; margin-bottom: 6mm; color: #111; }
+      svg { width: 100%; height: auto; display: block; }
+      @media print { @page { size: A4 landscape; margin: 10mm; } body { margin: 0; } }
+    </style>
+  </head><body>${sheetsHtml}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 500);
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PDF PLAN IMPORT (AI VISION) — [BETA]
