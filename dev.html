@@ -4300,11 +4300,24 @@ body.user-light-theme .pp-vat-select {
   font-family:'Barlow',sans-serif;
   font-size:13px;">
   <span style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-transform:uppercase;white-space:nowrap">Job</span>
-  <select id="job-select"
-    onchange="loadJobFromSelect()"
-    style="flex:1;min-width:180px;max-width:340px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
-    <option value="">— New Job —</option>
-  </select>
+  <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;max-width:340px">
+    <input id="job-search-input" type="text" placeholder="Search jobs…" autocomplete="off"
+      oninput="filterJobSelect(this.value)"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box"
+      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+    <select id="job-select"
+      onchange="loadJobFromSelect()"
+      style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
+      <option value="">— New Job —</option>
+    </select>
+    <div id="job-archived-toggle-wrap" style="display:none;align-items:center;gap:4px">
+      <input type="checkbox" id="job-archived-toggle-cb"
+        onchange="_jobShowArchived=this.checked;rebuildJobSelect()"
+        style="cursor:pointer;accent-color:var(--amber)">
+      <label id="job-archived-toggle-lbl" for="job-archived-toggle-cb"
+        style="font-size:10px;color:var(--text-muted);cursor:pointer;font-family:'Barlow',sans-serif;user-select:none">Show archived</label>
+    </div>
+  </div>
   <!-- Job details popover trigger — collapses client/stand/address/notes into a dropdown -->
   <div id="job-details-wrap" style="position:relative;display:flex;align-items:center">
     <button id="job-details-btn" type="button" onclick="toggleJobDetailsPopover(event)"
@@ -4376,6 +4389,9 @@ body.user-light-theme .pp-vat-select {
     style="font-weight:500;background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim, rgba(212,145,58,0.3));color:var(--amber);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap"
     title="[BETA] Upload an architect's floor plan PDF — AI extracts room dimensions">
     📐 PLAN [BETA]
+  </button>
+  <button onclick="archiveCurrentJob()" id="job-archive-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap" title="Archive this job — hides it from the job list without deleting">
+    📦 ARCHIVE
   </button>
   <button onclick="deleteCurrentJob()" id="job-delete-btn" style="display:none;background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">
     🗑 DELETE
@@ -12840,6 +12856,8 @@ let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let currentJobStatus = 'draft';
 let currentJobDeposit = 0;  // deposit received against current job's quote
+let currentJobArchived = false; // whether this job is archived (hidden from list by default)
+let _jobShowArchived  = false;  // UI toggle: show archived jobs in the job picker
 // Set true if applyState() threw partway through restoring a job. While this
 // is true, saveJobToCloud() will refuse to overwrite the server row, because
 // the in-memory state is incomplete and a save would clobber good fields
@@ -13309,7 +13327,7 @@ async function refreshAccessToken(refreshToken) {
 async function loadUserJobs() {
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at,state->>jobStatus&order=updated_at.desc`,
+      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,notes,updated_at,state->>jobStatus,state->>archived&order=updated_at.desc`,
       { headers: authHeaders() }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -13328,20 +13346,58 @@ function rebuildJobSelect() {
   }
   sel.innerHTML = '<option value="">— New Job —</option>';
   const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const _showArchived = _jobShowArchived || false;
+  let _archivedCount = 0;
   sbJobs.forEach(j => {
+    // Supabase returns state->>archived as a string 'true'/'false', and _state is only set for the current job
+    const _isArchived = j.archived === 'true' || j.archived === true || j._state?.archived === true;
+    if (_isArchived) _archivedCount++;
+    if (_isArchived && !_showArchived && j.id !== currentJobId) return; // hide archived unless toggled
     const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
     const date  = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
     const dot   = _statusDot[j.jobStatus] || '○';
     const opt   = document.createElement('option');
     opt.value       = j.id;
-    opt.textContent = `${dot} ${label}  (${date})`;
+    opt.textContent = `${dot} ${label}  (${date})${_isArchived ? ' [archived]' : ''}`;
+    if (_isArchived) { opt.style.color = 'var(--text-muted)'; opt.style.fontStyle = 'italic'; }
     if (j.id === currentJobId) opt.selected = true;
     sel.appendChild(opt);
   });
+  // Render the "Show archived" toggle if there are archived jobs
+  const _archToggleWrap = document.getElementById('job-archived-toggle-wrap');
+  if (_archToggleWrap) {
+    if (_archivedCount > 0) {
+      _archToggleWrap.style.display = 'flex';
+      const _cb = document.getElementById('job-archived-toggle-cb');
+      if (_cb) _cb.checked = _showArchived;
+      const _lbl = document.getElementById('job-archived-toggle-lbl');
+      if (_lbl) _lbl.textContent = `Show archived (${_archivedCount})`;
+    } else {
+      _archToggleWrap.style.display = 'none';
+    }
+  }
   const deleteBtn = document.getElementById('job-delete-btn');
   if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
+  const archiveBtn = document.getElementById('job-archive-btn');
+  if (archiveBtn) archiveBtn.style.display = currentJobId ? 'block' : 'none';
   const statusWrap = document.getElementById('job-status-wrap');
   if (statusWrap) statusWrap.style.display = currentJobId ? 'flex' : 'none';
+  // Re-apply any active search filter after rebuilding the list
+  const srch = document.getElementById('job-search-input');
+  if (srch && srch.value.trim()) filterJobSelect(srch.value);
+}
+
+function filterJobSelect(q) {
+  const sel = document.getElementById('job-select');
+  if (!sel) return;
+  const term = (q || '').toLowerCase().trim();
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) { opt.hidden = false; return; } // keep "New Job" always visible
+    const job = sbJobs.find(j => j.id === opt.value);
+    if (!job) { opt.hidden = false; return; }
+    const haystack = ((job.client || '') + ' ' + (job.house || '')).toLowerCase();
+    opt.hidden = term.length > 0 && !haystack.includes(term);
+  });
 }
 
 async function restoreLastJob(jobId) {
@@ -13357,6 +13413,8 @@ async function restoreLastJob(jobId) {
     if (sel) sel.value = currentJobId;
     const deleteBtn = document.getElementById('job-delete-btn');
     if (deleteBtn) deleteBtn.style.display = 'block';
+    const _archBtn = document.getElementById('job-archive-btn');
+    if (_archBtn) _archBtn.style.display = 'block';
     const statusWrapR = document.getElementById('job-status-wrap');
     if (statusWrapR) statusWrapR.style.display = 'flex';
     ['job-client','job-house','job-address','job-notes'].forEach(id => {
@@ -13366,6 +13424,7 @@ async function restoreLastJob(jobId) {
     currentClientId = job.client_id || null;
     _updateClientButtonsVisibility();
     if (job.state) applyState(job.state);
+    _syncArchiveBtnLabel();
     checkAndRemapOrphans();
     renderPanel(); updateCounts();
   } catch(e) {
@@ -13851,6 +13910,7 @@ function getJobState() {
     panelSpecialServices: {...panelSpecialServices},
     activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
     jobStatus: currentJobStatus,
+    archived: currentJobArchived || false,
     deposit: currentJobDeposit || 0,
     // Per-job P&L (actual cost lines + labour + notes) — must travel with the
     // job so opening it in another browser shows the same reconciliation data.
@@ -13918,6 +13978,8 @@ async function saveJobToCloud() {
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       document.getElementById('job-delete-btn').style.display = 'block';
+      const _archBtnSave = document.getElementById('job-archive-btn');
+      if (_archBtnSave) _archBtnSave.style.display = 'block';
       const _swSave = document.getElementById('job-status-wrap');
       if (_swSave) _swSave.style.display = 'flex';
     } else {
@@ -13943,6 +14005,9 @@ async function saveJobToCloud() {
 async function loadJobFromSelect() {
   const sel = document.getElementById('job-select');
   const id  = sel.value;
+  // Clear search filter when a job is selected
+  const _srch = document.getElementById('job-search-input');
+  if (_srch) { _srch.value = ''; filterJobSelect(''); }
   if (!id) { newJob(); return; }
   setJobSyncStatus('↻ Loading…', 'var(--amber-dim)');
   try {
@@ -13971,6 +14036,9 @@ async function loadJobFromSelect() {
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
     document.getElementById('job-delete-btn').style.display = 'block';
+    const _archBtnLS = document.getElementById('job-archive-btn');
+    if (_archBtnLS) _archBtnLS.style.display = 'block';
+    _syncArchiveBtnLabel();
     const _swLS = document.getElementById('job-status-wrap');
     if (_swLS) _swLS.style.display = 'flex';
   } catch(e) {
@@ -13986,8 +14054,11 @@ async function newJob() {
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
+  const _archBtnNew = document.getElementById('job-archive-btn');
+  if (_archBtnNew) _archBtnNew.style.display = 'none';
   currentJobStatus = 'draft';
   currentJobDeposit = 0;
+  currentJobArchived = false;
   // Starting fresh — clear any latched restore-failure flag from a prior load
   _jobRestoreFailed = false;
   // Clear any historical price snapshot from the previous job
@@ -14048,6 +14119,25 @@ async function newJob() {
   setTimeout(() => setJobSyncStatus(''), 2000);
 }
 
+function _syncArchiveBtnLabel() {
+  const btn = document.getElementById('job-archive-btn');
+  if (btn) btn.textContent = currentJobArchived ? '📦 UNARCHIVE' : '📦 ARCHIVE';
+}
+
+async function archiveCurrentJob() {
+  if (!currentJobId) return;
+  const sel = document.getElementById('job-select');
+  const label = sel.options[sel.selectedIndex]?.text || 'this job';
+  const isArchived = currentJobArchived;
+  const action = isArchived ? 'unarchive' : 'archive';
+  if (!(await confirmAction(`${isArchived ? 'Unarchive' : 'Archive'} "${label}"?`, { confirmLabel: action.toUpperCase() }))) return;
+  currentJobArchived = !isArchived;
+  _syncArchiveBtnLabel();
+  await saveJobToCloud();
+  // Rebuild job list — archived jobs are hidden by default so the job will vanish from the list
+  await loadUserJobs();
+}
+
 async function deleteCurrentJob() {
   if (!currentJobId) return;
   const sel = document.getElementById('job-select');
@@ -14101,6 +14191,8 @@ async function deleteCurrentJob() {
     renderPanel(); updateCounts();
     await loadUserJobs();
     document.getElementById('job-delete-btn').style.display = 'none';
+    const _archBtnDel = document.getElementById('job-archive-btn');
+    if (_archBtnDel) _archBtnDel.style.display = 'none';
     setJobSyncStatus('Deleted', '#e07070');
     setTimeout(() => setJobSyncStatus(''), 2000);
   } catch(e) {
@@ -20810,6 +20902,8 @@ function applyState(state) {
       && state.costingPriceSnapshot.mat && Object.keys(state.costingPriceSnapshot.mat).length > 0)
       ? state.costingPriceSnapshot
       : null;
+    // Archive flag — restore early so rebuildJobSelect() sees the right value
+    currentJobArchived = state.archived === true;
   } catch(e) {
     console.warn('[applyState] critical-field pre-restore warned:', e);
   }
@@ -21056,6 +21150,7 @@ function _applyStateInner(state) {
   }
   currentJobStatus = state.jobStatus || 'draft';
   currentJobDeposit = state.deposit || 0;
+  currentJobArchived = state.archived === true;
   _renderJobStatusBadge();
   // ── Restore per-job P&L data (actual costs, labour, notes) ──────────────
   // Server-side jobs.state.plData is the source of truth; merge into local
@@ -21218,6 +21313,17 @@ function panelField(id, field, val) {
   else p[field] = val;
   savePanelsState();
   renderPanelsTotals();
+}
+
+function movePanelPart(id, direction) {
+  const arr = panelsState.items;
+  const idx = arr.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  savePanelsState();
+  renderPanelsView();
 }
 
 function panelDuplicate(id) {
@@ -22635,8 +22741,9 @@ function _renderPanelsView() {
     return `<select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" onchange="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">${options}</select>`;
   };
 
-  const rowsHtml = panelsState.items.map(p => `
-    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+  const _pLen = panelsState.items.length;
+  const rowsHtml = panelsState.items.map((p, i) => `
+    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 120px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
@@ -22646,11 +22753,15 @@ function _renderPanelsView() {
       ${sel(p.edgeL2, edgeOptsHtml, `panelField('${p.id}','edgeL2',this.value)`, 'width:100%')}
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
-      <div style="display:flex;gap:4px;flex-wrap:nowrap">
+      <div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center">
+        <button onclick="movePanelPart('${p.id}',-1)" title="Move up"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===0?'opacity:0.25;pointer-events:none':''}">▲</button>
+        <button onclick="movePanelPart('${p.id}',1)" title="Move down"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===_pLen-1?'opacity:0.25;pointer-events:none':''}">▼</button>
         ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
-          style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:4px 7px;cursor:pointer;font-size:13px">⚙</button>` : ''}
-        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:4px 7px;cursor:pointer;font-size:13px">⧉</button>
-        <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 7px;cursor:pointer;font-size:13px">×</button>
+          style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
+        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
+        <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
     ${(panelSpecialServices[p.id]||[]).length > 0 ? `
@@ -22685,7 +22796,7 @@ function _renderPanelsView() {
 
       ${panelsState.items.length > 0 ? `
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 96px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 120px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME / DESCRIPTION</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">QTY</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">LENGTH mm</div>
@@ -26677,11 +26788,17 @@ function _renderPLView() {
     <!-- Job selector -->
     <div class="pp-card" style="margin-bottom:24px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim);white-space:nowrap">SELECT JOB</span>
-      <select autocomplete="off" class="pp-select" onchange="plSelectJob(this.value)"
-        style="flex:1;min-width:220px;max-width:420px">
-        <option value="">— Choose a job to analyse —</option>
-        ${jobOptions}
-      </select>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:220px;max-width:420px">
+        <input type="text" id="pl-job-search" placeholder="Search jobs…" autocomplete="off"
+          oninput="filterPLJobSelect(this.value)"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
+        <select autocomplete="off" id="pl-job-select" class="pp-select" onchange="plSelectJob(this.value);document.getElementById('pl-job-search').value='';filterPLJobSelect('');"
+          style="width:100%">
+          <option value="">— Choose a job to analyse —</option>
+          ${jobOptions}
+        </select>
+      </div>
       ${selJobId ? `
       <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         ${selJob?.client ? `<span style="color:var(--text);font-weight:600;font-family:'Oswald',sans-serif;letter-spacing:0.5px">${selJob.client}</span>` : ''}
@@ -26910,9 +27027,22 @@ function _renderPLView() {
 
   // Set the select value after render
   if (selJobId) {
-    const sel = view.querySelector('select[onchange*="plSelectJob"]');
+    const sel = document.getElementById('pl-job-select');
     if (sel) sel.value = selJobId;
   }
+}
+
+function filterPLJobSelect(q) {
+  const sel = document.getElementById('pl-job-select');
+  if (!sel) return;
+  const term = (q || '').toLowerCase().trim();
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value) { opt.hidden = false; return; }
+    const job = sbJobs.find(j => j.id === opt.value);
+    if (!job) { opt.hidden = false; return; }
+    const haystack = ((job.client || '') + ' ' + (job.house || '')).toLowerCase();
+    opt.hidden = term.length > 0 && !haystack.includes(term);
+  });
 }
 
 function plSelectJob(jobId) {
