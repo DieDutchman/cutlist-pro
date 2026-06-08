@@ -12844,6 +12844,9 @@ try {
   }
 } catch(e) {}
 
+// ── Price History ─────────────────────────────────────────────────────────────
+let priceHistoryVisible = false;
+
 // ── Supabase ──────────────────────────────────────────────────────────────────
 const SB_URL = 'https://ojuzylnzwdblkaglaeug.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qdXp5bG56d2RibGthZ2xhZXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTU1NDIsImV4cCI6MjA4ODY5MTU0Mn0.sgMw6UEYrXwZLQB-9AJa1pFcfoCHm0Jm0JyX_TLqYaU';
@@ -17254,6 +17257,7 @@ async function applyBulkPriceAdjustment() {
   const batchPayload = [];
 
   items.forEach(it => {
+    recordPriceChange(it.label, it.cat, it.before, it.after);
     if (it.cat === 'board') {
       costingPrices.mat[it.name] = it.after;
       costingPrices.matPriceDates[it.name] = now;
@@ -17615,12 +17619,31 @@ async function importPriceRows(rows) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+function recordPriceChange(name, type, oldPrice, newPrice) {
+  const op = parseFloat(oldPrice);
+  const np = parseFloat(newPrice);
+  if (!isFinite(op) || !isFinite(np) || op === np) return;
+  try {
+    const history = JSON.parse(localStorage.getItem('cutlist_price_history') || '[]');
+    history.push({ ts: new Date().toISOString(), name, type, oldPrice: op, newPrice: np });
+    while (history.length > 200) history.shift();
+    localStorage.setItem('cutlist_price_history', JSON.stringify(history));
+  } catch(e) {}
+}
+
 async function pushSupplierPrice(category, name, price, meta) {
   if (!sbUser) {
     sbSyncStatus = 'error';
     sbLastSyncError = 'Not logged in';
     renderSyncBadge();
     return;
+  }
+  // Record price change before writing
+  {
+    const _oldP = category === 'board' ? (costingPrices.mat[name] ?? null)
+                : category === 'edge'  ? (costingPrices.edge[name] ?? null)
+                : null;
+    if (_oldP !== null) recordPriceChange(name, category, _oldP, price);
   }
   try {
     const now = new Date().toISOString();
@@ -18864,6 +18887,68 @@ function refreshPriceViews() {
   if (document.getElementById('materials-view').style.display !== 'none') renderMaterialsView();
 }
 
+function togglePriceHistory() {
+  priceHistoryVisible = !priceHistoryVisible;
+  const wrap = document.getElementById('price-history-wrap');
+  const btn  = document.getElementById('price-history-toggle-btn');
+  if (!wrap || !btn) return;
+  wrap.style.display = priceHistoryVisible ? 'block' : 'none';
+  btn.textContent = priceHistoryVisible ? 'HIDE HISTORY' : 'SHOW HISTORY';
+  if (priceHistoryVisible) renderPriceHistoryTable();
+}
+
+function renderPriceHistoryTable() {
+  const container = document.getElementById('price-history-table-wrap');
+  if (!container) return;
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('cutlist_price_history') || '[]'); } catch(e) {}
+  const rows = history.slice().reverse().slice(0, 50);
+  if (!rows.length) {
+    container.innerHTML = '<div style="padding:12px 0;font-size:11px;color:var(--text-muted);font-style:italic">No price changes recorded yet.</div>';
+    return;
+  }
+  const fmtDate = iso => {
+    const d = new Date(iso);
+    const day   = String(d.getDate()).padStart(2,'0');
+    const month = d.toLocaleString('en-ZA', { month: 'short' });
+    const year  = d.getFullYear();
+    const hh    = String(d.getHours()).padStart(2,'0');
+    const mm    = String(d.getMinutes()).padStart(2,'0');
+    return `${day} ${month} ${year} ${hh}:${mm}`;
+  };
+  const fmtR = n => `R ${n.toFixed(2)}`;
+  const header = `<div style="display:grid;grid-template-columns:140px 1fr 70px 90px 90px 90px;gap:0;padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--border)">
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">WHEN</span>
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME</span>
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">TYPE</span>
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-align:right">OLD</span>
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-align:right">NEW</span>
+    <span style="font-size:10px;font-weight:500;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-align:right">CHANGE</span>
+  </div>`;
+  const rowsHtml = rows.map((r, i) => {
+    const diff  = r.newPrice - r.oldPrice;
+    const up    = diff > 0;
+    const arrow = up ? '▲' : '▼';
+    const diffColor = up ? '#d4913a' : '#7ab0ff';
+    const diffStr   = (diff > 0 ? '+' : '') + `R ${Math.abs(diff).toFixed(2)}`;
+    const bg = i % 2 === 0 ? 'var(--bg2)' : 'transparent';
+    return `<div style="display:grid;grid-template-columns:140px 1fr 70px 90px 90px 90px;gap:0;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.04);background:${bg};align-items:center">
+      <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">${fmtDate(r.ts)}</span>
+      <span style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px">${escHtml(r.name)}</span>
+      <span style="font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-transform:uppercase">${escHtml(r.type)}</span>
+      <span style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-align:right">${fmtR(r.oldPrice)}</span>
+      <span style="font-size:11px;color:var(--text);font-family:'JetBrains Mono',monospace;text-align:right;font-weight:600">${fmtR(r.newPrice)}</span>
+      <span style="font-size:11px;color:${diffColor};font-family:'JetBrains Mono',monospace;text-align:right;white-space:nowrap">${diffStr} ${arrow}</span>
+    </div>`;
+  }).join('');
+  container.innerHTML = header + rowsHtml;
+}
+
+function clearPriceHistory() {
+  try { localStorage.removeItem('cutlist_price_history'); } catch(e) {}
+  renderPriceHistoryTable();
+}
+
 function renderPricesView() { withScrollLock(_renderPricesView); }
 function _renderPricesView() {
   const admin = canEditPrices();
@@ -19460,7 +19545,23 @@ function _renderPricesView() {
         </div>
       </div>
 
+      <div style="margin-top:28px">
+        <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;color:var(--amber-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span>Price History</span>
+          <button id="price-history-toggle-btn" class="pp-btn" onclick="togglePriceHistory()" style="font-size:10px;padding:3px 10px;letter-spacing:0.4px">${priceHistoryVisible ? 'HIDE HISTORY' : 'SHOW HISTORY'}</button>
+        </div>
+        <div id="price-history-wrap" style="display:${priceHistoryVisible ? 'block' : 'none'}">
+          <div style="border:1px solid var(--border);background:var(--bg2);overflow:hidden">
+            <div id="price-history-table-wrap"></div>
+          </div>
+          <div style="text-align:right;margin-top:6px">
+            <span onclick="clearPriceHistory()" style="font-size:10px;color:var(--text-muted);cursor:pointer;font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-decoration:underline;text-underline-offset:2px" title="Remove all recorded history">Clear history</span>
+          </div>
+        </div>
+      </div>
+
     </div>`;
+  if (priceHistoryVisible) renderPriceHistoryTable();
 }
 
 // ── Special Services ──────────────────────────────────────────────────────────
