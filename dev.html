@@ -4101,6 +4101,104 @@ body.user-light-theme .pp-vat-select {
   .pp-inv-main { padding: 8px 10px; gap: 6px; }
   .pp-inv-main .pp-input,
   .pp-inv-main .pp-select { height: 32px; font-size: 11px; padding: 5px 8px; }
+
+  /* P&L breakdown tables: wrap scroll container so 9-col table doesn't blow
+     out the viewport. The .pp-table-wrap already has overflow-x:auto but it
+     is rendered inside an inline template — ensure any bare .pp-table also
+     scrolls at this width. */
+  .pp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Section-head row: allow the sub-text to wrap on tablets */
+  .pp-section-head { flex-wrap: wrap; gap: 6px; }
+
+  /* Add-invoice strip: inputs already flex-wrap, tighten min-widths so they
+     can actually wrap before the strip blows out at ~600px. */
+  .pp-inv-add .pp-input,
+  .pp-inv-add .pp-select { min-width: 0; flex-basis: calc(50% - 4px); flex-shrink: 1; }
+}
+
+/* ── Phone-specific P&L + Quote + Costing fixes (≤480px) ───────────── */
+@media (max-width: 480px) {
+
+  /* P&L summary cards: 3-col inline grid → 1-col stack.
+     The grid is injected as an inline style; we override with a named class
+     that the JS template happens to not set, so we target the containing
+     .main div's direct child divs that carry the inline style. */
+  #pl-view [style*="grid-template-columns:repeat(3"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  /* Result banners: 2-col → 1-col */
+  #pl-view [style*="grid-template-columns:1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* P&L table-wraps: ensure horizontal scroll and min-width so columns don't
+     collapse to illegible widths. 520px fits 9 compact numeric columns. */
+  .pp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: calc(100vw - 12px); }
+  .pp-table-wrap .pp-table { min-width: 520px; }
+
+  /* P&L section-head Import PDF button: shrink label to fit narrow row */
+  .pp-section-head .pp-btn { padding: 0 10px; font-size: 10px; }
+
+  /* P&L Add Line strip: stack all inputs as full-width on phone */
+  .pp-inv-add {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px;
+  }
+  .pp-inv-add .pp-input,
+  .pp-inv-add .pp-select,
+  .pp-inv-add .pp-vat-select,
+  .pp-inv-add .pp-btn {
+    width: 100% !important;
+    flex-basis: auto !important;
+    min-width: 0 !important;
+  }
+  /* Hide the "R" label span inside the add strip — redundant on phone */
+  .pp-inv-add > span[style*="font-weight:500"] { display: none; }
+
+  /* P&L imported doc header row: allow it to wrap so the fixed-width inv-no
+     input and date span don't push the row past viewport */
+  .pp-inv-list [style*="display:flex"][style*="padding:7px 12px"] {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  /* Costing view results table: the cv-unit-card has overflow:hidden inline
+     which clips the table on narrow viewports. Override to scroll, and give
+     the table a min-width so columns don't collapse to single digits. */
+  .cv-unit-card { overflow-x: auto !important; }
+  .cv-results-table { min-width: 340px; }
+
+  /* Quote table: 4 columns fit narrow screens when the name cell wraps.
+     table-layout:fixed lets us control column widths and forces name to wrap
+     rather than stretching the table. The global overflow-wrap:anywhere on
+     td already handles unbroken strings; enforce it on the name cell. */
+  .qv-table { min-width: 0; table-layout: fixed; width: 100%; }
+  .qv-table .qv-unit-name { word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
+  .qv-table .qv-unit-price { width: 72px; font-size: 11px; }
+  .qv-table .qv-line-total { width: 80px; font-size: 12px; }
+  .qv-table .qv-qty { width: 28px; }
+
+  /* Labour section: stack the inline flex row */
+  #pl-view [style*="display:flex"][style*="align-items:center"][style*="gap:12px"][style*="flex-wrap:wrap"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* P&L notes textarea: full-width, normal box model */
+  #pl-notes { width: 100% !important; box-sizing: border-box; }
+
+  /* pp-card Real Profit inner flex: stack icon + content on very narrow */
+  .pp-card [style*="display:flex"][style*="gap:14px"] {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 </style>
 
