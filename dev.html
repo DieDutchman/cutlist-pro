@@ -26077,6 +26077,7 @@ function _renderPLView() {
           class="pp-input" style="flex:1;min-width:100px"
           oninput="plUpdateInvoice('${selJobId}','${inv.id}','supplier',this.value)"
           onblur="plInvoiceBlur('${selJobId}')">
+        ${inv.invoiceDate ? `<span style="font-size:11px;color:var(--text-muted);white-space:nowrap;font-family:'Barlow',sans-serif;flex-shrink:0">${inv.invoiceDate.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>` : ''}
         <select autocomplete="off" class="pp-select" style="width:150px"
           onchange="plUpdateInvoice('${selJobId}','${inv.id}','category',this.value)"
           onblur="plInvoiceBlur('${selJobId}')">
@@ -26619,6 +26620,7 @@ function _renderPLView() {
         ${selJob?.address? `<span style="color:var(--amber-dim)">·</span><span>${selJob.address}</span>` : ''}
       </div>` : ''}
       <button onclick="plRefresh()" class="pp-btn">↻ Refresh</button>
+      ${selJobId && (invs.length > 0 || snap.costingTotal > 0) ? `<button onclick="plExportXLSX('${selJobId}')" class="pp-btn is-amber" title="Export P&amp;L summary and invoice lines to Excel">📊 Export Excel</button>` : ''}
     </div>
 
     ${!selJobId ? `
@@ -26787,6 +26789,8 @@ function _renderPLView() {
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <input id="pl-new-supplier" type="text" placeholder="Supplier" class="pp-input" style="flex:1;min-width:110px"
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
+        <input id="pl-new-inv-date" type="text" placeholder="Date (e.g. 01 Jun 2026)" class="pp-input" style="flex:0 0 130px"
+          onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
         <select id="pl-new-cat" class="pp-select" style="width:150px"
           onchange="(function(s){const mw=document.getElementById('pl-new-mat-wrap');const ew=document.getElementById('pl-new-edge-wrap');if(mw)mw.style.display=s.value==='Boards'?'flex':'none';if(ew)ew.style.display=s.value==='Edging'?'flex':'none';})(this)">
           ${plInvoiceCategories().map(c=>`<option value="${c}">${c}</option>`).join('')}
@@ -26939,17 +26943,18 @@ function plRefresh() {
 
 function plAddInvoice(jobId) {
   if (!jobId) return;
-  const desc    = document.getElementById('pl-new-desc')?.value.trim()    || '';
-  const supplier= document.getElementById('pl-new-supplier')?.value.trim()|| '';
-  const cat     = document.getElementById('pl-new-cat')?.value             || 'Other';
-  const amount  = parseFloat(document.getElementById('pl-new-amount')?.value) || 0;
-  const mat     = cat === 'Boards' ? (document.getElementById('pl-new-mat')?.value  || '') : '';
-  const edgeKey = cat === 'Edging' ? (document.getElementById('pl-new-edge')?.value || '') : '';
-  const vatSel  = document.getElementById('pl-new-vat')?.value || 'incl';
+  const desc        = document.getElementById('pl-new-desc')?.value.trim()     || '';
+  const supplier    = document.getElementById('pl-new-supplier')?.value.trim() || '';
+  const invoiceDate = document.getElementById('pl-new-inv-date')?.value.trim() || '';
+  const cat         = document.getElementById('pl-new-cat')?.value              || 'Other';
+  const amount      = parseFloat(document.getElementById('pl-new-amount')?.value) || 0;
+  const mat         = cat === 'Boards' ? (document.getElementById('pl-new-mat')?.value  || '') : '';
+  const edgeKey     = cat === 'Edging' ? (document.getElementById('pl-new-edge')?.value || '') : '';
+  const vatSel      = document.getElementById('pl-new-vat')?.value || 'incl';
   const vatIncluded = vatSel !== 'excl';
   if (!desc && !amount) { document.getElementById('pl-new-desc')?.focus(); return; }
   if (!plData[jobId]) plData[jobId] = { invoices: [], notes: '' };
-  plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, category: cat, amount, mat, edgeKey, vatIncluded });
+  plData[jobId].invoices.push({ id: 'inv_'+Date.now(), desc, supplier, invoiceDate, category: cat, amount, mat, edgeKey, vatIncluded });
   plPersistJob(jobId);
   renderPLView();
   // Restore select after re-render
@@ -27012,6 +27017,215 @@ function plUpdateNotes(jobId, value) {
   plSave();
   if (plUpdateNotes._t) clearTimeout(plUpdateNotes._t);
   plUpdateNotes._t = setTimeout(() => plPersistJob(jobId), 1500);
+}
+
+// ── P&L Excel Export ──────────────────────────────────────
+async function plExportXLSX(jobId) {
+  if (!jobId) return;
+  if (typeof ExcelJS === 'undefined') { alert('ExcelJS library not loaded — cannot export.'); return; }
+
+  const pd   = plData[jobId] || { invoices: [], notes: '' };
+  const invs = pd.invoices || [];
+  const selJob = sbJobs.find(j => j.id === jobId);
+  const jobLabel = selJob ? ([selJob.client, selJob.house].filter(Boolean).join(' – ') || 'Untitled Job') : 'Untitled Job';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Re-derive the same snap + labourCost values that _renderPLView uses
+  const _selSnap = selJob?._state?.costingPriceSnapshot
+    || (jobId === currentJobId ? currentJobPriceSnapshot : null);
+  const _hasPriceSnapshot = !!(_selSnap && _selSnap.mat && Object.keys(_selSnap.mat).length > 0);
+
+  let snap = { costingTotal: 0, quoteGrand: 0, quoteMarkupAmt: 0, hardwareExpected: 0, labourExpected: 0 };
+  if (selJob && _hasPriceSnapshot) {
+    let _stateForCalc = selJob._state;
+    if (jobId === currentJobId && typeof getJobState === 'function') {
+      try { _stateForCalc = getJobState(); if (_selSnap) _stateForCalc.costingPriceSnapshot = _selSnap; } catch(e) {}
+    }
+    try { snap = plCalcFromState(_stateForCalc); } catch(e) {}
+  } else if (jobId === currentJobId) {
+    try {
+      const t = computeQuoteTotals();
+      const _lb = computeJobMatBreakdown();
+      snap = {
+        costingTotal: t.unitsTotal, unitsTotal: t.unitsTotal, quoteGrand: t.grand,
+        quoteMarkupAmt: t.unitsTotal * t.markup, topsTotal: t.topsTotal,
+        consult: t.consultTotal, diesel: t.dieselTotal, extras: t.extrasTotal,
+        labourExpected: t.labourTotal || 0, markup: t.markup,
+        hardwareExpected: t.hardwareExpected,
+        matBreakdown: _lb.matBreakdown, edgeBreakdown: _lb.edgeBreakdown,
+      };
+    } catch(e) {}
+  } else if (selJob && selJob._state) {
+    try { snap = plCalcFromState(selJob._state); } catch(e) {}
+  }
+
+  const _invInclVAT_ex = inv => {
+    const a = parseFloat(inv.amount) || 0;
+    return inv.vatIncluded === false ? a * 1.15 : a;
+  };
+
+  const _manualLabour    = parseFloat(pd.labourCost) || 0;
+  const _estimatedLabour = parseFloat(snap.labourExpected) || 0;
+  const labourCost       = _manualLabour > 0 ? _manualLabour : _estimatedLabour;
+
+  // Tally actual costs by category (excl VAT)
+  const boardsActualExcl   = invs.filter(i => i.category === 'Boards' || i.category === 'Edging').reduce((s,i) => s + _invInclVAT_ex(i) / 1.15, 0);
+  const hardwareActualExcl = invs.filter(i => i.category === 'Hardware').reduce((s,i) => s + _invInclVAT_ex(i) / 1.15, 0);
+  const otherActualExcl    = invs.filter(i => i.category !== 'Boards' && i.category !== 'Edging' && i.category !== 'Hardware').reduce((s,i) => s + _invInclVAT_ex(i) / 1.15, 0);
+  const totalActualExcl    = invs.reduce((s,i) => s + _invInclVAT_ex(i) / 1.15, 0) + labourCost;
+
+  const matsExpected       = snap.costingTotal || 0;
+  const hwExpected         = snap.hardwareExpected || 0;
+  const labourExpected     = _estimatedLabour;
+  const totalExpected      = matsExpected + hwExpected + labourExpected;
+
+  const quoteExclVAT       = snap.quoteGrand || 0;
+
+  // ── Build workbook ─────────────────────────────────────────
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CutList Pro';
+
+  const hex    = c => ({ argb: 'FF' + c });
+  const thin   = c => ({ style: 'thin',   color: hex(c || 'CCCCCC') });
+  const aBorder= c => ({ top: thin(c), bottom: thin(c), left: thin(c), right: thin(c) });
+  const setCell = (cell, val, { bold, italic, size, color, bg, align, numFmt } = {}) => {
+    cell.value = val;
+    cell.font  = { bold: !!bold, italic: !!italic, size: size || 11, color: hex(color || '111827'), name: 'Calibri' };
+    cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: hex(bg || '1E1E2E') };
+    cell.border = aBorder('444444');
+    if (align) cell.alignment = { horizontal: align };
+    if (numFmt) cell.numFmt = numFmt;
+  };
+
+  // ── Sheet 1: Summary ──────────────────────────────────────
+  const ws1 = wb.addWorksheet('Summary');
+  ws1.columns = [
+    { width: 30 }, { width: 18 }, { width: 18 }, { width: 18 },
+  ];
+
+  // Title rows
+  const r1 = ws1.addRow([jobLabel, '', '', '']);
+  ws1.mergeCells(`A${r1.number}:D${r1.number}`);
+  setCell(r1.getCell(1), jobLabel, { bold: true, size: 14, color: 'D4A843', bg: '13131F' });
+
+  const r2 = ws1.addRow(['Exported: ' + dateStr, '', '', '']);
+  ws1.mergeCells(`A${r2.number}:D${r2.number}`);
+  setCell(r2.getCell(1), 'Exported: ' + dateStr, { size: 10, color: '888888', bg: '13131F' });
+
+  ws1.addRow([]);
+
+  // Column header row
+  const rh = ws1.addRow(['', 'Expected', 'Actual', 'Variance']);
+  ['A','B','C','D'].forEach((col, i) => {
+    const c = rh.getCell(i + 1);
+    c.value = ['', 'Expected', 'Actual', 'Variance'][i];
+    setCell(c, c.value, { bold: true, size: 10, color: 'D4A843', bg: '2A2A3E', align: i > 0 ? 'right' : 'left' });
+  });
+
+  const addSummaryRow = (label, exp, act, isBold, isTotal) => {
+    const variance = (exp !== null && act !== null) ? (exp - act) : null;
+    const row = ws1.addRow([label, exp, act, variance]);
+    const bg  = isTotal ? '2A1A00' : '1A1A2A';
+    const textCol = isTotal ? 'D4A843' : 'CCCCCC';
+    setCell(row.getCell(1), label,    { bold: !!isBold, color: textCol, bg });
+    setCell(row.getCell(2), exp !== null ? exp : '', { bold: !!isBold, color: textCol, bg, align: 'right', numFmt: exp !== null ? '"R "#,##0.00' : undefined });
+    setCell(row.getCell(3), act !== null ? act : '', { bold: !!isBold, color: textCol, bg, align: 'right', numFmt: act !== null ? '"R "#,##0.00' : undefined });
+    if (variance !== null) {
+      const varColor = variance >= 0 ? '5DBA6E' : 'E05252';
+      setCell(row.getCell(4), variance, { bold: !!isBold, color: varColor, bg, align: 'right', numFmt: '"R "#,##0.00' });
+    } else {
+      setCell(row.getCell(4), '', { bg });
+    }
+    return row;
+  };
+
+  addSummaryRow('Materials & Edging',  matsExpected,   boardsActualExcl);
+  addSummaryRow('Hardware',            hwExpected,     hardwareActualExcl);
+  if (otherActualExcl > 0)
+    addSummaryRow('Other Costs',       null,           otherActualExcl);
+  addSummaryRow('Labour',              labourExpected, labourCost);
+  addSummaryRow('Total Cost',          totalExpected,  totalActualExcl,  true, true);
+
+  ws1.addRow([]);
+
+  // Quote value + profit rows
+  const rq = ws1.addRow(['Quote Value (excl. VAT)', quoteExclVAT, '', '']);
+  setCell(rq.getCell(1), 'Quote Value (excl. VAT)', { color: 'AAAAAA', bg: '1A1A2A' });
+  setCell(rq.getCell(2), quoteExclVAT, { color: 'CCCCCC', bg: '1A1A2A', align: 'right', numFmt: '"R "#,##0.00' });
+  setCell(rq.getCell(3), '', { bg: '1A1A2A' });
+  setCell(rq.getCell(4), '', { bg: '1A1A2A' });
+
+  const expProfit = quoteExclVAT - totalExpected;
+  const actProfit = quoteExclVAT - totalActualExcl;
+  addSummaryRow('Profit',  expProfit, actProfit, true, true);
+
+  const expMargin = quoteExclVAT > 0 ? (expProfit / quoteExclVAT) * 100 : 0;
+  const actMargin = quoteExclVAT > 0 ? (actProfit / quoteExclVAT) * 100 : 0;
+  const rMar = ws1.addRow(['Margin %', expMargin, actMargin, '']);
+  const marBg = '1A1A2A';
+  setCell(rMar.getCell(1), 'Margin %',  { bold: true, color: 'D4A843', bg: marBg });
+  setCell(rMar.getCell(2), expMargin,   { bold: true, color: expMargin >= 0 ? '5DBA6E' : 'E05252', bg: marBg, align: 'right', numFmt: '0.0"%"' });
+  setCell(rMar.getCell(3), actMargin,   { bold: true, color: actMargin >= 0 ? '5DBA6E' : 'E05252', bg: marBg, align: 'right', numFmt: '0.0"%"' });
+  setCell(rMar.getCell(4), '',          { bg: marBg });
+
+  // ── Sheet 2: Invoice Lines ────────────────────────────────
+  const ws2 = wb.addWorksheet('Invoice Lines');
+  ws2.columns = [
+    { width: 16 }, { width: 34 }, { width: 20 }, { width: 16 },
+    { width: 8  }, { width: 14 }, { width: 14 }, { width: 10 }, { width: 14 },
+  ];
+
+  const hdrs = ['Date', 'Description', 'Supplier', 'Category', 'Qty', 'Unit Price', 'Amount', 'VAT', 'Excl VAT'];
+  const rhdr = ws2.addRow(hdrs);
+  hdrs.forEach((h, i) => {
+    setCell(rhdr.getCell(i + 1), h, {
+      bold: true, size: 10, color: 'D4A843', bg: '2A2A3E',
+      align: i >= 4 ? 'right' : 'left',
+    });
+  });
+
+  invs.forEach(inv => {
+    const inclAmt  = _invInclVAT_ex(inv);
+    const exclAmt  = inclAmt / 1.15;
+    const vatLabel = inv.vatIncluded === false ? 'Excl' : 'Incl';
+    const qty      = parseFloat(inv.qty) || '';
+    const up       = parseFloat(inv.unit_price) || '';
+    const row = ws2.addRow([
+      inv.invoiceDate || '',
+      inv.desc        || '',
+      inv.supplier    || '',
+      inv.category    || '',
+      qty,
+      up,
+      parseFloat(inv.amount) || 0,
+      vatLabel,
+      exclAmt,
+    ]);
+    const bg = '1A1A2A';
+    setCell(row.getCell(1), inv.invoiceDate || '',       { color: '999999', bg });
+    setCell(row.getCell(2), inv.desc        || '',       { color: 'CCCCCC', bg });
+    setCell(row.getCell(3), inv.supplier    || '',       { color: 'AAAAAA', bg });
+    setCell(row.getCell(4), inv.category    || '',       { color: 'AAAAAA', bg });
+    setCell(row.getCell(5), qty,  { color: 'CCCCCC', bg, align: 'right' });
+    setCell(row.getCell(6), up !== '' ? up : '',  { color: 'CCCCCC', bg, align: 'right', numFmt: up !== '' ? '"R "#,##0.00' : undefined });
+    setCell(row.getCell(7), parseFloat(inv.amount) || 0, { color: 'CCCCCC', bg, align: 'right', numFmt: '"R "#,##0.00' });
+    setCell(row.getCell(8), vatLabel, { color: '888888', bg, align: 'center' });
+    setCell(row.getCell(9), exclAmt, { bold: true, color: '5DBA6E', bg, align: 'right', numFmt: '"R "#,##0.00' });
+  });
+
+  // ── Trigger download ──────────────────────────────────────
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const slug = jobLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const ds   = now.toISOString().slice(0, 10);
+  a.href     = url;
+  a.download = `PL_${slug}_${ds}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 }
 
 // ═══════════════════════════════════════════════════════════
