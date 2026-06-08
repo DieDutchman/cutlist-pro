@@ -11564,10 +11564,26 @@ function _renderQuoteView() {
         <span class="label">Grand Total <span style="font-size:10px;color:var(--amber-dim)">(incl. VAT)</span></span>
         <span class="val" id="qv-val-grand-vat">${fmt(withMarkup * 1.15)}</span>
       </div>
+      <div class="qv-total-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+        <span class="label" style="font-size:12px;color:var(--text-muted)">Deposit Received</span>
+        <span class="val" style="font-size:12px">
+          <span style="color:var(--text-muted);margin-right:2px">R</span><input
+            type="number" min="0" step="100"
+            id="qv-deposit-input"
+            value="${currentJobDeposit || 0}"
+            style="width:90px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:3px;color:var(--text);font-size:12px;padding:2px 5px;text-align:right;font-family:inherit"
+            oninput="setDeposit(parseFloat(this.value)||0)">
+        </span>
+      </div>
+      <div class="qv-total-row" style="padding-bottom:4px">
+        <span class="label" style="font-size:12px;color:var(--text-muted)">Outstanding Balance</span>
+        <span class="val" id="qv-val-outstanding" style="font-size:13px;font-weight:600;${(withMarkup * 1.15 - (currentJobDeposit || 0)) > 0 ? 'color:var(--amber)' : 'color:var(--text-muted)'}">${fmt(Math.max(0, withMarkup * 1.15 - (currentJobDeposit || 0)))}</span>
+      </div>
     </div>
 
     <div style="margin-top:22px;display:flex;flex-direction:column;gap:10px">
       <button class="btn btn-excel" style="width:100%;height:42px;border-radius:4px;font-size:13px;letter-spacing:2px;box-shadow:0 3px 10px rgba(29,111,66,0.3)" onclick="downloadQuoteXLSX()">⬇ Download Quote .xlsx</button>
+      <button class="pp-btn" style="width:100%;height:38px;background:rgba(212,145,58,0.12);border-color:var(--amber);color:var(--amber)" onclick="printQuotePDF()">🖨 Print / PDF</button>
       <button class="pp-btn" style="width:100%;height:36px" onclick="switchToUnits()">← Back to Units</button>
     </div>`;
 
@@ -12295,6 +12311,13 @@ function refreshQuoteTotals() {
   set('qv-val-grand',     fmt(t.grand));
   set('qv-val-vat',       fmt(t.grand * 0.15));
   set('qv-val-grand-vat', fmt(t.grand * 1.15));
+  // Deposit / outstanding balance — keep in sync with live totals
+  const _outstanding = Math.max(0, t.grand * 1.15 - (currentJobDeposit || 0));
+  const _outEl = document.getElementById('qv-val-outstanding');
+  if (_outEl) {
+    _outEl.textContent = fmt(_outstanding);
+    _outEl.style.color = _outstanding > 0 ? 'var(--amber)' : 'var(--text-muted)';
+  }
   const td = document.getElementById('qv-tops-total');
   if (td) td.textContent = t.topsTotal > 0 ? fmt(t.topsTotal) : '—';
   // Update per-unit labour line totals if any are present
@@ -12310,6 +12333,48 @@ function refreshQuoteTotals() {
       el.textContent = fmt(hrs * uQty * rate);
     });
   }
+}
+
+function setDeposit(value) {
+  currentJobDeposit = isFinite(value) && value >= 0 ? value : 0;
+  // Sync the input field in case it diverged
+  const inp = document.getElementById('qv-deposit-input');
+  if (inp && parseFloat(inp.value) !== currentJobDeposit) inp.value = currentJobDeposit;
+  // Refresh outstanding balance display
+  refreshQuoteTotals();
+  scheduleAutoSave();
+}
+
+function printQuotePDF() {
+  const quoteEl = document.getElementById('quote-price-view');
+  if (!quoteEl) return;
+  // Grab just the inner layout so the boardInfoBar and totals sidebar travel along
+  const win = window.open('', '_blank', 'width=960,height=740');
+  if (!win) { alert('Pop-up blocked — please allow pop-ups for this site and try again.'); return; }
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="utf-8">
+    <title>Quote</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; background: #fff; margin: 18mm 20mm; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border-bottom: 1px solid #ddd; padding: 5px 8px; text-align: left; }
+      th { font-weight: 600; background: #f5f5f5; }
+      .qv-total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11pt; }
+      .qv-total-row.grand { font-weight: 700; font-size: 12pt; border-top: 2px solid #333; padding-top: 6px; margin-top: 4px; }
+      .qv-layout { display: flex; gap: 24px; }
+      .qv-main { flex: 1; }
+      .qv-sidebar { width: 240px; flex-shrink: 0; }
+      .qv-card-title { font-weight: 700; font-size: 12pt; margin-bottom: 8px; }
+      .qv-total-block { margin-top: 10px; }
+      /* hide interactive controls in print */
+      input[type=range], input[type=number], button { display: none !important; }
+      @media print { @page { margin: 15mm; } }
+    </style>
+  </head><body>${quoteEl.innerHTML}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
 function switchToUnits() {
@@ -12774,6 +12839,7 @@ let sbToken  = null;   // JWT access token
 let sbJobs   = [];     // list of user's jobs from DB
 let currentJobId = null;  // UUID of current job in DB
 let currentJobStatus = 'draft';
+let currentJobDeposit = 0;  // deposit received against current job's quote
 // Set true if applyState() threw partway through restoring a job. While this
 // is true, saveJobToCloud() will refuse to overwrite the server row, because
 // the in-memory state is incomplete and a save would clobber good fields
@@ -13785,6 +13851,7 @@ function getJobState() {
     panelSpecialServices: {...panelSpecialServices},
     activeSupplierRow: activeSupplierRow ? { id: activeSupplierRow.id || null, name: activeSupplierRow.name } : null,
     jobStatus: currentJobStatus,
+    deposit: currentJobDeposit || 0,
     // Per-job P&L (actual cost lines + labour + notes) — must travel with the
     // job so opening it in another browser shows the same reconciliation data.
     // Persisted inside jobs.state in Supabase; localStorage is a cache only.
@@ -13920,6 +13987,7 @@ async function newJob() {
   document.getElementById('job-select').value = '';
   document.getElementById('job-delete-btn').style.display = 'none';
   currentJobStatus = 'draft';
+  currentJobDeposit = 0;
   // Starting fresh — clear any latched restore-failure flag from a prior load
   _jobRestoreFailed = false;
   // Clear any historical price snapshot from the previous job
@@ -20987,6 +21055,7 @@ function _applyStateInner(state) {
     }
   }
   currentJobStatus = state.jobStatus || 'draft';
+  currentJobDeposit = state.deposit || 0;
   _renderJobStatusBadge();
   // ── Restore per-job P&L data (actual costs, labour, notes) ──────────────
   // Server-side jobs.state.plData is the source of truth; merge into local
