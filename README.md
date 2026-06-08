@@ -208,7 +208,16 @@ This app is a single `.html` file with no dependencies to install.
 
 ## Screenshots
 
-> *(Add screenshots of the Quote view, Cutlist table, Costing breakdown, and Import preview here)*
+**Live app:** [diedutchman.github.io/cutlist-pro](https://diedutchman.github.io/cutlist-pro/)
+
+Key views to explore:
+- **Rooms tab** — room and unit selection with quantities
+- **Cutlist tab** — generated parts table grouped by material, with Excel export
+- **Quote tab** — full client-facing quote with hardware, bases, skirting, and VAT
+- **Costing tab** — per-unit material cost breakdown and margin view
+- **P&L tab** — expected vs actual cost tracking with PDF invoice import
+- **Sheet Optimizer tab** — visual bin-packing of all cut parts onto full sheets
+- **Import tab** — AI-assisted cutlist import from any Excel/CSV format
 
 ---
 
