@@ -1951,6 +1951,18 @@
   .qv-tops-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .qv-tops-label { font-size: 12px; color: var(--text-muted); }
 
+  /* Quote scenario strip */
+  .qv-scenario-strip { display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .qv-scen-tab { background:var(--bg2); border:1px solid var(--border); color:var(--text-muted); font-family:'Barlow',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.5px; padding:5px 14px; border-radius:3px; cursor:pointer; transition:background 0.15s,color 0.15s,border-color 0.15s; }
+  .qv-scen-tab:hover { background:var(--bg3); color:var(--text); }
+  .qv-scen-tab.active { background:rgba(212,145,58,0.15); border-color:var(--amber); color:var(--amber); }
+  .qv-scen-add { background:transparent; border:1px dashed var(--border); color:var(--text-muted); font-family:'Barlow',sans-serif; font-size:12px; padding:5px 12px; border-radius:3px; cursor:pointer; transition:background 0.15s,color 0.15s; }
+  .qv-scen-add:hover { background:var(--bg2); color:var(--text); border-color:var(--text-muted); }
+  .qv-scen-icon-btn { background:transparent; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; padding:4px 7px; border-radius:3px; line-height:1; transition:color 0.15s,background 0.15s; }
+  .qv-scen-icon-btn:hover { background:var(--bg2); }
+  .qv-scen-rename:hover { color:var(--amber); }
+  .qv-scen-del:hover { color:#e05252; }
+
   /* ─── BUILDER ─── */
   .bldr-layout {
     display: grid;
@@ -7487,6 +7499,8 @@ async function clearAll() {
   quoteState.markup     = 0.40;
   quoteState.hingeType  = 'soft';
   quoteState.runnerType = 'soft';
+  quoteState.scenarios      = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
   saveQuoteState();
 
   Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
@@ -10958,6 +10972,12 @@ let quoteState = {
   // labourConfig.mode === 'per-unit'. Default 0 for any unit not present.
   unitLabourHours: {},
 };
+var SCENARIO_FIELDS = [
+  'tops','extras','markup',
+  'consultFee','consultFeeAmt','dieselFee','dieselFeeAmt','deliveryFee','deliveryFeeAmt',
+  'boardSurchargeEnabled','topsOpen','feesOpen'
+];
+
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
   if (qs.markup !== undefined)     quoteState.markup     = qs.markup;
@@ -10976,10 +10996,86 @@ try {
   if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
   if (qs.hwBreakdownOpen && typeof qs.hwBreakdownOpen === 'object') quoteState.hwBreakdownOpen = qs.hwBreakdownOpen;
   if (qs.unitLabourHours && typeof qs.unitLabourHours === 'object') quoteState.unitLabourHours = qs.unitLabourHours;
+  if (Array.isArray(qs.scenarios))     quoteState.scenarios      = qs.scenarios;
+  if (qs.activeScenario !== undefined) quoteState.activeScenario = qs.activeScenario;
 } catch(e) {}
 
+// Ensure scenarios exist and apply the active one to the working fields.
+// On a brand-new / migrated save the individual fields are already correct;
+// on a saved-with-scenarios save we re-apply the active snapshot on top.
+;(function _initScenarios() {
+  if (!quoteState.scenarios || !quoteState.scenarios.length) {
+    const sc = { name: 'Option A' };
+    SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+    quoteState.scenarios = [sc];
+    quoteState.activeScenario = 0;
+  } else {
+    const active = quoteState.scenarios[quoteState.activeScenario || 0];
+    if (active) SCENARIO_FIELDS.forEach(k => {
+      if (active[k] !== undefined) quoteState[k] = JSON.parse(JSON.stringify(active[k]));
+    });
+  }
+})();
+
 function saveQuoteState() {
+  // Sync working fields into the active scenario before persisting
+  if (quoteState.scenarios && quoteState.scenarios.length) {
+    const sc = quoteState.scenarios[quoteState.activeScenario || 0];
+    if (sc) SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+  }
   try { localStorage.setItem('cutlist_quotestate', JSON.stringify(quoteState)); } catch(e) {}
+}
+
+// ── Quote scenario helpers ──────────────────────────────────────────────────
+function _captureScenario(idx) {
+  const sc = quoteState.scenarios?.[idx];
+  if (!sc) return;
+  SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+}
+function _applyScenario(idx) {
+  const sc = quoteState.scenarios?.[idx];
+  if (!sc) return;
+  SCENARIO_FIELDS.forEach(k => { if (sc[k] !== undefined) quoteState[k] = JSON.parse(JSON.stringify(sc[k])); });
+}
+function switchScenario(idx) {
+  if (!quoteState.scenarios || idx === (quoteState.activeScenario || 0)) return;
+  _captureScenario(quoteState.activeScenario || 0);
+  quoteState.activeScenario = idx;
+  _applyScenario(idx);
+  saveQuoteState();
+  renderQuoteView();
+}
+function addScenario() {
+  if (!quoteState.scenarios) return;
+  _captureScenario(quoteState.activeScenario || 0);
+  const clone = JSON.parse(JSON.stringify(quoteState.scenarios[quoteState.activeScenario || 0]));
+  const used = new Set(quoteState.scenarios.map(s => s.name));
+  let letter = quoteState.scenarios.length;
+  let name;
+  do { name = 'Option ' + String.fromCharCode(65 + letter++); } while (used.has(name) && letter < 90);
+  clone.name = name;
+  quoteState.scenarios.push(clone);
+  quoteState.activeScenario = quoteState.scenarios.length - 1;
+  _applyScenario(quoteState.activeScenario);
+  saveQuoteState();
+  renderQuoteView();
+}
+function deleteScenario(idx) {
+  if (!quoteState.scenarios || quoteState.scenarios.length <= 1) return;
+  quoteState.scenarios.splice(idx, 1);
+  quoteState.activeScenario = Math.min(quoteState.activeScenario || 0, quoteState.scenarios.length - 1);
+  _applyScenario(quoteState.activeScenario);
+  saveQuoteState();
+  renderQuoteView();
+}
+function renameScenario(idx) {
+  if (!quoteState.scenarios) return;
+  const cur = quoteState.scenarios[idx]?.name || '';
+  const name = prompt('Rename scenario:', cur);
+  if (!name || !name.trim()) return;
+  quoteState.scenarios[idx].name = name.trim();
+  saveQuoteState();
+  renderQuoteView();
 }
 
 function fmt(n) { return 'R ' + Math.round(n).toLocaleString('en-ZA'); }
@@ -10988,6 +11084,23 @@ function renderQuoteView() { withScrollLock(_renderQuoteView); }
 function _renderQuoteView() {
   const allUnits = getEffectiveUnits();
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
+
+  // Safety net: ensure scenarios are initialised
+  if (!quoteState.scenarios || !quoteState.scenarios.length) {
+    const sc = { name: 'Option A' };
+    SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+    quoteState.scenarios = [sc];
+    quoteState.activeScenario = 0;
+  }
+  const _activeIdx = quoteState.activeScenario || 0;
+  let scenStrip = `<div class="qv-scenario-strip">`;
+  quoteState.scenarios.forEach((sc, i) => {
+    scenStrip += `<button class="qv-scen-tab${i === _activeIdx ? ' active' : ''}" id="qv-scen-tab-${i}">${sc.name}</button>`;
+  });
+  scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario">＋ Add option</button>`;
+  scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option">✎</button>`;
+  if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option">✕</button>`;
+  scenStrip += `</div>`;
 
   // Build section data — include sections that have selected units OR enabled addons.
   // Use buildRoomList so each room's matchIds include both its own id AND its
@@ -11599,7 +11712,7 @@ function _renderQuoteView() {
       <button class="pp-btn" style="width:100%;height:36px" onclick="switchToUnits()">← Back to Units</button>
     </div>`;
 
-  document.getElementById('quote-price-view').innerHTML = boardInfoBar +
+  document.getElementById('quote-price-view').innerHTML = scenStrip + boardInfoBar +
     `<div class="qv-layout">
       <div class="qv-main">${mainHtml}</div>
       <div class="qv-sidebar">${sideHtml}</div>
@@ -11610,6 +11723,16 @@ function _renderQuoteView() {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', fn);
   };
+
+  // Wire scenario strip
+  (quoteState.scenarios || []).forEach((_, i) => _wireToggle(`qv-scen-tab-${i}`, () => switchScenario(i)));
+  _wireToggle('qv-scen-add',    addScenario);
+  _wireToggle('qv-scen-rename', () => renameScenario(quoteState.activeScenario || 0));
+  _wireToggle('qv-scen-del', () => {
+    const name = quoteState.scenarios?.[quoteState.activeScenario || 0]?.name || 'this option';
+    if (confirm(`Remove "${name}"? This cannot be undone.`)) deleteScenario(quoteState.activeScenario || 0);
+  });
+
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
 
@@ -14089,6 +14212,8 @@ async function newJob() {
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
   quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
   quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+  quoteState.scenarios = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
   // Clear plant-on panels, fillers, spacers — reset to blank defaults.
   // Iterate Object.keys(bedroomAddons) FIRST so any leftover user-room ids
   // (ur_xxx) from the previous job are wiped — getAddonSections() alone
@@ -14175,6 +14300,8 @@ async function deleteCurrentJob() {
     quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
     quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
     quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+    quoteState.scenarios = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+    quoteState.activeScenario = 0;
     archivedUnitIds.clear();
     const _addonResetKeys = new Set([...Object.keys(bedroomAddons), ...getAddonSections()]);
     _addonResetKeys.forEach(sec => {
@@ -21046,6 +21173,8 @@ function _applyStateInner(state) {
   quoteState.consultFee   = false; quoteState.consultFeeAmt = 500;
   quoteState.dieselFee    = false; quoteState.dieselFeeAmt  = 1800;
   quoteState.deliveryFee  = false; quoteState.deliveryFeeAmt = 0;
+  quoteState.scenarios    = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
 
   // ── Now apply the saved job state ─────────────────────────────────────────
   if (state.quantities)     Object.assign(quantities,     state.quantities);
@@ -21058,7 +21187,16 @@ function _applyStateInner(state) {
   if (state.sectionHardware) Object.assign(sectionHardware, state.sectionHardware);
   else if (state.unitHardware) Object.assign(sectionHardware, state.unitHardware);
   saveSectionHardware();
-  if (state.quoteState)     Object.assign(quoteState,     state.quoteState);
+  if (state.quoteState) {
+    Object.assign(quoteState, state.quoteState);
+    // Migrate saved states from before scenarios were added
+    if (!quoteState.scenarios || !quoteState.scenarios.length) {
+      const sc = { name: 'Option A' };
+      SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+      quoteState.scenarios = [sc];
+      quoteState.activeScenario = 0;
+    }
+  }
   if (state.bedroomAddons) {
     // Iterate every section present in saved state (covers ADDON_SECTIONS *and*
     // user rooms with `ur_xxx` ids — those weren't being restored before).
