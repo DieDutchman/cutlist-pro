@@ -11314,7 +11314,7 @@ function _renderQuoteView() {
   ).join('');
 
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()" id="qv-head-tops">
+    id="qv-head-tops">
     <span>Tops ${topsTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(topsTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.topsOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -11391,7 +11391,7 @@ function _renderQuoteView() {
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()" id="qv-head-fees">
+    id="qv-head-fees">
     <span>Fees ${feesTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(feesTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.feesOpen?'90':'0'}deg)">▶</span>
   </div>
