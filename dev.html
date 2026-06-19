@@ -11337,10 +11337,10 @@ function _renderQuoteView() {
       </div>
     </div>
     ${topsExcl > 0 ? `<div style="font-size:11px;color:var(--text-muted);padding-bottom:12px;line-height:2;font-family:'JetBrains Mono',monospace">
-      <span style="margin-right:20px">Excl. VAT: ${fmt(topsExcl)}</span>
+      <span style="margin-right:20px">Material: ${fmt(topsExcl)}</span>
       <span style="margin-right:20px">Delivery: ${fmt(topsDelivery)}</span>
-      <span style="margin-right:20px">VAT (15%): ${fmt(topsVAT)}</span>
-      <span>Handling (10%): ${fmt(topsHandling)}</span>
+      <span style="margin-right:20px">Handling (10%): ${fmt(topsHandling)}</span>
+      <span style="opacity:0.6">VAT added in Grand Total</span>
     </div>` : ''}` : ''}`;
 
   // ── Hardware summary — computed from all selected units ──────────────────
@@ -11521,23 +11521,19 @@ function _renderQuoteView() {
       </div>
       ${topsTotal > 0 ? `
       <div class="qv-total-row">
-        <span class="label">Tops (excl. VAT)</span>
-        <span class="val">${fmt(topsExcl)}</span>
+        <span class="label" style="padding-left:12px;font-size:11px">Material</span>
+        <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsExcl)}</span>
       </div>
       <div class="qv-total-row">
         <span class="label" style="padding-left:12px;font-size:11px">+ Delivery</span>
         <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsDelivery)}</span>
       </div>
       <div class="qv-total-row">
-        <span class="label" style="padding-left:12px;font-size:11px">+ VAT 15%</span>
-        <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsVAT)}</span>
-      </div>
-      <div class="qv-total-row">
         <span class="label" style="padding-left:12px;font-size:11px">+ Handling 10%</span>
         <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsHandling)}</span>
       </div>
       <div class="qv-total-row">
-        <span class="label">Tops Total</span>
+        <span class="label">Tops Total <span style="font-size:10px;color:var(--text-muted)">(excl. VAT)</span></span>
         <span class="val" id="qv-val-tops">${fmt(topsTotal)}</span>
       </div>` : ''}
       ${consultTotal > 0 ? `<div class="qv-total-row">
