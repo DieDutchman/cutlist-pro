@@ -4351,11 +4351,11 @@ body.user-light-theme .pp-vat-select {
             onblur="this.style.borderColor=''"
             oninput="saveJobDetails(); clientPickerShow(); refreshJobDetailsIndicator();"
             onkeydown="clientPickerKey(event)">
-          <button id="client-clear-btn" type="button" onclick="clientClear()" title="Clear linked client"
+          <button id="client-clear-btn" type="button" onclick="clientClear()" title="Clear linked client" aria-label="Clear linked client"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✕</button>
-          <button id="client-edit-btn" type="button" onclick="clientEditOpen()" title="Edit client details"
+          <button id="client-edit-btn" type="button" onclick="clientEditOpen()" title="Edit client details" aria-label="Edit client details"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✏</button>
-          <button id="client-history-btn" type="button" onclick="clientHistoryOpen()" title="Show all jobs for this client"
+          <button id="client-history-btn" type="button" onclick="clientHistoryOpen()" title="Show all jobs for this client" aria-label="Show all jobs for this client"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">🕐</button>
           <div id="client-picker-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);width:240px;max-height:240px;overflow-y:auto;z-index:9000;box-shadow:0 4px 12px rgba(0,0,0,0.4);font-family:'Barlow',sans-serif"></div>
         </div>
@@ -4418,7 +4418,7 @@ body.user-light-theme .pp-vat-select {
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <!-- Account / utility cluster: theme, users, feedback, sign-out -->
   <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-    <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme"
+    <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme" aria-label="Switch between light and dark theme"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:12px;cursor:pointer;line-height:1">
       🌙
     </button>
@@ -4445,7 +4445,7 @@ body.user-light-theme .pp-vat-select {
     <div style="overflow:hidden;flex:1;position:relative;height:100%">
       <div id="ticker-track" style="display:flex;align-items:center;height:100%;position:absolute;white-space:nowrap;will-change:transform"></div>
     </div>
-    <button onclick="document.getElementById('price-ticker').style.display='none'" title="Dismiss"
+    <button onclick="document.getElementById('price-ticker').style.display='none'" title="Dismiss" aria-label="Dismiss price ticker"
       style="flex-shrink:0;background:none;border:none;color:var(--amber-dim);padding:0 8px;cursor:pointer;font-size:14px;height:100%">×</button>
   </div>
 </div>
@@ -7134,8 +7134,8 @@ function _renderPanel() {
       <button onclick="openTemplateBrowser()" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Pick a standard cabinet from the built-in library">📋 COPY FROM TEMPLATE</button>
       <button onclick="openImportUnitModal()" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Reuse a unit from a previous job">⇪ IMPORT UNIT</button>
       <button onclick="openNewUnitModal()" style="font-weight:500;background:var(--amber);color:#111;border:none;padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Build a custom unit from scratch">+ NEW UNIT</button>
-      <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room">✏</button>
-      <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room">🗑</button>
+      <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room" aria-label="Rename room">✏</button>
+      <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room" aria-label="Delete room">🗑</button>
     </div>`;
     if (units.length === 0) {
       html += `<div style="padding:40px 0;text-align:center;color:var(--text-muted);border:2px dashed var(--border);border-radius:3px;margin:12px 0">
@@ -7205,7 +7205,7 @@ function _renderPanel() {
     const qty = quantities[u.id] || 0;
     const hasImg = !!unitImages[u.id];
     const _imgTitle = hasImg ? 'View uploaded diagram' : 'View unit schematic (auto-generated)';
-    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
+    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" aria-label="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
     const noParts = !u.parts || u.parts.length === 0;
     const nameStyle = noParts ? 'color:#e05252' : '';
     const noPartsTag = noParts ? `<span class="unit-noparts" title="No parts defined — will be skipped in cutlist">⚠ No Parts</span>` : '';
@@ -7275,7 +7275,7 @@ function _renderPanel() {
     const isExpanded = expandedUnits.has(u.id);
     const hasParts   = u.parts && u.parts.length > 0;
     const expandBtn  = hasParts
-      ? `<button class="unit-expand${isExpanded ? ' is-open' : ''}" onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}">▶</button>`
+      ? `<button class="unit-expand${isExpanded ? ' is-open' : ''}" onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}" aria-label="${isExpanded ? 'Hide parts' : 'Show parts'}">▶</button>`
       : '';
 
     // Parts expand row
@@ -7378,7 +7378,7 @@ function _renderPanel() {
                 ↩ RESTORE
               </button>
               <button onclick="deleteUserUnit('${u.id}')"
-                style="background:none;border:none;color:#b05050;padding:4px 8px;font-size:12px;cursor:pointer" title="Delete permanently">×</button>
+                style="background:none;border:none;color:#b05050;padding:4px 8px;font-size:12px;cursor:pointer" title="Delete permanently" aria-label="Delete permanently">×</button>
             </div>`).join('')}
         </div>
       </div>`;
@@ -9056,7 +9056,7 @@ function buildPartRow(p, i) {
     <td><select autocomplete="off" class="editor-mat-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
     <td><select autocomplete="off" class="editor-mat-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
-    <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part">×</button></td>
+    <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part" aria-label="Remove part">×</button></td>
   </tr>`;
 }
 
@@ -9590,7 +9590,7 @@ function buildPlantOnCard(secId) {
         <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">PANEL ${i+1}</span>
         ${po.items.length > 1
           ? `<button onclick="bedroomAddons['${secId}'].plantOn.items.splice(${i},1);${save}"
-               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove">×</button>`
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove panel">×</button>`
           : ''}
       </div>
       <div class="addon-row">
@@ -9690,7 +9690,7 @@ function buildSpacersCard(secId) {
         <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">SPACER ${i+1}</span>
         ${sp.items.length > 1
           ? `<button onclick="bedroomAddons['${secId}'].spacers.items.splice(${i},1);${save}"
-               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove">×</button>`
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove spacer">×</button>`
           : ''}
       </div>
       <div class="addon-row">
@@ -11097,9 +11097,9 @@ function _renderQuoteView() {
   quoteState.scenarios.forEach((sc, i) => {
     scenStrip += `<button class="qv-scen-tab${i === _activeIdx ? ' active' : ''}" id="qv-scen-tab-${i}">${sc.name}</button>`;
   });
-  scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario">＋ Add option</button>`;
-  scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option">✎</button>`;
-  if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option">✕</button>`;
+  scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario" aria-label="Clone this option as a new scenario">＋ Add option</button>`;
+  scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
+  if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option" aria-label="Remove this option">✕</button>`;
   scenStrip += `</div>`;
 
   // Build section data — include sections that have selected units OR enabled addons.
@@ -22989,14 +22989,14 @@ function _renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center">
-        <button onclick="movePanelPart('${p.id}',-1)" title="Move up"
+        <button onclick="movePanelPart('${p.id}',-1)" title="Move up" aria-label="Move up"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===0?'opacity:0.25;pointer-events:none':''}">▲</button>
-        <button onclick="movePanelPart('${p.id}',1)" title="Move down"
+        <button onclick="movePanelPart('${p.id}',1)" title="Move down" aria-label="Move down"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===_pLen-1?'opacity:0.25;pointer-events:none':''}">▼</button>
-        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
-        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
-        <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
+        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
+        <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
     ${(panelSpecialServices[p.id]||[]).length > 0 ? `
@@ -26510,7 +26510,7 @@ function _renderPLView() {
           <option value="incl" ${inv.vatIncluded !== false ? 'selected' : ''}>Incl VAT</option>
           <option value="excl" ${inv.vatIncluded === false ? 'selected' : ''}>Excl VAT</option>
         </select>
-        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line">×</button>
+        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line" aria-label="Remove line">×</button>
       </div>
       ${hasQtyDetail ? `<div class="pp-inv-detail">
         <span style="color:var(--amber-dim);letter-spacing:1.5px">⊳</span>
@@ -26561,7 +26561,7 @@ function _renderPLView() {
     const docTotal    = doc.total > 0 ? _fmtDocR(doc.total) : (docLines.length > 0 ? _fmtDocR(docLines.reduce((s,l) => s + _invInclVAT(l), 0)) : '—');
     invBodyHtml += `
     <div style="margin-bottom:2px">
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border-left:4px solid var(--amber);cursor:pointer;user-select:none"
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;user-select:none"
         onclick="plDocCollapsed['${doc.docId}']=!plDocCollapsed['${doc.docId}'];(function(){const v=document.getElementById('pl-view');if(v){v._selectedJobId='${selJobId}';renderPLView();}})()">
         <span style="font-size:13px;color:var(--amber);width:14px;text-align:center;flex-shrink:0">${isCollapsed ? '▶' : '▼'}</span>
         <input type="text" value="${(doc.invoiceNo||'').replace(/"/g,'&quot;')}"
@@ -26581,9 +26581,9 @@ function _renderPLView() {
         <span style="flex:0 0 auto;font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;white-space:nowrap">${doc.invoiceDate || ''}</span>
         <span style="flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);white-space:nowrap">${docTotal}</span>
         <button onclick="event.stopPropagation();plRemoveImportedDoc('${selJobId}','${doc.docId}')"
-          class="pp-btn is-danger is-icon is-sm" title="Remove this invoice and all its lines" style="font-size:13px;line-height:1;padding:2px 6px;flex-shrink:0">×</button>
+          class="pp-btn is-danger is-icon is-sm" title="Remove this invoice and all its lines" aria-label="Remove this invoice and all its lines" style="font-size:13px;line-height:1;padding:2px 6px;flex-shrink:0">×</button>
       </div>
-      ${isCollapsed ? '' : `<div style="border-left:4px solid var(--amber);margin-left:0">${docLines.map(inv => _renderInvRow(inv, true)).join('')}</div>`}
+      ${isCollapsed ? '' : `<div style="margin-left:4px;border-left:1px solid var(--border)">${docLines.map(inv => _renderInvRow(inv, true)).join('')}</div>`}
     </div>`;
   });
 
