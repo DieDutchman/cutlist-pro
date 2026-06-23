@@ -4707,7 +4707,7 @@ body.user-light-theme .pp-vat-select {
             <div style="flex:1;min-width:0">
               <div id="fb-screenshot-label" style="font-size:12px;color:var(--text-muted);line-height:1.5">Click to attach a screenshot (JPG, PNG, GIF, WebP)</div>
               <div id="fb-screenshot-preview-wrap" style="display:none;margin-top:6px">
-                <img id="fb-screenshot-preview" src="" alt="preview" style="max-height:80px;max-width:100%;border:1px solid var(--border)">
+                <img id="fb-screenshot-preview" alt="preview" style="max-height:80px;max-width:100%;border:1px solid var(--border)">
               </div>
             </div>
             <input type="file" id="fb-screenshot-file" accept="image/*" style="display:none" onchange="onFbScreenshotPicked(this)">
@@ -4885,7 +4885,7 @@ body.user-light-theme .pp-vat-select {
   <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
-    <img id="img-lightbox-img" src="" alt="" style="display:none">
+    <img id="img-lightbox-img" alt="" style="display:none">
     <div id="img-lightbox-svg" style="display:none" onclick="event.stopPropagation()"></div>
     <div class="img-lightbox-caption" id="img-lightbox-caption"></div>
   </div>
@@ -21490,6 +21490,25 @@ let panelsState = {
   label: '',
 };
 let _panelIdCounter = 1;
+const _panelSnapshots = new Map(); // id -> clone taken at last renderPanelsView call
+
+function panelRevert(id) {
+  const snap = _panelSnapshots.get(id);
+  const p = panelsState.items.find(p => p.id === id);
+  if (!snap || !p) return;
+  Object.assign(p, snap);
+  savePanelsState();
+  renderPanelsView();
+}
+
+function _panelUpdateDirtyIndicator(id) {
+  const snap = _panelSnapshots.get(id);
+  const p = panelsState.items.find(p => p.id === id);
+  if (!snap || !p) return;
+  const dirty = ['name','qty','l','w','mat','edgeL1','edgeL2','edgeW1','edgeW2'].some(f => String(p[f]) !== String(snap[f]));
+  const btn = document.getElementById('panel-revert-' + id);
+  if (btn) btn.style.display = dirty ? '' : 'none';
+}
 
 function panelDefaultItem() {
   return {
@@ -21548,6 +21567,7 @@ function panelField(id, field, val) {
   else p[field] = val;
   savePanelsState();
   renderPanelsTotals();
+  _panelUpdateDirtyIndicator(id);
 }
 
 function movePanelPart(id, direction) {
@@ -22957,6 +22977,15 @@ function importIntoPanels() {
   if (panelsBtn) switchTab(panelsBtn, '__panels__');
 }
 
+function togglePanelLegend() {
+  const collapsed = localStorage.getItem('panelLegendCollapsed') === '1';
+  localStorage.setItem('panelLegendCollapsed', collapsed ? '0' : '1');
+  const body = document.getElementById('panels-legend-body');
+  const chev = document.getElementById('panels-legend-chevron');
+  if (body) body.style.display = collapsed ? 'flex' : 'none';
+  if (chev) chev.textContent = collapsed ? '▾' : '▸';
+}
+
 function renderPanelsView() { withScrollLock(_renderPanelsView); }
 function _renderPanelsView() {
   const pv = document.getElementById('panels-view');
@@ -22977,6 +23006,8 @@ function _renderPanelsView() {
   };
 
   const _pLen = panelsState.items.length;
+  panelsState.items.forEach(p => _panelSnapshots.set(p.id, {...p}));
+  const _legendCollapsed = localStorage.getItem('panelLegendCollapsed') === '1';
   const rowsHtml = panelsState.items.map((p, i) => `
     <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
@@ -22996,6 +23027,7 @@ function _renderPanelsView() {
         ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
+        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
@@ -23030,6 +23062,19 @@ function _renderPanelsView() {
       </div>
 
       ${panelsState.items.length > 0 ? `
+      <!-- Edge code legend -->
+      <div style="margin-bottom:10px">
+        <button onclick="togglePanelLegend()" aria-label="Toggle edge code legend" style="background:none;border:none;color:var(--text-muted);font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.8px;cursor:pointer;padding:0;display:flex;align-items:center;gap:5px">
+          <span id="panels-legend-chevron">${_legendCollapsed ? '▸' : '▾'}</span>
+          <span>EDGE CODES</span>
+        </button>
+        <div id="panels-legend-body" style="display:${_legendCollapsed ? 'none' : 'flex'};gap:6px 20px;flex-wrap:wrap;margin-top:5px">
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">L1</span> — height edge 1 (left/right vertical)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">L2</span> — height edge 2 (opposite)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W1</span> — width edge 1 (top/bottom horizontal)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W2</span> — width edge 2 (opposite)</span>
+        </div>
+      </div>
       <!-- Column headers -->
       <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME / DESCRIPTION</div>
