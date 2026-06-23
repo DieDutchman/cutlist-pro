@@ -508,6 +508,35 @@
   }
   .unit-action-btn.is-img svg { display: block; }
 
+  /* ── PURE-CSS TOOLTIPS (data-tip) ── */
+  [data-tip] { position: relative; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 4px 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9500;
+  }
+  [data-tip]:hover::after,
+  [data-tip]:focus-visible::after { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    [data-tip]::after { transition: none; }
+  }
+
   /* Wider gap on roomy screens so the cluster never crowds the label. */
   @media (min-width: 900px) {
     .unit-row-cell { gap: 18px; }
@@ -11112,6 +11141,12 @@ function _renderQuoteView() {
   scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
   if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option" aria-label="Remove this option">✕</button>`;
   scenStrip += `</div>`;
+  if (quoteState.scenarios.length === 1 && localStorage.getItem('scenHintDismissed') !== '1') {
+    scenStrip += `<div id="qv-scen-hint" style="display:flex;align-items:baseline;gap:10px;background:rgba(212,145,58,0.07);border:1px solid rgba(212,145,58,0.22);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.5">
+      <span style="flex:1">💡 <strong style="color:var(--text)">＋ Add option</strong> clones this quote as a separate pricing scenario — great for presenting Option A / B / C alternatives to a client without duplicating the job.</span>
+      <button onclick="localStorage.setItem('scenHintDismissed','1');const h=document.getElementById('qv-scen-hint');if(h)h.remove()" aria-label="Dismiss scenario hint" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;opacity:0.7" title="Dismiss">✕</button>
+    </div>`;
+  }
 
   // Build section data — include sections that have selected units OR enabled addons.
   // Use buildRoomList so each room's matchIds include both its own id AND its
@@ -11204,8 +11239,15 @@ function _renderQuoteView() {
   </div>`;
 
   if (!sectionData.length) {
-    mainHtml += `<div style="color:var(--text-muted);font-size:14px;padding:20px 0">
-      No units selected yet — go to the unit tabs and enter quantities first.</div>`;
+    mainHtml += `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px 72px;gap:14px;text-align:center">
+      <div style="font-size:44px;line-height:1;opacity:0.3">💰</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:2px;text-transform:uppercase;color:var(--text);opacity:0.55">Quote is empty</div>
+      <div style="font-size:13px;color:var(--text-muted);max-width:320px;line-height:1.65">Select quantities on the unit tabs, or add custom panels — then return here to see your quote.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+        <button onclick="(function(){const b=document.querySelector('.tab[data-section=\\'kitchen\\']');if(b)switchTab(b,'kitchen');})()" style="padding:7px 18px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;letter-spacing:0.4px">Go to Units</button>
+        <button onclick="(function(){const b=document.getElementById('panels-tab');if(b)switchTab(b,'__panels__');})()" style="padding:7px 18px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;letter-spacing:0.4px">Go to Panels</button>
+      </div>
+    </div>`;
   }
 
   sectionData.forEach(({ sec, units }) => {
@@ -11698,7 +11740,7 @@ function _renderQuoteView() {
       </div>
       <div class="qv-total-row grand">
         <span class="label">Grand Total <span style="font-size:10px;color:var(--amber-dim)">(incl. VAT)</span></span>
-        <span class="val" id="qv-val-grand-vat">${fmt(withMarkup * 1.15)}</span>
+        <span class="val" id="qv-val-grand-vat" aria-live="polite" aria-atomic="true">${fmt(withMarkup * 1.15)}</span>
       </div>
       <div class="qv-total-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
         <span class="label" style="font-size:12px;color:var(--text-muted)">Deposit Received</span>
@@ -23037,11 +23079,11 @@ function _renderPanelsView() {
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===0?'opacity:0.25;pointer-events:none':''}">▲</button>
         <button onclick="movePanelPart('${p.id}',1)" title="Move down" aria-label="Move down"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===_pLen-1?'opacity:0.25;pointer-events:none':''}">▼</button>
-        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services"
+        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services" data-tip="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
-        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
-        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
-        <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
+        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" data-tip="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
+        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" data-tip="Revert changes" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
+        <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" data-tip="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
     ${(panelSpecialServices[p.id]||[]).length > 0 ? `
