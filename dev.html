@@ -4601,7 +4601,7 @@ body.user-light-theme .pp-vat-select {
          Buttons keep their original ids, data-section, and switchTab handlers so
          all existing show/hide and role-gating logic continues to work. -->
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
-      <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span class="caret">▾</span></button>
+      <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span id="more-badge" style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber-dim);letter-spacing:0;margin-right:2px"></span><span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
         <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
         <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
@@ -6805,6 +6805,17 @@ function syncMoreTriggerActive() {
   if (!wrap || !trig) return;
   const activeInPanel = !!wrap.querySelector('.more-panel .tab.active');
   trig.classList.toggle('has-active', activeInPanel);
+  updateMoreBadge();
+}
+
+// Keep the +N count on the More button accurate as role-gating shows/hides items
+function updateMoreBadge() {
+  const panel = document.getElementById('more-panel');
+  const badge = document.getElementById('more-badge');
+  if (!panel || !badge) return;
+  const items = panel.querySelectorAll('[role="menuitem"]');
+  const visible = [...items].filter(el => el.style.display !== 'none').length;
+  badge.textContent = visible > 0 ? '+' + visible : '';
 }
 
 function switchTab(btn, section) {
@@ -16243,6 +16254,7 @@ function applyRoleRestrictions() {
     // Ensure imported-tab is always visible for supplier
     const impTab = document.getElementById('imported-tab');
     if (impTab) impTab.style.display = '';
+    try { updateMoreBadge(); } catch(e) {}
     // Land on Supplier Prices
     const btn = document.getElementById('prices-tab');
     if (btn) switchTab(btn, '__prices__');
@@ -16254,6 +16266,7 @@ function applyRoleRestrictions() {
   // P&L tab: superuser + regular users (not admin-only, not supplier)
   const plTab = document.getElementById('pl-tab');
   if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
+  try { updateMoreBadge(); } catch(e) {}
 
   // User rooms nav (admin + regular user — superuser keeps the static rooms row)
   if (usesUserUnits()) {
@@ -22188,7 +22201,7 @@ function openImportedCutlist() {
   };
   // Show the tab
   const tab = document.getElementById('imported-tab');
-  if (tab) tab.style.display = '';
+  if (tab) { tab.style.display = ''; try { updateMoreBadge(); } catch(e) {} }
   renderImportedCutlistView();
   // Switch to it
   const tabBtn = document.getElementById('imported-tab');
