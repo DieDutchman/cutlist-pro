@@ -13107,6 +13107,7 @@ const JOB_STATUSES = [
   { key: 'complete',      label: 'Complete',      color: '#5dba6e', bg: 'rgba(93,186,110,0.12)'  },
 ];
 let autoSaveTimer = null;
+let _isLoadingJob = false;
 // ── Client management ───────────────────────────────────────────────────────
 let clientsCache = [];        // [{ id, name, phone, email, address, notes }]
 let currentClientId = null;   // UUID of client linked to the current job, if any
@@ -14263,10 +14264,17 @@ async function loadJobFromSelect() {
     _updateClientButtonsVisibility();
     try { refreshJobDetailsIndicator(); } catch(e) {}
 
-    // Apply full state
-    if (job.state) applyState(job.state);
-    checkAndRemapOrphans();
-    renderPanel(); updateCounts();
+    // Apply full state — suppress auto-save so opening a job doesn't
+    // overwrite its updated_at timestamp before the user changes anything.
+    _isLoadingJob = true;
+    try {
+      if (job.state) applyState(job.state);
+      checkAndRemapOrphans();
+      renderPanel(); updateCounts();
+    } finally {
+      _isLoadingJob = false;
+      clearTimeout(autoSaveTimer);
+    }
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
     document.getElementById('job-delete-btn').style.display = 'block';
@@ -16940,6 +16948,7 @@ function saveUnitParts(unitId) {
 
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
+  if (_isLoadingJob) return;
   // State changed since last cutlist render — mark stale + refresh the
   // regenerate badge if the cutlist tab is currently visible.
   if (_cutlistEverGenerated) {
