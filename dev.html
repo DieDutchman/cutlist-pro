@@ -11179,9 +11179,9 @@ function _renderQuoteView() {
     quoteState.activeScenario = 0;
   }
   const _activeIdx = quoteState.activeScenario || 0;
-  let scenStrip = `<div class="qv-scenario-strip">`;
+  let scenStrip = `<div class="qv-scenario-strip" role="tablist" aria-label="Quote options">`;
   quoteState.scenarios.forEach((sc, i) => {
-    scenStrip += `<button class="qv-scen-tab${i === _activeIdx ? ' active' : ''}" id="qv-scen-tab-${i}">${sc.name}</button>`;
+    scenStrip += `<button role="tab" aria-selected="${i === _activeIdx}" class="qv-scen-tab${i === _activeIdx ? ' active' : ''}" id="qv-scen-tab-${i}">${sc.name}</button>`;
   });
   scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario" aria-label="Clone this option as a new scenario">＋ Add option</button>`;
   scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
