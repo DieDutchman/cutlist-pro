@@ -21625,7 +21625,7 @@ function _panelUpdateDirtyIndicator(id) {
   if (!snap || !p) return;
   const dirty = ['name','qty','l','w','mat','edgeL1','edgeL2','edgeW1','edgeW2'].some(f => String(p[f]) !== String(snap[f]));
   const btn = document.getElementById('panel-revert-' + id);
-  if (btn) btn.style.display = dirty ? '' : 'none';
+  if (btn) { btn.style.visibility = dirty ? 'visible' : 'hidden'; btn.style.pointerEvents = dirty ? '' : 'none'; }
 }
 
 function _sectionRevert(sectionId) {
@@ -23188,7 +23188,7 @@ function _renderPanelsView() {
         ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services" data-tip="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
         <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" data-tip="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
-        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" data-tip="Revert changes" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
+        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" data-tip="Revert changes" style="visibility:hidden;pointer-events:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
         <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" data-tip="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
