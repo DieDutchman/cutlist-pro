@@ -21595,12 +21595,16 @@ let panelsState = {
 };
 let _panelIdCounter = 1;
 const _panelSnapshots = new Map(); // id -> clone taken at last renderPanelsView call
+const _panelPreEditSnapshots = new Map(); // id -> clone taken before first field edit this render cycle
 
 function panelRevert(id) {
-  const snap = _panelSnapshots.get(id);
-  const p = panelsState.items.find(p => p.id === id);
-  if (!snap || !p) return;
-  Object.assign(p, snap);
+  const preSnap = _panelPreEditSnapshots.get(id);
+  const snap = preSnap || _panelSnapshots.get(id);
+  if (!snap) return;
+  const idx = panelsState.items.findIndex(p => p.id === id);
+  if (idx === -1) return;
+  panelsState.items[idx] = {...snap};
+  if (preSnap) _panelPreEditSnapshots.delete(id);
   savePanelsState();
   renderPanelsView();
 }
@@ -21701,6 +21705,7 @@ function panelAdd() {
 
 function panelRemove(id) {
   panelsState.items = panelsState.items.filter(p => p.id !== id);
+  _panelPreEditSnapshots.delete(id);
   savePanelsState();
   renderPanelsView();
 }
@@ -21708,6 +21713,7 @@ function panelRemove(id) {
 function panelField(id, field, val) {
   const p = panelsState.items.find(p => p.id === id);
   if (!p) return;
+  if (!_panelPreEditSnapshots.has(id)) _panelPreEditSnapshots.set(id, {...p});
   if (['qty','l','w'].includes(field)) p[field] = parseFloat(val) || 0;
   else p[field] = val;
   savePanelsState();
