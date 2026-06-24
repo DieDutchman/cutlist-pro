@@ -6750,7 +6750,7 @@ document.addEventListener('click', function(ev) {
 });
 // Close on Escape
 document.addEventListener('keydown', function(ev) {
-  if (ev.key === 'Escape') closeMoreMenu();
+  if (ev.key === 'Escape') { closeMoreMenu(); closeKbLegend(); }
 });
 
 // ── Alt+1..5 — primary tab keyboard shortcuts ─────────────────────────────
@@ -6792,6 +6792,29 @@ document.addEventListener('keydown', function(ev) {
   ev.preventDefault();
   try { switchTab(btn, section); } catch(e) {}
 });
+// ── Keyboard shortcuts legend (? key) ────────────────────────────────────
+function openKbLegend() {
+  const m = document.getElementById('kb-legend-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  m.focus();
+}
+function closeKbLegend() {
+  const m = document.getElementById('kb-legend-modal');
+  if (m) m.style.display = 'none';
+}
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== '?') return;
+  if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+  const ae = document.activeElement;
+  if (ae) {
+    const tag = ae.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
+  }
+  ev.preventDefault();
+  openKbLegend();
+});
+
 // ── Edge codes popover (L1 / L2 / W1 / W2 quick reference) ───────────────
 // Jordan edits edging on parts in Panels / Cutlist tabs and needs the
 // L1/L2/W1/W2 explanation without diving into the Import tab. Each editor
@@ -29145,6 +29168,75 @@ function _showPlanToast(message) {
   } catch(e) {}
 })();
 </script>
+
+<!-- ── Keyboard Shortcuts Legend Modal ─────────────────────────────────── -->
+<div id="kb-legend-modal"
+  tabindex="-1"
+  onclick="if(event.target===this)closeKbLegend()"
+  style="display:none;position:fixed;inset:0;z-index:9800;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
+  <div role="dialog" aria-modal="true" aria-label="Keyboard Shortcuts"
+    onclick="event.stopPropagation()"
+    style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--amber);border-radius:4px;min-width:320px;max-width:420px;width:100%;font-family:'Barlow',sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.55)">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--amber-dim)">Keyboard Shortcuts</div>
+      <button onclick="closeKbLegend()" aria-label="Close shortcuts legend"
+        onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+        style="background:none;border:none;color:var(--text-muted);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;transition:color 0.15s">&times;</button>
+    </div>
+
+    <!-- Shortcut rows -->
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- Section label: Navigation -->
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;font-family:'Oswald',sans-serif">Navigation</div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+1</span>
+        <span style="font-size:13px;color:var(--text-muted)">Panels tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+2</span>
+        <span style="font-size:13px;color:var(--text-muted)">Cutlist tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+3</span>
+        <span style="font-size:13px;color:var(--text-muted)">Quote tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+4</span>
+        <span style="font-size:13px;color:var(--text-muted)">Summary tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+5</span>
+        <span style="font-size:13px;color:var(--text-muted)">Optimize tab</span>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+
+      <!-- Section label: Actions -->
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;font-family:'Oswald',sans-serif">Actions</div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+R</span>
+        <span style="font-size:13px;color:var(--text-muted)">Regenerate cut list</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">?</span>
+        <span style="font-size:13px;color:var(--text-muted)">Show this shortcuts legend</span>
+      </div>
+
+    </div>
+
+    <!-- Footer hint -->
+    <div style="padding:10px 20px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">
+      Press <span style="font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--text)">Esc</span> or click outside to close.
+    </div>
+
+  </div>
+</div>
 
 </body>
 </html>
