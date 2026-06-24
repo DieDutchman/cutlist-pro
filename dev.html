@@ -21679,6 +21679,13 @@ function savePanelsState() {
   try { _signalSave(); } catch(e) {}
 }
 
+function panelBatchSetMat(mat) {
+  if (!panelsState.items.length) return;
+  panelsState.items.forEach(p => { p.mat = mat; });
+  savePanelsState();
+  renderPanelsView();
+}
+
 function panelClearAll() {
   panelsState.items = [];
   _panelIdCounter = 1;
@@ -23212,6 +23219,16 @@ function _renderPanelsView() {
           <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W1</span> — width edge 1 (top/bottom horizontal)</span>
           <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W2</span> — width edge 2 (opposite)</span>
         </div>
+      </div>
+      <!-- Batch controls -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">BATCH:</span>
+        <select id="panel-batch-mat-select"
+          style="font-family:'Barlow',sans-serif;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:3px;cursor:pointer"
+          onchange="if(this.value){panelBatchSetMat(this.value);this.value=''}">
+          <option value="">Set all materials to…</option>
+          ${MATS.map(m => `<option value="${m}">${m}</option>`).join('')}
+        </select>
       </div>
       <!-- Column headers -->
       <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
