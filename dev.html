@@ -6195,6 +6195,8 @@ getEffectiveUnits().forEach(u => quantities[u.id] = 0);
 
 // Per-section qty snapshots — taken at render time, used by the section revert button
 const _sectionQtySnapshots = new Map();
+// Per-section mat-override snapshots — taken at render time alongside qty snapshots
+const _sectionMatSnapshots = new Map();
 
 // Load saved quantities
 try {
@@ -7273,8 +7275,9 @@ function _renderPanel() {
       <div style="font-size:12px;color:var(--text-muted)">Set a quantity for any unit in the list below to add it to your cutlist — or create a custom unit using the builder.</div>
     </div>` : '';
 
-  // Snapshot current quantities for this section before rendering
-  { const _snap = {}; units.forEach(u => { _snap[u.id] = quantities[u.id] || 0; }); _sectionQtySnapshots.set(sec.id || currentSection, _snap); }
+  // Snapshot current quantities and mat overrides for this section before rendering
+  { const _snap = {}; units.forEach(u => { _snap[u.id] = quantities[u.id] || 0; }); _sectionQtySnapshots.set(sec.id || currentSection, _snap);
+    const _msnap = {}; units.forEach(u => { _msnap[u.id] = unitMatOverrides[u.id] ? {...unitMatOverrides[u.id]} : null; }); _sectionMatSnapshots.set(sec.id || currentSection, _msnap); }
 
   html += `<div class="section-header" style="display:flex;align-items:center;gap:8px">${isUserMode ? '' : sec.label}<button id="section-revert-${sec.id || currentSection}" onclick="_sectionRevert('${sec.id || currentSection}')" title="Revert quantities to last saved state" aria-label="Revert section quantities" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button></div>
   ${sortControl}
@@ -21615,6 +21618,14 @@ function _sectionRevert(sectionId) {
   const snap = _sectionQtySnapshots.get(sectionId);
   if (!snap) return;
   Object.keys(snap).forEach(unitId => { quantities[unitId] = snap[unitId]; });
+  const msnap = _sectionMatSnapshots.get(sectionId);
+  if (msnap) {
+    Object.keys(msnap).forEach(uid => {
+      if (msnap[uid]) unitMatOverrides[uid] = {...msnap[uid]};
+      else delete unitMatOverrides[uid];
+    });
+    saveUnitMatOverrides();
+  }
   save();
   renderPanel();
 }
@@ -21622,7 +21633,16 @@ function _sectionRevert(sectionId) {
 function _sectionDirtyCheck(sectionId) {
   const snap = _sectionQtySnapshots.get(sectionId);
   if (!snap) return;
-  const dirty = Object.keys(snap).some(unitId => (quantities[unitId] || 0) !== snap[unitId]);
+  const qtyDirty = Object.keys(snap).some(unitId => (quantities[unitId] || 0) !== snap[unitId]);
+  const msnap = _sectionMatSnapshots.get(sectionId);
+  const matDirty = msnap && Object.keys(msnap).some(uid => {
+    const cur = unitMatOverrides[uid];
+    const s = msnap[uid];
+    if (!cur && !s) return false;
+    if (!cur || !s) return true;
+    return cur.wood !== s.wood || cur.edging !== s.edging;
+  });
+  const dirty = qtyDirty || matDirty;
   const btn = document.getElementById('section-revert-' + sectionId);
   if (btn) btn.style.display = dirty ? '' : 'none';
 }
