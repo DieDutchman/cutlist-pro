@@ -4437,6 +4437,7 @@ body.user-light-theme .pp-vat-select {
   <button onclick="deleteCurrentJob()" id="job-delete-btn" style="display:none;background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">
     🗑 DELETE
   </button>
+  <span id="autosave-chip" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 6px;transition:color 0.2s">⬤ Saved</span>
   <!-- Status indicators (subordinate, muted) -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px;opacity:0.75">
     <span id="job-sync-status"></span>
@@ -6198,9 +6199,23 @@ try {
   if (saved) Object.assign(quantities, JSON.parse(saved));
 } catch(e) {}
 
+let _saveFlashTimer = null;
+function _signalSave() {
+  const chip = document.getElementById('autosave-chip');
+  if (!chip) return;
+  chip.textContent = '⬤ Saving…';
+  chip.style.color = 'var(--amber)';
+  clearTimeout(_saveFlashTimer);
+  _saveFlashTimer = setTimeout(() => {
+    chip.textContent = '⬤ Saved';
+    chip.style.color = 'var(--text-muted)';
+  }, 800);
+}
+
 function save() {
   try { localStorage.setItem('cutlist_quantities', JSON.stringify(quantities)); } catch(e) {}
   scheduleAutoSave();
+  try { _signalSave(); } catch(e) {}
 }
 
 // Per-row holes/notes overrides (keyed by part consolidation key)
@@ -11064,6 +11079,7 @@ function saveQuoteState() {
     if (sc) SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
   }
   try { localStorage.setItem('cutlist_quotestate', JSON.stringify(quoteState)); } catch(e) {}
+  try { _signalSave(); } catch(e) {}
 }
 
 // ── Quote scenario helpers ──────────────────────────────────────────────────
@@ -21594,6 +21610,7 @@ try {
 
 function savePanelsState() {
   try { localStorage.setItem('cutlist_panels', JSON.stringify(panelsState)); } catch(e) {}
+  try { _signalSave(); } catch(e) {}
 }
 
 function panelClearAll() {
