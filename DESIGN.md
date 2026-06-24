@@ -33,6 +33,7 @@ colors:
   bg-light-ticker: "#f5e8d0"
   bg-light-nav: "#e8e4dc"
   excel-green: "#1d6f42"
+  excel-green-dark: "#217a4b"
 typography:
   display:
     fontFamily: "Oswald, sans-serif"
