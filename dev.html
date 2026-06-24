@@ -6886,8 +6886,18 @@ function updateMoreBadge() {
   const badge = document.getElementById('more-badge');
   if (!panel || !badge) return;
   const items = panel.querySelectorAll('[role="menuitem"]');
-  const visible = [...items].filter(el => el.style.display !== 'none').length;
+  const visibleItems = [...items].filter(el => el.style.display !== 'none');
+  const visible = visibleItems.length;
   badge.textContent = visible > 0 ? '+' + visible : '';
+  const trig = document.getElementById('more-trigger');
+  if (trig) {
+    if (visible > 0) {
+      const names = visibleItems.map(el => el.textContent.trim()).join(' · ');
+      trig.setAttribute('data-tip', names);
+    } else {
+      trig.removeAttribute('data-tip');
+    }
+  }
 }
 
 function switchTab(btn, section) {
