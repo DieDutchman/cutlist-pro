@@ -20,6 +20,19 @@ colors:
   cutmap-grain: "#66aa88"
   cutmap-offcut: "#aaaa66"
   cutmap-waste: "#cc7766"
+  bg-light: "#f0ede8"
+  bg-light-surface: "#faf8f5"
+  bg-light-input: "#edeae4"
+  bg-light-raised: "#e4e0d8"
+  text-light: "#1a1612"
+  text-light-dim: "#4a3f30"
+  text-light-muted: "#6a5e50"
+  border-light-theme: "#9a8e7e"
+  amber-light-theme: "#b87030"
+  bg-light-unit-card: "#f5f2ee"
+  bg-light-ticker: "#f5e8d0"
+  bg-light-nav: "#e8e4dc"
+  excel-green: "#1d6f42"
 typography:
   display:
     fontFamily: "Oswald, sans-serif"
@@ -148,6 +161,32 @@ Colors used for specific semantic purposes in discrete app features. These are n
 | `--cutmap-waste` | `#cc7766` | Waste / off-fall |
 
 > **Colorblind caveat:** The `#66aa88` (green) and `#cc7766` (red-orange) pair fails the deuteranopia test. If the optimizer is ever used as a physical workshop guide (printed sheet or tablet beside the saw), these colors must be supplemented with pattern fills or shape markers — color alone is not sufficient.
+
+### Light Theme (supplier-theme / user-light-theme)
+
+The warm light theme is used by suppliers and in client-facing views. All dark-theme CSS variables are overridden; the amber accent shifts slightly warmer.
+
+| Token | Hex | Role |
+|---|---|---|
+| `--bg` | `#f0ede8` | Body surface |
+| `--bg2` | `#faf8f5` | Card / panel surface |
+| `--bg3` | `#edeae4` | Input / raised surface |
+| `--bg4` | `#e4e0d8` | Hovered panel |
+| `--text` | `#1a1612` | Primary text |
+| `--text-dim` | `#4a3f30` | Secondary text |
+| `--text-muted` | `#6a5e50` | Muted / labels |
+| `--border` | `#9a8e7e` | Default border |
+| `--amber` | `#b87030` | Amber accent (warmer in light mode) |
+
+Component-specific literals not mapped to CSS vars:
+
+| Hex | Used for |
+|---|---|
+| `#f5f2ee` | Unit card background |
+| `#f5e8d0` | Price ticker background |
+| `#e8e4dc` | Nav tab bar background |
+
+**Exception color — Excel export:** `#1d6f42` (Excel green). Used only on the Excel export button. Never borrowed for other actions.
 
 ## 3. Typography
 
