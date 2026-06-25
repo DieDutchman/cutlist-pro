@@ -13658,10 +13658,16 @@ async function restoreLastJob(jobId) {
     });
     currentClientId = job.client_id || null;
     _updateClientButtonsVisibility();
-    if (job.state) applyState(job.state);
-    _syncArchiveBtnLabel();
-    checkAndRemapOrphans();
-    renderPanel(); updateCounts();
+    _isLoadingJob = true;
+    try {
+      if (job.state) applyState(job.state);
+      _syncArchiveBtnLabel();
+      checkAndRemapOrphans();
+      renderPanel(); updateCounts();
+    } finally {
+      _isLoadingJob = false;
+      clearTimeout(autoSaveTimer);
+    }
   } catch(e) {
     console.warn('[Supabase] Could not restore last job:', e.message);
   }
