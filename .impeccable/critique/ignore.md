@@ -14,3 +14,7 @@ Lines 12593 and ~28600 in dev.html — both occurrences are inside `@media print
 ## Border-radius: 1px
 
 Lines ~2369 and ~3280 — both are small decorative swatch elements (`.udp-legend-swatch`, sheet-map legend), not interactive components. The 1px radius is intentional below the documented `xs: 2px` floor; it gives the tiny swatches a hairline bevel without rounding.
+
+## Font-family in inline JS strings: Barlow and Oswald
+
+Lines ~6863–6864 in dev.html — both are inside JavaScript string literals that set `style.cssText` or `innerHTML` on a dynamically created popover. The detector flags escaped `\'Barlow\'` and `\'Oswald\'` as undeclared fonts because the escape sequence doesn't match DESIGN.md's plain-text font names. Both fonts are fully documented in DESIGN.md typography and are the app's primary font stack. False positive caused by JS string escaping.

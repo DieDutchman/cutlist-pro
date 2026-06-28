@@ -3456,7 +3456,7 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   text-transform: uppercase;
   padding: 0 22px 0 10px;
   height: 32px;
-  border-radius: 16px;
+  border-radius: 10px;
   outline: none;
   cursor: pointer;
   appearance: none;
@@ -4480,7 +4480,7 @@ body.user-light-theme .pp-vat-select {
     </button>
     <button onclick="openFeedbackModal()" id="feedback-btn" title="Send feedback or report an issue"
       style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 9px;font-size:11px;font-family:'Barlow',sans-serif;letter-spacing:0.3px;cursor:pointer;position:relative">
-      💬 FEEDBACK<span id="fb-unread-dot" style="display:none;position:absolute;top:2px;right:2px;background:#e05252;color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:0px 4px;border-radius:8px;line-height:16px;min-width:16px;text-align:center;pointer-events:none"></span>
+      💬 FEEDBACK<span id="fb-unread-dot" style="display:none;position:absolute;top:2px;right:2px;background:#e05252;color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:0px 4px;border-radius:50%;line-height:16px;min-width:16px;text-align:center;pointer-events:none"></span>
     </button>
     <button onclick="doLogout()"
       style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 9px;font-size:11px;font-family:'Barlow',sans-serif;letter-spacing:0.3px;cursor:pointer">
@@ -4656,12 +4656,12 @@ body.user-light-theme .pp-vat-select {
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
       <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span id="more-badge" style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber-dim);letter-spacing:0;margin-right:2px"></span><span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
-        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
-        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
-        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
-        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
-        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
-        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
+        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" aria-controls="pl-view" style="display:none">📊 Job P&amp;L</button>
+        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab" aria-controls="prices-view">🧾 Supplier Prices</button>
+        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab" aria-controls="materials-view">🔧 My Costs</button>
+        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab" aria-controls="builder-view">🔨 Builder</button>
+        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab" aria-controls="import-view">📥 Import</button>
+        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" aria-controls="imported-cutlist-view" style="display:none">📋 Imported Cutlist</button>
       </div>
     </span>
   </div>
