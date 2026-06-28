@@ -61,6 +61,7 @@ rounded:
   sm: "3px"
   md: "4px"
   lg: "6px"
+  pill: "10px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -189,6 +190,19 @@ Component-specific literals not mapped to CSS vars:
 
 **Exception color — Excel export:** `#1d6f42` (Excel green). Used only on the Excel export button. Never borrowed for other actions.
 
+### Contextual rgba Overlays
+
+The codebase uses inline `rgba()` tints rather than named tokens for contextual overlays — hover fills, state tints, and shadow layers. These are intentionally not tokenised; they are structural, not semantic. Three families appear throughout:
+
+| Family | Typical use | Opacity range |
+|---|---|---|
+| `rgba(212,145,58, …)` | Amber tints — hover fills, active backgrounds, focus glows | 0.03–0.55 |
+| `rgba(106,170,100, …)` | Success / positive margin tints | 0.08–0.35 |
+| `rgba(224,82,82, …)` / `rgba(229,86,86, …)` | Danger / negative margin tints | 0.08–0.25 |
+| `rgba(0,0,0, …)` | Shadow and scrim overlays | 0.04–0.92 |
+
+Use the named CSS variables (`--amber`, `--success`, `--danger`) wherever the full solid color is needed. Reach for rgba tints only when layering a semi-transparent wash over a surface — not as a substitute for a named color in text or border use.
+
 ## 3. Typography
 
 **Display Font:** Oswald (condensed display sans, 400 / 600 / 700)
@@ -298,7 +312,7 @@ A label + large mono number pairing used in the stats bar.
 - **Don't** add over-designed or flashy elements: hero sections, gradient overlays, heavy motion choreography, decorative animations. Design serves the work, not itself.
 - **Don't** use pure white (#ffffff) for any text. The ceiling is warm parchment (#e8e0d0). Pure white reads as a mistake in this system.
 - **Don't** apply the amber accent to inactive states, secondary labels, or decorative fills. It loses its authority the moment it's everywhere.
-- **Don't** exceed 6px border-radius on any component. Larger radii push the UI toward consumer app territory.
+- **Don't** exceed 6px border-radius on any component except count/status pill badges, which use `rounded.pill` (10px) to achieve the pill shape — these are explicitly not square-corner components.
 - **Don't** use gradient text (`background-clip: text`). Emphasis is achieved through color (amber), weight (600), or size — never decoration.
 - **Don't** use side-stripe borders (border-left or border-right > 1px as a colored accent). Use full borders, tint backgrounds, or the action button's amber hover state instead.
 - **Don't** break the three-font contract: Oswald for display, Barlow for UI text, JetBrains Mono for numbers. A fourth font is never needed.
