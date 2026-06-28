@@ -21434,6 +21434,11 @@ function _applyStateInner(state) {
   }
 
   if (!isSuperuser()) {
+    // Always reset so a previous job's rooms don't bleed into the next.
+    // userRooms/userUnits are job-scoped for non-superusers — any value from
+    // the prior job (or the session default) must be wiped before restore.
+    userRooms = [];
+    userUnits = [];
     if (state.userRooms?.length) {
       userRooms = state.userRooms.map(_normalizeRoom).filter(Boolean);
       // Re-register in MAT_GROUPS so material selectors work after reload
