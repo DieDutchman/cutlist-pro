@@ -275,6 +275,11 @@
   }
   body.supplier-theme .more-panel,
   body.user-light-theme .more-panel { background: #f5f1e8; border-color: #c8c0b0; }
+  @keyframes moreHintPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
+    50%       { box-shadow: 0 0 0 3px rgba(212,145,58,0.55); }
+  }
+  #more-trigger.hint-open { animation: moreHintPulse 0.9s ease-in-out 3; }
 
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
@@ -6696,6 +6701,11 @@ function toggleMoreMenu(ev) {
   const isOpen = wrap.classList.toggle('open');
   const trig = document.getElementById('more-trigger');
   if (trig) trig.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  // User interacted — mark hint seen so auto-open never fires or re-fires
+  if (!localStorage.getItem('moreHintSeen')) {
+    localStorage.setItem('moreHintSeen', '1');
+    if (trig) trig.classList.remove('hint-open');
+  }
 }
 
 // ─── Job details popover (client/stand/address/notes collapsed behind icon) ─
@@ -6898,6 +6908,33 @@ function updateMoreBadge() {
       trig.removeAttribute('data-tip');
     }
   }
+}
+
+// One-shot hint: auto-opens the More dropdown on first visit so users discover hidden tabs
+function showMoreHintOnce() {
+  if (localStorage.getItem('moreHintSeen')) return;
+  const wrap = document.getElementById('more-wrap');
+  const trig = document.getElementById('more-trigger');
+  if (!wrap || !trig) return;
+  const visibleItems = [...document.querySelectorAll('#more-panel [role="menuitem"]')].filter(el => el.style.display !== 'none');
+  if (!visibleItems.length) return;
+  let dismissTimer;
+  const dismiss = () => {
+    clearTimeout(dismissTimer);
+    if (localStorage.getItem('moreHintSeen')) { trig.classList.remove('hint-open'); return; }
+    wrap.classList.remove('open');
+    trig.setAttribute('aria-expanded', 'false');
+    trig.classList.remove('hint-open');
+    localStorage.setItem('moreHintSeen', '1');
+  };
+  setTimeout(() => {
+    if (localStorage.getItem('moreHintSeen')) return;
+    wrap.classList.add('open');
+    trig.setAttribute('aria-expanded', 'true');
+    trig.classList.add('hint-open');
+    dismissTimer = setTimeout(dismiss, 3000);
+    document.addEventListener('click', dismiss, { once: true });
+  }, 1500);
 }
 
 function switchTab(btn, section) {
@@ -13401,6 +13438,7 @@ async function onLoginSuccess() {
   // dynamic rooms nav so they show up immediately on login.
   if (userRooms.length > 0) renderUserRoomsNav();
   renderPanel();
+  showMoreHintOnce();
 }
 
 async function loadTemplatesFromCloud() {
