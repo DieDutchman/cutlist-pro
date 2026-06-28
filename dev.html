@@ -280,6 +280,8 @@
     50%       { box-shadow: 0 0 0 3px rgba(212,145,58,0.55); }
   }
   #more-trigger.hint-open { animation: moreHintPulse 0.9s ease-in-out 3; }
+  /* Right-align tooltip so it doesn't overflow the viewport when More is at nav edge */
+  #more-trigger[data-tip]::after { left: auto; right: 0; transform: none; }
 
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
