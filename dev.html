@@ -275,6 +275,22 @@
   }
   body.supplier-theme .more-panel,
   body.user-light-theme .more-panel { background: #f5f1e8; border-color: #c8c0b0; }
+  /* Tab pin controls */
+  .more-panel .tab { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .tab-pin-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 2px; cursor: pointer; font-size: 12px; padding: 2px 4px;
+    flex-shrink: 0; line-height: 1; opacity: 0.3;
+    transition: opacity 0.15s, background 0.15s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .more-panel .tab-pin-btn { opacity: 0.4; }
+  .more-panel .tab:hover .tab-pin-btn { opacity: 0.75; }
+  .tab-pin-btn:hover { opacity: 1 !important; background: rgba(212,145,58,0.15); border-radius: 2px; }
+  /* Pinned tab in main bar: pin icon faint, appears on hover */
+  .pinned-tab { display: inline-flex; align-items: center; gap: 2px; }
+  .pinned-tab .tab-pin-btn { opacity: 0; font-size: 9px; padding: 1px 2px; }
+  .pinned-tab:hover .tab-pin-btn { opacity: 0.45; }
   @keyframes moreHintPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
     50%       { box-shadow: 0 0 0 3px rgba(212,145,58,0.55); }
@@ -6912,6 +6928,82 @@ function updateMoreBadge() {
   }
 }
 
+// ─── Tab Pinning ─────────────────────────────────────────────────────────────
+const _MORE_TAB_ORDER = ['pl-tab','prices-tab','materials-tab','builder-tab','import-tab','imported-tab'];
+let _pinnedTabIds;
+try { _pinnedTabIds = new Set(JSON.parse(localStorage.getItem('cutlist_pinnedTabs') || '[]')); }
+catch(e) { _pinnedTabIds = new Set(); }
+
+function toggleTabPin(tabId, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  if (_pinnedTabIds.has(tabId)) _pinnedTabIds.delete(tabId);
+  else _pinnedTabIds.add(tabId);
+  try { localStorage.setItem('cutlist_pinnedTabs', JSON.stringify([..._pinnedTabIds])); } catch(e) {}
+  _applyTabPins();
+  closeMoreMenu();
+}
+
+function _applyTabPins() {
+  const moreWrap = document.getElementById('more-wrap');
+  const morePanel = document.getElementById('more-panel');
+  if (!moreWrap || !morePanel) return;
+
+  let zone = document.getElementById('pinned-tabs-zone');
+  if (!zone) {
+    zone = document.createElement('span');
+    zone.id = 'pinned-tabs-zone';
+    moreWrap.parentElement.insertBefore(zone, moreWrap);
+  }
+
+  _MORE_TAB_ORDER.forEach(id => {
+    const tab = document.getElementById(id);
+    if (!tab) return;
+    const pinned = _pinnedTabIds.has(id);
+
+    if (pinned && tab.parentElement !== zone) {
+      zone.appendChild(tab);
+      tab.setAttribute('role', 'tab');
+      tab.classList.add('pinned-tab');
+    } else if (!pinned && tab.parentElement !== morePanel) {
+      // Re-insert in canonical order after any already-present earlier sibling
+      const after = _MORE_TAB_ORDER.slice(_MORE_TAB_ORDER.indexOf(id) + 1)
+        .map(nid => document.getElementById(nid))
+        .find(el => el?.parentElement === morePanel);
+      morePanel.insertBefore(tab, after || null);
+      tab.setAttribute('role', 'menuitem');
+      tab.classList.remove('pinned-tab');
+    }
+
+    const pinBtn = tab.querySelector('.tab-pin-btn');
+    if (pinBtn) {
+      pinBtn.textContent = pinned ? '📌' : '📍';
+      pinBtn.title = pinned ? 'Unpin from bar' : 'Pin to bar';
+      pinBtn.setAttribute('aria-label', pinned ? 'Unpin from bar' : 'Pin to bar');
+    }
+  });
+
+  updateMoreBadge();
+}
+
+function _initTabPins() {
+  const morePanel = document.getElementById('more-panel');
+  if (!morePanel) return;
+  _MORE_TAB_ORDER.forEach(id => {
+    const tab = document.getElementById(id);
+    if (!tab || tab.querySelector('.tab-pin-btn')) return;
+    const span = document.createElement('span');
+    span.className = 'tab-pin-btn';
+    span.setAttribute('role', 'button');
+    span.setAttribute('tabindex', '0');
+    span.setAttribute('aria-label', 'Pin to bar');
+    span.textContent = '📍';
+    span.addEventListener('click', ev => toggleTabPin(id, ev));
+    span.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggleTabPin(id, ev); } });
+    tab.appendChild(span);
+  });
+  _applyTabPins();
+}
+
 // One-shot hint: auto-opens the More dropdown on first visit so users discover hidden tabs
 function showMoreHintOnce() {
   if (localStorage.getItem('moreHintSeen')) return;
@@ -13440,6 +13532,7 @@ async function onLoginSuccess() {
   // dynamic rooms nav so they show up immediately on login.
   if (userRooms.length > 0) renderUserRoomsNav();
   renderPanel();
+  _initTabPins();
   showMoreHintOnce();
 }
 
