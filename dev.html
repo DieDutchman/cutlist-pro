@@ -21680,7 +21680,7 @@ function panelRevert(id) {
 }
 
 function _panelUpdateDirtyIndicator(id) {
-  const snap = _panelSnapshots.get(id);
+  const snap = _panelPreEditSnapshots.get(id) || _panelSnapshots.get(id);
   const p = panelsState.items.find(p => p.id === id);
   if (!snap || !p) return;
   const dirty = ['name','qty','l','w','mat','edgeL1','edgeL2','edgeW1','edgeW2'].some(f => String(p[f]) !== String(snap[f]));
@@ -23328,6 +23328,8 @@ function _renderPanelsView() {
         <button onclick="panelAdd()" style="font-weight:500;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:10px 24px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">+ ADD FIRST ROW</button>
       </div>`}
     </div>`;
+  // Re-show ↩ buttons for panels that had pending edits before this re-render
+  _panelPreEditSnapshots.forEach((_, id) => _panelUpdateDirtyIndicator(id));
 }
 
 // ═══════════════════════════════════════════════════════════
