@@ -4780,7 +4780,7 @@ body.user-light-theme .pp-vat-select {
   <div id="imported-cutlist-view" style="display:none"></div>
   <div id="pl-view" style="display:none"></div>
   <!-- FEEDBACK MODAL -->
-  <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
+  <div id="feedback-modal" onclick="if(event.target===this)closeFeedbackModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:500px;max-width:95vw;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">&#x1F4AC; Feedback</div>
@@ -4841,7 +4841,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
   <!-- ═══ PLAN IMPORT MODAL [BETA] ═══════════════════════════════════════════ -->
-  <div id="plan-import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
+  <div id="plan-import-modal" onclick="if(event.target===this)closePlanImportModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">📐 Import Floor Plan <span style="color:var(--amber);font-size:11px;letter-spacing:2px;margin-left:6px">[BETA]</span></div>
@@ -4854,7 +4854,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
   <!-- ═══ BULK PRICE ADJUSTMENT MODAL ═══════════════════════════════════════ -->
-  <div id="bulk-adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+  <div id="bulk-adjust-modal" onclick="if(event.target===this)closeBulkAdjustModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
@@ -4896,7 +4896,7 @@ body.user-light-theme .pp-vat-select {
     </div>
   </div>
 
-  <div id="import-prices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+  <div id="import-prices-modal" onclick="if(event.target===this)closeImportPricesModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
@@ -4976,7 +4976,7 @@ body.user-light-theme .pp-vat-select {
     </div>
   </div>
 
-    <div id="board-cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
+    <div id="board-cleanup-modal" onclick="if(event.target===this)closeBoardCleanupModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">🗃 Manage Supabase Boards</div>
@@ -6183,6 +6183,7 @@ function openTemplateEditor(id) {
   const modal = document.createElement('div');
   modal.id = 'tpl-edit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9600;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -16046,6 +16047,7 @@ function openAddRoomModal() {
   const modal = document.createElement('div');
   modal.id = 'add-room-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:420px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:20px">＋ ADD ROOM</div>
@@ -16248,6 +16250,7 @@ function openNewUnitModal() {
   const modal = document.createElement('div');
   modal.id = 'new-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:460px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:6px">＋ NEW UNIT</div>
@@ -16329,6 +16332,7 @@ function openImportUnitModal() {
   const modal = document.createElement('div');
   modal.id = 'import-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:22px 28px 14px;border-bottom:1px solid var(--border)">
@@ -16566,6 +16570,7 @@ function openTemplateBrowser() {
   const modal = document.createElement('div');
   modal.id = 'template-browser-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:97vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -16838,6 +16843,7 @@ function openUnitEditModal(unitId) {
   const modal = document.createElement('div');
   modal.id = 'uem-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">
@@ -17526,6 +17532,7 @@ function checkStaleMaterials() {
   const modal = document.createElement('div');
   modal.id = 'stale-mat-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9200;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -23315,6 +23322,7 @@ function openSaveAsUnitModal(parts, defaultLabel) {
   const overlay = document.createElement('div');
   overlay.id = 'sau-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;display:flex;align-items:center;justify-content:center';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
   // Store data on the overlay element so the button doesn't need to serialise
   // potentially unsafe strings into an HTML attribute
@@ -26257,6 +26265,7 @@ function plOpenPDFImport(jobId) {
   const overlay = document.createElement('div');
   overlay.id = 'pl-pdf-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:880px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
