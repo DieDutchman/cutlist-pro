@@ -284,8 +284,8 @@
     transition: opacity 0.15s, background 0.15s;
     -webkit-user-select: none; user-select: none;
   }
-  .more-panel .tab-pin-btn { opacity: 0.4; }
-  .more-panel .tab:hover .tab-pin-btn { opacity: 0.75; }
+  .more-panel .tab-pin-btn { opacity: 0.6; }
+  .more-panel .tab:hover .tab-pin-btn { opacity: 0.85; }
   .tab-pin-btn:hover { opacity: 1 !important; background: rgba(212,145,58,0.15); border-radius: 2px; }
   /* Pinned tab in main bar: pin icon faint, appears on hover */
   .pinned-tab { display: inline-flex; align-items: center; gap: 2px; }
@@ -4441,10 +4441,13 @@ body.user-light-theme .pp-vat-select {
     <div id="job-status-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border);min-width:150px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
     </div>
   </div>
+  <!-- Zone separator: job-context → primary actions -->
+  <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <button onclick="saveJobToCloud()" id="job-save-btn"
     style="font-weight:500;background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     💾 SAVE JOB
   </button>
+  <span id="autosave-chip" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 4px;transition:color 0.2s">⬤ Saved</span>
   <button onclick="newJob()"
     style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     + NEW JOB
@@ -4454,13 +4457,14 @@ body.user-light-theme .pp-vat-select {
     title="[BETA] Upload an architect's floor plan PDF — AI extracts room dimensions">
     📐 PLAN [BETA]
   </button>
+  <!-- Zone separator: primary actions → danger zone -->
+  <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <button onclick="archiveCurrentJob()" id="job-archive-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap" title="Archive this job — hides it from the job list without deleting">
     📦 ARCHIVE
   </button>
   <button onclick="deleteCurrentJob()" id="job-delete-btn" style="display:none;background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">
     🗑 DELETE
   </button>
-  <span id="autosave-chip" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 6px;transition:color 0.2s">⬤ Saved</span>
   <!-- Status indicators (subordinate, muted) -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px;opacity:0.75">
     <span id="job-sync-status"></span>
@@ -6977,8 +6981,9 @@ function _applyTabPins() {
     const pinBtn = tab.querySelector('.tab-pin-btn');
     if (pinBtn) {
       pinBtn.textContent = pinned ? '📌' : '📍';
-      pinBtn.title = pinned ? 'Unpin from bar' : 'Pin to bar';
-      pinBtn.setAttribute('aria-label', pinned ? 'Unpin from bar' : 'Pin to bar');
+      pinBtn.title = pinned ? 'Unpin from bar' : 'Pin to main bar';
+      pinBtn.setAttribute('aria-label', pinned ? 'Unpin from bar' : 'Pin to main bar');
+      pinBtn.setAttribute('data-tip', pinned ? 'Unpin from bar' : 'Pin to main bar');
     }
   });
 
@@ -6995,7 +7000,8 @@ function _initTabPins() {
     span.className = 'tab-pin-btn';
     span.setAttribute('role', 'button');
     span.setAttribute('tabindex', '0');
-    span.setAttribute('aria-label', 'Pin to bar');
+    span.setAttribute('aria-label', 'Pin to main bar');
+    span.setAttribute('data-tip', 'Pin to main bar');
     span.textContent = '📍';
     span.addEventListener('click', ev => toggleTabPin(id, ev));
     span.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggleTabPin(id, ev); } });
