@@ -7088,7 +7088,7 @@ function showMoreHintOnce() {
     trig.setAttribute('aria-expanded', 'true');
     trig.classList.add('hint-open');
     dismissTimer = setTimeout(dismiss, 3000);
-    document.addEventListener('click', dismiss, { once: true });
+    setTimeout(() => document.addEventListener('click', dismiss, { once: true }), 150);
   }, 1500);
 }
 
@@ -27091,7 +27091,7 @@ function _renderPLView() {
           title="Line total as printed on the supplier invoice. Use the toggle to the right to indicate whether it includes VAT or excludes VAT."
           oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
           onblur="plInvoiceBlur('${selJobId}')">
-        <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?"
+        <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?" aria-label="VAT type"
           onchange="plUpdateInvoice('${selJobId}','${inv.id}','vatIncluded',this.value==='incl');plInvoiceBlur('${selJobId}')">
           <option value="incl" ${inv.vatIncluded !== false ? 'selected' : ''}>Incl VAT</option>
           <option value="excl" ${inv.vatIncluded === false ? 'selected' : ''}>Excl VAT</option>
@@ -27806,7 +27806,7 @@ function _renderPLView() {
         <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01" class="pp-input is-num" style="width:112px"
           title="Line total as it appears on the supplier invoice. Use the Incl/Excl toggle to declare whether it includes VAT."
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
-        <select id="pl-new-vat" class="pp-vat-select" title="Does this amount include VAT or exclude VAT?">
+        <select id="pl-new-vat" class="pp-vat-select" title="Does this amount include VAT or exclude VAT?" aria-label="VAT type">
           <option value="incl" selected>Incl VAT</option>
           <option value="excl">Excl VAT</option>
         </select>
