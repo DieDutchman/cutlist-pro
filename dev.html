@@ -299,6 +299,48 @@
   /* Right-align tooltip so it doesn't overflow the viewport when More is at nav edge */
   #more-trigger[data-tip]::after { left: auto; right: 0; transform: none; }
 
+  /* ── CUSTOM JOB PICKER ── */
+  #job-picker-wrap { position:relative; flex:1; min-width:180px; max-width:340px; display:flex; flex-direction:column; gap:3px; }
+  #job-picker-trigger {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    padding:5px 8px; font-family:'Barlow',sans-serif; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+    user-select:none; min-height:32px; width:100%; box-sizing:border-box; text-align:left;
+  }
+  #job-picker-trigger:hover { border-color:var(--amber-dim); }
+  #job-picker-trigger .jp-label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #job-picker-trigger .jp-caret { color:var(--amber-dim); font-size:10px; flex-shrink:0; line-height:1; }
+  #job-picker-dropdown {
+    display:none; position:absolute; top:calc(100% + 2px); left:0; right:0;
+    background:var(--bg2); border:1px solid var(--border); border-top:2px solid var(--amber);
+    max-height:300px; overflow-y:auto; z-index:9200;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  }
+  #job-picker-wrap.jp-open #job-picker-trigger { display:none !important; }
+  #job-picker-wrap.jp-open #job-search-input { display:block !important; }
+  #job-picker-wrap.jp-open #job-picker-dropdown { display:block !important; }
+  .jp-item {
+    padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);
+    display:flex; flex-direction:column; gap:2px; transition:background 0.1s;
+  }
+  .jp-item:last-child { border-bottom:none; }
+  .jp-item:hover, .jp-item.jp-hi { background:rgba(212,145,58,0.12); }
+  .jp-item.jp-sel { background:rgba(212,145,58,0.07); }
+  .jp-item.jp-sel:hover, .jp-item.jp-sel.jp-hi { background:rgba(212,145,58,0.16); }
+  .jp-row1 { display:flex; align-items:center; gap:6px; font-family:'Barlow',sans-serif; font-size:13px; color:var(--text); }
+  .jp-dot { font-size:11px; flex-shrink:0; color:var(--amber-dim); }
+  .jp-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+  .jp-date { font-size:10px; color:var(--text-muted); flex-shrink:0; font-family:'Barlow',sans-serif; letter-spacing:0.2px; }
+  .jp-row2 { font-family:'Barlow',sans-serif; font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-left:17px; }
+  .jp-new-item {
+    padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);
+    font-family:'Barlow',sans-serif; font-size:12px; color:var(--text-muted);
+    display:flex; align-items:center; gap:6px; transition:background 0.1s;
+  }
+  .jp-new-item:hover, .jp-new-item.jp-hi { background:rgba(212,145,58,0.12); color:var(--amber); }
+  .jp-empty { padding:10px; text-align:center; font-size:11px; color:var(--text-muted); font-family:'Barlow',sans-serif; }
+  .jp-archived { font-style:italic; opacity:0.65; }
+
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 
@@ -2598,10 +2640,13 @@
     padding: 6px 10px !important;
   }
   #job-bar > span:first-child { display: none !important; } /* hide "JOB" label when stacked */
-  #job-select {
+  #job-picker-wrap {
     max-width: 100% !important;
     width: 100% !important;
-    min-height: 44px;
+  }
+  #job-picker-trigger, #job-search-input {
+    min-height: 44px !important;
+    font-size: 14px !important;
   }
   #job-bar-details {
     flex-direction: column !important;
@@ -4364,16 +4409,25 @@ body.user-light-theme .pp-vat-select {
   font-family:'Barlow',sans-serif;
   font-size:13px;">
   <span style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-transform:uppercase;white-space:nowrap">Job</span>
-  <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;max-width:340px">
-    <input id="job-search-input" type="text" placeholder="Search jobs…" autocomplete="off"
-      oninput="filterJobSelect(this.value)"
-      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box"
-      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-    <select id="job-select"
-      onchange="loadJobFromSelect()"
-      style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
+  <div id="job-picker-wrap">
+    <!-- Native select hidden — preserved for JS compat (loadJobFromSelect reads .value) -->
+    <select id="job-select" style="display:none" onchange="loadJobFromSelect()">
       <option value="">— New Job —</option>
     </select>
+    <!-- Trigger: shows selected job name, click opens custom picker -->
+    <button id="job-picker-trigger" type="button" onclick="_openJobPicker()"
+      aria-haspopup="listbox" aria-expanded="false" aria-controls="job-picker-dropdown">
+      <span class="jp-label" id="job-picker-label">— Select a job —</span>
+      <span class="jp-caret">▾</span>
+    </button>
+    <!-- Search: visible only when picker is open -->
+    <input id="job-search-input" type="text" placeholder="Search jobs…" autocomplete="off"
+      oninput="_filterJobPickerItems(this.value)"
+      onkeydown="_jobPickerKeydown(event)"
+      style="display:none;background:var(--bg3);border:1px solid var(--amber);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box">
+    <!-- Dropdown: two-line job cards -->
+    <div id="job-picker-dropdown" role="listbox" aria-label="Select job"></div>
+    <!-- Archived toggle -->
     <div id="job-archived-toggle-wrap" style="display:none;align-items:center;gap:4px">
       <input type="checkbox" id="job-archived-toggle-cb"
         onchange="_jobShowArchived=this.checked;rebuildJobSelect()"
@@ -13759,6 +13813,8 @@ function rebuildJobSelect() {
   // Re-apply any active search filter after rebuilding the list
   const srch = document.getElementById('job-search-input');
   if (srch && srch.value.trim()) filterJobSelect(srch.value);
+  _renderJobPickerItems(srch?.value?.trim() ? srch.value : '');
+  _updateJobPickerLabel();
 }
 
 function filterJobSelect(q) {
@@ -13772,6 +13828,145 @@ function filterJobSelect(q) {
     const haystack = ((job.client || '') + ' ' + (job.house || '')).toLowerCase();
     opt.hidden = term.length > 0 && !haystack.includes(term);
   });
+  _filterJobPickerItems(q);
+}
+
+/* ── Custom job picker ─────────────────────────────────────────────────────── */
+let _jpActiveIdx = -1;
+let _jpVisibleIds = [];
+
+function _openJobPicker() {
+  const wrap = document.getElementById('job-picker-wrap');
+  const search = document.getElementById('job-search-input');
+  if (!wrap || wrap.classList.contains('jp-open')) return;
+  wrap.classList.add('jp-open');
+  const trigger = document.getElementById('job-picker-trigger');
+  if (trigger) trigger.setAttribute('aria-expanded', 'true');
+  _jpActiveIdx = -1;
+  _renderJobPickerItems('');
+  setTimeout(() => { if (search) { search.value = ''; search.focus(); } }, 0);
+  document.addEventListener('mousedown', _jobPickerOutside, { capture: true });
+}
+
+function _closeJobPicker() {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('jp-open');
+  const trigger = document.getElementById('job-picker-trigger');
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  _jpActiveIdx = -1;
+  document.removeEventListener('mousedown', _jobPickerOutside, { capture: true });
+}
+
+function _jobPickerOutside(ev) {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (wrap && !wrap.contains(ev.target)) _closeJobPicker();
+}
+
+function _renderJobPickerItems(q) {
+  const dropdown = document.getElementById('job-picker-dropdown');
+  if (!dropdown) return;
+  const term = (q || '').toLowerCase().trim();
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const _showArchived = _jobShowArchived || false;
+  _jpVisibleIds = [];
+  let html = '';
+
+  const newHi = _jpActiveIdx === 0 ? ' jp-hi' : '';
+  html += `<div class="jp-new-item${newHi}" data-jpid="" onmousedown="event.preventDefault();_selectJobFromPicker('')">＋ New Job</div>`;
+  _jpVisibleIds.push('');
+
+  const jobs = (sbJobs || []).filter(j => {
+    const _isArchived = j.archived === 'true' || j.archived === true;
+    if (_isArchived && !_showArchived && j.id !== currentJobId) return false;
+    if (!term) return true;
+    const hay = [j.client, j.house, j.address, j.notes].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(term);
+  });
+
+  if (jobs.length === 0 && term) {
+    html += `<div class="jp-empty">No jobs match "${term}"</div>`;
+  } else {
+    jobs.forEach(j => {
+      const _isArchived = j.archived === 'true' || j.archived === true;
+      const idx = _jpVisibleIds.length;
+      _jpVisibleIds.push(j.id);
+      const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const dot = _statusDot[j.jobStatus] || '○';
+      const sub = (j.notes || j.address || '').slice(0, 70);
+      const hi = _jpActiveIdx === idx ? ' jp-hi' : '';
+      const sel = j.id === currentJobId ? ' jp-sel' : '';
+      const arc = _isArchived ? ' jp-archived' : '';
+      html += `<div class="jp-item${hi}${sel}${arc}" data-jpid="${j.id}" onmousedown="event.preventDefault();_selectJobFromPicker('${j.id}')">`;
+      html += `<div class="jp-row1"><span class="jp-dot">${dot}</span><span class="jp-name">${label}${_isArchived ? ' [archived]' : ''}</span><span class="jp-date">${date}</span></div>`;
+      if (sub) html += `<div class="jp-row2">${sub.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      html += `</div>`;
+    });
+  }
+
+  dropdown.innerHTML = html;
+}
+
+function _filterJobPickerItems(q) {
+  _jpActiveIdx = -1;
+  _renderJobPickerItems(q);
+}
+
+function _jobPickerKeydown(ev) {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (!wrap) return;
+  if (!wrap.classList.contains('jp-open')) {
+    if (ev.key === 'Enter' || ev.key === 'ArrowDown') _openJobPicker();
+    return;
+  }
+  if (ev.key === 'Escape') { _closeJobPicker(); return; }
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    _jpActiveIdx = Math.min(_jpActiveIdx + 1, _jpVisibleIds.length - 1);
+    _renderJobPickerItems(document.getElementById('job-search-input')?.value || '');
+    _jpScrollActive();
+    return;
+  }
+  if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    _jpActiveIdx = Math.max(_jpActiveIdx - 1, 0);
+    _renderJobPickerItems(document.getElementById('job-search-input')?.value || '');
+    _jpScrollActive();
+    return;
+  }
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    if (_jpActiveIdx >= 0 && _jpActiveIdx < _jpVisibleIds.length) _selectJobFromPicker(_jpVisibleIds[_jpActiveIdx]);
+    return;
+  }
+}
+
+function _jpScrollActive() {
+  const dropdown = document.getElementById('job-picker-dropdown');
+  if (!dropdown) return;
+  const active = dropdown.querySelector('.jp-hi');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function _selectJobFromPicker(id) {
+  _closeJobPicker();
+  const sel = document.getElementById('job-select');
+  if (!sel) return;
+  sel.value = id || '';
+  loadJobFromSelect();
+}
+
+function _updateJobPickerLabel() {
+  const lbl = document.getElementById('job-picker-label');
+  if (!lbl) return;
+  if (!currentJobId) { lbl.textContent = '— New Job —'; return; }
+  const j = (sbJobs || []).find(x => x.id === currentJobId);
+  if (!j) { lbl.textContent = '— Select a job —'; return; }
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const dot = _statusDot[j.jobStatus] || '○';
+  const name = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+  lbl.textContent = `${dot} ${name}`;
 }
 
 async function restoreLastJob(jobId) {
@@ -13785,6 +13980,7 @@ async function restoreLastJob(jobId) {
     try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
     const sel = document.getElementById('job-select');
     if (sel) sel.value = currentJobId;
+    _updateJobPickerLabel();
     const deleteBtn = document.getElementById('job-delete-btn');
     if (deleteBtn) deleteBtn.style.display = 'block';
     const _archBtn = document.getElementById('job-archive-btn');
@@ -14357,6 +14553,7 @@ async function saveJobToCloud() {
       try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
+      _updateJobPickerLabel();
       document.getElementById('job-delete-btn').style.display = 'block';
       const _archBtnSave = document.getElementById('job-archive-btn');
       if (_archBtnSave) _archBtnSave.style.display = 'block';
@@ -14422,6 +14619,7 @@ async function loadJobFromSelect() {
     }
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
+    _updateJobPickerLabel();
     document.getElementById('job-delete-btn').style.display = 'block';
     const _archBtnLS = document.getElementById('job-archive-btn');
     if (_archBtnLS) _archBtnLS.style.display = 'block';
@@ -14440,6 +14638,7 @@ async function newJob() {
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
+  _updateJobPickerLabel();
   document.getElementById('job-delete-btn').style.display = 'none';
   const _archBtnNew = document.getElementById('job-archive-btn');
   if (_archBtnNew) _archBtnNew.style.display = 'none';
