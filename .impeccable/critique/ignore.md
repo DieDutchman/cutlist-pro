@@ -17,4 +17,8 @@ Lines ~2369 and ~3280 — both are small decorative swatch elements (`.udp-legen
 
 ## Font-family in inline JS strings: Barlow and Oswald
 
-Lines ~6863–6864 in dev.html — both are inside JavaScript string literals that set `style.cssText` or `innerHTML` on a dynamically created popover. The detector flags escaped `\'Barlow\'` and `\'Oswald\'` as undeclared fonts because the escape sequence doesn't match DESIGN.md's plain-text font names. Both fonts are fully documented in DESIGN.md typography and are the app's primary font stack. False positive caused by JS string escaping.
+Lines ~6863–6864 and ~15020, ~15061, ~15382, ~15556, ~20234, ~21295, ~26602 in dev.html — all are inside JavaScript string literals that set `style.cssText`, `innerHTML`, or template strings on dynamically created elements (popovers, dropdowns, picker cards). The detector flags escaped `\'Barlow\'` and `\'Oswald\'` as undeclared fonts because the escape sequence doesn't match DESIGN.md's plain-text font names. Both fonts are fully documented in DESIGN.md typography and are the app's primary font stack. False positive caused by JS string escaping.
+
+## Colored glow: amber pulse ring (dark-glow)
+
+Line ~131 in dev.html — `box-shadow: 0 0 0 4px rgb(212,145,58,0.4)` on `#more-trigger.hint-open` is the one-shot onboarding pulse ring on the More button. It self-removes via `removeClass('hint-open')` after 3 animation cycles and is never rendered in normal use. Intentional, ephemeral UI affordance.

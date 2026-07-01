@@ -299,6 +299,10 @@
   /* Right-align tooltip so it doesn't overflow the viewport when More is at nav edge */
   #more-trigger[data-tip]::after { left: auto; right: 0; transform: none; }
 
+  /* ── JOB OVERFLOW MENU ── */
+  #job-overflow-menu button:hover { background: rgba(212,145,58,0.08); }
+  #job-overflow-btn:hover { border-color: var(--amber-dim); color: var(--amber); }
+
   /* ── CUSTOM JOB PICKER ── */
   #job-picker-wrap { position:relative; flex:1; min-width:180px; max-width:340px; display:flex; flex-direction:column; gap:3px; }
   #job-picker-trigger {
@@ -4513,12 +4517,18 @@ body.user-light-theme .pp-vat-select {
   </button>
   <!-- Zone separator: primary actions → danger zone -->
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
-  <button onclick="archiveCurrentJob()" id="job-archive-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap" title="Archive this job — hides it from the job list without deleting">
-    📦 ARCHIVE
-  </button>
-  <button onclick="deleteCurrentJob()" id="job-delete-btn" style="display:none;background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">
-    🗑 DELETE
-  </button>
+  <div id="job-overflow-wrap" style="display:none;position:relative;align-items:center">
+    <button id="job-overflow-btn" type="button" onclick="toggleJobOverflowMenu()"
+      title="More job actions: archive or delete" aria-haspopup="true" aria-expanded="false" aria-label="More job actions"
+      style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 12px;font-size:16px;cursor:pointer;line-height:1;letter-spacing:2px">⋯</button>
+    <div id="job-overflow-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);min-width:160px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
+      <button id="job-archive-btn" type="button" onclick="archiveCurrentJob()"
+        title="Archive this job — hides it from the job list without deleting"
+        style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--text-muted);cursor:pointer;white-space:nowrap">📦 ARCHIVE</button>
+      <button id="job-delete-btn" type="button" onclick="deleteCurrentJob()"
+        style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:#e05252;cursor:pointer;white-space:nowrap">🗑 DELETE</button>
+    </div>
+  </div>
   <!-- Status indicators (subordinate, muted) -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px;opacity:0.75">
     <span id="job-sync-status"></span>
@@ -13805,10 +13815,8 @@ function rebuildJobSelect() {
       _archToggleWrap.style.display = 'none';
     }
   }
-  const deleteBtn = document.getElementById('job-delete-btn');
-  if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
-  const archiveBtn = document.getElementById('job-archive-btn');
-  if (archiveBtn) archiveBtn.style.display = currentJobId ? 'block' : 'none';
+  const _owrap = document.getElementById('job-overflow-wrap');
+  if (_owrap) _owrap.style.display = currentJobId ? 'flex' : 'none';
   const statusWrap = document.getElementById('job-status-wrap');
   if (statusWrap) statusWrap.style.display = currentJobId ? 'flex' : 'none';
   // Re-apply any active search filter after rebuilding the list
@@ -13982,10 +13990,8 @@ async function restoreLastJob(jobId) {
     const sel = document.getElementById('job-select');
     if (sel) sel.value = currentJobId;
     _updateJobPickerLabel();
-    const deleteBtn = document.getElementById('job-delete-btn');
-    if (deleteBtn) deleteBtn.style.display = 'block';
-    const _archBtn = document.getElementById('job-archive-btn');
-    if (_archBtn) _archBtn.style.display = 'block';
+    const _owrapR = document.getElementById('job-overflow-wrap');
+    if (_owrapR) _owrapR.style.display = 'flex';
     const statusWrapR = document.getElementById('job-status-wrap');
     if (statusWrapR) statusWrapR.style.display = 'flex';
     ['job-client','job-house','job-address','job-notes'].forEach(id => {
@@ -14458,6 +14464,36 @@ function setJobStatus(key) {
   if (currentJobId) saveJobToCloud();
 }
 
+function toggleJobOverflowMenu() {
+  const menu = document.getElementById('job-overflow-menu');
+  const btn = document.getElementById('job-overflow-btn');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function _jomOut(ev) {
+        const wrap = document.getElementById('job-overflow-wrap');
+        if (!wrap || !wrap.contains(ev.target)) {
+          const m = document.getElementById('job-overflow-menu');
+          const b = document.getElementById('job-overflow-btn');
+          if (m) m.style.display = 'none';
+          if (b) b.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', _jomOut);
+        }
+      });
+    }, 0);
+  }
+}
+
+function _closeJobOverflowMenu() {
+  const m = document.getElementById('job-overflow-menu');
+  const b = document.getElementById('job-overflow-btn');
+  if (m) m.style.display = 'none';
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+
 function getJobState() {
   return {
     quantities,
@@ -14555,9 +14591,8 @@ async function saveJobToCloud() {
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
       _updateJobPickerLabel();
-      document.getElementById('job-delete-btn').style.display = 'block';
-      const _archBtnSave = document.getElementById('job-archive-btn');
-      if (_archBtnSave) _archBtnSave.style.display = 'block';
+      const _owrapS = document.getElementById('job-overflow-wrap');
+      if (_owrapS) _owrapS.style.display = 'flex';
       const _swSave = document.getElementById('job-status-wrap');
       if (_swSave) _swSave.style.display = 'flex';
     } else {
@@ -14621,9 +14656,8 @@ async function loadJobFromSelect() {
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
     _updateJobPickerLabel();
-    document.getElementById('job-delete-btn').style.display = 'block';
-    const _archBtnLS = document.getElementById('job-archive-btn');
-    if (_archBtnLS) _archBtnLS.style.display = 'block';
+    const _owrapL = document.getElementById('job-overflow-wrap');
+    if (_owrapL) _owrapL.style.display = 'flex';
     _syncArchiveBtnLabel();
     const _swLS = document.getElementById('job-status-wrap');
     if (_swLS) _swLS.style.display = 'flex';
@@ -14640,9 +14674,8 @@ async function newJob() {
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
   _updateJobPickerLabel();
-  document.getElementById('job-delete-btn').style.display = 'none';
-  const _archBtnNew = document.getElementById('job-archive-btn');
-  if (_archBtnNew) _archBtnNew.style.display = 'none';
+  const _owrapN = document.getElementById('job-overflow-wrap');
+  if (_owrapN) _owrapN.style.display = 'none';
   currentJobStatus = 'draft';
   currentJobDeposit = 0;
   currentJobArchived = false;
@@ -14715,6 +14748,7 @@ function _syncArchiveBtnLabel() {
 
 async function archiveCurrentJob() {
   if (!currentJobId) return;
+  _closeJobOverflowMenu();
   const sel = document.getElementById('job-select');
   const label = sel.options[sel.selectedIndex]?.text || 'this job';
   const isArchived = currentJobArchived;
@@ -14729,6 +14763,7 @@ async function archiveCurrentJob() {
 
 async function deleteCurrentJob() {
   if (!currentJobId) return;
+  _closeJobOverflowMenu();
   const sel = document.getElementById('job-select');
   const label = sel.options[sel.selectedIndex]?.text || 'this job';
   if (!(await confirmAction(`Delete "${label}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
@@ -14781,9 +14816,8 @@ async function deleteCurrentJob() {
     try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
     renderPanel(); updateCounts();
     await loadUserJobs();
-    document.getElementById('job-delete-btn').style.display = 'none';
-    const _archBtnDel = document.getElementById('job-archive-btn');
-    if (_archBtnDel) _archBtnDel.style.display = 'none';
+    const _owrapD = document.getElementById('job-overflow-wrap');
+    if (_owrapD) _owrapD.style.display = 'none';
     setJobSyncStatus('Deleted', '#e07070');
     setTimeout(() => setJobSyncStatus(''), 2000);
   } catch(e) {
@@ -16703,7 +16737,7 @@ function applyRoleRestrictions() {
       if (el) el.style.display = 'none';
     });
     // Hide job bar quote fields — only keep email badge, users btn, sign out
-    ['job-select','job-save-btn','job-delete-btn','job-bar-details'].forEach(id => {
+    ['job-select','job-save-btn','job-overflow-wrap','job-bar-details'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
