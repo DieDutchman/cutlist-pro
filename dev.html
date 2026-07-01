@@ -303,6 +303,24 @@
   #job-overflow-menu button:hover { background: rgba(212,145,58,0.08); }
   #job-overflow-btn:hover { border-color: var(--amber-dim); color: var(--amber); }
 
+  /* ── ONBOARDING COACH MARKS ── */
+  #onboard-overlay { position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;pointer-events:none; }
+  #onboard-tip {
+    position:fixed;z-index:10001;background:var(--bg2);border:1px solid var(--amber);
+    border-radius:6px;padding:16px 18px;width:280px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);pointer-events:all;
+    font-family:'Barlow',sans-serif;animation:onboardFadeIn 0.2s ease-out;
+  }
+  @keyframes onboardFadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  #onboard-tip h3 { margin:0 0 8px;font-family:'Oswald',sans-serif;font-size:13px;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase;font-weight:500; }
+  #onboard-tip p { margin:0 0 14px;font-size:13px;line-height:1.55;color:var(--text); }
+  #onboard-tip .ob-footer { display:flex;justify-content:space-between;align-items:center; }
+  #onboard-tip .ob-skip { background:none;border:none;color:var(--text-muted);font-size:11px;font-family:'Barlow',sans-serif;cursor:pointer;padding:0;letter-spacing:0.3px; }
+  #onboard-tip .ob-skip:hover { color:var(--text); }
+  #onboard-tip .ob-next { background:var(--amber);border:none;color:#111;padding:6px 16px;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;cursor:pointer;border-radius:3px; }
+  #onboard-tip .ob-next:hover { filter:brightness(1.1); }
+  #onboard-tip .ob-counter { font-size:10px;color:var(--text-muted);letter-spacing:0.5px; }
+
   /* ── CUSTOM JOB PICKER ── */
   #job-picker-wrap { position:relative; flex:1; min-width:180px; max-width:340px; display:flex; flex-direction:column; gap:3px; }
   #job-picker-trigger {
@@ -7102,6 +7120,114 @@ function showMoreHintOnce() {
   }, 1500);
 }
 
+// ── ONBOARDING COACH MARKS ─────────────────────────────────────────────────
+const _ONBOARD_KEY = 'cutlist_onboarded_v1';
+const _ONBOARD_STEPS = [
+  {
+    target: '#job-picker-trigger',
+    title: 'Start with a job',
+    body: 'Every quote lives inside a job. Click here to load an existing one, or hit <strong>+ NEW JOB</strong> to start fresh — give it a client name and save.',
+  },
+  {
+    target: 'button.tab[data-section="kitchen"]',
+    title: 'Add room units',
+    body: 'Each tab is a room type. Click any room to set how many of each unit you need — kitchens, bedrooms, bathrooms, and more.',
+  },
+  {
+    target: '#cutlist-tab',
+    title: 'See your cutlist',
+    body: 'Once units are set, open <strong>Cutlist</strong> for the cut sheet or <strong>Quote</strong> for full pricing. Use <strong>Panels</strong> to add custom boards.',
+  },
+];
+
+let _onboardStep = 0;
+
+function _maybeStartOnboarding() {
+  try { if (localStorage.getItem(_ONBOARD_KEY)) return; } catch(e) { return; }
+  setTimeout(() => _showOnboardStep(0), 900);
+}
+
+function _showOnboardStep(n) {
+  _onboardStep = n;
+  const step = _ONBOARD_STEPS[n];
+  if (!step) { _dismissOnboarding(); return; }
+  const target = document.querySelector(step.target);
+  if (!target) { _showOnboardStep(n + 1); return; }
+
+  _closeOnboardCoachMark();
+
+  const rect = target.getBoundingClientRect();
+  const PAD = 8;
+  const x = Math.round(rect.left - PAD), y = Math.round(rect.top - PAD);
+  const w = Math.round(rect.width + PAD * 2), h = Math.round(rect.height + PAD * 2);
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  // Dimming overlay with spotlight hole via SVG evenodd
+  const overlay = document.createElement('div');
+  overlay.id = 'onboard-overlay';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+  svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('fill', 'rgba(0,0,0,0.52)');
+  path.setAttribute('fill-rule', 'evenodd');
+  path.setAttribute('d',
+    `M0 0H${vw}V${vh}H0Z ` +
+    `M${x} ${y}H${x+w}V${y+h}H${x}Z`
+  );
+  svg.appendChild(path);
+  // Amber spotlight border
+  const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  border.setAttribute('x', x); border.setAttribute('y', y);
+  border.setAttribute('width', w); border.setAttribute('height', h);
+  border.setAttribute('rx', '4'); border.setAttribute('ry', '4');
+  border.setAttribute('fill', 'none');
+  border.setAttribute('stroke', 'rgba(212,145,58,0.85)');
+  border.setAttribute('stroke-width', '2');
+  svg.appendChild(border);
+  overlay.appendChild(svg);
+  document.body.appendChild(overlay);
+
+  // Tip card
+  const total = _ONBOARD_STEPS.length;
+  const isLast = n === total - 1;
+  const tip = document.createElement('div');
+  tip.id = 'onboard-tip';
+  tip.setAttribute('role', 'dialog');
+  tip.setAttribute('aria-modal', 'false');
+  tip.setAttribute('aria-label', step.title);
+  tip.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+      <h3>${step.title}</h3>
+      <span class="ob-counter">${n + 1} / ${total}</span>
+    </div>
+    <p>${step.body}</p>
+    <div class="ob-footer">
+      <button class="ob-skip" onclick="_dismissOnboarding()">SKIP</button>
+      <button class="ob-next" onclick="${isLast ? '_dismissOnboarding()' : '_showOnboardStep(' + (n + 1) + ')'}">${isLast ? 'GET STARTED' : 'NEXT →'}</button>
+    </div>`;
+  document.body.appendChild(tip);
+
+  // Position tip below target, clamped to viewport
+  const TIP_W = 280, TIP_H = 130;
+  let tipLeft = rect.left + rect.width / 2 - TIP_W / 2;
+  let tipTop = rect.bottom + PAD + 6;
+  tipLeft = Math.max(8, Math.min(tipLeft, vw - TIP_W - 8));
+  if (tipTop + TIP_H > vh - 8) tipTop = rect.top - PAD - TIP_H - 6;
+  tip.style.left = tipLeft + 'px';
+  tip.style.top  = tipTop  + 'px';
+}
+
+function _closeOnboardCoachMark() {
+  document.getElementById('onboard-overlay')?.remove();
+  document.getElementById('onboard-tip')?.remove();
+}
+
+function _dismissOnboarding() {
+  try { localStorage.setItem(_ONBOARD_KEY, '1'); } catch(e) {}
+  _closeOnboardCoachMark();
+}
+
 function switchTab(btn, section) {
   document.querySelectorAll('.tab').forEach(t => {
     if (t.getAttribute('role') === 'menuitem') return;
@@ -13605,6 +13731,7 @@ async function onLoginSuccess() {
   renderPanel();
   _initTabPins();
   showMoreHintOnce();
+  _maybeStartOnboarding();
 }
 
 async function loadTemplatesFromCloud() {
@@ -13848,6 +13975,7 @@ function _openJobPicker() {
   const wrap = document.getElementById('job-picker-wrap');
   const search = document.getElementById('job-search-input');
   if (!wrap || wrap.classList.contains('jp-open')) return;
+  _closeOnboardCoachMark();
   wrap.classList.add('jp-open');
   const trigger = document.getElementById('job-picker-trigger');
   if (trigger) trigger.setAttribute('aria-expanded', 'true');
@@ -14668,6 +14796,7 @@ async function loadJobFromSelect() {
 }
 
 async function newJob() {
+  _closeOnboardCoachMark();
   if (!(await confirmAction('Start a new job? Unsaved changes will be lost.', { confirmLabel: 'START NEW' }))) return;
   currentJobId = null;
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
