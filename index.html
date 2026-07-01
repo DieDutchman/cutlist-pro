@@ -275,6 +275,93 @@
   }
   body.supplier-theme .more-panel,
   body.user-light-theme .more-panel { background: #f5f1e8; border-color: #c8c0b0; }
+  /* Tab pin controls */
+  .more-panel .tab { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .tab-pin-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 2px; cursor: pointer; font-size: 12px; padding: 2px 4px;
+    flex-shrink: 0; line-height: 1; opacity: 0.3;
+    transition: opacity 0.15s, background 0.15s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .more-panel .tab-pin-btn { opacity: 0.6; }
+  .more-panel .tab:hover .tab-pin-btn { opacity: 0.85; }
+  .tab-pin-btn:hover { opacity: 1 !important; background: rgba(212,145,58,0.15); border-radius: 2px; }
+  /* Pinned tab in main bar: pin icon faint, appears on hover */
+  .pinned-tab { display: inline-flex; align-items: center; gap: 2px; }
+  .pinned-tab .tab-pin-btn { opacity: 0; font-size: 9px; padding: 1px 2px; }
+  .pinned-tab:hover .tab-pin-btn { opacity: 0.45; }
+  @keyframes moreHintPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,145,58,0); }
+    50%       { box-shadow: 0 0 0 3px rgba(212,145,58,0.55); }
+  }
+  #more-trigger.hint-open { animation: moreHintPulse 0.9s ease-in-out 3; }
+  /* Right-align tooltip so it doesn't overflow the viewport when More is at nav edge */
+  #more-trigger[data-tip]::after { left: auto; right: 0; transform: none; }
+
+  /* ── JOB OVERFLOW MENU ── */
+  #job-overflow-menu button:hover { background: rgba(212,145,58,0.08); }
+  #job-overflow-btn:hover { border-color: var(--amber-dim); color: var(--amber); }
+
+  /* ── ONBOARDING COACH MARKS ── */
+  #onboard-overlay { position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;pointer-events:none; }
+  #onboard-tip {
+    position:fixed;z-index:10001;background:var(--bg2);border:1px solid var(--amber);
+    border-radius:6px;padding:16px 18px;width:280px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);pointer-events:all;
+    font-family:'Barlow',sans-serif;animation:onboardFadeIn 0.2s ease-out;
+  }
+  @keyframes onboardFadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  #onboard-tip h3 { margin:0 0 8px;font-family:'Oswald',sans-serif;font-size:13px;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase;font-weight:500; }
+  #onboard-tip p { margin:0 0 14px;font-size:13px;line-height:1.55;color:var(--text); }
+  #onboard-tip .ob-footer { display:flex;justify-content:space-between;align-items:center; }
+  #onboard-tip .ob-skip { background:none;border:none;color:var(--text-muted);font-size:11px;font-family:'Barlow',sans-serif;cursor:pointer;padding:0;letter-spacing:0.3px; }
+  #onboard-tip .ob-skip:hover { color:var(--text); }
+  #onboard-tip .ob-next { background:var(--amber);border:none;color:#111;padding:6px 16px;font-family:'Barlow',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;cursor:pointer;border-radius:3px; }
+  #onboard-tip .ob-next:hover { filter:brightness(1.1); }
+  #onboard-tip .ob-counter { font-size:10px;color:var(--text-muted);letter-spacing:0.5px; }
+
+  /* ── CUSTOM JOB PICKER ── */
+  #job-picker-wrap { position:relative; flex:1; min-width:180px; max-width:340px; display:flex; flex-direction:column; gap:3px; }
+  #job-picker-trigger {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    padding:5px 8px; font-family:'Barlow',sans-serif; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+    user-select:none; min-height:32px; width:100%; box-sizing:border-box; text-align:left;
+  }
+  #job-picker-trigger:hover { border-color:var(--amber-dim); }
+  #job-picker-trigger .jp-label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #job-picker-trigger .jp-caret { color:var(--amber-dim); font-size:10px; flex-shrink:0; line-height:1; }
+  #job-picker-dropdown {
+    display:none; position:absolute; top:calc(100% + 2px); left:0; right:0;
+    background:var(--bg2); border:1px solid var(--border); border-top:2px solid var(--amber);
+    max-height:300px; overflow-y:auto; z-index:9200;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  }
+  #job-picker-wrap.jp-open #job-picker-trigger { display:none !important; }
+  #job-picker-wrap.jp-open #job-search-input { display:block !important; }
+  #job-picker-wrap.jp-open #job-picker-dropdown { display:block !important; }
+  .jp-item {
+    padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);
+    display:flex; flex-direction:column; gap:2px; transition:background 0.1s;
+  }
+  .jp-item:last-child { border-bottom:none; }
+  .jp-item:hover, .jp-item.jp-hi { background:rgba(212,145,58,0.12); }
+  .jp-item.jp-sel { background:rgba(212,145,58,0.07); }
+  .jp-item.jp-sel:hover, .jp-item.jp-sel.jp-hi { background:rgba(212,145,58,0.16); }
+  .jp-row1 { display:flex; align-items:center; gap:6px; font-family:'Barlow',sans-serif; font-size:13px; color:var(--text); }
+  .jp-dot { font-size:11px; flex-shrink:0; color:var(--amber-dim); }
+  .jp-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+  .jp-date { font-size:10px; color:var(--text-muted); flex-shrink:0; font-family:'Barlow',sans-serif; letter-spacing:0.2px; }
+  .jp-row2 { font-family:'Barlow',sans-serif; font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-left:17px; }
+  .jp-new-item {
+    padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);
+    font-family:'Barlow',sans-serif; font-size:12px; color:var(--text-muted);
+    display:flex; align-items:center; gap:6px; transition:background 0.1s;
+  }
+  .jp-new-item:hover, .jp-new-item.jp-hi { background:rgba(212,145,58,0.12); color:var(--amber); }
+  .jp-empty { padding:10px; text-align:center; font-size:11px; color:var(--text-muted); font-family:'Barlow',sans-serif; }
+  .jp-archived { font-style:italic; opacity:0.65; }
 
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
@@ -507,6 +594,35 @@
     --uab-border: rgba(0,0,0,0.14);
   }
   .unit-action-btn.is-img svg { display: block; }
+
+  /* ── PURE-CSS TOOLTIPS (data-tip) ── */
+  [data-tip] { position: relative; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 4px 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9500;
+  }
+  [data-tip]:hover::after,
+  [data-tip]:focus-visible::after { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    [data-tip]::after { transition: none; }
+  }
 
   /* Wider gap on roomy screens so the cluster never crowds the label. */
   @media (min-width: 900px) {
@@ -1951,6 +2067,18 @@
   .qv-tops-input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(212,145,58,0.15); }
   .qv-tops-label { font-size: 12px; color: var(--text-muted); }
 
+  /* Quote scenario strip */
+  .qv-scenario-strip { display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .qv-scen-tab { background:var(--bg2); border:1px solid var(--border); color:var(--text-muted); font-family:'Barlow',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.5px; padding:5px 14px; border-radius:3px; cursor:pointer; transition:background 0.15s,color 0.15s,border-color 0.15s; }
+  .qv-scen-tab:hover { background:var(--bg3); color:var(--text); }
+  .qv-scen-tab.active { background:rgba(212,145,58,0.15); border-color:var(--amber); color:var(--amber); }
+  .qv-scen-add { background:transparent; border:1px dashed var(--border); color:var(--text-muted); font-family:'Barlow',sans-serif; font-size:12px; padding:5px 12px; border-radius:3px; cursor:pointer; transition:background 0.15s,color 0.15s; }
+  .qv-scen-add:hover { background:var(--bg2); color:var(--text); border-color:var(--text-muted); }
+  .qv-scen-icon-btn { background:transparent; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; padding:4px 7px; border-radius:3px; line-height:1; transition:color 0.15s,background 0.15s; }
+  .qv-scen-icon-btn:hover { background:var(--bg2); }
+  .qv-scen-rename:hover { color:var(--amber); }
+  .qv-scen-del:hover { color:#e05252; }
+
   /* ─── BUILDER ─── */
   .bldr-layout {
     display: grid;
@@ -2534,10 +2662,13 @@
     padding: 6px 10px !important;
   }
   #job-bar > span:first-child { display: none !important; } /* hide "JOB" label when stacked */
-  #job-select {
+  #job-picker-wrap {
     max-width: 100% !important;
     width: 100% !important;
-    min-height: 44px;
+  }
+  #job-picker-trigger, #job-search-input {
+    min-height: 44px !important;
+    font-size: 14px !important;
   }
   #job-bar-details {
     flex-direction: column !important;
@@ -2752,7 +2883,7 @@
   .wb-modal {
     max-width: 100vw !important;
     max-height: 96vh !important;
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: 6px 6px 0 0 !important;
     width: 100% !important;
   }
   /* Generic modals (inline style): full-screen treatment */
@@ -3392,7 +3523,7 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   text-transform: uppercase;
   padding: 0 22px 0 10px;
   height: 32px;
-  border-radius: 16px;
+  border-radius: 10px;
   outline: none;
   cursor: pointer;
   appearance: none;
@@ -4300,16 +4431,25 @@ body.user-light-theme .pp-vat-select {
   font-family:'Barlow',sans-serif;
   font-size:13px;">
   <span style="font-weight:500;font-size:10px;color:var(--amber-dim);font-family:'Barlow',sans-serif;letter-spacing:0.3px;text-transform:uppercase;white-space:nowrap">Job</span>
-  <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;max-width:340px">
-    <input id="job-search-input" type="text" placeholder="Search jobs…" autocomplete="off"
-      oninput="filterJobSelect(this.value)"
-      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box"
-      onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-    <select id="job-select"
-      onchange="loadJobFromSelect()"
-      style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;outline:none">
+  <div id="job-picker-wrap">
+    <!-- Native select hidden — preserved for JS compat (loadJobFromSelect reads .value) -->
+    <select id="job-select" style="display:none" onchange="loadJobFromSelect()">
       <option value="">— New Job —</option>
     </select>
+    <!-- Trigger: shows selected job name, click opens custom picker -->
+    <button id="job-picker-trigger" type="button" onclick="_openJobPicker()"
+      aria-haspopup="listbox" aria-expanded="false" aria-controls="job-picker-dropdown">
+      <span class="jp-label" id="job-picker-label">— Select a job —</span>
+      <span class="jp-caret">▾</span>
+    </button>
+    <!-- Search: visible only when picker is open -->
+    <input id="job-search-input" type="text" placeholder="Search jobs…" autocomplete="off"
+      oninput="_filterJobPickerItems(this.value)"
+      onkeydown="_jobPickerKeydown(event)"
+      style="display:none;background:var(--bg3);border:1px solid var(--amber);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box">
+    <!-- Dropdown: two-line job cards -->
+    <div id="job-picker-dropdown" role="listbox" aria-label="Select job"></div>
+    <!-- Archived toggle -->
     <div id="job-archived-toggle-wrap" style="display:none;align-items:center;gap:4px">
       <input type="checkbox" id="job-archived-toggle-cb"
         onchange="_jobShowArchived=this.checked;rebuildJobSelect()"
@@ -4339,11 +4479,11 @@ body.user-light-theme .pp-vat-select {
             onblur="this.style.borderColor=''"
             oninput="saveJobDetails(); clientPickerShow(); refreshJobDetailsIndicator();"
             onkeydown="clientPickerKey(event)">
-          <button id="client-clear-btn" type="button" onclick="clientClear()" title="Clear linked client"
+          <button id="client-clear-btn" type="button" onclick="clientClear()" title="Clear linked client" aria-label="Clear linked client"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✕</button>
-          <button id="client-edit-btn" type="button" onclick="clientEditOpen()" title="Edit client details"
+          <button id="client-edit-btn" type="button" onclick="clientEditOpen()" title="Edit client details" aria-label="Edit client details"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">✏</button>
-          <button id="client-history-btn" type="button" onclick="clientHistoryOpen()" title="Show all jobs for this client"
+          <button id="client-history-btn" type="button" onclick="clientHistoryOpen()" title="Show all jobs for this client" aria-label="Show all jobs for this client"
             style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;min-height:24px;min-width:24px">🕐</button>
           <div id="client-picker-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:2px;background:var(--bg2);border:1px solid var(--border);width:240px;max-height:240px;overflow-y:auto;z-index:9000;box-shadow:0 4px 12px rgba(0,0,0,0.4);font-family:'Barlow',sans-serif"></div>
         </div>
@@ -4377,10 +4517,13 @@ body.user-light-theme .pp-vat-select {
     <div id="job-status-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border);min-width:150px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
     </div>
   </div>
+  <!-- Zone separator: job-context → primary actions -->
+  <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <button onclick="saveJobToCloud()" id="job-save-btn"
     style="font-weight:500;background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     💾 SAVE JOB
   </button>
+  <span id="autosave-chip" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 4px;transition:color 0.2s">⬤ Saved</span>
   <button onclick="newJob()"
     style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     + NEW JOB
@@ -4390,12 +4533,20 @@ body.user-light-theme .pp-vat-select {
     title="[BETA] Upload an architect's floor plan PDF — AI extracts room dimensions">
     📐 PLAN [BETA]
   </button>
-  <button onclick="archiveCurrentJob()" id="job-archive-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap" title="Archive this job — hides it from the job list without deleting">
-    📦 ARCHIVE
-  </button>
-  <button onclick="deleteCurrentJob()" id="job-delete-btn" style="display:none;background:none;border:1px solid #5a2a2a;color:#e05252;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap">
-    🗑 DELETE
-  </button>
+  <!-- Zone separator: primary actions → danger zone -->
+  <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
+  <div id="job-overflow-wrap" style="display:none;position:relative;align-items:center">
+    <button id="job-overflow-btn" type="button" onclick="toggleJobOverflowMenu()"
+      title="More job actions: archive or delete" aria-haspopup="true" aria-expanded="false" aria-label="More job actions"
+      style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 12px;font-size:16px;cursor:pointer;line-height:1;letter-spacing:2px">⋯</button>
+    <div id="job-overflow-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);min-width:160px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
+      <button id="job-archive-btn" type="button" onclick="archiveCurrentJob()"
+        title="Archive this job — hides it from the job list without deleting"
+        style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--text-muted);cursor:pointer;white-space:nowrap">📦 ARCHIVE</button>
+      <button id="job-delete-btn" type="button" onclick="deleteCurrentJob()"
+        style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:#e05252;cursor:pointer;white-space:nowrap">🗑 DELETE</button>
+    </div>
+  </div>
   <!-- Status indicators (subordinate, muted) -->
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px;opacity:0.75">
     <span id="job-sync-status"></span>
@@ -4406,7 +4557,7 @@ body.user-light-theme .pp-vat-select {
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <!-- Account / utility cluster: theme, users, feedback, sign-out -->
   <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-    <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme"
+    <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme" aria-label="Switch between light and dark theme"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:12px;cursor:pointer;line-height:1">
       🌙
     </button>
@@ -4415,7 +4566,7 @@ body.user-light-theme .pp-vat-select {
     </button>
     <button onclick="openFeedbackModal()" id="feedback-btn" title="Send feedback or report an issue"
       style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 9px;font-size:11px;font-family:'Barlow',sans-serif;letter-spacing:0.3px;cursor:pointer;position:relative">
-      💬 FEEDBACK<span id="fb-unread-dot" style="display:none;position:absolute;top:2px;right:2px;background:#e05252;color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:0px 4px;border-radius:8px;line-height:16px;min-width:16px;text-align:center;pointer-events:none"></span>
+      💬 FEEDBACK<span id="fb-unread-dot" style="display:none;position:absolute;top:2px;right:2px;background:#e05252;color:#fff;font-size:9px;font-family:'JetBrains Mono',monospace;padding:0px 4px;border-radius:50%;line-height:16px;min-width:16px;text-align:center;pointer-events:none"></span>
     </button>
     <button onclick="doLogout()"
       style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 9px;font-size:11px;font-family:'Barlow',sans-serif;letter-spacing:0.3px;cursor:pointer">
@@ -4433,7 +4584,7 @@ body.user-light-theme .pp-vat-select {
     <div style="overflow:hidden;flex:1;position:relative;height:100%">
       <div id="ticker-track" style="display:flex;align-items:center;height:100%;position:absolute;white-space:nowrap;will-change:transform"></div>
     </div>
-    <button onclick="document.getElementById('price-ticker').style.display='none'" title="Dismiss"
+    <button onclick="document.getElementById('price-ticker').style.display='none'" title="Dismiss" aria-label="Dismiss price ticker"
       style="flex-shrink:0;background:none;border:none;color:var(--amber-dim);padding:0 8px;cursor:pointer;font-size:14px;height:100%">×</button>
   </div>
 </div>
@@ -4589,14 +4740,14 @@ body.user-light-theme .pp-vat-select {
          Buttons keep their original ids, data-section, and switchTab handlers so
          all existing show/hide and role-gating logic continues to work. -->
     <span class="more-wrap" id="more-wrap" style="margin-left:auto">
-      <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span class="caret">▾</span></button>
+      <button class="tab more-trigger" id="more-trigger" type="button" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false">More <span id="more-badge" style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber-dim);letter-spacing:0;margin-right:2px"></span><span class="caret">▾</span></button>
       <div class="more-panel" id="more-panel" role="menu">
-        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" style="display:none">📊 Job P&amp;L</button>
-        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab">🧾 Supplier Prices</button>
-        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab">🔧 My Costs</button>
-        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab">🔨 Builder</button>
-        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab">📥 Import</button>
-        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" style="display:none">📋 Imported Cutlist</button>
+        <button class="tab" role="menuitem" data-section="__pl__" onclick="switchTab(this,'__pl__'); closeMoreMenu()" id="pl-tab" aria-controls="pl-view" style="display:none">📊 Job P&amp;L</button>
+        <button class="tab" role="menuitem" data-section="__prices__" onclick="switchTab(this,'__prices__'); closeMoreMenu()" id="prices-tab" aria-controls="prices-view">🧾 Supplier Prices</button>
+        <button class="tab" role="menuitem" data-section="__materials__" onclick="switchTab(this,'__materials__'); closeMoreMenu()" id="materials-tab" aria-controls="materials-view">🔧 My Costs</button>
+        <button class="tab" role="menuitem" data-section="__builder__" onclick="switchTab(this,'__builder__'); closeMoreMenu()" id="builder-tab" aria-controls="builder-view">🔨 Builder</button>
+        <button class="tab" role="menuitem" data-section="__import__" onclick="switchTab(this,'__import__'); closeMoreMenu()" id="import-tab" aria-controls="import-view">📥 Import</button>
+        <button class="tab" role="menuitem" data-section="__imported__" onclick="switchTab(this,'__imported__'); closeMoreMenu()" id="imported-tab" aria-controls="imported-cutlist-view" style="display:none">📋 Imported Cutlist</button>
       </div>
     </span>
   </div>
@@ -4657,7 +4808,7 @@ body.user-light-theme .pp-vat-select {
   <div id="imported-cutlist-view" style="display:none"></div>
   <div id="pl-view" style="display:none"></div>
   <!-- FEEDBACK MODAL -->
-  <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
+  <div id="feedback-modal" onclick="if(event.target===this)closeFeedbackModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:500px;max-width:95vw;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">&#x1F4AC; Feedback</div>
@@ -4695,7 +4846,7 @@ body.user-light-theme .pp-vat-select {
             <div style="flex:1;min-width:0">
               <div id="fb-screenshot-label" style="font-size:12px;color:var(--text-muted);line-height:1.5">Click to attach a screenshot (JPG, PNG, GIF, WebP)</div>
               <div id="fb-screenshot-preview-wrap" style="display:none;margin-top:6px">
-                <img id="fb-screenshot-preview" src="" alt="preview" style="max-height:80px;max-width:100%;border:1px solid var(--border)">
+                <img id="fb-screenshot-preview" alt="preview" style="max-height:80px;max-width:100%;border:1px solid var(--border)">
               </div>
             </div>
             <input type="file" id="fb-screenshot-file" accept="image/*" style="display:none" onchange="onFbScreenshotPicked(this)">
@@ -4718,7 +4869,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
   <!-- ═══ PLAN IMPORT MODAL [BETA] ═══════════════════════════════════════════ -->
-  <div id="plan-import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
+  <div id="plan-import-modal" onclick="if(event.target===this)closePlanImportModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">📐 Import Floor Plan <span style="color:var(--amber);font-size:11px;letter-spacing:2px;margin-left:6px">[BETA]</span></div>
@@ -4731,7 +4882,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
   <!-- ═══ BULK PRICE ADJUSTMENT MODAL ═══════════════════════════════════════ -->
-  <div id="bulk-adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+  <div id="bulk-adjust-modal" onclick="if(event.target===this)closeBulkAdjustModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
@@ -4773,7 +4924,7 @@ body.user-light-theme .pp-vat-select {
     </div>
   </div>
 
-  <div id="import-prices-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
+  <div id="import-prices-modal" onclick="if(event.target===this)closeImportPricesModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
@@ -4853,7 +5004,7 @@ body.user-light-theme .pp-vat-select {
     </div>
   </div>
 
-    <div id="board-cleanup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
+    <div id="board-cleanup-modal" onclick="if(event.target===this)closeBoardCleanupModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">🗃 Manage Supabase Boards</div>
@@ -4873,7 +5024,7 @@ body.user-light-theme .pp-vat-select {
   <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
     <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
-    <img id="img-lightbox-img" src="" alt="" style="display:none">
+    <img id="img-lightbox-img" alt="" style="display:none">
     <div id="img-lightbox-svg" style="display:none" onclick="event.stopPropagation()"></div>
     <div class="img-lightbox-caption" id="img-lightbox-caption"></div>
   </div>
@@ -6060,6 +6211,7 @@ function openTemplateEditor(id) {
   const modal = document.createElement('div');
   modal.id = 'tpl-edit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9600;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -6151,15 +6303,34 @@ async function submitTemplateEditor(id) {
 const quantities = {};
 getEffectiveUnits().forEach(u => quantities[u.id] = 0);
 
+// Per-section qty snapshots — taken at render time, used by the section revert button
+const _sectionQtySnapshots = new Map();
+// Per-section mat-override snapshots — taken at render time alongside qty snapshots
+const _sectionMatSnapshots = new Map();
+
 // Load saved quantities
 try {
   const saved = localStorage.getItem('cutlist_quantities');
   if (saved) Object.assign(quantities, JSON.parse(saved));
 } catch(e) {}
 
+let _saveFlashTimer = null;
+function _signalSave() {
+  const chip = document.getElementById('autosave-chip');
+  if (!chip) return;
+  chip.textContent = '⬤ Saving…';
+  chip.style.color = 'var(--amber)';
+  clearTimeout(_saveFlashTimer);
+  _saveFlashTimer = setTimeout(() => {
+    chip.textContent = '⬤ Saved';
+    chip.style.color = 'var(--text-muted)';
+  }, 800);
+}
+
 function save() {
   try { localStorage.setItem('cutlist_quantities', JSON.stringify(quantities)); } catch(e) {}
   scheduleAutoSave();
+  try { _signalSave(); } catch(e) {}
 }
 
 // Per-row holes/notes overrides (keyed by part consolidation key)
@@ -6635,6 +6806,11 @@ function toggleMoreMenu(ev) {
   const isOpen = wrap.classList.toggle('open');
   const trig = document.getElementById('more-trigger');
   if (trig) trig.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  // User interacted — mark hint seen so auto-open never fires or re-fires
+  if (!localStorage.getItem('moreHintSeen')) {
+    localStorage.setItem('moreHintSeen', '1');
+    if (trig) trig.classList.remove('hint-open');
+  }
 }
 
 // ─── Job details popover (client/stand/address/notes collapsed behind icon) ─
@@ -6694,7 +6870,7 @@ document.addEventListener('click', function(ev) {
 });
 // Close on Escape
 document.addEventListener('keydown', function(ev) {
-  if (ev.key === 'Escape') closeMoreMenu();
+  if (ev.key === 'Escape') { closeMoreMenu(); closeKbLegend(); }
 });
 
 // ── Alt+1..5 — primary tab keyboard shortcuts ─────────────────────────────
@@ -6736,6 +6912,29 @@ document.addEventListener('keydown', function(ev) {
   ev.preventDefault();
   try { switchTab(btn, section); } catch(e) {}
 });
+// ── Keyboard shortcuts legend (? key) ────────────────────────────────────
+function openKbLegend() {
+  const m = document.getElementById('kb-legend-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  m.focus();
+}
+function closeKbLegend() {
+  const m = document.getElementById('kb-legend-modal');
+  if (m) m.style.display = 'none';
+}
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== '?') return;
+  if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+  const ae = document.activeElement;
+  if (ae) {
+    const tag = ae.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable) return;
+  }
+  ev.preventDefault();
+  openKbLegend();
+});
+
 // ── Edge codes popover (L1 / L2 / W1 / W2 quick reference) ───────────────
 // Jordan edits edging on parts in Panels / Cutlist tabs and needs the
 // L1/L2/W1/W2 explanation without diving into the Import tab. Each editor
@@ -6793,6 +6992,240 @@ function syncMoreTriggerActive() {
   if (!wrap || !trig) return;
   const activeInPanel = !!wrap.querySelector('.more-panel .tab.active');
   trig.classList.toggle('has-active', activeInPanel);
+  updateMoreBadge();
+}
+
+// Keep the +N count on the More button accurate as role-gating shows/hides items
+function updateMoreBadge() {
+  const panel = document.getElementById('more-panel');
+  const badge = document.getElementById('more-badge');
+  if (!panel || !badge) return;
+  const items = panel.querySelectorAll('[role="menuitem"]');
+  const visibleItems = [...items].filter(el => el.style.display !== 'none');
+  const visible = visibleItems.length;
+  badge.textContent = visible > 0 ? '+' + visible : '';
+  const trig = document.getElementById('more-trigger');
+  if (trig) {
+    if (visible > 0) {
+      const names = visibleItems.map(el => el.textContent.trim()).join(' · ');
+      trig.setAttribute('data-tip', names);
+    } else {
+      trig.removeAttribute('data-tip');
+    }
+  }
+}
+
+// ─── Tab Pinning ─────────────────────────────────────────────────────────────
+const _MORE_TAB_ORDER = ['pl-tab','prices-tab','materials-tab','builder-tab','import-tab','imported-tab'];
+let _pinnedTabIds;
+try { _pinnedTabIds = new Set(JSON.parse(localStorage.getItem('cutlist_pinnedTabs') || '[]')); }
+catch(e) { _pinnedTabIds = new Set(); }
+
+function toggleTabPin(tabId, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  if (_pinnedTabIds.has(tabId)) _pinnedTabIds.delete(tabId);
+  else _pinnedTabIds.add(tabId);
+  try { localStorage.setItem('cutlist_pinnedTabs', JSON.stringify([..._pinnedTabIds])); } catch(e) {}
+  _applyTabPins();
+  closeMoreMenu();
+}
+
+function _applyTabPins() {
+  const moreWrap = document.getElementById('more-wrap');
+  const morePanel = document.getElementById('more-panel');
+  if (!moreWrap || !morePanel) return;
+
+  let zone = document.getElementById('pinned-tabs-zone');
+  if (!zone) {
+    zone = document.createElement('span');
+    zone.id = 'pinned-tabs-zone';
+    moreWrap.parentElement.insertBefore(zone, moreWrap);
+  }
+
+  _MORE_TAB_ORDER.forEach(id => {
+    const tab = document.getElementById(id);
+    if (!tab) return;
+    const pinned = _pinnedTabIds.has(id);
+
+    if (pinned && tab.parentElement !== zone) {
+      zone.appendChild(tab);
+      tab.setAttribute('role', 'tab');
+      tab.classList.add('pinned-tab');
+    } else if (!pinned && tab.parentElement !== morePanel) {
+      // Re-insert in canonical order after any already-present earlier sibling
+      const after = _MORE_TAB_ORDER.slice(_MORE_TAB_ORDER.indexOf(id) + 1)
+        .map(nid => document.getElementById(nid))
+        .find(el => el?.parentElement === morePanel);
+      morePanel.insertBefore(tab, after || null);
+      tab.setAttribute('role', 'menuitem');
+      tab.classList.remove('pinned-tab');
+    }
+
+    const pinBtn = tab.querySelector('.tab-pin-btn');
+    if (pinBtn) {
+      pinBtn.textContent = pinned ? '📌' : '📍';
+      pinBtn.title = pinned ? 'Unpin from bar' : 'Pin to main bar';
+      pinBtn.setAttribute('aria-label', pinned ? 'Unpin from bar' : 'Pin to main bar');
+      pinBtn.setAttribute('data-tip', pinned ? 'Unpin from bar' : 'Pin to main bar');
+    }
+  });
+
+  updateMoreBadge();
+}
+
+function _initTabPins() {
+  const morePanel = document.getElementById('more-panel');
+  if (!morePanel) return;
+  _MORE_TAB_ORDER.forEach(id => {
+    const tab = document.getElementById(id);
+    if (!tab || tab.querySelector('.tab-pin-btn')) return;
+    const span = document.createElement('span');
+    span.className = 'tab-pin-btn';
+    span.setAttribute('role', 'button');
+    span.setAttribute('tabindex', '0');
+    span.setAttribute('aria-label', 'Pin to main bar');
+    span.setAttribute('data-tip', 'Pin to main bar');
+    span.textContent = '📍';
+    span.addEventListener('click', ev => toggleTabPin(id, ev));
+    span.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggleTabPin(id, ev); } });
+    tab.appendChild(span);
+  });
+  _applyTabPins();
+}
+
+// One-shot hint: auto-opens the More dropdown on first visit so users discover hidden tabs
+function showMoreHintOnce() {
+  if (localStorage.getItem('moreHintSeen')) return;
+  const wrap = document.getElementById('more-wrap');
+  const trig = document.getElementById('more-trigger');
+  if (!wrap || !trig) return;
+  const visibleItems = [...document.querySelectorAll('#more-panel [role="menuitem"]')].filter(el => el.style.display !== 'none');
+  if (!visibleItems.length) return;
+  let dismissTimer;
+  const dismiss = () => {
+    clearTimeout(dismissTimer);
+    if (localStorage.getItem('moreHintSeen')) { trig.classList.remove('hint-open'); return; }
+    wrap.classList.remove('open');
+    trig.setAttribute('aria-expanded', 'false');
+    trig.classList.remove('hint-open');
+    localStorage.setItem('moreHintSeen', '1');
+  };
+  setTimeout(() => {
+    if (localStorage.getItem('moreHintSeen')) return;
+    wrap.classList.add('open');
+    trig.setAttribute('aria-expanded', 'true');
+    trig.classList.add('hint-open');
+    dismissTimer = setTimeout(dismiss, 3000);
+    setTimeout(() => document.addEventListener('click', dismiss, { once: true }), 150);
+  }, 1500);
+}
+
+// ── ONBOARDING COACH MARKS ─────────────────────────────────────────────────
+const _ONBOARD_KEY = 'cutlist_onboarded_v1';
+const _ONBOARD_STEPS = [
+  {
+    target: '#job-picker-trigger',
+    title: 'Start with a job',
+    body: 'Every quote lives inside a job. Click here to load an existing one, or hit <strong>+ NEW JOB</strong> to start fresh — give it a client name and save.',
+  },
+  {
+    target: 'button.tab[data-section="kitchen"]',
+    title: 'Add room units',
+    body: 'Each tab is a room type. Click any room to set how many of each unit you need — kitchens, bedrooms, bathrooms, and more.',
+  },
+  {
+    target: '#cutlist-tab',
+    title: 'See your cutlist',
+    body: 'Once units are set, open <strong>Cutlist</strong> for the cut sheet or <strong>Quote</strong> for full pricing. Use <strong>Panels</strong> to add custom boards.',
+  },
+];
+
+let _onboardStep = 0;
+
+function _maybeStartOnboarding() {
+  try { if (localStorage.getItem(_ONBOARD_KEY)) return; } catch(e) { return; }
+  setTimeout(() => _showOnboardStep(0), 900);
+}
+
+function _showOnboardStep(n) {
+  _onboardStep = n;
+  const step = _ONBOARD_STEPS[n];
+  if (!step) { _dismissOnboarding(); return; }
+  const target = document.querySelector(step.target);
+  if (!target) { _showOnboardStep(n + 1); return; }
+
+  _closeOnboardCoachMark();
+
+  const rect = target.getBoundingClientRect();
+  const PAD = 8;
+  const x = Math.round(rect.left - PAD), y = Math.round(rect.top - PAD);
+  const w = Math.round(rect.width + PAD * 2), h = Math.round(rect.height + PAD * 2);
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  // Dimming overlay with spotlight hole via SVG evenodd
+  const overlay = document.createElement('div');
+  overlay.id = 'onboard-overlay';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+  svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('fill', 'rgba(0,0,0,0.52)');
+  path.setAttribute('fill-rule', 'evenodd');
+  path.setAttribute('d',
+    `M0 0H${vw}V${vh}H0Z ` +
+    `M${x} ${y}H${x+w}V${y+h}H${x}Z`
+  );
+  svg.appendChild(path);
+  // Amber spotlight border
+  const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  border.setAttribute('x', x); border.setAttribute('y', y);
+  border.setAttribute('width', w); border.setAttribute('height', h);
+  border.setAttribute('rx', '4'); border.setAttribute('ry', '4');
+  border.setAttribute('fill', 'none');
+  border.setAttribute('stroke', 'rgba(212,145,58,0.85)');
+  border.setAttribute('stroke-width', '2');
+  svg.appendChild(border);
+  overlay.appendChild(svg);
+  document.body.appendChild(overlay);
+
+  // Tip card
+  const total = _ONBOARD_STEPS.length;
+  const isLast = n === total - 1;
+  const tip = document.createElement('div');
+  tip.id = 'onboard-tip';
+  tip.setAttribute('role', 'dialog');
+  tip.setAttribute('aria-modal', 'false');
+  tip.setAttribute('aria-label', step.title);
+  tip.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+      <h3>${step.title}</h3>
+      <span class="ob-counter">${n + 1} / ${total}</span>
+    </div>
+    <p>${step.body}</p>
+    <div class="ob-footer">
+      <button class="ob-skip" onclick="_dismissOnboarding()">SKIP</button>
+      <button class="ob-next" onclick="${isLast ? '_dismissOnboarding()' : '_showOnboardStep(' + (n + 1) + ')'}">${isLast ? 'GET STARTED' : 'NEXT →'}</button>
+    </div>`;
+  document.body.appendChild(tip);
+
+  // Position tip below target, clamped to viewport
+  const TIP_W = 280, TIP_H = 130;
+  let tipLeft = rect.left + rect.width / 2 - TIP_W / 2;
+  let tipTop = rect.bottom + PAD + 6;
+  tipLeft = Math.max(8, Math.min(tipLeft, vw - TIP_W - 8));
+  if (tipTop + TIP_H > vh - 8) tipTop = rect.top - PAD - TIP_H - 6;
+  tip.style.left = tipLeft + 'px';
+  tip.style.top  = tipTop  + 'px';
+}
+
+function _closeOnboardCoachMark() {
+  document.getElementById('onboard-overlay')?.remove();
+  document.getElementById('onboard-tip')?.remove();
+}
+
+function _dismissOnboarding() {
+  try { localStorage.setItem(_ONBOARD_KEY, '1'); } catch(e) {}
+  _closeOnboardCoachMark();
 }
 
 function switchTab(btn, section) {
@@ -7122,8 +7555,8 @@ function _renderPanel() {
       <button onclick="openTemplateBrowser()" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Pick a standard cabinet from the built-in library">📋 COPY FROM TEMPLATE</button>
       <button onclick="openImportUnitModal()" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Reuse a unit from a previous job">⇪ IMPORT UNIT</button>
       <button onclick="openNewUnitModal()" style="font-weight:500;background:var(--amber);color:#111;border:none;padding:7px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer" title="Build a custom unit from scratch">+ NEW UNIT</button>
-      <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room">✏</button>
-      <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room">🗑</button>
+      <button onclick="renameRoomPrompt('${currentSection}')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;font-size:11px;cursor:pointer" title="Rename room" aria-label="Rename room">✏</button>
+      <button onclick="deleteRoomPrompt('${currentSection}')" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:6px 10px;font-size:11px;cursor:pointer" title="Delete room" aria-label="Delete room">🗑</button>
     </div>`;
     if (units.length === 0) {
       html += `<div style="padding:40px 0;text-align:center;color:var(--text-muted);border:2px dashed var(--border);border-radius:3px;margin:12px 0">
@@ -7180,7 +7613,11 @@ function _renderPanel() {
       <div style="font-size:12px;color:var(--text-muted)">Set a quantity for any unit in the list below to add it to your cutlist — or create a custom unit using the builder.</div>
     </div>` : '';
 
-  html += `<div class="section-header">${isUserMode ? '' : sec.label}</div>
+  // Snapshot current quantities and mat overrides for this section before rendering
+  { const _snap = {}; units.forEach(u => { _snap[u.id] = quantities[u.id] || 0; }); _sectionQtySnapshots.set(sec.id || currentSection, _snap);
+    const _msnap = {}; units.forEach(u => { _msnap[u.id] = unitMatOverrides[u.id] ? {...unitMatOverrides[u.id]} : null; }); _sectionMatSnapshots.set(sec.id || currentSection, _msnap); }
+
+  html += `<div class="section-header" style="display:flex;align-items:center;gap:8px">${isUserMode ? '' : sec.label}<button id="section-revert-${sec.id || currentSection}" onclick="_sectionRevert('${sec.id || currentSection}')" title="Revert quantities to last saved state" aria-label="Revert section quantities" style="display:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button></div>
   ${sortControl}
   ${_emptyNudge}
   ${_noUnitsNudge}
@@ -7193,7 +7630,7 @@ function _renderPanel() {
     const qty = quantities[u.id] || 0;
     const hasImg = !!unitImages[u.id];
     const _imgTitle = hasImg ? 'View uploaded diagram' : 'View unit schematic (auto-generated)';
-    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
+    const imgBtn = `<button class="unit-action-btn is-icon is-img" title="${_imgTitle}" aria-label="${_imgTitle}" onclick="openLightbox('${u.id}', '${u.name.replace(/'/g,"\\'")}')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.75" y="0.75" width="11.5" height="11.5" rx="1" stroke="currentColor" stroke-width="1"/><rect x="1.5" y="1.5" width="10" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="0.75"/><rect x="1.5" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/><rect x="7" y="5.75" width="4.5" height="6" rx="0.5" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="0.75"/></svg></button>`;
     const noParts = !u.parts || u.parts.length === 0;
     const nameStyle = noParts ? 'color:#e05252' : '';
     const noPartsTag = noParts ? `<span class="unit-noparts" title="No parts defined — will be skipped in cutlist">⚠ No Parts</span>` : '';
@@ -7263,7 +7700,7 @@ function _renderPanel() {
     const isExpanded = expandedUnits.has(u.id);
     const hasParts   = u.parts && u.parts.length > 0;
     const expandBtn  = hasParts
-      ? `<button class="unit-expand${isExpanded ? ' is-open' : ''}" onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}">▶</button>`
+      ? `<button class="unit-expand${isExpanded ? ' is-open' : ''}" onclick="toggleUnitExpand('${u.id}')" title="${isExpanded ? 'Hide parts' : 'Show parts'}" aria-label="${isExpanded ? 'Hide parts' : 'Show parts'}">▶</button>`
       : '';
 
     // Parts expand row
@@ -7366,7 +7803,7 @@ function _renderPanel() {
                 ↩ RESTORE
               </button>
               <button onclick="deleteUserUnit('${u.id}')"
-                style="background:none;border:none;color:#b05050;padding:4px 8px;font-size:12px;cursor:pointer" title="Delete permanently">×</button>
+                style="background:none;border:none;color:#b05050;padding:4px 8px;font-size:12px;cursor:pointer" title="Delete permanently" aria-label="Delete permanently">×</button>
             </div>`).join('')}
         </div>
       </div>`;
@@ -7411,6 +7848,7 @@ function setQty(id, input) {
   save();
   updateSummary();
   updateCounts();
+  _sectionDirtyCheck(currentSection);
 }
 
 // Returns room list for unit-count iteration. matchIds covers both the room's
@@ -7487,6 +7925,8 @@ async function clearAll() {
   quoteState.markup     = 0.40;
   quoteState.hingeType  = 'soft';
   quoteState.runnerType = 'soft';
+  quoteState.scenarios      = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
   saveQuoteState();
 
   Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
@@ -9042,7 +9482,7 @@ function buildPartRow(p, i) {
     <td><select autocomplete="off" class="editor-mat-select" data-f="ew1" title="W1 — short edge 1 (width of part)">${edgeOpts(p.ew1||'')}</select></td>
     <td><select autocomplete="off" class="editor-mat-select" data-f="ew2" title="W2 — short edge 2 (opposite width edge)">${edgeOpts(p.ew2||'')}</select></td>
     <td><input autocomplete="off" class="part-cell-input" data-f="holes" value="${(p.holes||'').replace(/"/g,'&quot;')}" placeholder="e.g. 2 per door"></td>
-    <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part">×</button></td>
+    <td><button class="part-del-btn" onclick="this.closest('tr').remove()" title="Remove part" aria-label="Remove part">×</button></td>
   </tr>`;
 }
 
@@ -9576,7 +10016,7 @@ function buildPlantOnCard(secId) {
         <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">PANEL ${i+1}</span>
         ${po.items.length > 1
           ? `<button onclick="bedroomAddons['${secId}'].plantOn.items.splice(${i},1);${save}"
-               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove">×</button>`
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove panel">×</button>`
           : ''}
       </div>
       <div class="addon-row">
@@ -9676,7 +10116,7 @@ function buildSpacersCard(secId) {
         <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">SPACER ${i+1}</span>
         ${sp.items.length > 1
           ? `<button onclick="bedroomAddons['${secId}'].spacers.items.splice(${i},1);${save}"
-               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove">×</button>`
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove spacer">×</button>`
           : ''}
       </div>
       <div class="addon-row">
@@ -10958,6 +11398,12 @@ let quoteState = {
   // labourConfig.mode === 'per-unit'. Default 0 for any unit not present.
   unitLabourHours: {},
 };
+var SCENARIO_FIELDS = [
+  'tops','extras','markup',
+  'consultFee','consultFeeAmt','dieselFee','dieselFeeAmt','deliveryFee','deliveryFeeAmt',
+  'boardSurchargeEnabled','topsOpen','feesOpen'
+];
+
 try {
   const qs = JSON.parse(localStorage.getItem('cutlist_quotestate') || '{}');
   if (qs.markup !== undefined)     quoteState.markup     = qs.markup;
@@ -10976,10 +11422,87 @@ try {
   if (qs.hwOpen     !== undefined) quoteState.hwOpen     = qs.hwOpen;
   if (qs.hwBreakdownOpen && typeof qs.hwBreakdownOpen === 'object') quoteState.hwBreakdownOpen = qs.hwBreakdownOpen;
   if (qs.unitLabourHours && typeof qs.unitLabourHours === 'object') quoteState.unitLabourHours = qs.unitLabourHours;
+  if (Array.isArray(qs.scenarios))     quoteState.scenarios      = qs.scenarios;
+  if (qs.activeScenario !== undefined) quoteState.activeScenario = qs.activeScenario;
 } catch(e) {}
 
+// Ensure scenarios exist and apply the active one to the working fields.
+// On a brand-new / migrated save the individual fields are already correct;
+// on a saved-with-scenarios save we re-apply the active snapshot on top.
+;(function _initScenarios() {
+  if (!quoteState.scenarios || !quoteState.scenarios.length) {
+    const sc = { name: 'Option A' };
+    SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+    quoteState.scenarios = [sc];
+    quoteState.activeScenario = 0;
+  } else {
+    const active = quoteState.scenarios[quoteState.activeScenario || 0];
+    if (active) SCENARIO_FIELDS.forEach(k => {
+      if (active[k] !== undefined) quoteState[k] = JSON.parse(JSON.stringify(active[k]));
+    });
+  }
+})();
+
 function saveQuoteState() {
+  // Sync working fields into the active scenario before persisting
+  if (quoteState.scenarios && quoteState.scenarios.length) {
+    const sc = quoteState.scenarios[quoteState.activeScenario || 0];
+    if (sc) SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+  }
   try { localStorage.setItem('cutlist_quotestate', JSON.stringify(quoteState)); } catch(e) {}
+  try { _signalSave(); } catch(e) {}
+}
+
+// ── Quote scenario helpers ──────────────────────────────────────────────────
+function _captureScenario(idx) {
+  const sc = quoteState.scenarios?.[idx];
+  if (!sc) return;
+  SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+}
+function _applyScenario(idx) {
+  const sc = quoteState.scenarios?.[idx];
+  if (!sc) return;
+  SCENARIO_FIELDS.forEach(k => { if (sc[k] !== undefined) quoteState[k] = JSON.parse(JSON.stringify(sc[k])); });
+}
+function switchScenario(idx) {
+  if (!quoteState.scenarios || idx === (quoteState.activeScenario || 0)) return;
+  _captureScenario(quoteState.activeScenario || 0);
+  quoteState.activeScenario = idx;
+  _applyScenario(idx);
+  saveQuoteState();
+  renderQuoteView();
+}
+function addScenario() {
+  if (!quoteState.scenarios) return;
+  _captureScenario(quoteState.activeScenario || 0);
+  const clone = JSON.parse(JSON.stringify(quoteState.scenarios[quoteState.activeScenario || 0]));
+  const used = new Set(quoteState.scenarios.map(s => s.name));
+  let letter = quoteState.scenarios.length;
+  let name;
+  do { name = 'Option ' + String.fromCharCode(65 + letter++); } while (used.has(name) && letter < 90);
+  clone.name = name;
+  quoteState.scenarios.push(clone);
+  quoteState.activeScenario = quoteState.scenarios.length - 1;
+  _applyScenario(quoteState.activeScenario);
+  saveQuoteState();
+  renderQuoteView();
+}
+function deleteScenario(idx) {
+  if (!quoteState.scenarios || quoteState.scenarios.length <= 1) return;
+  quoteState.scenarios.splice(idx, 1);
+  quoteState.activeScenario = Math.min(quoteState.activeScenario || 0, quoteState.scenarios.length - 1);
+  _applyScenario(quoteState.activeScenario);
+  saveQuoteState();
+  renderQuoteView();
+}
+function renameScenario(idx) {
+  if (!quoteState.scenarios) return;
+  const cur = quoteState.scenarios[idx]?.name || '';
+  const name = prompt('Rename scenario:', cur);
+  if (!name || !name.trim()) return;
+  quoteState.scenarios[idx].name = name.trim();
+  saveQuoteState();
+  renderQuoteView();
 }
 
 function fmt(n) { return 'R ' + Math.round(n).toLocaleString('en-ZA'); }
@@ -10988,6 +11511,29 @@ function renderQuoteView() { withScrollLock(_renderQuoteView); }
 function _renderQuoteView() {
   const allUnits = getEffectiveUnits();
   const job = (() => { try { return JSON.parse(localStorage.getItem('cutlist_job')||'{}'); } catch(e){ return {}; } })();
+
+  // Safety net: ensure scenarios are initialised
+  if (!quoteState.scenarios || !quoteState.scenarios.length) {
+    const sc = { name: 'Option A' };
+    SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+    quoteState.scenarios = [sc];
+    quoteState.activeScenario = 0;
+  }
+  const _activeIdx = quoteState.activeScenario || 0;
+  let scenStrip = `<div class="qv-scenario-strip" role="tablist" aria-label="Quote options">`;
+  quoteState.scenarios.forEach((sc, i) => {
+    scenStrip += `<button role="tab" aria-selected="${i === _activeIdx}" class="qv-scen-tab${i === _activeIdx ? ' active' : ''}" id="qv-scen-tab-${i}">${sc.name}</button>`;
+  });
+  scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario" aria-label="Clone this option as a new scenario">＋ Add option</button>`;
+  scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
+  if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option" aria-label="Remove this option">✕</button>`;
+  scenStrip += `</div>`;
+  if (quoteState.scenarios.length === 1 && localStorage.getItem('scenHintDismissed') !== '1') {
+    scenStrip += `<div id="qv-scen-hint" style="display:flex;align-items:baseline;gap:10px;background:rgba(212,145,58,0.07);border:1px solid rgba(212,145,58,0.22);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.5">
+      <span style="flex:1">💡 <strong style="color:var(--text)">＋ Add option</strong> clones this quote as a separate pricing scenario — great for presenting Option A / B / C alternatives to a client without duplicating the job.</span>
+      <button onclick="localStorage.setItem('scenHintDismissed','1');const h=document.getElementById('qv-scen-hint');if(h)h.remove()" aria-label="Dismiss scenario hint" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;opacity:0.7" title="Dismiss">✕</button>
+    </div>`;
+  }
 
   // Build section data — include sections that have selected units OR enabled addons.
   // Use buildRoomList so each room's matchIds include both its own id AND its
@@ -11080,8 +11626,15 @@ function _renderQuoteView() {
   </div>`;
 
   if (!sectionData.length) {
-    mainHtml += `<div style="color:var(--text-muted);font-size:14px;padding:20px 0">
-      No units selected yet — go to the unit tabs and enter quantities first.</div>`;
+    mainHtml += `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px 72px;gap:14px;text-align:center">
+      <div style="font-size:44px;line-height:1;opacity:0.3">💰</div>
+      <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:2px;text-transform:uppercase;color:var(--text);opacity:0.55">Quote is empty</div>
+      <div style="font-size:13px;color:var(--text-muted);max-width:320px;line-height:1.65">Select quantities on the unit tabs, or add custom panels — then return here to see your quote.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+        <button onclick="(function(){const b=document.querySelector('.tab[data-section=\\'kitchen\\']');if(b)switchTab(b,'kitchen');})()" style="padding:7px 18px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;letter-spacing:0.4px">Go to Units</button>
+        <button onclick="(function(){const b=document.getElementById('panels-tab');if(b)switchTab(b,'__panels__');})()" style="padding:7px 18px;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);border-radius:3px;cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;letter-spacing:0.4px">Go to Panels</button>
+      </div>
+    </div>`;
   }
 
   sectionData.forEach(({ sec, units }) => {
@@ -11314,7 +11867,7 @@ function _renderQuoteView() {
   ).join('');
 
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.topsOpen=!quoteState.topsOpen;saveQuoteState();renderQuoteView()" id="qv-head-tops">
+    id="qv-head-tops">
     <span>Tops ${topsTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(topsTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.topsOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -11337,10 +11890,10 @@ function _renderQuoteView() {
       </div>
     </div>
     ${topsExcl > 0 ? `<div style="font-size:11px;color:var(--text-muted);padding-bottom:12px;line-height:2;font-family:'JetBrains Mono',monospace">
-      <span style="margin-right:20px">Excl. VAT: ${fmt(topsExcl)}</span>
+      <span style="margin-right:20px">Material: ${fmt(topsExcl)}</span>
       <span style="margin-right:20px">Delivery: ${fmt(topsDelivery)}</span>
-      <span style="margin-right:20px">VAT (15%): ${fmt(topsVAT)}</span>
-      <span>Handling (10%): ${fmt(topsHandling)}</span>
+      <span style="margin-right:20px">Handling (10%): ${fmt(topsHandling)}</span>
+      <span style="opacity:0.6">VAT added in Grand Total</span>
     </div>` : ''}` : ''}`;
 
   // ── Hardware summary — computed from all selected units ──────────────────
@@ -11391,7 +11944,7 @@ function _renderQuoteView() {
 
   const feesTotal = consultTotal + dieselTotal + deliveryTotal;
   mainHtml += `<div class="qv-section-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
-    onclick="quoteState.feesOpen=!quoteState.feesOpen;saveQuoteState();renderQuoteView()" id="qv-head-fees">
+    id="qv-head-fees">
     <span>Fees ${feesTotal > 0 ? `<span style="font-size:11px;color:var(--amber-dim);margin-left:8px">${fmt(feesTotal)}</span>` : ''}</span>
     <span style="font-size:12px;color:var(--amber);transition:transform 0.2s;display:inline-block;transform:rotate(${quoteState.feesOpen?'90':'0'}deg)">▶</span>
   </div>
@@ -11521,23 +12074,19 @@ function _renderQuoteView() {
       </div>
       ${topsTotal > 0 ? `
       <div class="qv-total-row">
-        <span class="label">Tops (excl. VAT)</span>
-        <span class="val">${fmt(topsExcl)}</span>
+        <span class="label" style="padding-left:12px;font-size:11px">Material</span>
+        <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsExcl)}</span>
       </div>
       <div class="qv-total-row">
         <span class="label" style="padding-left:12px;font-size:11px">+ Delivery</span>
         <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsDelivery)}</span>
       </div>
       <div class="qv-total-row">
-        <span class="label" style="padding-left:12px;font-size:11px">+ VAT 15%</span>
-        <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsVAT)}</span>
-      </div>
-      <div class="qv-total-row">
         <span class="label" style="padding-left:12px;font-size:11px">+ Handling 10%</span>
         <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(topsHandling)}</span>
       </div>
       <div class="qv-total-row">
-        <span class="label">Tops Total</span>
+        <span class="label">Tops Total <span style="font-size:10px;color:var(--text-muted)">(excl. VAT)</span></span>
         <span class="val" id="qv-val-tops">${fmt(topsTotal)}</span>
       </div>` : ''}
       ${consultTotal > 0 ? `<div class="qv-total-row">
@@ -11578,7 +12127,7 @@ function _renderQuoteView() {
       </div>
       <div class="qv-total-row grand">
         <span class="label">Grand Total <span style="font-size:10px;color:var(--amber-dim)">(incl. VAT)</span></span>
-        <span class="val" id="qv-val-grand-vat">${fmt(withMarkup * 1.15)}</span>
+        <span class="val" id="qv-val-grand-vat" aria-live="polite" aria-atomic="true">${fmt(withMarkup * 1.15)}</span>
       </div>
       <div class="qv-total-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
         <span class="label" style="font-size:12px;color:var(--text-muted)">Deposit Received</span>
@@ -11603,7 +12152,7 @@ function _renderQuoteView() {
       <button class="pp-btn" style="width:100%;height:36px" onclick="switchToUnits()">← Back to Units</button>
     </div>`;
 
-  document.getElementById('quote-price-view').innerHTML = boardInfoBar +
+  document.getElementById('quote-price-view').innerHTML = scenStrip + boardInfoBar +
     `<div class="qv-layout">
       <div class="qv-main">${mainHtml}</div>
       <div class="qv-sidebar">${sideHtml}</div>
@@ -11614,6 +12163,16 @@ function _renderQuoteView() {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', fn);
   };
+
+  // Wire scenario strip
+  (quoteState.scenarios || []).forEach((_, i) => _wireToggle(`qv-scen-tab-${i}`, () => switchScenario(i)));
+  _wireToggle('qv-scen-add',    addScenario);
+  _wireToggle('qv-scen-rename', () => renameScenario(quoteState.activeScenario || 0));
+  _wireToggle('qv-scen-del', () => {
+    const name = quoteState.scenarios?.[quoteState.activeScenario || 0]?.name || 'this option';
+    if (confirm(`Remove "${name}"? This cannot be undone.`)) deleteScenario(quoteState.activeScenario || 0);
+  });
+
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
 
@@ -12876,6 +13435,7 @@ const JOB_STATUSES = [
   { key: 'complete',      label: 'Complete',      color: '#5dba6e', bg: 'rgba(93,186,110,0.12)'  },
 ];
 let autoSaveTimer = null;
+let _isLoadingJob = false;
 // ── Client management ───────────────────────────────────────────────────────
 let clientsCache = [];        // [{ id, name, phone, email, address, notes }]
 let currentClientId = null;   // UUID of client linked to the current job, if any
@@ -13169,6 +13729,9 @@ async function onLoginSuccess() {
   // dynamic rooms nav so they show up immediately on login.
   if (userRooms.length > 0) renderUserRoomsNav();
   renderPanel();
+  _initTabPins();
+  showMoreHintOnce();
+  _maybeStartOnboarding();
 }
 
 async function loadTemplatesFromCloud() {
@@ -13379,15 +13942,15 @@ function rebuildJobSelect() {
       _archToggleWrap.style.display = 'none';
     }
   }
-  const deleteBtn = document.getElementById('job-delete-btn');
-  if (deleteBtn) deleteBtn.style.display = currentJobId ? 'block' : 'none';
-  const archiveBtn = document.getElementById('job-archive-btn');
-  if (archiveBtn) archiveBtn.style.display = currentJobId ? 'block' : 'none';
+  const _owrap = document.getElementById('job-overflow-wrap');
+  if (_owrap) _owrap.style.display = currentJobId ? 'flex' : 'none';
   const statusWrap = document.getElementById('job-status-wrap');
   if (statusWrap) statusWrap.style.display = currentJobId ? 'flex' : 'none';
   // Re-apply any active search filter after rebuilding the list
   const srch = document.getElementById('job-search-input');
   if (srch && srch.value.trim()) filterJobSelect(srch.value);
+  _renderJobPickerItems(srch?.value?.trim() ? srch.value : '');
+  _updateJobPickerLabel();
 }
 
 function filterJobSelect(q) {
@@ -13401,6 +13964,146 @@ function filterJobSelect(q) {
     const haystack = ((job.client || '') + ' ' + (job.house || '')).toLowerCase();
     opt.hidden = term.length > 0 && !haystack.includes(term);
   });
+  _filterJobPickerItems(q);
+}
+
+/* ── Custom job picker ─────────────────────────────────────────────────────── */
+let _jpActiveIdx = -1;
+let _jpVisibleIds = [];
+
+function _openJobPicker() {
+  const wrap = document.getElementById('job-picker-wrap');
+  const search = document.getElementById('job-search-input');
+  if (!wrap || wrap.classList.contains('jp-open')) return;
+  _closeOnboardCoachMark();
+  wrap.classList.add('jp-open');
+  const trigger = document.getElementById('job-picker-trigger');
+  if (trigger) trigger.setAttribute('aria-expanded', 'true');
+  _jpActiveIdx = -1;
+  _renderJobPickerItems('');
+  setTimeout(() => { if (search) { search.value = ''; search.focus(); } }, 0);
+  document.addEventListener('mousedown', _jobPickerOutside, { capture: true });
+}
+
+function _closeJobPicker() {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('jp-open');
+  const trigger = document.getElementById('job-picker-trigger');
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  _jpActiveIdx = -1;
+  document.removeEventListener('mousedown', _jobPickerOutside, { capture: true });
+}
+
+function _jobPickerOutside(ev) {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (wrap && !wrap.contains(ev.target)) _closeJobPicker();
+}
+
+function _renderJobPickerItems(q) {
+  const dropdown = document.getElementById('job-picker-dropdown');
+  if (!dropdown) return;
+  const term = (q || '').toLowerCase().trim();
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const _showArchived = _jobShowArchived || false;
+  _jpVisibleIds = [];
+  let html = '';
+
+  const newHi = _jpActiveIdx === 0 ? ' jp-hi' : '';
+  html += `<div class="jp-new-item${newHi}" data-jpid="" onmousedown="event.preventDefault();_selectJobFromPicker('')">＋ New Job</div>`;
+  _jpVisibleIds.push('');
+
+  const jobs = (sbJobs || []).filter(j => {
+    const _isArchived = j.archived === 'true' || j.archived === true;
+    if (_isArchived && !_showArchived && j.id !== currentJobId) return false;
+    if (!term) return true;
+    const hay = [j.client, j.house, j.address, j.notes].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(term);
+  });
+
+  if (jobs.length === 0 && term) {
+    html += `<div class="jp-empty">No jobs match "${term}"</div>`;
+  } else {
+    jobs.forEach(j => {
+      const _isArchived = j.archived === 'true' || j.archived === true;
+      const idx = _jpVisibleIds.length;
+      _jpVisibleIds.push(j.id);
+      const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const dot = _statusDot[j.jobStatus] || '○';
+      const sub = (j.notes || j.address || '').slice(0, 70);
+      const hi = _jpActiveIdx === idx ? ' jp-hi' : '';
+      const sel = j.id === currentJobId ? ' jp-sel' : '';
+      const arc = _isArchived ? ' jp-archived' : '';
+      html += `<div class="jp-item${hi}${sel}${arc}" data-jpid="${j.id}" onmousedown="event.preventDefault();_selectJobFromPicker('${j.id}')">`;
+      html += `<div class="jp-row1"><span class="jp-dot">${dot}</span><span class="jp-name">${label}${_isArchived ? ' [archived]' : ''}</span><span class="jp-date">${date}</span></div>`;
+      if (sub) html += `<div class="jp-row2">${sub.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      html += `</div>`;
+    });
+  }
+
+  dropdown.innerHTML = html;
+}
+
+function _filterJobPickerItems(q) {
+  _jpActiveIdx = -1;
+  _renderJobPickerItems(q);
+}
+
+function _jobPickerKeydown(ev) {
+  const wrap = document.getElementById('job-picker-wrap');
+  if (!wrap) return;
+  if (!wrap.classList.contains('jp-open')) {
+    if (ev.key === 'Enter' || ev.key === 'ArrowDown') _openJobPicker();
+    return;
+  }
+  if (ev.key === 'Escape') { _closeJobPicker(); return; }
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    _jpActiveIdx = Math.min(_jpActiveIdx + 1, _jpVisibleIds.length - 1);
+    _renderJobPickerItems(document.getElementById('job-search-input')?.value || '');
+    _jpScrollActive();
+    return;
+  }
+  if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    _jpActiveIdx = Math.max(_jpActiveIdx - 1, 0);
+    _renderJobPickerItems(document.getElementById('job-search-input')?.value || '');
+    _jpScrollActive();
+    return;
+  }
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    if (_jpActiveIdx >= 0 && _jpActiveIdx < _jpVisibleIds.length) _selectJobFromPicker(_jpVisibleIds[_jpActiveIdx]);
+    return;
+  }
+}
+
+function _jpScrollActive() {
+  const dropdown = document.getElementById('job-picker-dropdown');
+  if (!dropdown) return;
+  const active = dropdown.querySelector('.jp-hi');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function _selectJobFromPicker(id) {
+  _closeJobPicker();
+  const sel = document.getElementById('job-select');
+  if (!sel) return;
+  sel.value = id || '';
+  loadJobFromSelect();
+}
+
+function _updateJobPickerLabel() {
+  const lbl = document.getElementById('job-picker-label');
+  if (!lbl) return;
+  if (!currentJobId) { lbl.textContent = '— New Job —'; return; }
+  const j = (sbJobs || []).find(x => x.id === currentJobId);
+  if (!j) { lbl.textContent = '— Select a job —'; return; }
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const dot = _statusDot[j.jobStatus] || '○';
+  const name = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+  lbl.textContent = `${dot} ${name}`;
 }
 
 async function restoreLastJob(jobId) {
@@ -13414,10 +14117,9 @@ async function restoreLastJob(jobId) {
     try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
     const sel = document.getElementById('job-select');
     if (sel) sel.value = currentJobId;
-    const deleteBtn = document.getElementById('job-delete-btn');
-    if (deleteBtn) deleteBtn.style.display = 'block';
-    const _archBtn = document.getElementById('job-archive-btn');
-    if (_archBtn) _archBtn.style.display = 'block';
+    _updateJobPickerLabel();
+    const _owrapR = document.getElementById('job-overflow-wrap');
+    if (_owrapR) _owrapR.style.display = 'flex';
     const statusWrapR = document.getElementById('job-status-wrap');
     if (statusWrapR) statusWrapR.style.display = 'flex';
     ['job-client','job-house','job-address','job-notes'].forEach(id => {
@@ -13426,10 +14128,16 @@ async function restoreLastJob(jobId) {
     });
     currentClientId = job.client_id || null;
     _updateClientButtonsVisibility();
-    if (job.state) applyState(job.state);
-    _syncArchiveBtnLabel();
-    checkAndRemapOrphans();
-    renderPanel(); updateCounts();
+    _isLoadingJob = true;
+    try {
+      if (job.state) applyState(job.state);
+      _syncArchiveBtnLabel();
+      checkAndRemapOrphans();
+      renderPanel(); updateCounts();
+    } finally {
+      _isLoadingJob = false;
+      clearTimeout(autoSaveTimer);
+    }
   } catch(e) {
     console.warn('[Supabase] Could not restore last job:', e.message);
   }
@@ -13884,6 +14592,36 @@ function setJobStatus(key) {
   if (currentJobId) saveJobToCloud();
 }
 
+function toggleJobOverflowMenu() {
+  const menu = document.getElementById('job-overflow-menu');
+  const btn = document.getElementById('job-overflow-btn');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function _jomOut(ev) {
+        const wrap = document.getElementById('job-overflow-wrap');
+        if (!wrap || !wrap.contains(ev.target)) {
+          const m = document.getElementById('job-overflow-menu');
+          const b = document.getElementById('job-overflow-btn');
+          if (m) m.style.display = 'none';
+          if (b) b.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', _jomOut);
+        }
+      });
+    }, 0);
+  }
+}
+
+function _closeJobOverflowMenu() {
+  const m = document.getElementById('job-overflow-menu');
+  const b = document.getElementById('job-overflow-btn');
+  if (m) m.style.display = 'none';
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+
 function getJobState() {
   return {
     quantities,
@@ -13980,9 +14718,9 @@ async function saveJobToCloud() {
       try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
       await loadUserJobs();
       document.getElementById('job-select').value = currentJobId;
-      document.getElementById('job-delete-btn').style.display = 'block';
-      const _archBtnSave = document.getElementById('job-archive-btn');
-      if (_archBtnSave) _archBtnSave.style.display = 'block';
+      _updateJobPickerLabel();
+      const _owrapS = document.getElementById('job-overflow-wrap');
+      if (_owrapS) _owrapS.style.display = 'flex';
       const _swSave = document.getElementById('job-status-wrap');
       if (_swSave) _swSave.style.display = 'flex';
     } else {
@@ -14032,15 +14770,22 @@ async function loadJobFromSelect() {
     _updateClientButtonsVisibility();
     try { refreshJobDetailsIndicator(); } catch(e) {}
 
-    // Apply full state
-    if (job.state) applyState(job.state);
-    checkAndRemapOrphans();
-    renderPanel(); updateCounts();
+    // Apply full state — suppress auto-save so opening a job doesn't
+    // overwrite its updated_at timestamp before the user changes anything.
+    _isLoadingJob = true;
+    try {
+      if (job.state) applyState(job.state);
+      checkAndRemapOrphans();
+      renderPanel(); updateCounts();
+    } finally {
+      _isLoadingJob = false;
+      clearTimeout(autoSaveTimer);
+    }
     setJobSyncStatus('✓ Loaded', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
-    document.getElementById('job-delete-btn').style.display = 'block';
-    const _archBtnLS = document.getElementById('job-archive-btn');
-    if (_archBtnLS) _archBtnLS.style.display = 'block';
+    _updateJobPickerLabel();
+    const _owrapL = document.getElementById('job-overflow-wrap');
+    if (_owrapL) _owrapL.style.display = 'flex';
     _syncArchiveBtnLabel();
     const _swLS = document.getElementById('job-status-wrap');
     if (_swLS) _swLS.style.display = 'flex';
@@ -14051,14 +14796,15 @@ async function loadJobFromSelect() {
 }
 
 async function newJob() {
+  _closeOnboardCoachMark();
   if (!(await confirmAction('Start a new job? Unsaved changes will be lost.', { confirmLabel: 'START NEW' }))) return;
   currentJobId = null;
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   persistLastJobId(null);
   document.getElementById('job-select').value = '';
-  document.getElementById('job-delete-btn').style.display = 'none';
-  const _archBtnNew = document.getElementById('job-archive-btn');
-  if (_archBtnNew) _archBtnNew.style.display = 'none';
+  _updateJobPickerLabel();
+  const _owrapN = document.getElementById('job-overflow-wrap');
+  if (_owrapN) _owrapN.style.display = 'none';
   currentJobStatus = 'draft';
   currentJobDeposit = 0;
   currentJobArchived = false;
@@ -14093,6 +14839,8 @@ async function newJob() {
   quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
   quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
   quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+  quoteState.scenarios = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
   // Clear plant-on panels, fillers, spacers — reset to blank defaults.
   // Iterate Object.keys(bedroomAddons) FIRST so any leftover user-room ids
   // (ur_xxx) from the previous job are wiped — getAddonSections() alone
@@ -14129,6 +14877,7 @@ function _syncArchiveBtnLabel() {
 
 async function archiveCurrentJob() {
   if (!currentJobId) return;
+  _closeJobOverflowMenu();
   const sel = document.getElementById('job-select');
   const label = sel.options[sel.selectedIndex]?.text || 'this job';
   const isArchived = currentJobArchived;
@@ -14143,6 +14892,7 @@ async function archiveCurrentJob() {
 
 async function deleteCurrentJob() {
   if (!currentJobId) return;
+  _closeJobOverflowMenu();
   const sel = document.getElementById('job-select');
   const label = sel.options[sel.selectedIndex]?.text || 'this job';
   if (!(await confirmAction(`Delete "${label}"? This cannot be undone.`, { confirmLabel: 'DELETE' }))) return;
@@ -14179,6 +14929,8 @@ async function deleteCurrentJob() {
     quoteState.markup = 0.40; quoteState.extras = []; quoteState.tops = { m2:0, type:'Platinum', pricePerM2:2900 };
     quoteState.consultFee = false; quoteState.dieselFee = false; quoteState.deliveryFee = false;
     quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
+    quoteState.scenarios = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+    quoteState.activeScenario = 0;
     archivedUnitIds.clear();
     const _addonResetKeys = new Set([...Object.keys(bedroomAddons), ...getAddonSections()]);
     _addonResetKeys.forEach(sec => {
@@ -14193,9 +14945,8 @@ async function deleteCurrentJob() {
     try { localStorage.removeItem('cutlist_bedroom_addons'); } catch(e) {}
     renderPanel(); updateCounts();
     await loadUserJobs();
-    document.getElementById('job-delete-btn').style.display = 'none';
-    const _archBtnDel = document.getElementById('job-archive-btn');
-    if (_archBtnDel) _archBtnDel.style.display = 'none';
+    const _owrapD = document.getElementById('job-overflow-wrap');
+    if (_owrapD) _owrapD.style.display = 'none';
     setJobSyncStatus('Deleted', '#e07070');
     setTimeout(() => setJobSyncStatus(''), 2000);
   } catch(e) {
@@ -15459,6 +16210,7 @@ function openAddRoomModal() {
   const modal = document.createElement('div');
   modal.id = 'add-room-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:420px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:20px">＋ ADD ROOM</div>
@@ -15661,6 +16413,7 @@ function openNewUnitModal() {
   const modal = document.createElement('div');
   modal.id = 'new-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:460px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:6px">＋ NEW UNIT</div>
@@ -15742,6 +16495,7 @@ function openImportUnitModal() {
   const modal = document.createElement('div');
   modal.id = 'import-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:22px 28px 14px;border-bottom:1px solid var(--border)">
@@ -15979,6 +16733,7 @@ function openTemplateBrowser() {
   const modal = document.createElement('div');
   modal.id = 'template-browser-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:97vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -16111,7 +16866,7 @@ function applyRoleRestrictions() {
       if (el) el.style.display = 'none';
     });
     // Hide job bar quote fields — only keep email badge, users btn, sign out
-    ['job-select','job-save-btn','job-delete-btn','job-bar-details'].forEach(id => {
+    ['job-select','job-save-btn','job-overflow-wrap','job-bar-details'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -16120,6 +16875,7 @@ function applyRoleRestrictions() {
     // Ensure imported-tab is always visible for supplier
     const impTab = document.getElementById('imported-tab');
     if (impTab) impTab.style.display = '';
+    try { updateMoreBadge(); } catch(e) {}
     // Land on Supplier Prices
     const btn = document.getElementById('prices-tab');
     if (btn) switchTab(btn, '__prices__');
@@ -16131,6 +16887,7 @@ function applyRoleRestrictions() {
   // P&L tab: superuser + regular users (not admin-only, not supplier)
   const plTab = document.getElementById('pl-tab');
   if (plTab) plTab.style.display = (isSuperuser() || sbRole === 'user') ? '' : 'none';
+  try { updateMoreBadge(); } catch(e) {}
 
   // User rooms nav (admin + regular user — superuser keeps the static rooms row)
   if (usesUserUnits()) {
@@ -16249,6 +17006,7 @@ function openUnitEditModal(unitId) {
   const modal = document.createElement('div');
   modal.id = 'uem-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:480px;max-width:95vw;padding:28px;font-family:'Barlow',sans-serif">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">
@@ -16703,6 +17461,7 @@ function saveUnitParts(unitId) {
 
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
+  if (_isLoadingJob) return;
   // State changed since last cutlist render — mark stale + refresh the
   // regenerate badge if the cutlist tab is currently visible.
   if (_cutlistEverGenerated) {
@@ -16936,6 +17695,7 @@ function checkStaleMaterials() {
   const modal = document.createElement('div');
   modal.id = 'stale-mat-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9200;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   modal.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -21050,6 +21810,8 @@ function _applyStateInner(state) {
   quoteState.consultFee   = false; quoteState.consultFeeAmt = 500;
   quoteState.dieselFee    = false; quoteState.dieselFeeAmt  = 1800;
   quoteState.deliveryFee  = false; quoteState.deliveryFeeAmt = 0;
+  quoteState.scenarios    = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
+  quoteState.activeScenario = 0;
 
   // ── Now apply the saved job state ─────────────────────────────────────────
   if (state.quantities)     Object.assign(quantities,     state.quantities);
@@ -21062,7 +21824,16 @@ function _applyStateInner(state) {
   if (state.sectionHardware) Object.assign(sectionHardware, state.sectionHardware);
   else if (state.unitHardware) Object.assign(sectionHardware, state.unitHardware);
   saveSectionHardware();
-  if (state.quoteState)     Object.assign(quoteState,     state.quoteState);
+  if (state.quoteState) {
+    Object.assign(quoteState, state.quoteState);
+    // Migrate saved states from before scenarios were added
+    if (!quoteState.scenarios || !quoteState.scenarios.length) {
+      const sc = { name: 'Option A' };
+      SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+      quoteState.scenarios = [sc];
+      quoteState.activeScenario = 0;
+    }
+  }
   if (state.bedroomAddons) {
     // Iterate every section present in saved state (covers ADDON_SECTIONS *and*
     // user rooms with `ur_xxx` ids — those weren't being restored before).
@@ -21171,6 +21942,11 @@ function _applyStateInner(state) {
   }
 
   if (!isSuperuser()) {
+    // Always reset so a previous job's rooms don't bleed into the next.
+    // userRooms/userUnits are job-scoped for non-superusers — any value from
+    // the prior job (or the session default) must be wiped before restore.
+    userRooms = [];
+    userUnits = [];
     if (state.userRooms?.length) {
       userRooms = state.userRooms.map(_normalizeRoom).filter(Boolean);
       // Re-register in MAT_GROUPS so material selectors work after reload
@@ -21356,6 +22132,62 @@ let panelsState = {
   label: '',
 };
 let _panelIdCounter = 1;
+const _panelSnapshots = new Map(); // id -> clone taken at last renderPanelsView call
+const _panelPreEditSnapshots = new Map(); // id -> clone taken before first field edit this render cycle
+
+function panelRevert(id) {
+  const preSnap = _panelPreEditSnapshots.get(id);
+  const snap = preSnap || _panelSnapshots.get(id);
+  if (!snap) return;
+  const idx = panelsState.items.findIndex(p => p.id === id);
+  if (idx === -1) return;
+  panelsState.items[idx] = {...snap};
+  if (preSnap) _panelPreEditSnapshots.delete(id);
+  savePanelsState();
+  renderPanelsView();
+}
+
+function _panelUpdateDirtyIndicator(id) {
+  const snap = _panelPreEditSnapshots.get(id) || _panelSnapshots.get(id);
+  const p = panelsState.items.find(p => p.id === id);
+  if (!snap || !p) return;
+  const dirty = ['name','qty','l','w','mat','edgeL1','edgeL2','edgeW1','edgeW2'].some(f => String(p[f]) !== String(snap[f]));
+  const btn = document.getElementById('panel-revert-' + id);
+  if (btn) { btn.style.visibility = dirty ? 'visible' : 'hidden'; btn.style.pointerEvents = dirty ? '' : 'none'; }
+}
+
+function _sectionRevert(sectionId) {
+  const snap = _sectionQtySnapshots.get(sectionId);
+  if (!snap) return;
+  Object.keys(snap).forEach(unitId => { quantities[unitId] = snap[unitId]; });
+  const msnap = _sectionMatSnapshots.get(sectionId);
+  if (msnap) {
+    Object.keys(msnap).forEach(uid => {
+      if (msnap[uid]) unitMatOverrides[uid] = {...msnap[uid]};
+      else delete unitMatOverrides[uid];
+    });
+    saveUnitMatOverrides();
+  }
+  save();
+  renderPanel();
+}
+
+function _sectionDirtyCheck(sectionId) {
+  const snap = _sectionQtySnapshots.get(sectionId);
+  if (!snap) return;
+  const qtyDirty = Object.keys(snap).some(unitId => (quantities[unitId] || 0) !== snap[unitId]);
+  const msnap = _sectionMatSnapshots.get(sectionId);
+  const matDirty = msnap && Object.keys(msnap).some(uid => {
+    const cur = unitMatOverrides[uid];
+    const s = msnap[uid];
+    if (!cur && !s) return false;
+    if (!cur || !s) return true;
+    return cur.wood !== s.wood || cur.edging !== s.edging;
+  });
+  const dirty = qtyDirty || matDirty;
+  const btn = document.getElementById('section-revert-' + sectionId);
+  if (btn) btn.style.display = dirty ? '' : 'none';
+}
 
 function panelDefaultItem() {
   return {
@@ -21386,6 +22218,14 @@ try {
 
 function savePanelsState() {
   try { localStorage.setItem('cutlist_panels', JSON.stringify(panelsState)); } catch(e) {}
+  try { _signalSave(); } catch(e) {}
+}
+
+function panelBatchSetMat(mat) {
+  if (!panelsState.items.length) return;
+  panelsState.items.forEach(p => { p.mat = mat; });
+  savePanelsState();
+  renderPanelsView();
 }
 
 function panelClearAll() {
@@ -21403,6 +22243,7 @@ function panelAdd() {
 
 function panelRemove(id) {
   panelsState.items = panelsState.items.filter(p => p.id !== id);
+  _panelPreEditSnapshots.delete(id);
   savePanelsState();
   renderPanelsView();
 }
@@ -21410,10 +22251,12 @@ function panelRemove(id) {
 function panelField(id, field, val) {
   const p = panelsState.items.find(p => p.id === id);
   if (!p) return;
+  if (!_panelPreEditSnapshots.has(id)) _panelPreEditSnapshots.set(id, {...p});
   if (['qty','l','w'].includes(field)) p[field] = parseFloat(val) || 0;
   else p[field] = val;
   savePanelsState();
   renderPanelsTotals();
+  _panelUpdateDirtyIndicator(id);
 }
 
 function movePanelPart(id, direction) {
@@ -22034,7 +22877,7 @@ function openImportedCutlist() {
   };
   // Show the tab
   const tab = document.getElementById('imported-tab');
-  if (tab) tab.style.display = '';
+  if (tab) { tab.style.display = ''; try { updateMoreBadge(); } catch(e) {} }
   renderImportedCutlistView();
   // Switch to it
   const tabBtn = document.getElementById('imported-tab');
@@ -22642,6 +23485,7 @@ function openSaveAsUnitModal(parts, defaultLabel) {
   const overlay = document.createElement('div');
   overlay.id = 'sau-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;display:flex;align-items:center;justify-content:center';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
   // Store data on the overlay element so the button doesn't need to serialise
   // potentially unsafe strings into an HTML attribute
@@ -22823,6 +23667,15 @@ function importIntoPanels() {
   if (panelsBtn) switchTab(panelsBtn, '__panels__');
 }
 
+function togglePanelLegend() {
+  const collapsed = localStorage.getItem('panelLegendCollapsed') === '1';
+  localStorage.setItem('panelLegendCollapsed', collapsed ? '0' : '1');
+  const body = document.getElementById('panels-legend-body');
+  const chev = document.getElementById('panels-legend-chevron');
+  if (body) body.style.display = collapsed ? 'flex' : 'none';
+  if (chev) chev.textContent = collapsed ? '▾' : '▸';
+}
+
 function renderPanelsView() { withScrollLock(_renderPanelsView); }
 function _renderPanelsView() {
   const pv = document.getElementById('panels-view');
@@ -22843,8 +23696,10 @@ function _renderPanelsView() {
   };
 
   const _pLen = panelsState.items.length;
+  panelsState.items.forEach(p => _panelSnapshots.set(p.id, {...p}));
+  const _legendCollapsed = localStorage.getItem('panelLegendCollapsed') === '1';
   const rowsHtml = panelsState.items.map((p, i) => `
-    <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 120px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
@@ -22855,14 +23710,15 @@ function _renderPanelsView() {
       ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
       ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
       <div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center">
-        <button onclick="movePanelPart('${p.id}',-1)" title="Move up"
+        <button onclick="movePanelPart('${p.id}',-1)" title="Move up" aria-label="Move up"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===0?'opacity:0.25;pointer-events:none':''}">▲</button>
-        <button onclick="movePanelPart('${p.id}',1)" title="Move down"
+        <button onclick="movePanelPart('${p.id}',1)" title="Move down" aria-label="Move down"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===_pLen-1?'opacity:0.25;pointer-events:none':''}">▼</button>
-        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services"
+        ${costingPrices.specialServices.length > 0 && (isAdmin() || canEditPrices() || sbRole === 'user') ? `<button onclick="openSpecialServicesPopup('${p.id}','panel',this)" title="Special services" aria-label="Special services" data-tip="Special services"
           style="${(panelSpecialServices[p.id]||[]).length>0 ? 'background:rgba(76,175,130,0.2);border:1px solid #4caf82;color:#4caf82;font-weight:600' : 'background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber-dim)'};padding:3px 6px;cursor:pointer;font-size:12px">⚙</button>` : ''}
-        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
-        <button onclick="panelRemove('${p.id}')" title="Remove" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
+        <button onclick="panelDuplicate('${p.id}')" title="Duplicate" aria-label="Duplicate panel" data-tip="Duplicate panel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:12px">⧉</button>
+        <button id="panel-revert-${p.id}" onclick="panelRevert('${p.id}')" title="Revert changes" aria-label="Revert panel to last saved state" data-tip="Revert changes" style="visibility:hidden;pointer-events:none;background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px">↩</button>
+        <button onclick="panelRemove('${p.id}')" title="Remove" aria-label="Remove panel" data-tip="Remove panel" style="background:none;border:1px solid #5a2a2a;color:#e05252;padding:3px 6px;cursor:pointer;font-size:12px">×</button>
       </div>
     </div>
     ${(panelSpecialServices[p.id]||[]).length > 0 ? `
@@ -22896,8 +23752,32 @@ function _renderPanelsView() {
       </div>
 
       ${panelsState.items.length > 0 ? `
+      <!-- Edge code legend -->
+      <div style="margin-bottom:10px">
+        <button onclick="togglePanelLegend()" aria-label="Toggle edge code legend" style="background:none;border:none;color:var(--text-muted);font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.8px;cursor:pointer;padding:0;display:flex;align-items:center;gap:5px">
+          <span id="panels-legend-chevron">${_legendCollapsed ? '▸' : '▾'}</span>
+          <span>EDGE CODES</span>
+        </button>
+        <div id="panels-legend-body" style="display:${_legendCollapsed ? 'none' : 'flex'};gap:6px 20px;flex-wrap:wrap;margin-top:5px">
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">L1</span> — height edge 1 (left/right vertical)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">L2</span> — height edge 2 (opposite)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W1</span> — width edge 1 (top/bottom horizontal)</span>
+          <span style="font-size:11px;color:var(--text-muted)"><span style="color:var(--amber-dim);font-weight:600;font-family:'JetBrains Mono',monospace">W2</span> — width edge 2 (opposite)</span>
+        </div>
+      </div>
+      <!-- Batch controls -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">BATCH:</span>
+        <select id="panel-batch-mat-select"
+          aria-label="Set all panel materials to"
+          style="font-family:'Barlow',sans-serif;font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:3px;cursor:pointer"
+          onchange="if(this.value){panelBatchSetMat(this.value);this.value=''}">
+          <option value="">Set all materials to…</option>
+          ${MATS.map(m => `<option value="${m}">${m}</option>`).join('')}
+        </select>
+      </div>
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 180px 140px 140px 140px 140px 120px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME / DESCRIPTION</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">QTY</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">LENGTH mm</div>
@@ -22917,6 +23797,8 @@ function _renderPanelsView() {
         <button onclick="panelAdd()" style="font-weight:500;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);padding:10px 24px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">+ ADD FIRST ROW</button>
       </div>`}
     </div>`;
+  // Re-show ↩ buttons for panels that had pending edits before this re-render
+  _panelPreEditSnapshots.forEach((_, id) => _panelUpdateDirtyIndicator(id));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -25546,6 +26428,7 @@ function plOpenPDFImport(jobId) {
   const overlay = document.createElement('div');
   overlay.id = 'pl-pdf-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9000;display:flex;align-items:center;justify-content:center';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border);width:880px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
@@ -26371,12 +27254,12 @@ function _renderPLView() {
           title="Line total as printed on the supplier invoice. Use the toggle to the right to indicate whether it includes VAT or excludes VAT."
           oninput="plUpdateInvoice('${selJobId}','${inv.id}','amount',this.value)"
           onblur="plInvoiceBlur('${selJobId}')">
-        <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?"
+        <select autocomplete="off" class="pp-vat-select" title="Does this line total include VAT or exclude VAT?" aria-label="VAT type"
           onchange="plUpdateInvoice('${selJobId}','${inv.id}','vatIncluded',this.value==='incl');plInvoiceBlur('${selJobId}')">
           <option value="incl" ${inv.vatIncluded !== false ? 'selected' : ''}>Incl VAT</option>
           <option value="excl" ${inv.vatIncluded === false ? 'selected' : ''}>Excl VAT</option>
         </select>
-        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line">×</button>
+        <button onclick="plRemoveInvoice('${selJobId}','${inv.id}')" class="pp-btn is-danger is-icon is-sm" title="Remove line" aria-label="Remove line">×</button>
       </div>
       ${hasQtyDetail ? `<div class="pp-inv-detail">
         <span style="color:var(--amber-dim);letter-spacing:1.5px">⊳</span>
@@ -26427,7 +27310,7 @@ function _renderPLView() {
     const docTotal    = doc.total > 0 ? _fmtDocR(doc.total) : (docLines.length > 0 ? _fmtDocR(docLines.reduce((s,l) => s + _invInclVAT(l), 0)) : '—');
     invBodyHtml += `
     <div style="margin-bottom:2px">
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border-left:4px solid var(--amber);cursor:pointer;user-select:none"
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;user-select:none"
         onclick="plDocCollapsed['${doc.docId}']=!plDocCollapsed['${doc.docId}'];(function(){const v=document.getElementById('pl-view');if(v){v._selectedJobId='${selJobId}';renderPLView();}})()">
         <span style="font-size:13px;color:var(--amber);width:14px;text-align:center;flex-shrink:0">${isCollapsed ? '▶' : '▼'}</span>
         <input type="text" value="${(doc.invoiceNo||'').replace(/"/g,'&quot;')}"
@@ -26447,9 +27330,9 @@ function _renderPLView() {
         <span style="flex:0 0 auto;font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;white-space:nowrap">${doc.invoiceDate || ''}</span>
         <span style="flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);white-space:nowrap">${docTotal}</span>
         <button onclick="event.stopPropagation();plRemoveImportedDoc('${selJobId}','${doc.docId}')"
-          class="pp-btn is-danger is-icon is-sm" title="Remove this invoice and all its lines" style="font-size:13px;line-height:1;padding:2px 6px;flex-shrink:0">×</button>
+          class="pp-btn is-danger is-icon is-sm" title="Remove this invoice and all its lines" aria-label="Remove this invoice and all its lines" style="font-size:13px;line-height:1;padding:2px 6px;flex-shrink:0">×</button>
       </div>
-      ${isCollapsed ? '' : `<div style="border-left:4px solid var(--amber);margin-left:0">${docLines.map(inv => _renderInvRow(inv, true)).join('')}</div>`}
+      ${isCollapsed ? '' : `<div style="margin-left:4px;border-left:1px solid var(--border)">${docLines.map(inv => _renderInvRow(inv, true)).join('')}</div>`}
     </div>`;
   });
 
@@ -27086,7 +27969,7 @@ function _renderPLView() {
         <input id="pl-new-amount" type="number" placeholder="0.00" min="0" step="0.01" class="pp-input is-num" style="width:112px"
           title="Line total as it appears on the supplier invoice. Use the Incl/Excl toggle to declare whether it includes VAT."
           onkeydown="if(event.key==='Enter')plAddInvoice('${selJobId}')">
-        <select id="pl-new-vat" class="pp-vat-select" title="Does this amount include VAT or exclude VAT?">
+        <select id="pl-new-vat" class="pp-vat-select" title="Does this amount include VAT or exclude VAT?" aria-label="VAT type">
           <option value="incl" selected>Incl VAT</option>
           <option value="excl">Excl VAT</option>
         </select>
@@ -28894,6 +29777,75 @@ function _showPlanToast(message) {
   } catch(e) {}
 })();
 </script>
+
+<!-- ── Keyboard Shortcuts Legend Modal ─────────────────────────────────── -->
+<div id="kb-legend-modal"
+  tabindex="-1"
+  onclick="if(event.target===this)closeKbLegend()"
+  style="display:none;position:fixed;inset:0;z-index:9800;align-items:center;justify-content:center;background:rgba(0,0,0,0.6)">
+  <div role="dialog" aria-modal="true" aria-label="Keyboard Shortcuts"
+    onclick="event.stopPropagation()"
+    style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--amber);border-radius:4px;min-width:320px;max-width:420px;width:100%;font-family:'Barlow',sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.55)">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--amber-dim)">Keyboard Shortcuts</div>
+      <button onclick="closeKbLegend()" aria-label="Close shortcuts legend"
+        onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text-muted)'"
+        style="background:none;border:none;color:var(--text-muted);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;transition:color 0.15s">&times;</button>
+    </div>
+
+    <!-- Shortcut rows -->
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- Section label: Navigation -->
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;font-family:'Oswald',sans-serif">Navigation</div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+1</span>
+        <span style="font-size:13px;color:var(--text-muted)">Panels tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+2</span>
+        <span style="font-size:13px;color:var(--text-muted)">Cutlist tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+3</span>
+        <span style="font-size:13px;color:var(--text-muted)">Quote tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+4</span>
+        <span style="font-size:13px;color:var(--text-muted)">Summary tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+5</span>
+        <span style="font-size:13px;color:var(--text-muted)">Optimize tab</span>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+
+      <!-- Section label: Actions -->
+      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;font-family:'Oswald',sans-serif">Actions</div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+R</span>
+        <span style="font-size:13px;color:var(--text-muted)">Regenerate cut list</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">?</span>
+        <span style="font-size:13px;color:var(--text-muted)">Show this shortcuts legend</span>
+      </div>
+
+    </div>
+
+    <!-- Footer hint -->
+    <div style="padding:10px 20px 14px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">
+      Press <span style="font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--text)">Esc</span> or click outside to close.
+    </div>
+
+  </div>
+</div>
 
 </body>
 </html>
