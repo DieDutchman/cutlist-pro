@@ -23937,6 +23937,7 @@ const drawerState = {
   rearGap:      18,   // mm: gap between drawer box rear and back panel
   sideGap:       2,   // mm between face edge and carcass edge (each side)
   faceGap:       4,   // mm gap between drawer faces
+  runnerClearance: null, // null = 8mm default (4mm each side); 27mm for soft-close 500mm runners
   drawerType:  'equal',  // 'equal' | 'pot' | 'custom'
   drawerCount:   4,
   potTopHeight: 192,  // face height of the small top drawer in pot mode
@@ -25908,6 +25909,54 @@ function renderDrawerBuilderHTML() {
       </div>
 
       <div class="bldr-section">
+        <div class="bldr-section-head">🏃 Runner Clearance</div>
+        <div class="bldr-section-body">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">
+            How much narrower the drawer box must be than the carcass inner width.<br>
+            Set by runner manufacturer spec (e.g. 27mm for Soft Close 500mm).
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+            ${[
+              { label:'Standard',   val:8,  tip:'4mm clearance each side (default)' },
+              { label:'Soft 400mm', val:22, tip:'Soft-close 400mm: 22mm narrower' },
+              { label:'Soft 500mm', val:27, tip:'Soft-close 500mm: 27mm narrower (manufacturer spec)' },
+              { label:'Custom',     val:-1, tip:'Enter a custom runner clearance below' },
+            ].map(opt => {
+              const cur = ds.runnerClearance ?? 8;
+              const isActive = opt.val === -1
+                ? (ds.runnerClearance != null && ![8,22,27].includes(ds.runnerClearance))
+                : (cur === opt.val);
+              return `<button title="${opt.tip}"
+                onclick="${opt.val === -1
+                  ? `drawerState.runnerClearance=0;drawerRedraw()`
+                  : `drawerState.runnerClearance=${opt.val};drawerRedraw()`}"
+                style="font-weight:500;padding:3px 8px;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;
+                border:1px solid var(--border);cursor:pointer;white-space:nowrap;
+                background:${isActive?'var(--amber)':'var(--bg3)'};
+                color:${isActive?'#000':'var(--text-muted)'}">${opt.label}</button>`;
+            }).join('')}
+          </div>
+          ${(() => {
+            const cur = ds.runnerClearance ?? 8;
+            const isCustom = ds.runnerClearance != null && ![8,22,27].includes(ds.runnerClearance);
+            const innerW = ds.width - 2 * ds.thickness;
+            const rc = (ds.runnerClearance != null && ds.runnerClearance >= 0) ? ds.runnerClearance : 8;
+            const boxOuter = innerW - rc;
+            return `${isCustom ? `
+          <div class="bldr-row" style="margin-bottom:6px">
+            <span class="bldr-label">Clearance</span>
+            <input autocomplete="off" class="bldr-input" type="number" value="${cur}" min="0" max="100"
+              oninput="drawerState.runnerClearance=parseFloat(this.value)||0;drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>` : ''}
+          <div style="font-size:10px;color:var(--text-muted);padding:4px 6px;background:rgba(212,168,67,0.07);border-radius:2px;line-height:1.5">
+            Box outer width = ${innerW} − ${rc} = <strong style="color:var(--text)">${boxOuter}mm</strong>
+          </div>`;
+          })()}
+        </div>
+      </div>
+
+      <div class="bldr-section">
         <div class="bldr-section-head">🔢 Drawers</div>
         <div class="bldr-section-body">
           <div style="display:flex;gap:4px;margin-bottom:10px">
@@ -26085,10 +26134,12 @@ function drawerCalcParts() {
   const n  = ds.drawerCount;
   const innerW = W - 2 * T;
 
-  // Drawer box: 16mm sides each side + 4mm clearance each side = 8mm total from innerW
-  const boxW    = innerW - 32 - 8;   // inner box width (between box sides)
-  const boxSideW = 16;               // box side thickness
-  const fullBoxW = boxW + 2 * boxSideW; // runner / bottom full span
+  // Runner clearance: total mm the drawer box is narrower than the inner carcass width.
+  // Default 8mm (4mm each side). Soft-close 500mm runners typically need 27mm.
+  const runnerClearance = (ds.runnerClearance != null && ds.runnerClearance >= 0) ? ds.runnerClearance : 8;
+  const boxSideW = 16;               // box side thickness (standard)
+  const fullBoxW = innerW - runnerClearance; // outer drawer box span
+  const boxW     = fullBoxW - 2 * boxSideW; // inner box width (between the two side panels)
 
   const p = (name, qty, l, w, mat, el1='', el2='', ew1='', ew2='') =>
     ({ name, qty, l: Math.round(l), w: Math.round(w), mat, el1, el2, ew1, ew2, holes:'' });
