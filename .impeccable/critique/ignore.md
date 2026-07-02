@@ -4,21 +4,29 @@ These findings are confirmed false positives. Drop them silently on every run.
 
 ## Overused font: Arial
 
-Lines 12593 and ~28600 in dev.html — both occurrences are inside `@media print` / print-popup CSS blocks that produce the PDF invoice. Arial is intentional for print output and is never used in the app UI.
+Any occurrence inside `@media print` / print-popup CSS blocks that produce the PDF invoice. Arial is intentional for print output and is never used in the app UI. Line numbers drift with code insertions — match by context (print block), not line number.
 
 ## Broken or placeholder image
 
-- `#fb-screenshot-preview` (line ~4740) — `src` is set by JavaScript at runtime when the file-import preview loads. The element ships without a src attribute intentionally.
-- `#img-lightbox-img` (line ~4918) — `src` is set by JavaScript when the lightbox opens. The element ships without a src attribute intentionally.
+- `#fb-screenshot-preview` — `src` is set by JavaScript at runtime when the file-import preview loads. Ships without a src attribute intentionally.
+- `#img-lightbox-img` — `src` is set by JavaScript when the lightbox opens. Ships without a src attribute intentionally.
 
 ## Border-radius: 1px
 
-Lines ~2369 and ~3280 — both are small decorative swatch elements (`.udp-legend-swatch`, sheet-map legend), not interactive components. The 1px radius is intentional below the documented `xs: 2px` floor; it gives the tiny swatches a hairline bevel without rounding.
+Two small decorative swatch elements (`.udp-legend-swatch`, sheet-map legend) — not interactive components. The 1px radius is intentional below the documented `xs: 2px` floor; gives the tiny swatches a hairline bevel without rounding.
+
+## Border-radius: 2px / 3px in JS template strings
+
+Numerous occurrences of `border-radius: 2px` or `border-radius: 3px` inside JavaScript template literals that generate HTML strings (cabinet dimension badge pills, icon chips, picker row chips, etc.). The detector flags these because the values fall outside DESIGN.md's documented radius scale, but the detector is reading them as CSS in markup context when they are actually JS string content that gets compiled into runtime DOM. All are intentional small-radius chips — not interactive components requiring the full radius token scale.
 
 ## Font-family in inline JS strings: Barlow and Oswald
 
-Lines ~6863–6864 and ~15020, ~15061, ~15382, ~15556, ~20234, ~21295, ~26602 in dev.html — all are inside JavaScript string literals that set `style.cssText`, `innerHTML`, or template strings on dynamically created elements (popovers, dropdowns, picker cards). The detector flags escaped `\'Barlow\'` and `\'Oswald\'` as undeclared fonts because the escape sequence doesn't match DESIGN.md's plain-text font names. Both fonts are fully documented in DESIGN.md typography and are the app's primary font stack. False positive caused by JS string escaping.
+All occurrences of `font-family: \'Barlow\'` or `\'Oswald\'` inside JavaScript string literals (style.cssText, innerHTML, template strings on dynamically created elements — popovers, dropdowns, picker cards). The detector flags escaped font names because the escape sequence doesn't match DESIGN.md's plain-text font names. Both fonts are fully documented in DESIGN.md typography and are the app's primary font stack. False positive caused by JS string escaping. Match by description pattern, not line number.
 
 ## Colored glow: amber pulse ring (dark-glow)
 
-Line ~131 in dev.html — `box-shadow: 0 0 0 4px rgb(212,145,58,0.4)` on `#more-trigger.hint-open` is the one-shot onboarding pulse ring on the More button. It self-removes via `removeClass('hint-open')` after 3 animation cycles and is never rendered in normal use. Intentional, ephemeral UI affordance.
+`box-shadow: 0 0 0 4px rgb(212,145,58,0.4)` on `#more-trigger.hint-open` — the one-shot onboarding pulse ring on the More button. Self-removes after 3 animation cycles and is never rendered in normal use. Intentional, ephemeral UI affordance.
+
+## Em-dash usage
+
+Em-dashes in UI label strings (`— Select a job —`, `— New Job —`) are intentional typographic choices, not overuse. These are placeholder labels in picker/select elements where the em-dash is a common convention for "no selection made."

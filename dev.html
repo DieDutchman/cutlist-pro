@@ -312,6 +312,7 @@
     font-family:'Barlow',sans-serif;animation:onboardFadeIn 0.2s ease-out;
   }
   @keyframes onboardFadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { #onboard-tip { animation: none; } }
   #onboard-tip h3 { margin:0 0 8px;font-family:'Oswald',sans-serif;font-size:13px;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase;font-weight:500; }
   #onboard-tip p { margin:0 0 14px;font-size:13px;line-height:1.55;color:var(--text); }
   #onboard-tip .ob-footer { display:flex;justify-content:space-between;align-items:center; }
@@ -4529,9 +4530,10 @@ body.user-light-theme .pp-vat-select {
     + NEW JOB
   </button>
   <button onclick="openPlanImportModal()"
-    style="font-weight:500;background:rgba(212,145,58,0.08);border:1px solid var(--amber-dim, rgba(212,145,58,0.3));color:var(--amber);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap"
-    title="[BETA] Upload an architect's floor plan PDF — AI extracts room dimensions">
-    📐 PLAN [BETA]
+    style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap;opacity:0.75"
+    data-tip="[BETA] Upload a floor plan PDF — AI extracts room dimensions"
+    title="[BETA] Upload a floor plan PDF — AI extracts room dimensions">
+    📐 PLAN
   </button>
   <!-- Zone separator: primary actions → danger zone -->
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
@@ -7096,6 +7098,8 @@ function _initTabPins() {
 // One-shot hint: auto-opens the More dropdown on first visit so users discover hidden tabs
 function showMoreHintOnce() {
   if (localStorage.getItem('moreHintSeen')) return;
+  // Yield to onboarding — More hint only fires after coach marks are done/skipped
+  if (!localStorage.getItem(_ONBOARD_KEY)) return;
   const wrap = document.getElementById('more-wrap');
   const trig = document.getElementById('more-trigger');
   if (!wrap || !trig) return;
@@ -7196,6 +7200,7 @@ function _showOnboardStep(n) {
   tip.setAttribute('role', 'dialog');
   tip.setAttribute('aria-modal', 'false');
   tip.setAttribute('aria-label', step.title);
+  tip.setAttribute('tabindex', '-1');
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
       <h3>${step.title}</h3>
@@ -7203,17 +7208,26 @@ function _showOnboardStep(n) {
     </div>
     <p>${step.body}</p>
     <div class="ob-footer">
-      <button class="ob-skip" onclick="_dismissOnboarding()">SKIP</button>
+      <button class="ob-skip" onclick="_dismissOnboarding()">skip</button>
       <button class="ob-next" onclick="${isLast ? '_dismissOnboarding()' : '_showOnboardStep(' + (n + 1) + ')'}">${isLast ? 'GET STARTED' : 'NEXT →'}</button>
     </div>`;
+  tip.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') { ev.stopPropagation(); _dismissOnboarding(); }
+    else if (ev.key === 'ArrowRight' || ev.key === 'Enter') {
+      ev.preventDefault();
+      if (isLast) _dismissOnboarding(); else _showOnboardStep(n + 1);
+    }
+  });
   document.body.appendChild(tip);
+  tip.focus();
 
   // Position tip below target, clamped to viewport
-  const TIP_W = 280, TIP_H = 130;
+  const TIP_W = 280;
+  const tipH = tip.offsetHeight || 140;
   let tipLeft = rect.left + rect.width / 2 - TIP_W / 2;
   let tipTop = rect.bottom + PAD + 6;
   tipLeft = Math.max(8, Math.min(tipLeft, vw - TIP_W - 8));
-  if (tipTop + TIP_H > vh - 8) tipTop = rect.top - PAD - TIP_H - 6;
+  if (tipTop + tipH > vh - 8) tipTop = rect.top - PAD - tipH - 6;
   tip.style.left = tipLeft + 'px';
   tip.style.top  = tipTop  + 'px';
 }
@@ -13975,7 +13989,6 @@ function _openJobPicker() {
   const wrap = document.getElementById('job-picker-wrap');
   const search = document.getElementById('job-search-input');
   if (!wrap || wrap.classList.contains('jp-open')) return;
-  _closeOnboardCoachMark();
   wrap.classList.add('jp-open');
   const trigger = document.getElementById('job-picker-trigger');
   if (trigger) trigger.setAttribute('aria-expanded', 'true');
