@@ -8068,6 +8068,9 @@ function generateCutlist() {
   // Add plant-on, spacer, and base addon parts
   getAddonSections().forEach(secId => {
     const addons = bedroomAddons[secId] || {};
+    const secLabel = userRooms.find(r => r.id === secId)?.name
+      || sections.find(s => s.id === secId)?.label
+      || secId;
     [addons.plantOn, addons.spacers].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => {
@@ -8075,7 +8078,7 @@ function generateCutlist() {
         const part = { name: 'Plant-on / Spacer', mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'' };
         allParts.push({
-          partName: 'Plant-on / Spacer', unitName: secId, _section: secId, qty: item.qty,
+          partName: 'Plant-on / Spacer', unitName: secLabel, _section: secId, qty: item.qty,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
           holes: '', category: getCategory(part),
