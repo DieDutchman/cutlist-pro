@@ -26192,7 +26192,7 @@ function drawerCalcParts() {
   // Runner clearance: total mm the drawer box is narrower than the inner carcass width.
   // Default 8mm (4mm each side). Soft-close 500mm runners typically need 27mm.
   const runnerClearance = (ds.runnerClearance != null && ds.runnerClearance >= 0) ? ds.runnerClearance : 8;
-  const boxSideW = 16;               // box side thickness (standard)
+  const boxSideW = T;                // box side thickness matches carcass material
   const fullBoxW = innerW - runnerClearance; // outer drawer box span
   const boxW     = fullBoxW - 2 * boxSideW; // inner box width (between the two side panels)
 
@@ -26244,16 +26244,16 @@ function drawerCalcParts() {
 
     parts.push(p('Pot Drawer Sides',         2*(n-1), DD, largeBoxH, cm, ce));
     parts.push(p('Pot Drawer Fronts & Backs', 2*(n-1), largeBoxH, boxW, cm, ce));
-    parts.push(p('Pot Drawer Bottoms',        n-1,    DD - 33, fullBoxW - 4, cm));
+    parts.push(p('Pot Drawer Bottoms',        n-1,    DD - T - 17, boxW - 4, cm));
     parts.push(p('Top Drawer Sides',          2,       DD, topBoxH, cm, ce));
     parts.push(p('Top Drawer Fronts & Backs', 2,       topBoxH, boxW, cm, ce));
-    parts.push(p('Top Drawer Bottom',         1,       DD - 33, fullBoxW - 4, cm));
+    parts.push(p('Top Drawer Bottom',         1,       DD - T - 17, boxW - 4, cm));
   } else {
     const boxH = drawerEffectiveBoxH();
     if (ds.drawerType === 'equal' || fh.every(h=>h===fh[0])) {
       parts.push(p('Drawer Sides',          2*n, DD,    boxH,    cm, ce));
       parts.push(p('Drawer Fronts & Backs', 2*n, boxH,  boxW,    cm, ce));
-      parts.push(p('Drawer Bottoms',        n,   DD - 33, fullBoxW - 4, cm));
+      parts.push(p('Drawer Bottoms',        n,   DD - T - 17, boxW - 4, cm));
     } else {
       // Custom different heights — list each separately using per-drawer auto calc
       // but still honour a global boxHeight override if set
@@ -26263,7 +26263,7 @@ function drawerCalcParts() {
           : Math.max(10, h - drawerReduction());
         parts.push(p(`Drawer ${i+1} Sides`,        2, DD,   bh,   cm, ce));
         parts.push(p(`Drawer ${i+1} Fronts & Backs`,2, bh,   boxW, cm, ce));
-        parts.push(p(`Drawer ${i+1} Bottom`,        1, DD-33, fullBoxW-4, cm));
+        parts.push(p(`Drawer ${i+1} Bottom`,        1, DD - T - 17, boxW - 4, cm));
       });
     }
   }
