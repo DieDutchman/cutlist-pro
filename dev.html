@@ -8106,6 +8106,23 @@ function generateCutlist() {
     });
   });
 
+  // Add Shutterply bases from Quote Extras — treated as cut panels for the supplier
+  (quoteState.extras || []).forEach(e => {
+    if (e.baseMode !== 'shutterply') return;
+    if (!e.baseL || !e.baseW || !e.basePcs) return;
+    const part = { name: 'Shutterply Base', mat: 'Shutterply', el1: '', el2: '', ew1: '', ew2: '' };
+    allParts.push({
+      partName: 'Shutterply Base',
+      unitName: 'Quote — Bases',
+      _section: '__extras__',
+      qty: e.basePcs,
+      l: e.baseL, w: e.baseW, mat: 'Shutterply',
+      el1: '', el2: '', ew1: '', ew2: '',
+      holes: '',
+      category: getCategory(part),
+    });
+  });
+
   // Consolidate identical parts (same dims + mat + edges + holes/notes).
   // Holes/notes MUST be part of the key — otherwise parts with different
   // per-unit holes (e.g. 3 plain doors + 2 with hinge holes at the same
@@ -12347,20 +12364,25 @@ function _calcBaseExtraCost(e) {
     const hw = _findFeetHwItem();
     return hw ? (e.baseQty || 0) * (hw.pricePerUnit || 0) : 0;
   }
-  // shutterply: proportional area cost (price per sheet) + proportional cut & label
+  // shutterply: proportional area cost (price per sheet) + proportional cut & label, 0.25 sheet minimum
   if (!e.baseL || !e.baseW || !e.basePcs) return 0;
   const m2 = (e.baseL / 1000) * (e.baseW / 1000) * e.basePcs * WASTE_FACTOR;
-  const sheets = m2 / SHUTTERPLY_AREA;
+  const rawSheets = m2 / SHUTTERPLY_AREA;
+  const minSh  = costingPrices.matMinSheets?.['Shutterply'] ?? 0.25;
+  const sheets = Math.max(rawSheets, minSh);
   return sheets * ((costingPrices.mat['Shutterply'] || 0) + (costingPrices.extras.cutLabel || 0));
 }
 
 function _baseExtraBreakdown(e) {
   if (e.baseMode !== 'shutterply' || !e.baseL || !e.baseW || !e.basePcs) return '';
   const m2 = (e.baseL / 1000) * (e.baseW / 1000) * e.basePcs * WASTE_FACTOR;
-  const sheets = m2 / SHUTTERPLY_AREA;
+  const rawSheets = m2 / SHUTTERPLY_AREA;
+  const minSh  = costingPrices.matMinSheets?.['Shutterply'] ?? 0.25;
+  const sheets = Math.max(rawSheets, minSh);
+  const minNote = rawSheets < minSh ? ` (min ${minSh})` : '';
   const matR = costingPrices.mat['Shutterply'] || 0;
   const clR  = costingPrices.extras.cutLabel || 0;
-  return `${sheets.toFixed(2)} sheets × (R${matR} mat + R${clR} C&amp;L)`;
+  return `${sheets.toFixed(2)} sheets${minNote} × (R${matR} mat + R${clR} C&amp;L)`;
 }
 
 function _calcSkirtingExtraCost(e) {
