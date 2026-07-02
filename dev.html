@@ -4555,6 +4555,10 @@ body.user-light-theme .pp-vat-select {
       title="More job actions: archive or delete" aria-haspopup="true" aria-expanded="false" aria-label="More job actions"
       style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 12px;font-size:16px;cursor:pointer;line-height:1;letter-spacing:2px">⋯</button>
     <div id="job-overflow-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg2);border:1px solid var(--border);min-width:160px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
+      <button id="job-duplicate-btn" type="button" onclick="duplicateCurrentJob()"
+        title="Duplicate this job — creates an identical copy you can modify independently"
+        style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--text-muted);cursor:pointer;white-space:nowrap">⧉ DUPLICATE</button>
+      <div style="margin:2px 0;border-top:1px solid var(--border)"></div>
       <button id="job-archive-btn" type="button" onclick="archiveCurrentJob()"
         title="Archive this job — hides it from the job list without deleting"
         style="display:block;width:100%;text-align:left;background:none;border:none;padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--text-muted);cursor:pointer;white-space:nowrap">📦 ARCHIVE</button>
@@ -14953,6 +14957,57 @@ async function newJob() {
 function _syncArchiveBtnLabel() {
   const btn = document.getElementById('job-archive-btn');
   if (btn) btn.textContent = currentJobArchived ? '📦 UNARCHIVE' : '📦 ARCHIVE';
+}
+
+async function duplicateCurrentJob() {
+  if (!currentJobId || !sbUser) return;
+  _closeJobOverflowMenu();
+
+  const client  = document.getElementById('job-client')?.value  || '';
+  const house   = document.getElementById('job-house')?.value   || '';
+  const address = document.getElementById('job-address')?.value || '';
+  const notes   = document.getElementById('job-notes')?.value   || '';
+  const state   = getJobState();
+
+  const copyHouse = house ? house + ' – Copy' : 'Copy';
+
+  setJobSyncStatus('⧉ Duplicating…', 'var(--amber-dim)');
+  try {
+    const body = {
+      user_id:   sbUser.id,
+      client,
+      house:     copyHouse,
+      address,
+      notes,
+      state,
+      client_id: currentClientId || null,
+    };
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs`, {
+      method:  'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body:    JSON.stringify(body),
+    });
+    if (!res.ok) { const t = await res.text().catch(()=>''); throw new Error(`HTTP ${res.status} — ${t}`); }
+    const rows = await res.json();
+    const newId = rows[0]?.id;
+    if (!newId) throw new Error('No ID returned');
+
+    // Switch to the new job
+    currentJobId = newId;
+    try { localStorage.setItem('cutlist_current_job_id', currentJobId); } catch(e) {}
+    persistLastJobId(currentJobId);
+    if (document.getElementById('job-house')) document.getElementById('job-house').value = copyHouse;
+    await loadUserJobs();
+    _updateJobPickerLabel();
+    const _owDup = document.getElementById('job-overflow-wrap');
+    if (_owDup) _owDup.style.display = 'flex';
+    _syncArchiveBtnLabel();
+    setJobSyncStatus('✓ Duplicated', '#5dba6e');
+    setTimeout(() => setJobSyncStatus(''), 3000);
+  } catch(e) {
+    setJobSyncStatus('✕ Duplicate failed: ' + e.message, '#e07070');
+    console.warn('[duplicateCurrentJob]', e.message);
+  }
 }
 
 async function archiveCurrentJob() {
