@@ -843,6 +843,19 @@
 
   .part-name { color: var(--text-dim); font-size: 12px; }
 
+  /* ── CUTLIST SOURCE CHIPS ── */
+  .cutlist-table .cl-from { vertical-align: middle; padding: 4px 8px; min-width: 80px; }
+  .cl-src-chip {
+    display: inline-flex; align-items: center;
+    background: none; border: 1px solid var(--border);
+    color: var(--text-muted); padding: 1px 7px;
+    font-size: 10px; font-family: 'Barlow', sans-serif;
+    letter-spacing: 0.3px; cursor: pointer; border-radius: 2px;
+    white-space: nowrap; line-height: 18px; margin: 1px 2px 1px 0;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .cl-src-chip:hover { border-color: var(--amber-dim); color: var(--amber); }
+
   /* ── PRINT ── */
   @media print {
     header, .nav-tabs, .header-actions, .btn-ghost { display: none; }
@@ -8042,6 +8055,7 @@ function generateCutlist() {
       allParts.push({
         partName: resolved.name,
         unitName: u.name,
+        _section: u.section || '',
         qty: resolved.qty * qty,
         l: resolved.l, w: resolved.w, mat: resolved.mat,
         el1: resolved.el1, el2: resolved.el2, ew1: resolved.ew1, ew2: resolved.ew2,
@@ -8061,7 +8075,7 @@ function generateCutlist() {
         const part = { name: 'Plant-on / Spacer', mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'' };
         allParts.push({
-          partName: 'Plant-on / Spacer', unitName: secId, qty: item.qty,
+          partName: 'Plant-on / Spacer', unitName: secId, _section: secId, qty: item.qty,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
           holes: '', category: getCategory(part),
@@ -8079,6 +8093,7 @@ function generateCutlist() {
     allParts.push({
       partName: p.name || 'Panel',
       unitName: panelLabel,
+      _section: '__panels__',
       qty: p.qty,
       l: p.l, w: p.w, mat: p.mat,
       el1: p.edgeL1||'', el2: p.edgeL2||'', ew1: p.edgeW1||'', ew2: p.edgeW2||'',
@@ -8096,12 +8111,13 @@ function generateCutlist() {
   allParts.forEach(p => {
     const holesNorm = (p.holes||'').trim();
     const key = `${p.l}|${p.w}|${p.mat}|${p.el1}|${p.el2}|${p.ew1}|${p.ew2}|${p.category}|${p._panelKey||''}|${holesNorm}`;
+    const srcEntry = { label: p.unitName, section: p._section || '', qty: p.qty };
     if (consolidated[key]) {
       consolidated[key].qty += p.qty;
-      consolidated[key].sources.push(p.unitName + ' × ' + p.qty);
+      consolidated[key].sources.push(srcEntry);
     } else {
       const holesVal = holesOverrides[key] !== undefined ? holesOverrides[key] : p.holes;
-      consolidated[key] = {...p, holes: holesVal, _key: key, sources: [p.unitName + ' × ' + p.qty]};
+      consolidated[key] = {...p, holes: holesVal, _key: key, sources: [srcEntry]};
     }
   });
 
@@ -8228,7 +8244,7 @@ function generateCutlist() {
       <div id="${secId}" class="cutlist-section-body">
       <table class="cutlist-table">
         <thead><tr>
-          <th>Qty</th><th>Height</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th>
+          <th>Qty</th><th>Height</th><th>Width</th><th>Material</th><th>Edges</th><th>Holes / Notes</th><th>From</th>
         </tr></thead><tbody>`;
 
     parts.forEach(p => {
@@ -8239,6 +8255,13 @@ function generateCutlist() {
         <span class="edge-tag ${p.ew1?'has-edge':''}">W1: ${p.ew1||'—'}</span>
         <span class="edge-tag ${p.ew2?'has-edge':''}">W2: ${p.ew2||'—'}</span>`;
 
+      const fromHtml = p.sources.map(s => {
+        const sec = s.section ? s.section.replace(/'/g, "\\'") : '';
+        const lbl = (s.label + ' ×' + s.qty).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return sec
+          ? `<button type="button" class="cl-src-chip" onclick="_cutlistJumpTo('${sec}')" title="Jump to ${s.label}">${lbl}</button>`
+          : `<span class="cl-src-chip" style="cursor:default">${lbl}</span>`;
+      }).join('');
       html += `<tr>
         <td class="qty">${p.qty}</td>
         <td class="dim">${p.l.toLocaleString()} mm</td>
@@ -8249,6 +8272,7 @@ function generateCutlist() {
           placeholder="Add note…"
           onchange="setHolesNote('${p._key.replace(/'/g,"\\'")}', this.value)"
           oninput="setHolesNote('${p._key.replace(/'/g,"\\'")}', this.value)"></td>
+        <td class="cl-from">${fromHtml}</td>
       </tr>`;
     });
 
@@ -8478,6 +8502,13 @@ function toggleCutlistSection(id) {
   body.style.display = open ? 'none' : '';
   if (chev) chev.style.transform = open ? 'rotate(-90deg)' : '';
   if (hdr)  hdr.setAttribute('aria-expanded', String(!open));
+}
+
+function _cutlistJumpTo(section) {
+  const btn = document.querySelector(`.tab[data-section="${section}"]`);
+  if (!btn) return;
+  btn.click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function cutlistExpandAll(expand) {
