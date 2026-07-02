@@ -12347,12 +12347,20 @@ function _calcBaseExtraCost(e) {
     const hw = _findFeetHwItem();
     return hw ? (e.baseQty || 0) * (hw.pricePerUnit || 0) : 0;
   }
-  // shutterply: board area → sheets → cost
+  // shutterply: ceil to whole sheets, include cut & label per sheet
   if (!e.baseL || !e.baseW || !e.basePcs) return 0;
-  const SHUTTERPLY_AREA = 2.94;
   const m2 = (e.baseL / 1000) * (e.baseW / 1000) * e.basePcs * WASTE_FACTOR;
-  const price = costingPrices.mat['Shutterply'] || 0;
-  return (m2 / SHUTTERPLY_AREA) * price;
+  const sheets = Math.ceil(m2 / SHUTTERPLY_AREA);
+  return sheets * ((costingPrices.mat['Shutterply'] || 0) + (costingPrices.extras.cutLabel || 0));
+}
+
+function _baseExtraBreakdown(e) {
+  if (e.baseMode !== 'shutterply' || !e.baseL || !e.baseW || !e.basePcs) return '';
+  const m2 = (e.baseL / 1000) * (e.baseW / 1000) * e.basePcs * WASTE_FACTOR;
+  const sheets = Math.ceil(m2 / SHUTTERPLY_AREA);
+  const matR = costingPrices.mat['Shutterply'] || 0;
+  const clR  = costingPrices.extras.cutLabel || 0;
+  return `${sheets} sheet${sheets!==1?'s':''} × (R${matR} mat + R${clR} C&amp;L)`;
 }
 
 function _calcSkirtingExtraCost(e) {
@@ -12389,19 +12397,22 @@ function buildBaseExtraRow(e, i) {
     const cost = _calcBaseExtraCost(e);
     const noPrice = !(costingPrices.mat['Shutterply'] || 0)
       ? `<span style="color:#e07070;font-size:11px">⚠ Set Shutterply price on Costing tab</span>` : '';
+    const _bdi = `quoteState.extras[${i}]`;
+    const _refreshBase = `(function(){var _e=${_bdi};${_bdi}.amount=_calcBaseExtraCost(_e);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(_e));document.getElementById('qv-base-bd-${i}').textContent=_baseExtraBreakdown(_e);})()`;
     fields = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--text-muted)">W(mm):</span>
       <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.baseL||''}" placeholder="width" style="width:70px"
-        oninput="quoteState.extras[${i}].baseL=parseInt(this.value)||0;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
+        oninput="${_bdi}.baseL=parseInt(this.value)||0;${_refreshBase}">
       <span style="font-size:12px;color:var(--text-muted)">D(mm):</span>
       <input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.baseW||''}" placeholder="depth" style="width:70px"
-        oninput="quoteState.extras[${i}].baseW=parseInt(this.value)||0;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
+        oninput="${_bdi}.baseW=parseInt(this.value)||0;${_refreshBase}">
       <span style="font-size:12px;color:var(--text-muted)">Qty:</span>
       <input autocomplete="off" class="qv-extra-input num" type="number" min="1" value="${e.basePcs||1}" style="width:55px"
-        oninput="quoteState.extras[${i}].basePcs=parseInt(this.value)||1;quoteState.extras[${i}].amount=_calcBaseExtraCost(quoteState.extras[${i}]);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-base-cost-${i}').textContent=fmt(_calcBaseExtraCost(quoteState.extras[${i}]))">
+        oninput="${_bdi}.basePcs=parseInt(this.value)||1;${_refreshBase}">
       ${noPrice}
       <span id="qv-base-cost-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)">${fmt(cost)}</span>
-    </div>`;
+    </div>
+    <div id="qv-base-bd-${i}" style="font-size:10px;color:var(--text-muted);margin-top:2px;letter-spacing:0.2px">${_baseExtraBreakdown(e)}</div>`;
   }
   return `<tr>
     <td>
