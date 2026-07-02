@@ -6390,8 +6390,8 @@ function setHolesNote(key, val) {
 // ═══════════════════════════════════════════════════════════
 // MATERIAL CONFIG
 // ═══════════════════════════════════════════════════════════
-let COLORS = ['Iceberg White','Congo','Folkstone Grey','Folkstone Grey Linear','Woodland Fusion','Storm Grey','Storm Grey Linear','Dunblane','Pico White'];
-let EDGE_COLORS = ['Iceberg White','Congo','Folkstone Grey','Woodland Fusion','Storm Grey','Dunblane','Pico White'];
+let COLORS = ['Iceberg White','Congo','Folkstone Grey','Folkstone Grey Linear','Woodland Fusion','Storm Grey','Storm Grey Linear','Dunblane','Picco White'];
+let EDGE_COLORS = ['Iceberg White','Congo','Folkstone Grey','Woodland Fusion','Storm Grey','Dunblane','Picco White'];
 
 const COLOR_SWATCHES = {
   'Iceberg White':         '#e8eaeb',
@@ -6402,7 +6402,7 @@ const COLOR_SWATCHES = {
   'Storm Grey':            '#6a6e72',
   'Storm Grey Linear':     '#5e6266',
   'Dunblane':              '#8c7055',
-  'Pico White':            '#f4f2ee',
+  'Picco White':           '#f4f2ee',
   'White':                 '#f5f5f5',
 };
 
@@ -13370,7 +13370,7 @@ const costingPrices = {
     'Woodland Fusion':         3420,
     'Storm Grey':              3120,
     'Storm Grey Linear':       3420,
-    'Pico White':              3120,
+    'Picco White':             3120,
     'Shutterply':               850,
   },
   edge: {
@@ -22769,7 +22769,7 @@ async function runImportParse() {
     if (m.includes('Storm Grey Linear'))      aliases.push('SGL','Storm Lin');
     if (m.includes('Storm Grey'))             aliases.push('SG','Storm');
     if (m.includes('Dunblane'))               aliases.push('DB','Dun');
-    if (m.includes('Pico White'))             aliases.push('PW','Pico');
+    if (m.includes('Picco White'))            aliases.push('PW','Picco');
     if (m.includes('Shutterply'))             aliases.push('Ply','Shutter','Shutterply');
     const unique = [...new Set(aliases)];
     return `  "${m}" → aliases: ${unique.slice(1).join(', ') || 'none'}`;
