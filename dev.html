@@ -11527,11 +11527,44 @@ function _captureScenario(idx) {
   const sc = quoteState.scenarios?.[idx];
   if (!sc) return;
   SCENARIO_FIELDS.forEach(k => { sc[k] = JSON.parse(JSON.stringify(quoteState[k] ?? null)); });
+  sc._ext = {
+    quantities:       JSON.parse(JSON.stringify(quantities)),
+    unitMatOverrides: JSON.parse(JSON.stringify(unitMatOverrides)),
+    bedroomAddons:    JSON.parse(JSON.stringify(bedroomAddons)),
+    panelsState:      { label: panelsState.label, items: JSON.parse(JSON.stringify(panelsState.items)) },
+  };
 }
 function _applyScenario(idx) {
   const sc = quoteState.scenarios?.[idx];
   if (!sc) return;
   SCENARIO_FIELDS.forEach(k => { if (sc[k] !== undefined) quoteState[k] = JSON.parse(JSON.stringify(sc[k])); });
+  if (!sc._ext) return;
+  if (sc._ext.quantities) {
+    Object.keys(quantities).forEach(k => { quantities[k] = 0; });
+    Object.assign(quantities, sc._ext.quantities);
+  }
+  if (sc._ext.unitMatOverrides) {
+    Object.keys(unitMatOverrides).forEach(k => delete unitMatOverrides[k]);
+    Object.assign(unitMatOverrides, JSON.parse(JSON.stringify(sc._ext.unitMatOverrides)));
+    saveUnitMatOverrides();
+  }
+  if (sc._ext.bedroomAddons) {
+    const saved = JSON.parse(JSON.stringify(sc._ext.bedroomAddons));
+    ADDON_SECTIONS.forEach(sec => {
+      bedroomAddons[sec] = saved[sec] || {
+        plantOn: { enabled: false, items: [defaultAddon()] },
+        spacers:  { enabled: false, items: [defaultSpacer()] },
+      };
+    });
+    Object.keys(saved).forEach(sec => {
+      if (!ADDON_SECTIONS.includes(sec)) bedroomAddons[sec] = saved[sec];
+    });
+  }
+  if (sc._ext.panelsState) {
+    panelsState.items = JSON.parse(JSON.stringify(sc._ext.panelsState.items || []));
+    panelsState.label = sc._ext.panelsState.label || '';
+    savePanelsState();
+  }
 }
 function switchScenario(idx) {
   if (!quoteState.scenarios || idx === (quoteState.activeScenario || 0)) return;
@@ -11539,7 +11572,11 @@ function switchScenario(idx) {
   quoteState.activeScenario = idx;
   _applyScenario(idx);
   saveQuoteState();
+  save();
   renderQuoteView();
+  try { renderPanel(); } catch(e) {}
+  try { if (typeof _renderPanelsView === 'function') _renderPanelsView(); } catch(e) {}
+  try { updateSummary(); updateCounts(); } catch(e) {}
 }
 function addScenario() {
   if (!quoteState.scenarios) return;
@@ -11599,7 +11636,7 @@ function _renderQuoteView() {
   scenStrip += `</div>`;
   if (quoteState.scenarios.length === 1 && localStorage.getItem('scenHintDismissed') !== '1') {
     scenStrip += `<div id="qv-scen-hint" style="display:flex;align-items:baseline;gap:10px;background:rgba(212,145,58,0.07);border:1px solid rgba(212,145,58,0.22);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.5">
-      <span style="flex:1">💡 <strong style="color:var(--text)">＋ Add option</strong> clones this quote as a separate pricing scenario — great for presenting Option A / B / C alternatives to a client without duplicating the job.</span>
+      <span style="flex:1">💡 <strong style="color:var(--text)">＋ Add option</strong> clones this option including its unit quantities, extras, tops and custom panels — great for presenting Option A / B / C alternatives to a client (different configurations, inclusions, or spec levels) all within the same job.</span>
       <button onclick="localStorage.setItem('scenHintDismissed','1');const h=document.getElementById('qv-scen-hint');if(h)h.remove()" aria-label="Dismiss scenario hint" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;opacity:0.7" title="Dismiss">✕</button>
     </div>`;
   }
@@ -14707,6 +14744,7 @@ function _closeJobOverflowMenu() {
 }
 
 function getJobState() {
+  _captureScenario(quoteState.activeScenario || 0);
   return {
     quantities,
     holesOverrides,
