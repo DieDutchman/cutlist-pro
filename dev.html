@@ -6923,6 +6923,15 @@ document.addEventListener('keydown', function(ev) {
     try { generateCutlist(); } catch(e) {}
     return;
   }
+  // When Quote tab is active and scenarios exist, Alt+1/2/3 switch scenarios.
+  if (currentSection === '__quote__' && /^[123]$/.test(ev.key)) {
+    const scIdx = parseInt(ev.key, 10) - 1;
+    if (quoteState.scenarios && scIdx < quoteState.scenarios.length) {
+      ev.preventDefault();
+      try { switchScenario(scIdx); } catch(e) {}
+      return;
+    }
+  }
   const section = _ALT_TAB_MAP[ev.key];
   if (!section) return;
   const btn = document.querySelector('.tab[data-section="' + section + '"]');
@@ -11634,6 +11643,7 @@ function _renderQuoteView() {
   scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario" aria-label="Clone this option as a new scenario">＋ Add option</button>`;
   scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
   if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option" aria-label="Remove this option">✕</button>`;
+  if (localStorage.getItem('scenHintDismissed') === '1') scenStrip += `<button class="qv-scen-icon-btn" onclick="localStorage.removeItem('scenHintDismissed');renderQuoteView()" title="Show tip about options" aria-label="Show tip about options" style="opacity:0.45;font-size:11px;padding:0 5px">?</button>`;
   scenStrip += `</div>`;
   if (quoteState.scenarios.length === 1 && localStorage.getItem('scenHintDismissed') !== '1') {
     scenStrip += `<div id="qv-scen-hint" style="display:flex;align-items:baseline;gap:10px;background:rgba(212,145,58,0.07);border:1px solid rgba(212,145,58,0.22);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.5">
@@ -30032,15 +30042,15 @@ function _showPlanToast(message) {
 
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+1</span>
-        <span style="font-size:13px;color:var(--text-muted)">Panels tab</span>
+        <span style="font-size:13px;color:var(--text-muted)">Panels tab &mdash; or switch to Option A while on Quote</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+2</span>
-        <span style="font-size:13px;color:var(--text-muted)">Cutlist tab</span>
+        <span style="font-size:13px;color:var(--text-muted)">Cutlist tab &mdash; or switch to Option B while on Quote</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+3</span>
-        <span style="font-size:13px;color:var(--text-muted)">Quote tab</span>
+        <span style="font-size:13px;color:var(--text-muted)">Quote tab &mdash; or switch to Option C while on Quote</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+4</span>
