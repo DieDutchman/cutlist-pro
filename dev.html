@@ -854,6 +854,7 @@
     white-space: nowrap; line-height: 18px; margin: 1px 2px 1px 0;
     transition: border-color 0.15s, color 0.15s;
   }
+  button.cl-src-chip { background: rgba(212,145,58,0.05); border-color: rgba(212,145,58,0.22); }
   .cl-src-chip:hover { border-color: var(--amber-dim); color: var(--amber); }
 
   /* ── PRINT ── */
@@ -11640,6 +11641,9 @@ function _renderQuoteView() {
       <button onclick="localStorage.setItem('scenHintDismissed','1');const h=document.getElementById('qv-scen-hint');if(h)h.remove()" aria-label="Dismiss scenario hint" style="flex-shrink:0;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;opacity:0.7" title="Dismiss">✕</button>
     </div>`;
   }
+  if (quoteState.scenarios.length > 1) {
+    scenStrip += `<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5">Each option carries its own unit quantities, materials and extras.</div>`;
+  }
 
   // Build section data — include sections that have selected units OR enabled addons.
   // Use buildRoomList so each room's matchIds include both its own id AND its
@@ -15042,6 +15046,7 @@ async function duplicateCurrentJob() {
     _syncArchiveBtnLabel();
     setJobSyncStatus('✓ Duplicated', '#5dba6e');
     setTimeout(() => setJobSyncStatus(''), 3000);
+    showToast(`Duplicated as "${copyHouse}"`, 'success');
   } catch(e) {
     setJobSyncStatus('✕ Duplicate failed: ' + e.message, '#e07070');
     console.warn('[duplicateCurrentJob]', e.message);

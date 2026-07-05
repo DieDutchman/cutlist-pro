@@ -4,7 +4,7 @@ These findings are confirmed false positives. Drop them silently on every run.
 
 ## Overused font: Arial
 
-Any occurrence inside `@media print` / print-popup CSS blocks that produce the PDF invoice. Arial is intentional for print output and is never used in the app UI. Line numbers drift with code insertions — match by context (print block), not line number.
+Any occurrence inside `@media print` / print-popup CSS blocks that produce the PDF invoice. Arial is intentional for print output and is never used in the app UI. Match by context (print block), not line number — line numbers drift with code insertions.
 
 ## Broken or placeholder image
 
@@ -17,7 +17,7 @@ Two small decorative swatch elements (`.udp-legend-swatch`, sheet-map legend) �
 
 ## Border-radius: 2px / 3px in JS template strings
 
-Numerous occurrences of `border-radius: 2px` or `border-radius: 3px` inside JavaScript template literals that generate HTML strings (cabinet dimension badge pills, icon chips, picker row chips, etc.). The detector flags these because the values fall outside DESIGN.md's documented radius scale, but the detector is reading them as CSS in markup context when they are actually JS string content that gets compiled into runtime DOM. All are intentional small-radius chips — not interactive components requiring the full radius token scale.
+Numerous occurrences of `border-radius: 2px` or `border-radius: 3px` inside JavaScript template literals that generate HTML strings (cabinet dimension badge pills, icon chips, picker row chips, etc.). The detector flags these because the values fall outside DESIGN.md's documented radius scale, but the detector is reading them as CSS in markup context when they are actually JS string content that gets compiled into runtime DOM. All are intentional small-radius chips — not interactive components requiring the full radius token scale. Match by description pattern (JS template string context), not line number.
 
 ## Font-family in inline JS strings: Barlow and Oswald
 
@@ -30,3 +30,7 @@ All occurrences of `font-family: \'Barlow\'` or `\'Oswald\'` inside JavaScript s
 ## Em-dash usage
 
 Em-dashes in UI label strings (`— Select a job —`, `— New Job —`) are intentional typographic choices, not overuse. These are placeholder labels in picker/select elements where the em-dash is a common convention for "no selection made."
+
+## Note on line numbers
+
+All line-number references above are removed intentionally — they drift ~100–250 lines with each major feature addition. Rules match by description pattern and context, not by line number.
