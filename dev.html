@@ -22969,12 +22969,13 @@ MATERIAL MATCHING RULES:
 3. If still unsure → use "Picco White"
 
 EDGING MATCHING RULES:
-1. When edging is present, use the exact edging name from the "MATERIAL → EDGING OPTIONS" list above
-2. If a specific thickness (1mm, 2mm etc.) is shown in the data, pick the matching size
-3. If edging is indicated but size is unclear, use the FIRST option in the list for that material
-4. CRITICAL: Only use "" (empty string) when the spreadsheet explicitly shows NO edging (dash, blank, N)
-5. CRITICAL: If a part clearly has edging in the source data, always output a matching edging name — never silently drop it
-6. Never invent edging names — only use names from the available edging list
+1. DEFAULT IS NO EDGING — all four edge fields default to "" unless the source data explicitly specifies edging for that edge
+2. Only populate an edge field when the source row contains explicit edging information for that edge (an edging name, abbreviation, tick, Y, X, or a number)
+3. A blank cell, missing column, or absent edging data = "" — do NOT infer edging from the material type
+4. When edging IS present, use the exact edging name from the "MATERIAL → EDGING OPTIONS" list above
+5. If a specific thickness (1mm, 2mm etc.) is shown in the data, pick the matching size
+6. If edging is indicated but size is unclear, use the FIRST option in the list for that material
+7. Never invent edging names — only use names from the available edging list
 
 OUTPUT: Return ONLY valid JSON — no markdown, no explanation, no preamble:
 {
