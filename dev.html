@@ -23003,12 +23003,15 @@ Rules:
 - Skip any row with no valid dimensions (l=0 or w=0)`;
 
   try {
-    // Call via Supabase Edge Function proxy (avoids CORS, keeps API key server-side)
-    // Use fetchWithAuth so an expired sbToken triggers auto-refresh before retry
-    const response = await fetchWithAuth(`${SB_URL}/functions/v1/parse-cutlist`, {
+    // Call via Supabase Edge Function proxy (avoids CORS, keeps API key server-side).
+    // Force anon key in Authorization — user JWT uses ES256 which edge runtime rejects;
+    // SB_KEY (anon key) is HS256 and this function needs no per-user auth.
+    const response = await fetch(`${SB_URL}/functions/v1/parse-cutlist`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
       },
       body: JSON.stringify({ rawText, systemPrompt }),
     });
