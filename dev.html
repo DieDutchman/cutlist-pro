@@ -15119,7 +15119,7 @@ async function deleteCurrentJob() {
     quoteState.consultFeeAmt = 500; quoteState.dieselFeeAmt = 1800; quoteState.deliveryFeeAmt = 0;
     quoteState.scenarios = [{ name:'Option A', tops:{m2:0,type:'Platinum',pricePerM2:2900}, extras:[], markup:0.40, consultFee:false, consultFeeAmt:500, dieselFee:false, dieselFeeAmt:1800, deliveryFee:false, deliveryFeeAmt:0, boardSurchargeEnabled:undefined, topsOpen:false, feesOpen:false }];
     quoteState.activeScenario = 0;
-    archivedUnitIds.clear();
+    _loadArchivedUnits();
     const _addonResetKeys = new Set([...Object.keys(bedroomAddons), ...getAddonSections()]);
     _addonResetKeys.forEach(sec => {
       bedroomAddons[sec] = {
@@ -16638,8 +16638,17 @@ function confirmNewUnit() {
 }
 
 // ── Archive / Restore Units ───────────────────────────────────────────────────
+function _saveArchivedUnits() {
+  try { localStorage.setItem('cutlist_archived_units', JSON.stringify([...archivedUnitIds])); } catch(e) {}
+}
+function _loadArchivedUnits() {
+  archivedUnitIds.clear();
+  try { const s = JSON.parse(localStorage.getItem('cutlist_archived_units') || '[]'); if (Array.isArray(s)) s.forEach(id => archivedUnitIds.add(id)); } catch(e) {}
+}
+
 function archiveUserUnit(id) {
   archivedUnitIds.add(id);
+  _saveArchivedUnits();
   renderPanel();
   scheduleAutoSave();
   const unit = userUnits.find(u => u.id === id);
@@ -16648,6 +16657,7 @@ function archiveUserUnit(id) {
 
 function restoreArchivedUnit(id) {
   archivedUnitIds.delete(id);
+  _saveArchivedUnits();
   document.getElementById('archive-toast')?.remove();
   renderPanel();
   scheduleAutoSave();
@@ -21977,7 +21987,7 @@ function _applyStateInner(state) {
   // ── Zero everything first so no old job's data bleeds into the new one ────
   // Quantities — set ALL known units to 0, then overwrite with saved values
   Object.keys(quantities).forEach(k => { quantities[k] = 0; });
-  archivedUnitIds.clear();
+  _loadArchivedUnits();
   // Clear job-specific overrides and services
   Object.keys(holesOverrides).forEach(k => delete holesOverrides[k]);
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
@@ -22146,7 +22156,6 @@ function _applyStateInner(state) {
       });
     }
     if (state.userUnits?.length) { userUnits = [...state.userUnits]; state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; }); }
-    archivedUnitIds.clear();
     if (Array.isArray(state.archivedUnitIds)) state.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
   } else {
     // Superuser: if the job has rooms, restore them (job-load behavior). If not
@@ -22173,7 +22182,6 @@ function _applyStateInner(state) {
       userUnits = [...state.userUnits];
       state.userUnits.forEach(u => { if (!(u.id in quantities)) quantities[u.id] = 0; });
     }
-    archivedUnitIds.clear();
     if (Array.isArray(state.archivedUnitIds)) state.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
     // After loading a job, sync the (possibly merged) room set back to the
     // profile blob so future logins see the latest set.
@@ -26556,7 +26564,7 @@ function plCalcFromState(state) {
     // unitOverrides / deletedUnits
     if (st.unitOverrides) Object.assign(unitOverrides, st.unitOverrides);
     if (st.deletedUnits)  { deletedUnits.clear(); st.deletedUnits.forEach(id => deletedUnits.add(id)); }
-    archivedUnitIds.clear();
+    _loadArchivedUnits();
     if (st.archivedUnitIds) st.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
 
     // special service assignments
@@ -26629,7 +26637,7 @@ function plCalcFromState(state) {
     Object.keys(unitOverrides).forEach(k => delete unitOverrides[k]);
     Object.assign(unitOverrides, snap.unitOverrides);
     deletedUnits.clear(); snap.deletedUnits.forEach(id => deletedUnits.add(id));
-    archivedUnitIds.clear(); if (snap.archivedUnitIds) snap.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
+    _loadArchivedUnits(); if (snap.archivedUnitIds) snap.archivedUnitIds.forEach(id => archivedUnitIds.add(id));
 
     Object.keys(unitSpecialServices).forEach(k=>delete unitSpecialServices[k]);
     Object.assign(unitSpecialServices,  snap.unitSpecialServices);
