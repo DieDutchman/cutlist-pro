@@ -16694,11 +16694,18 @@ function openImportUnitModal() {
   modal.id = 'import-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  // Build section dropdown options at open time from the live room list
+  const _iuRooms = buildRoomList(true);
+  const _iuSectionOptions = _iuRooms.map(r =>
+    `<option value="${r.id}"${r.id === currentSection ? ' selected' : ''}>${r.label}</option>`
+  ).join('');
+
   modal.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:22px 28px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNIT</div>
-        <div style="font-size:12px;color:var(--text-muted)">Reuse a unit from a file or by pasting text.</div>
+        <div style="font-size:12px;color:var(--text-muted)">Import a parts list from your drawing program as a new unit.</div>
       </div>
       <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
         <button id="iu-tab-btn-file" onclick="_switchImportUnitTab('file')"
@@ -16725,23 +16732,30 @@ function openImportUnitModal() {
         </div>
       </div>
       <div id="iu-tab-paste" style="display:none;padding:16px 28px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Paste a parts list, cutlist row, or unit description. Template matching runs first — AI takes over if no match is found.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Paste your parts list from the drawing program — AI will parse it into a new unit. To look up an existing template instead, paste just a unit name (e.g. F600 Floor Unit).</div>
         <textarea id="import-unit-paste-input"
-          placeholder="e.g. F600 Floor Unit&#10;Side x2   780 x 534  Picco White&#10;Bottom x1  534 x 418  Picco White&#10;Door x1    777 x 596  Dunblane"
+          placeholder="e.g.&#10;Side x2   780 x 534  Picco White&#10;Bottom x1  534 x 418  Picco White&#10;Door x1    777 x 596  Dunblane"
           style="width:100%;min-height:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;box-sizing:border-box"
           onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'"></textarea>
         <div style="margin-top:10px;display:flex;justify-content:flex-end">
           <button id="iu-paste-find-btn" onclick="_doImportUnitPaste()"
-            style="font-weight:500;background:var(--amber);color:#111;border:none;padding:8px 20px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">FIND UNIT</button>
+            style="font-weight:500;background:var(--amber);color:#111;border:none;padding:8px 20px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">PARSE PARTS</button>
         </div>
       </div>
       <div id="import-unit-error" style="display:none;margin:10px 28px 0;padding:10px;background:rgba(224,112,112,0.1);border:1px solid #e07070;color:#e07070;font-size:12px"></div>
       <div id="import-unit-preview" style="flex:1;overflow-y:auto;padding:0 28px 10px;display:none">
-        <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--text-muted);padding:12px 0 6px">PREVIEW</div>
+        <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--text-muted);padding:12px 0 6px">PREVIEW — edit unit name(s) before importing</div>
         <div id="import-unit-preview-rows"></div>
       </div>
-      <div style="padding:14px 28px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
-        <span id="import-unit-summary" style="font-size:12px;color:var(--text-muted);flex:1"></span>
+      <div style="padding:14px 28px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span id="import-unit-summary" style="font-size:12px;color:var(--text-muted);flex:1;min-width:80px"></span>
+        <div id="iu-section-row" style="display:none;align-items:center;gap:6px">
+          <label for="iu-section-select" style="font-size:11px;color:var(--text-muted);white-space:nowrap">Room:</label>
+          <select id="iu-section-select"
+            style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:'Barlow',sans-serif;font-size:11px;cursor:pointer;outline:none;max-width:160px">
+            ${_iuSectionOptions}
+          </select>
+        </div>
         <button id="import-unit-confirm-btn" onclick="confirmImportUnits()" disabled
           style="font-weight:500;background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:not-allowed;opacity:0.4">IMPORT</button>
         <button onclick="document.getElementById('import-unit-modal').remove()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
@@ -16897,15 +16911,22 @@ function _renderImportUnitPreview(units) {
   const prevEl  = document.getElementById('import-unit-preview');
   const rowsEl  = document.getElementById('import-unit-preview-rows');
   const summEl  = document.getElementById('import-unit-summary');
+  const secRow  = document.getElementById('iu-section-row');
   const totalParts = units.reduce((s, u) => s + (u.parts||[]).length, 0);
   if (summEl && !summEl.textContent) {
     summEl.textContent = `${units.length} unit${units.length===1?'':'s'} · ${totalParts} part${totalParts===1?'':'s'} found`;
   }
-  rowsEl.innerHTML = units.map(u => `
+  // Show the section / room dropdown now that we have results to confirm
+  if (secRow) secRow.style.display = 'flex';
+  rowsEl.innerHTML = units.map((u, i) => `
     <div style="border:1px solid var(--border);margin-bottom:8px">
-      <div style="font-weight:500;background:var(--bg3);padding:7px 12px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--amber);display:flex;align-items:center;gap:8px">
-        <span>${u.name}</span>
-        ${u._templateMatch ? '<span style="font-size:10px;letter-spacing:0.5px;background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:1px 6px">FROM TEMPLATE</span>' : ''}
+      <div style="background:var(--bg3);padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <input id="iu-unit-name-${i}" type="text"
+          value="${(u.name || 'Imported Unit').replace(/"/g, '&quot;')}"
+          placeholder="Unit name"
+          style="font-weight:500;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--amber);background:transparent;border:none;border-bottom:1px solid var(--amber-dim);outline:none;min-width:120px;flex:1;padding:0 0 2px"
+          onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='var(--amber-dim)'"/>
+        ${u._templateMatch ? '<span style="font-size:10px;letter-spacing:0.5px;background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;white-space:nowrap;flex-shrink:0">FROM TEMPLATE</span>' : ''}
       </div>
       ${(u.parts||[]).length ? `
       <table style="width:100%;border-collapse:collapse;font-size:11px">
@@ -16932,9 +16953,13 @@ function _renderImportUnitPreview(units) {
 
 function confirmImportUnits() {
   if (!_importUnitParsedUnits.length) return;
-  _importUnitParsedUnits.forEach(u => {
+  const sectionEl = document.getElementById('iu-section-select');
+  const targetSection = (sectionEl ? sectionEl.value : '') || currentSection;
+  _importUnitParsedUnits.forEach((u, i) => {
+    const nameEl   = document.getElementById('iu-unit-name-' + i);
+    const unitName = (nameEl ? nameEl.value.trim() : '') || u.name || 'Imported Unit';
     const id = 'uu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-    userUnits.push({ id, section: currentSection, name: u.name, price: 0, parts: u.parts });
+    userUnits.push({ id, section: targetSection, name: unitName, price: 0, parts: u.parts || [] });
     quantities[id] = 0;
   });
   document.getElementById('import-unit-modal').remove();
@@ -16963,9 +16988,11 @@ function _switchImportUnitTab(tab) {
   const prevEl = document.getElementById('import-unit-preview');
   const summEl = document.getElementById('import-unit-summary');
   const confBtn = document.getElementById('import-unit-confirm-btn');
+  const secRow  = document.getElementById('iu-section-row');
   if (errEl)  errEl.style.display  = 'none';
   if (prevEl) prevEl.style.display = 'none';
   if (summEl) summEl.textContent   = '';
+  if (secRow) secRow.style.display = 'none';
   if (confBtn) { confBtn.disabled = true; confBtn.style.opacity = '0.4'; confBtn.style.cursor = 'not-allowed'; }
   _importUnitParsedUnits = [];
 }
@@ -16985,27 +17012,35 @@ async function _doImportUnitPaste() {
   prevEl.style.display = 'none';
   _importUnitParsedUnits = [];
   btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
-  if (findBtn) { findBtn.disabled = true; findBtn.textContent = 'Matching…'; }
+
+  // Detect whether the input looks like a bare unit name (quick template lookup)
+  // or like an actual parts list from a drawing program (multi-line, has dimensions).
+  // A "parts list" has at least one line with a 3+ digit number (mm dimensions).
+  const looksLikePartsData = /\b\d{3,}\b/.test(text) || text.split('\n').filter(l => l.trim()).length > 2;
+
+  if (findBtn) { findBtn.disabled = true; findBtn.textContent = looksLikePartsData ? 'Parsing…' : 'Matching…'; }
 
   try {
-    // Step 1: template matching against allUnits/userUnits
-    const tplMatches = _templateMatchImportUnit(text);
-    if (tplMatches.length) {
-      _importUnitParsedUnits = tplMatches;
-      summEl.textContent = `${tplMatches.length} unit${tplMatches.length===1?'':'s'} matched from template library`;
-      _renderImportUnitPreview(tplMatches);
-      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-      return;
+    if (!looksLikePartsData) {
+      // Short text with no dimensions — try template matching first as a quick-find shortcut
+      const tplMatches = _templateMatchImportUnit(text);
+      if (tplMatches.length) {
+        _importUnitParsedUnits = tplMatches;
+        summEl.textContent = `${tplMatches.length} unit${tplMatches.length===1?'':'s'} matched from template library`;
+        _renderImportUnitPreview(tplMatches);
+        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+        return;
+      }
     }
 
-    // Step 2: AI fallback via parse-cutlist edge function
-    if (findBtn) findBtn.textContent = 'Asking AI…';
-    summEl.textContent = 'No template match — asking AI…';
+    // Primary path: AI parse → creates a new unit from the pasted parts data
+    if (findBtn) findBtn.textContent = 'Parsing…';
+    summEl.textContent = 'Parsing parts…';
     const aiUnits = await _aiImportUnitFallback(text);
-    if (!aiUnits.length) throw new Error('No units could be identified from the pasted text. Check the format and try again.');
+    if (!aiUnits.length) throw new Error('No parts could be identified from the pasted text. Check the format and try again.');
     _importUnitParsedUnits = aiUnits;
     const matched = aiUnits.filter(u => u._templateMatch).length;
-    summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} found via AI${matched ? ` · ${matched} matched to template` : ''}`;
+    summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} · ${aiUnits.reduce((s,u)=>s+(u.parts||[]).length,0)} parts parsed${matched ? ` · ${matched} matched template` : ''}`;
     _renderImportUnitPreview(aiUnits);
     btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
   } catch(e) {
@@ -17013,7 +17048,7 @@ async function _doImportUnitPaste() {
     errEl.style.display = 'block';
     summEl.textContent  = '';
   } finally {
-    if (findBtn) { findBtn.disabled = false; findBtn.textContent = 'FIND UNIT'; }
+    if (findBtn) { findBtn.disabled = false; findBtn.textContent = 'PARSE PARTS'; }
   }
 }
 
