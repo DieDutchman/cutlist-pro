@@ -23004,11 +23004,11 @@ Rules:
 
   try {
     // Call via Supabase Edge Function proxy (avoids CORS, keeps API key server-side)
-    const response = await fetch(`${SB_URL}/functions/v1/parse-cutlist`, {
+    // Use fetchWithAuth so an expired sbToken triggers auto-refresh before retry
+    const response = await fetchWithAuth(`${SB_URL}/functions/v1/parse-cutlist`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sbToken || SB_KEY}`,
       },
       body: JSON.stringify({ rawText, systemPrompt }),
     });
@@ -23016,7 +23016,8 @@ Rules:
     if (!response.ok) {
       const txt = await response.text();
       let msg = `Error ${response.status}`;
-      try { const j = JSON.parse(txt); msg = j.error || msg; } catch(e) {}
+      // Supabase gateway errors use j.message; Edge Function errors use j.error
+      try { const j = JSON.parse(txt); msg = j.error || j.message || msg; } catch(e) {}
       throw new Error(msg);
     }
 
