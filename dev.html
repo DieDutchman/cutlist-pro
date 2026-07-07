@@ -27685,7 +27685,7 @@ function _renderPLView() {
       const t = computeQuoteTotals();
       const _liveBreakdown = computeJobMatBreakdown();
       snap = {
-        costingTotal:   t.unitsTotal,
+        costingTotal:   t.unitsTotal + t.extrasTotal + t.topsTotal,
         unitsTotal:     t.unitsTotal,
         quoteGrand:     t.grand,
         quoteMarkupAmt: t.unitsTotal * t.markup,
@@ -28855,7 +28855,7 @@ async function plExportXLSX(jobId) {
       const t = computeQuoteTotals();
       const _lb = computeJobMatBreakdown();
       snap = {
-        costingTotal: t.unitsTotal, unitsTotal: t.unitsTotal, quoteGrand: t.grand,
+        costingTotal: t.unitsTotal + t.extrasTotal + t.topsTotal, unitsTotal: t.unitsTotal, quoteGrand: t.grand,
         quoteMarkupAmt: t.unitsTotal * t.markup, topsTotal: t.topsTotal,
         consult: t.consultTotal, diesel: t.dieselTotal, extras: t.extrasTotal,
         labourExpected: t.labourTotal || 0, markup: t.markup,
