@@ -364,6 +364,21 @@
   .jp-empty { padding:10px; text-align:center; font-size:11px; color:var(--text-muted); font-family:'Barlow',sans-serif; }
   .jp-archived { font-style:italic; opacity:0.65; }
 
+  /* ── P&L JOB PICKER (mirrors main picker, separate IDs) ── */
+  #pl-jp-wrap { position:relative; flex:1; min-width:220px; max-width:420px; display:flex; flex-direction:column; gap:3px; }
+  #pl-jp-trigger {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    padding:5px 8px; font-family:'Barlow',sans-serif; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+    user-select:none; min-height:32px; width:100%; box-sizing:border-box; text-align:left;
+  }
+  #pl-jp-trigger:hover { border-color:var(--amber-dim); }
+  #pl-jp-search { display:none; background:var(--bg3); border:1px solid var(--amber); color:var(--text); padding:5px 8px; font-family:'Barlow',sans-serif; font-size:13px; outline:none; width:100%; box-sizing:border-box; min-height:32px; }
+  #pl-jp-dropdown { display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--bg2); border:1px solid var(--border); border-top:2px solid var(--amber); max-height:300px; overflow-y:auto; z-index:9200; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+  #pl-jp-wrap.jp-open #pl-jp-trigger { display:none !important; }
+  #pl-jp-wrap.jp-open #pl-jp-search { display:block !important; }
+  #pl-jp-wrap.jp-open #pl-jp-dropdown { display:block !important; }
+
   /* ── MAIN LAYOUT ── */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 
@@ -27612,14 +27627,9 @@ function renderPLView() { withScrollLock(_renderPLView); }
 function _renderPLView() {
   const view = document.getElementById('pl-view');
   if (!view) return;
+  document.removeEventListener('mousedown', _plPickerOutside, { capture: true });
 
   const R = v => 'R ' + (v||0).toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2});
-
-  // Job picker
-  const jobOptions = sbJobs.map(j => {
-    const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
-    return `<option value="${j.id}">${label}</option>`;
-  }).join('');
 
   const selJobId = view._selectedJobId || '';
 
@@ -28320,23 +28330,15 @@ function _renderPLView() {
     <!-- Job selector -->
     <div class="pp-card" style="margin-bottom:24px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim);white-space:nowrap">SELECT JOB</span>
-      <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:220px;max-width:420px">
-        <input type="text" id="pl-job-search" placeholder="Search jobs…" autocomplete="off"
-          oninput="filterPLJobSelect(this.value)"
-          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Barlow',sans-serif;font-size:11px;outline:none;width:100%;box-sizing:border-box"
-          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
-        <select autocomplete="off" id="pl-job-select" class="pp-select" onchange="plSelectJob(this.value);document.getElementById('pl-job-search').value='';filterPLJobSelect('');"
-          style="width:100%">
-          <option value="">— Choose a job to analyse —</option>
-          ${jobOptions}
-        </select>
+      <div id="pl-jp-wrap">
+        <button id="pl-jp-trigger" type="button" onclick="_openPLPicker()" aria-haspopup="listbox" aria-expanded="false" aria-controls="pl-jp-dropdown">
+          <span class="jp-label">${selJob ? jobLabel : '— Choose a job to analyse —'}</span>
+          <span class="jp-caret">▼</span>
+        </button>
+        <input id="pl-jp-search" type="text" placeholder="Search jobs…" autocomplete="off"
+          oninput="_renderPLPickerItems(this.value)" onkeydown="_plPickerKeydown(event)">
+        <div id="pl-jp-dropdown" role="listbox" aria-label="Select job for P&amp;L"></div>
       </div>
-      ${selJobId ? `
-      <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        ${selJob?.client ? `<span style="color:var(--text);font-weight:600;font-family:'Oswald',sans-serif;letter-spacing:0.5px">${selJob.client}</span>` : ''}
-        ${selJob?.house  ? `<span style="color:var(--amber-dim)">·</span><span>${selJob.house}</span>` : ''}
-        ${selJob?.address? `<span style="color:var(--amber-dim)">·</span><span>${selJob.address}</span>` : ''}
-      </div>` : ''}
       <button onclick="plRefresh()" class="pp-btn">↻ Refresh</button>
       ${selJobId && (invs.length > 0 || snap.costingTotal > 0) ? `<button onclick="plExportXLSX('${selJobId}')" class="pp-btn is-amber" title="Export P&amp;L summary and invoice lines to Excel">📊 Export Excel</button>` : ''}
     </div>
@@ -28564,17 +28566,87 @@ function _renderPLView() {
   }
 }
 
-function filterPLJobSelect(q) {
-  const sel = document.getElementById('pl-job-select');
-  if (!sel) return;
+function filterPLJobSelect() {} // legacy no-op — replaced by custom picker
+
+let _plJpActiveIdx = -1;
+let _plJpVisibleIds = [];
+
+function _openPLPicker() {
+  const wrap = document.getElementById('pl-jp-wrap');
+  const search = document.getElementById('pl-jp-search');
+  if (!wrap || wrap.classList.contains('jp-open')) return;
+  wrap.classList.add('jp-open');
+  document.getElementById('pl-jp-trigger')?.setAttribute('aria-expanded', 'true');
+  _plJpActiveIdx = -1;
+  _renderPLPickerItems('');
+  setTimeout(() => { if (search) { search.value = ''; search.focus(); } }, 0);
+  document.addEventListener('mousedown', _plPickerOutside, { capture: true });
+}
+
+function _closePLPicker() {
+  const wrap = document.getElementById('pl-jp-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('jp-open');
+  document.getElementById('pl-jp-trigger')?.setAttribute('aria-expanded', 'false');
+  _plJpActiveIdx = -1;
+  document.removeEventListener('mousedown', _plPickerOutside, { capture: true });
+}
+
+function _plPickerOutside(ev) {
+  const wrap = document.getElementById('pl-jp-wrap');
+  if (wrap && !wrap.contains(ev.target)) _closePLPicker();
+}
+
+function _renderPLPickerItems(q) {
+  const dropdown = document.getElementById('pl-jp-dropdown');
+  if (!dropdown) return;
   const term = (q || '').toLowerCase().trim();
-  Array.from(sel.options).forEach(opt => {
-    if (!opt.value) { opt.hidden = false; return; }
-    const job = sbJobs.find(j => j.id === opt.value);
-    if (!job) { opt.hidden = false; return; }
-    const haystack = ((job.client || '') + ' ' + (job.house || '')).toLowerCase();
-    opt.hidden = term.length > 0 && !haystack.includes(term);
+  const _statusDot = { draft:'○', quoted:'◑', accepted:'●', in_production:'◉', invoiced:'◈', complete:'✓' };
+  const view = document.getElementById('pl-view');
+  const selId = view?._selectedJobId || '';
+  _plJpVisibleIds = [];
+  let html = '';
+
+  const jobs = (sbJobs || []).filter(j => {
+    if (!term) return true;
+    const hay = [j.client, j.house, j.address, j.notes].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(term);
   });
+
+  if (jobs.length === 0 && term) {
+    html += `<div class="jp-empty">No jobs match "${term}"</div>`;
+  } else {
+    jobs.forEach(j => {
+      const idx = _plJpVisibleIds.length;
+      _plJpVisibleIds.push(j.id);
+      const isArchived = j.archived === 'true' || j.archived === true;
+      const label = [j.client, j.house].filter(Boolean).join(' – ') || 'Untitled Job';
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const dot = _statusDot[j.jobStatus] || '○';
+      const sub = (j.notes || j.address || '').slice(0, 70);
+      const hi = _plJpActiveIdx === idx ? ' jp-hi' : '';
+      const sel = j.id === selId ? ' jp-sel' : '';
+      const arc = isArchived ? ' jp-archived' : '';
+      html += `<div class="jp-item${hi}${sel}${arc}" onmousedown="event.preventDefault();_selectPLJob('${j.id}')">`;
+      html += `<div class="jp-row1"><span class="jp-dot">${dot}</span><span class="jp-name">${label}${isArchived?' [archived]':''}</span><span class="jp-date">${date}</span></div>`;
+      if (sub) html += `<div class="jp-row2">${sub.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      html += `</div>`;
+    });
+  }
+  dropdown.innerHTML = html;
+}
+
+function _plPickerKeydown(ev) {
+  if (ev.key === 'Escape') { _closePLPicker(); return; }
+  const q = document.getElementById('pl-jp-search')?.value || '';
+  if (ev.key === 'ArrowDown') { ev.preventDefault(); _plJpActiveIdx = Math.min(_plJpActiveIdx + 1, _plJpVisibleIds.length - 1); _renderPLPickerItems(q); return; }
+  if (ev.key === 'ArrowUp')   { ev.preventDefault(); _plJpActiveIdx = Math.max(_plJpActiveIdx - 1, 0); _renderPLPickerItems(q); return; }
+  if (ev.key === 'Enter' && _plJpActiveIdx >= 0 && _plJpActiveIdx < _plJpVisibleIds.length) _selectPLJob(_plJpVisibleIds[_plJpActiveIdx]);
+}
+
+function _selectPLJob(id) {
+  _closePLPicker();
+  plSelectJob(id);
 }
 
 function plSelectJob(jobId) {
