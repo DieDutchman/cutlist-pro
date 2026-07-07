@@ -26886,7 +26886,7 @@ function plCalcFromState(state) {
     const t = computeQuoteTotals();
     const _snapBreakdown = computeJobMatBreakdown();
     return {
-      costingTotal:   t.unitsTotal,       // raw material cost before markup
+      costingTotal:   t.unitsTotal + t.extrasTotal + t.topsTotal, // full expected spend (boards + extras + tops)
       unitsTotal:     t.unitsTotal,
       quoteGrand:     t.grand,
       quoteMarkupAmt: t.unitsTotal * t.markup,
@@ -28374,7 +28374,7 @@ function _renderPLView() {
         <div class="pp-card-value">${R(snap.quoteGrand)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ VAT ${R(snap.quoteGrand * 0.15)} = ${R(snap.quoteGrand * 1.15)} incl.</div>
         <div class="pp-card-divider"></div>
-        <div class="pp-kv-row"><span>Base cost (excl. markup)</span><span class="pp-kv-val">${R(snap.costingTotal)}</span></div>
+        <div class="pp-kv-row"><span>Board/panel materials</span><span class="pp-kv-val">${R(snap.unitsTotal)}</span></div>
         <div class="pp-kv-row"><span>Markup (${Math.round((snap.markup||0)*100)}%)</span><span class="pp-kv-val">+ ${R(snap.quoteMarkupAmt)}</span></div>
         ${snap.topsTotal > 0 ? `<div class="pp-kv-row"><span>Tops</span><span class="pp-kv-val">+ ${R(snap.topsTotal)}</span></div>` : ''}
         ${snap.consult   > 0 ? `<div class="pp-kv-row"><span>Consult fee</span><span class="pp-kv-val">+ ${R(snap.consult)}</span></div>` : ''}
@@ -28388,7 +28388,7 @@ function _renderPLView() {
         <div class="pp-card-sub">excl. VAT</div>
         <div class="pp-card-value is-info">${R(snap.costingTotal)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
-          Raw material + labour cost estimated by the costing sheet — before markup.
+          Boards + extras (tops, skirting, etc.) — full expected spend before markup.
         </div>
         ${snap.costingTotal > 0 ? `
         <div class="pp-card-divider"></div>
