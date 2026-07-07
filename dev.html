@@ -16747,7 +16747,7 @@ function openImportUnitModal() {
         </div>
       </div>
       <div id="iu-tab-paste" style="display:none;padding:16px 28px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Paste your parts list from the drawing program — AI will parse it into a new unit. To look up an existing template instead, paste just a unit name (e.g. F600 Floor Unit).</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Paste your parts list from the drawing program — AI will parse it into a new unit.</div>
         <textarea id="import-unit-paste-input"
           placeholder="e.g.&#10;Side x2   780 x 534  Picco White&#10;Bottom x1  534 x 418  Picco White&#10;Door x1    777 x 596  Dunblane"
           style="width:100%;min-height:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;box-sizing:border-box"
@@ -16838,8 +16838,7 @@ async function _processImportUnitFile(file) {
       _importUnitParsedUnits = aiUnits;
       _renderImportUnitPreview(aiUnits);
       btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-      const matched = aiUnits.filter(u => u._templateMatch).length;
-      if (summEl) summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} found via AI${matched ? ` · ${matched} matched to template` : ''}`;
+      if (summEl) summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} found`;
     }
   } catch(e) {
     errEl.textContent = e.message || String(e);
@@ -16941,7 +16940,6 @@ function _renderImportUnitPreview(units) {
           placeholder="Unit name"
           style="font-weight:500;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--amber);background:transparent;border:none;border-bottom:1px solid var(--amber-dim);outline:none;min-width:120px;flex:1;padding:0 0 2px"
           onfocus="this.style.borderBottomColor='var(--amber)'" onblur="this.style.borderBottomColor='var(--amber-dim)'"/>
-        ${u._templateMatch ? '<span style="font-size:10px;letter-spacing:0.5px;background:rgba(76,175,130,0.15);border:1px solid #4caf82;color:#4caf82;padding:1px 6px;white-space:nowrap;flex-shrink:0">FROM TEMPLATE</span>' : ''}
       </div>
       ${(u.parts||[]).length ? `
       <table style="width:100%;border-collapse:collapse;font-size:11px">
@@ -16961,7 +16959,7 @@ function _renderImportUnitPreview(units) {
             <td style="padding:4px 8px;color:var(--text-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.mat||'—'}</td>
           </tr>`).join('')}
         </tbody>
-      </table>` : '<div style="padding:8px 12px;font-size:11px;color:var(--text-muted)">No parts data — unit name matched template only.</div>'}
+      </table>` : '<div style="padding:8px 12px;font-size:11px;color:var(--text-muted)">No parts identified for this unit.</div>'}
     </div>`).join('');
   prevEl.style.display = 'block';
 }
@@ -17028,34 +17026,15 @@ async function _doImportUnitPaste() {
   _importUnitParsedUnits = [];
   btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
 
-  // Detect whether the input looks like a bare unit name (quick template lookup)
-  // or like an actual parts list from a drawing program (multi-line, has dimensions).
-  // A "parts list" has at least one line with a 3+ digit number (mm dimensions).
-  const looksLikePartsData = /\b\d{3,}\b/.test(text) || text.split('\n').filter(l => l.trim()).length > 2;
-
-  if (findBtn) { findBtn.disabled = true; findBtn.textContent = looksLikePartsData ? 'Parsing…' : 'Matching…'; }
+  if (findBtn) { findBtn.disabled = true; findBtn.textContent = 'Parsing…'; }
 
   try {
-    if (!looksLikePartsData) {
-      // Short text with no dimensions — try template matching first as a quick-find shortcut
-      const tplMatches = _templateMatchImportUnit(text);
-      if (tplMatches.length) {
-        _importUnitParsedUnits = tplMatches;
-        summEl.textContent = `${tplMatches.length} unit${tplMatches.length===1?'':'s'} matched from template library`;
-        _renderImportUnitPreview(tplMatches);
-        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-        return;
-      }
-    }
-
-    // Primary path: AI parse → creates a new unit from the pasted parts data
-    if (findBtn) findBtn.textContent = 'Parsing…';
+    // Always AI-parse the pasted text into a new unit — never match to existing templates
     summEl.textContent = 'Parsing parts…';
     const aiUnits = await _aiImportUnitFallback(text);
     if (!aiUnits.length) throw new Error('No parts could be identified from the pasted text. Check the format and try again.');
     _importUnitParsedUnits = aiUnits;
-    const matched = aiUnits.filter(u => u._templateMatch).length;
-    summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} · ${aiUnits.reduce((s,u)=>s+(u.parts||[]).length,0)} parts parsed${matched ? ` · ${matched} matched template` : ''}`;
+    summEl.textContent = `${aiUnits.length} unit${aiUnits.length===1?'':'s'} · ${aiUnits.reduce((s,u)=>s+(u.parts||[]).length,0)} parts parsed`;
     _renderImportUnitPreview(aiUnits);
     btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
   } catch(e) {
@@ -17067,48 +17046,9 @@ async function _doImportUnitPaste() {
   }
 }
 
-// ── Import Unit: template matching ───────────────────────────────────────────
-// Scans getEffectiveUnits() for any unit whose name appears (in whole or by
-// significant words) in the pasted text. Returns matched units with their parts.
-function _templateMatchImportUnit(text) {
-  const lower = text.toLowerCase();
-  const pool  = getEffectiveUnits();
-  const results = [];
-  const seen = new Set();
-
-  pool.forEach(u => {
-    const name = (u.name || '').trim();
-    if (!name || seen.has(name)) return;
-    const nl = name.toLowerCase();
-    // Full name appears in text
-    const fullMatch = lower.includes(nl);
-    // All significant words (>3 chars) appear in text
-    const words = nl.split(/\s+/).filter(w => w.length > 3);
-    const allWordsMatch = words.length >= 2 && words.every(w => lower.includes(w));
-    if (fullMatch || allWordsMatch) {
-      seen.add(name);
-      const parts = (u.parts || []).map(p => ({
-        name: p.name || 'Part',
-        qty:  p.qty  || 1,
-        l:    p.l    || 0,
-        w:    p.w    || 0,
-        mat:  p.mat  || (MATS[0] || ''),
-        el1:  p.el1  || '',
-        el2:  p.el2  || '',
-        ew1:  p.ew1  || '',
-        ew2:  p.ew2  || '',
-      }));
-      results.push({ name, parts, _templateMatch: true });
-    }
-  });
-
-  return results;
-}
-
-// ── Import Unit: AI fallback ──────────────────────────────────────────────────
-// Calls the parse-cutlist edge function with anon key (same pattern as cutlist
-// importer). Groups the returned parts by their `group` field, then fuzzy-matches
-// each group name against allUnits/userUnits to find the best template copy.
+// ── Import Unit: AI parser ────────────────────────────────────────────────────
+// Calls the parse-cutlist edge function and groups the returned parts by their
+// `group` field. Always creates new units from the parsed data.
 async function _aiImportUnitFallback(rawText) {
   const matList  = MATS.join(', ');
   const edgeList = EDGES.filter(Boolean).join(', ');
@@ -17157,54 +17097,8 @@ async function _aiImportUnitFallback(rawText) {
     });
   });
 
-  // For each AI-identified group, try to find the closest allUnits template
-  const pool = getEffectiveUnits();
-  return groupOrder.map(groupName => {
-    const parts   = groupMap.get(groupName);
-    const matched = _fuzzyMatchUnit(groupName, pool);
-    if (matched) {
-      // Use template parts for a clean copy; fall back to AI parts when template has none
-      const tplParts = (matched.parts || []).map(p => ({
-        name: p.name || 'Part',
-        qty:  p.qty  || 1,
-        l:    p.l    || 0,
-        w:    p.w    || 0,
-        mat:  p.mat  || (MATS[0] || ''),
-        el1:  p.el1  || '',
-        el2:  p.el2  || '',
-        ew1:  p.ew1  || '',
-        ew2:  p.ew2  || '',
-      }));
-      return { name: matched.name, parts: tplParts.length ? tplParts : parts, _templateMatch: true };
-    }
-    return { name: groupName, parts };
-  });
-}
-
-// ── Import Unit: fuzzy unit-name matcher ─────────────────────────────────────
-function _fuzzyMatchUnit(name, pool) {
-  if (!name || !pool.length) return null;
-  const lower = name.toLowerCase().trim();
-  // 1. Exact (case-insensitive)
-  const exact = pool.find(u => (u.name || '').toLowerCase() === lower);
-  if (exact) return exact;
-  // 2. One contains the other
-  const contains = pool.find(u => {
-    const ul = (u.name || '').toLowerCase();
-    return ul.includes(lower) || lower.includes(ul);
-  });
-  if (contains) return contains;
-  // 3. Word-overlap: >= 60 % of significant words must match
-  const words = lower.split(/\s+/).filter(w => w.length > 2);
-  if (!words.length) return null;
-  let best = null, bestScore = 0;
-  pool.forEach(u => {
-    const ul   = (u.name || '').toLowerCase();
-    const hits  = words.filter(w => ul.includes(w));
-    const score = hits.length / words.length;
-    if (score >= 0.6 && score > bestScore) { best = u; bestScore = score; }
-  });
-  return best;
+  // Return each AI-identified group as a new unit with the parsed parts
+  return groupOrder.map(groupName => ({ name: groupName, parts: groupMap.get(groupName) }));
 }
 
 // ── Template Browser Modal ────────────────────────────────────────────────────
