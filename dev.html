@@ -26799,6 +26799,10 @@ function plCalcFromState(state) {
       consultFee:false, dieselFee:false, consultFeeAmt:500, dieselFeeAmt:1800
     });
     if (st.quoteState) Object.assign(quoteState, st.quoteState);
+    // Ensure active scenario's extras/tops/markup are in quoteState — without
+    // this, a job that was saved mid-session may have stale quoteState.extras
+    // (the live values were in the scenario object, not propagated back yet).
+    try { _applyScenario(quoteState.activeScenario || 0); } catch(e) {}
 
     // panels
     panelsState.items = st.panelsState?.items || [];
