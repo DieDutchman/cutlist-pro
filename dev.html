@@ -22627,6 +22627,7 @@ function panelRevert(id) {
   panelsState.items[idx] = {...snap};
   if (preSnap) _panelPreEditSnapshots.delete(id);
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -22708,6 +22709,7 @@ function panelBatchSetMat(mat) {
   if (!panelsState.items.length) return;
   panelsState.items.forEach(p => { p.mat = mat; });
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -22715,12 +22717,14 @@ function panelClearAll() {
   panelsState.items = [];
   _panelIdCounter = 1;
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
 function panelAdd() {
   panelsState.items.push(panelDefaultItem());
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -22728,6 +22732,7 @@ function panelRemove(id) {
   panelsState.items = panelsState.items.filter(p => p.id !== id);
   _panelPreEditSnapshots.delete(id);
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -22738,6 +22743,7 @@ function panelField(id, field, val) {
   if (['qty','l','w'].includes(field)) p[field] = parseFloat(val) || 0;
   else p[field] = val;
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsTotals();
   _panelUpdateDirtyIndicator(id);
 }
@@ -22750,6 +22756,7 @@ function movePanelPart(id, direction) {
   if (newIdx < 0 || newIdx >= arr.length) return;
   [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -22760,6 +22767,7 @@ function panelDuplicate(id) {
   const idx = panelsState.items.indexOf(src);
   panelsState.items.splice(idx + 1, 0, clone);
   savePanelsState();
+  scheduleAutoSave();
   renderPanelsView();
 }
 
@@ -24144,6 +24152,7 @@ function importIntoPanels() {
   // Set panel label if panels label is empty
   if (!panelsState.label) panelsState.label = label;
   savePanelsState();
+  scheduleAutoSave();
 
   // Clear import state and switch to Panels tab
   importState.parsed = null;
