@@ -7801,8 +7801,16 @@ function _renderPanel() {
           <tbody>
             ${u.parts.map(p => {
               const rp = applyMaterials(p, u);
-              const edgeSides = [rp.el1,rp.el2,rp.ew1,rp.ew2].filter(Boolean);
-              const edgeShort = [...new Set(edgeSides.map(e => e.replace(/ Edging.*$/,'').replace(/ \d+mm$/,'')))].join(', ') || '—';
+              // Per colour, count long (L) and short (S) edges → "Dunblane 2L1S"
+              const edgeCounts = new Map();
+              [[rp.el1,'l'],[rp.el2,'l'],[rp.ew1,'s'],[rp.ew2,'s']].forEach(([e, side]) => {
+                if (!e) return;
+                const c = e.replace(/ Edging.*$/,'').replace(/ \d+mm$/,'');
+                if (!edgeCounts.has(c)) edgeCounts.set(c, {l:0, s:0});
+                edgeCounts.get(c)[side]++;
+              });
+              const edgeShort = [...edgeCounts.entries()].map(([c,n]) =>
+                `${c} ${n.l ? n.l+'L' : ''}${n.s ? n.s+'S' : ''}`).join(', ') || '—';
               const holesTxt = (p.holes||'').toString().trim();
               const notesTxt = (p.notes||'').toString().trim();
               const extras = [];
