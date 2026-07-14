@@ -6683,6 +6683,10 @@ const NEUTRAL_MATS  = new Set(['Picco White', '3MM White Masonite']);
 const NEUTRAL_EDGES = new Set(['', 'White Edging 1mm']);
 
 function applyMaterials(part, unit) {
+  // Imported units carry real per-part materials — skip the room colour
+  // substitution so mixed-material units survive intact. An explicit per-unit
+  // override still wins: setting one means the user wants the colour changed.
+  if (unit && unit.keepMats && !unitMatOverrides[unit.id]) return { ...part };
   const override = unitMatOverrides[unit.id];
   const group  = getUnitMaterialGroup(unit);
   const cfg    = override
@@ -9675,6 +9679,7 @@ function copyUnit(id) {
     name: source.name + ' (Copy)',
     price: source.price || 0,
     parts: (source.parts || []).map(p => ({...p})),
+    ...(source.keepMats ? { keepMats: true } : {}),
   };
   if (usesUserUnits()) {
     userUnits.push(copy);
@@ -16985,7 +16990,7 @@ function confirmImportUnits() {
     const nameEl   = document.getElementById('iu-unit-name-' + i);
     const unitName = (nameEl ? nameEl.value.trim() : '') || u.name || 'Imported Unit';
     const id = 'uu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-    userUnits.push({ id, section: targetSection, name: unitName, price: 0, parts: u.parts || [] });
+    userUnits.push({ id, section: targetSection, name: unitName, price: 0, parts: u.parts || [], keepMats: true });
     quantities[id] = 0;
   });
   document.getElementById('import-unit-modal').remove();
