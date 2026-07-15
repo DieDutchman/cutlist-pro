@@ -16,7 +16,7 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 
 ### 🪵 Cutlist Generation
 - Select rooms (Kitchen, Bedrooms, Bathroom, etc.) and unit types with quantities
-- Expand any unit in place to see its parts — qty, dimensions, material, and edging shown as colour + edge counts (e.g. `Dunblane 2L1S` = 2 long edges, 1 short edge)
+- Expand any unit in place to see its parts — qty, dimensions, material, and edging shown as colour + edge counts (e.g. `Dunblane 2L1S` = 2 long edges, 1 short edge; hover for the exact per-edge assignment)
 - Auto-generates a structured cut list with part names, dimensions, material, and edging per part
 - Groups parts by material for easy supplier reading
 - Export to `.xlsx` for sending directly to your board supplier
@@ -87,6 +87,7 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 - Materials and edging are matched to your board list automatically
 - Imported units **keep their per-part materials** — the room colour scheme does not overwrite them (a per-unit material override still applies if you set one)
 - Preview all parsed units and parts before confirming the import
+- Pick the destination room at import time — a success toast confirms what landed where, with a one-click jump to the room
 
 ### 🧩 Sheet Optimizer
 - Visual bin-packing layout — places all cut parts onto full sheets with minimal waste
@@ -101,8 +102,14 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 
 ### 💾 Jobs
 - Save and load named jobs to Supabase
-- Auto-saves every 4 seconds
+- Auto-saves every 4 seconds — the save chip reports the **real** cloud result ("⬤ Saving… / ⬤ Saved / ⚠ Not saved"), with a retry toast on failure
+- Ctrl+S / Cmd+S saves on demand
 - Saved Quotes (local snapshots) for saving multiple versions of the same job
+
+### 🛡 Safety & Accessibility
+- Destructive actions are guarded: panel CLEAR ALL and bulk delete confirm first and offer an undo toast; scenario delete/rename use in-app dialogs (no browser popups)
+- Onboarding coach marks for first-time users; `?` button in the header (or the `?` key) opens the keyboard shortcut legend
+- Screen-reader support: labelled inputs throughout the Panels grid, proper dialog semantics (focus trap, Esc, focus restore) on modals, ARIA tab navigation with arrow keys on all tab strips, live-region announcements for saves and totals
 
 ---
 
