@@ -23,6 +23,8 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 
 ### 💰 Quoting
 - Full client-facing quote with line items, hardware, bases, skirting/plinth, and custom lines
+- Quote options (scenarios) — clone Option A into B/C with independent quantities, materials, and extras; **⇄ Compare** shows all options side by side with per-line totals and price deltas
+- Keyboard shortcuts: Alt+1–6 tab navigation, Ctrl+S save, Alt+R regenerate, `?` for the full legend
 - VAT-exclusive pricing throughout (15% VAT calculated and shown separately)
 - Grand total shown excl. VAT, VAT amount, and incl. VAT
 - Download as formatted Excel quote
@@ -73,6 +75,7 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 ### 🪵 Panels Tab
 - Add free-form boards, shelves, or custom pieces not part of any unit template
 - Full material and edging selection per panel
+- Multi-select rows with checkboxes — bulk delete with undo, batch material change
 - Included in cutlist export and all costing calculations
 
 ### 🔨 Unit Builder
