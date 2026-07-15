@@ -4767,7 +4767,7 @@ body.user-light-theme .pp-vat-select {
 </header>
 
 <div class="nav-tabs" id="navTabs">
-  <div class="nav-row">
+  <div class="nav-row" role="tablist" aria-label="Rooms">
     <span class="nav-row-label">Rooms</span>
     <button class="tab active" role="tab" aria-selected="true" data-section="kitchen" onclick="switchTab(this,'kitchen')">🍳 Kitchen <span class="count" id="cnt-kitchen">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-section="mainbedroom" onclick="switchTab(this,'mainbedroom')">🛏 Main Bed <span class="count" id="cnt-mainbedroom">0</span></button>
@@ -4778,7 +4778,7 @@ body.user-light-theme .pp-vat-select {
     <button class="tab" role="tab" aria-selected="false" data-section="fillers" onclick="switchTab(this,'fillers')">📎 Fillers <span class="count" id="cnt-fillers">0</span></button>
   </div>
   <hr class="nav-divider">
-  <div class="nav-row" id="tools-row">
+  <div class="nav-row" id="tools-row" role="tablist" aria-label="Tools">
     <span class="nav-row-label">Tools</span>
     <!-- Primary tools: most-used flow tabs -->
     <button class="tab" role="tab" aria-selected="false" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" aria-controls="panels-view" title="Panels (Alt+1)">🪵 Panels</button>
@@ -6990,16 +6990,56 @@ document.addEventListener('keydown', function(ev) {
   try { switchTab(btn, section); } catch(e) {}
 });
 // ── Keyboard shortcuts legend (? key) ────────────────────────────────────
+let _kbLegendTrapWired = false;
+let _kbLegendEscHandler = null;
+let _kbLegendTrigger = null;
 function openKbLegend() {
   const m = document.getElementById('kb-legend-modal');
   if (!m) return;
+  _kbLegendTrigger = document.activeElement;
   m.style.display = 'flex';
-  m.focus();
+  if (!_kbLegendTrapWired) { _usersModalTrapFocus(m); _kbLegendTrapWired = true; }
+  const target = m.querySelector('button');
+  (target || m).focus();
+  if (_kbLegendEscHandler) document.removeEventListener('keydown', _kbLegendEscHandler);
+  _kbLegendEscHandler = function(ev) { if (ev.key === 'Escape') closeKbLegend(); };
+  document.addEventListener('keydown', _kbLegendEscHandler);
 }
 function closeKbLegend() {
   const m = document.getElementById('kb-legend-modal');
   if (m) m.style.display = 'none';
+  if (_kbLegendEscHandler) {
+    document.removeEventListener('keydown', _kbLegendEscHandler);
+    _kbLegendEscHandler = null;
+  }
+  if (_kbLegendTrigger) {
+    try { _kbLegendTrigger.focus(); } catch(_) {}
+    _kbLegendTrigger = null;
+  }
 }
+
+// ── ARIA tabs contract: arrow-key navigation inside any role=tablist ─────
+// Left/Right/Home/End move focus between visible tabs; Enter/Space activate
+// (native button behaviour). Covers nav rows, quote scenario strip, and
+// modal tab strips without per-surface wiring.
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight' && ev.key !== 'Home' && ev.key !== 'End') return;
+  if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+  const tab = document.activeElement;
+  if (!tab || tab.getAttribute('role') !== 'tab') return;
+  const list = tab.closest('[role="tablist"]');
+  if (!list) return;
+  const tabs = Array.from(list.querySelectorAll('[role="tab"]')).filter(t => t.offsetParent !== null);
+  const idx = tabs.indexOf(tab);
+  if (idx === -1 || tabs.length < 2) return;
+  ev.preventDefault();
+  let next = null;
+  if (ev.key === 'ArrowLeft')  next = tabs[(idx - 1 + tabs.length) % tabs.length];
+  else if (ev.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+  else if (ev.key === 'Home') next = tabs[0];
+  else next = tabs[tabs.length - 1];
+  if (next) next.focus();
+});
 document.addEventListener('keydown', function(ev) {
   if (ev.key !== '?') return;
   if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
@@ -16380,6 +16420,8 @@ function renderUserRoomsNav() {
   const row = document.createElement('div');
   row.className = 'nav-row';
   row.id = 'user-rooms-row';
+  row.setAttribute('role', 'tablist');
+  row.setAttribute('aria-label', 'Rooms');
 
   const label = document.createElement('span');
   label.className = 'nav-row-label';
@@ -16747,13 +16789,28 @@ function _showArchiveToast(message, unitId) {
 
 // ── Import Unit Modal (from XLSX / XLS / CSV file, or pasted text) ───────────
 let _importUnitParsedUnits = [];
+let _importUnitEscHandler = null;
+let _importUnitTrigger = null;
+
+function closeImportUnitModal() {
+  document.getElementById('import-unit-modal')?.remove();
+  if (_importUnitEscHandler) {
+    document.removeEventListener('keydown', _importUnitEscHandler);
+    _importUnitEscHandler = null;
+  }
+  if (_importUnitTrigger) {
+    try { _importUnitTrigger.focus(); } catch(_) {}
+    _importUnitTrigger = null;
+  }
+}
 
 function openImportUnitModal() {
   _importUnitParsedUnits = [];
+  _importUnitTrigger = document.activeElement;
   const modal = document.createElement('div');
   modal.id = 'import-unit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  modal.addEventListener('click', e => { if (e.target === modal) closeImportUnitModal(); });
 
   // Build section dropdown options at open time from the live room list
   const _iuRooms = buildRoomList(true);
@@ -16762,7 +16819,7 @@ function openImportUnitModal() {
   ).join('');
 
   modal.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Import Unit" style="background:var(--bg2);border:1px solid var(--border);width:580px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="padding:22px 28px 14px;border-bottom:1px solid var(--border)">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNIT</div>
         <div style="font-size:12px;color:var(--text-muted)">Import a parts list from your drawing program as a new unit.</div>
@@ -16818,10 +16875,20 @@ function openImportUnitModal() {
         </div>
         <button id="import-unit-confirm-btn" onclick="confirmImportUnits()" disabled
           style="font-weight:500;background:var(--amber);color:#111;border:none;padding:10px 22px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:not-allowed;opacity:0.4">IMPORT</button>
-        <button onclick="document.getElementById('import-unit-modal').remove()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
+        <button onclick="closeImportUnitModal()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
+  // Dialog a11y: move focus in, trap Tab, close on Escape
+  requestAnimationFrame(() => {
+    const target = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+    if (target) target.focus();
+  });
+  _usersModalTrapFocus(modal); // attaches its own keydown Tab-trap to the modal
+  _importUnitEscHandler = function(ev) {
+    if (ev.key === 'Escape') closeImportUnitModal();
+  };
+  document.addEventListener('keydown', _importUnitEscHandler);
 }
 
 function downloadImportUnitTemplate() {
@@ -17020,7 +17087,7 @@ function confirmImportUnits() {
     userUnits.push({ id, section: targetSection, name: unitName, price: 0, parts: u.parts || [], keepMats: true });
     quantities[id] = 0;
   });
-  document.getElementById('import-unit-modal').remove();
+  closeImportUnitModal();
   renderPanel();
   scheduleAutoSave();
   // Confirm the import landed — especially when it went to a room the user
@@ -24163,15 +24230,15 @@ function _renderPanelsView() {
   const matOptsHtml  = MATS.map(m => `<option value="${m}">${m}</option>`).join('');
   const edgeOptsHtml = ['', ...EDGES.filter(e=>e)].map(e => `<option value="${e}">${e||'— no edging —'}</option>`).join('');
 
-  const inp = (type, val, onchange, style='') =>
-    `<input autocomplete="off" type="${type}" value="${val}" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" oninput="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
+  const inp = (type, val, onchange, style='', label='') =>
+    `<input autocomplete="off" type="${type}" value="${val}"${label ? ` aria-label="${label}"` : ''} style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" oninput="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">`;
 
-  const sel = (val, opts, onchange, style='') => {
+  const sel = (val, opts, onchange, style='', label='') => {
     const options = opts.replace(/(<option value="[^"]*")>/g, (m, p1) => {
       const v = p1.match(/value="([^"]*)"/)?.[1];
       return v === val ? `${p1} selected>` : `${p1}>`;
     });
-    return `<select autocomplete="off" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" onchange="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">${options}</select>`;
+    return `<select autocomplete="off"${label ? ` aria-label="${label}"` : ''} style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 6px;font-family:'Barlow',sans-serif;font-size:12px;outline:none;${style}" onchange="${onchange}" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">${options}</select>`;
   };
 
   const _pLen = panelsState.items.length;
@@ -24179,15 +24246,15 @@ function _renderPanelsView() {
   const _legendCollapsed = localStorage.getItem('panelLegendCollapsed') === '1';
   const rowsHtml = panelsState.items.map((p, i) => `
     <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
-      ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box')}
-      ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%')}
-      ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%')}
-      ${inp('number', p.w||'', `panelField('${p.id}','w',this.value)`, 'width:100%')}
-      ${sel(p.mat, matOptsHtml, `panelField('${p.id}','mat',this.value)`, 'width:100%')}
-      ${sel(p.edgeL1, edgeOptsHtml, `panelField('${p.id}','edgeL1',this.value)`, 'width:100%')}
-      ${sel(p.edgeL2, edgeOptsHtml, `panelField('${p.id}','edgeL2',this.value)`, 'width:100%')}
-      ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%')}
-      ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%')}
+      ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box', `Row ${i+1} part name`)}
+      ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%', `Row ${i+1} quantity`)}
+      ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%', `Row ${i+1} length mm`)}
+      ${inp('number', p.w||'', `panelField('${p.id}','w',this.value)`, 'width:100%', `Row ${i+1} width mm`)}
+      ${sel(p.mat, matOptsHtml, `panelField('${p.id}','mat',this.value)`, 'width:100%', `Row ${i+1} material`)}
+      ${sel(p.edgeL1, edgeOptsHtml, `panelField('${p.id}','edgeL1',this.value)`, 'width:100%', `Row ${i+1} edging length 1`)}
+      ${sel(p.edgeL2, edgeOptsHtml, `panelField('${p.id}','edgeL2',this.value)`, 'width:100%', `Row ${i+1} edging length 2`)}
+      ${sel(p.edgeW1, edgeOptsHtml, `panelField('${p.id}','edgeW1',this.value)`, 'width:100%', `Row ${i+1} edging width 1`)}
+      ${sel(p.edgeW2, edgeOptsHtml, `panelField('${p.id}','edgeW2',this.value)`, 'width:100%', `Row ${i+1} edging width 2`)}
       <div style="display:flex;gap:3px;flex-wrap:nowrap;align-items:center">
         <button onclick="movePanelPart('${p.id}',-1)" title="Move up" aria-label="Move up"
           style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;cursor:pointer;font-size:11px;line-height:1;${i===0?'opacity:0.25;pointer-events:none':''}">▲</button>
