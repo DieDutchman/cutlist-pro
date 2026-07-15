@@ -4566,7 +4566,7 @@ body.user-light-theme .pp-vat-select {
     style="font-weight:500;background:var(--amber);color:#111;border:none;padding:5px 14px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     💾 SAVE JOB
   </button>
-  <span id="autosave-chip" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 4px;transition:color 0.2s">⬤ Saved</span>
+  <span id="autosave-chip" aria-live="polite" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 4px;transition:color 0.2s">⬤ Saved</span>
   <button onclick="newJob()"
     style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;white-space:nowrap">
     + NEW JOB
@@ -4605,6 +4605,10 @@ body.user-light-theme .pp-vat-select {
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <!-- Account / utility cluster: theme, users, feedback, sign-out -->
   <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+    <button id="kb-legend-btn" onclick="openKbLegend()" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts"
+      style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;line-height:1">
+      ?
+    </button>
     <button id="theme-toggle-btn" onclick="toggleUserTheme()" title="Switch between light and dark theme" aria-label="Switch between light and dark theme"
       style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:12px;cursor:pointer;line-height:1">
       🌙
@@ -6363,16 +6367,28 @@ try {
 } catch(e) {}
 
 let _saveFlashTimer = null;
-function _signalSave() {
+function _setSaveChip(state) {
   const chip = document.getElementById('autosave-chip');
   if (!chip) return;
-  chip.textContent = '⬤ Saving…';
-  chip.style.color = 'var(--amber)';
   clearTimeout(_saveFlashTimer);
-  _saveFlashTimer = setTimeout(() => {
+  if (state === 'saving') {
+    chip.textContent = '⬤ Saving…';
+    chip.style.color = 'var(--amber)';
+  } else if (state === 'error') {
+    chip.textContent = '⚠ Not saved';
+    chip.style.color = '#e07070';
+  } else {
     chip.textContent = '⬤ Saved';
     chip.style.color = 'var(--text-muted)';
-  }, 800);
+  }
+}
+function _signalSave() {
+  _setSaveChip('saving');
+  // Cloud autosave pending → saveJobToCloud resolves the chip when the write
+  // actually lands (or fails). Local-only sessions have no async step: the
+  // localStorage write already happened, so a short "Saved" flash is honest.
+  if (sbUser && currentJobId && !_isLoadingJob) return;
+  _saveFlashTimer = setTimeout(() => _setSaveChip('saved'), 800);
 }
 
 function save() {
@@ -7199,7 +7215,7 @@ const _ONBOARD_STEPS = [
   {
     target: '#cutlist-tab',
     title: 'See your cutlist',
-    body: 'Once units are set, open <strong>Cutlist</strong> for the cut sheet or <strong>Quote</strong> for full pricing. Use <strong>Panels</strong> to add custom boards.',
+    body: 'Once units are set, open <strong>Cutlist</strong> for the cut sheet or <strong>Quote</strong> for full pricing. Use <strong>Panels</strong> to add custom boards. Tip: press <strong>?</strong> any time for keyboard shortcuts.',
   },
 ];
 
@@ -11652,10 +11668,10 @@ function deleteScenario(idx) {
   saveQuoteState();
   renderQuoteView();
 }
-function renameScenario(idx) {
+async function renameScenario(idx) {
   if (!quoteState.scenarios) return;
   const cur = quoteState.scenarios[idx]?.name || '';
-  const name = prompt('Rename scenario:', cur);
+  const name = await inputPrompt('Rename scenario:', cur, 'RENAME');
   if (!name || !name.trim()) return;
   quoteState.scenarios[idx].name = name.trim();
   saveQuoteState();
@@ -12329,9 +12345,9 @@ function _renderQuoteView() {
   (quoteState.scenarios || []).forEach((_, i) => _wireToggle(`qv-scen-tab-${i}`, () => switchScenario(i)));
   _wireToggle('qv-scen-add',    addScenario);
   _wireToggle('qv-scen-rename', () => renameScenario(quoteState.activeScenario || 0));
-  _wireToggle('qv-scen-del', () => {
+  _wireToggle('qv-scen-del', async () => {
     const name = quoteState.scenarios?.[quoteState.activeScenario || 0]?.name || 'this option';
-    if (confirm(`Remove "${name}"? This cannot be undone.`)) deleteScenario(quoteState.activeScenario || 0);
+    if (await confirmAction(`Remove "${name}"? This cannot be undone.`, { confirmLabel: 'REMOVE' })) deleteScenario(quoteState.activeScenario || 0);
   });
 
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
@@ -14851,6 +14867,7 @@ async function saveJobToCloud() {
   if (_jobRestoreFailed) {
     console.warn('[saveJobToCloud] refusing to save: prior job restore failed. Reload the page to retry.');
     setJobSyncStatus('✕ Save blocked — reload to recover', '#e07070');
+    try { _setSaveChip('error'); } catch(_) {}
     return;
   }
   const client  = document.getElementById('job-client')?.value  || '';
@@ -14906,9 +14923,11 @@ async function saveJobToCloud() {
     persistLastJobId(currentJobId);
     _updateClientButtonsVisibility();
     setJobSyncStatus('✓ Saved', '#5dba6e');
+    try { _setSaveChip('saved'); } catch(_) {}
     setTimeout(() => setJobSyncStatus(''), 3000);
   } catch(e) {
     setJobSyncStatus('✕ Save failed: ' + e.message, '#e07070');
+    try { _setSaveChip('error'); } catch(_) {}
     console.warn('[Supabase] Save job failed:', e.message);
     try {
       showToast('Save failed — check connection', 'error', {
@@ -17004,6 +17023,19 @@ function confirmImportUnits() {
   document.getElementById('import-unit-modal').remove();
   renderPanel();
   scheduleAutoSave();
+  // Confirm the import landed — especially when it went to a room the user
+  // isn't currently viewing, where nothing on screen changes otherwise.
+  const nUnits = _importUnitParsedUnits.length;
+  const roomName = (userRooms.find(r => r.id === targetSection) || {}).name || targetSection;
+  const msg = `Imported ${nUnits} unit${nUnits===1?'':'s'} into ${roomName} — set quantities to include in the job`;
+  if (targetSection !== currentSection) {
+    showToast(msg, 'success', {
+      duration: 8000,
+      action: { label: 'VIEW ROOM', fn: () => document.querySelector(`.tab[data-section="${targetSection}"]`)?.click() }
+    });
+  } else {
+    showToast(msg, 'success');
+  }
 }
 
 // ── Import Unit: tab switching ────────────────────────────────────────────────
@@ -22648,12 +22680,27 @@ function panelBatchSetMat(mat) {
   renderPanelsView();
 }
 
-function panelClearAll() {
+async function panelClearAll() {
+  if (!panelsState.items.length) return;
+  const n = panelsState.items.length;
+  if (!(await confirmAction(`Clear all ${n} panel row${n===1?'':'s'}?`, { confirmLabel: 'CLEAR ALL' }))) return;
+  const snapshot = panelsState.items;
+  const prevCounter = _panelIdCounter;
   panelsState.items = [];
   _panelIdCounter = 1;
   savePanelsState();
   scheduleAutoSave();
   renderPanelsView();
+  showToast(`Cleared ${n} panel row${n===1?'':'s'}`, 'info', {
+    duration: 8000,
+    action: { label: 'UNDO', fn: () => {
+      panelsState.items = snapshot;
+      _panelIdCounter = prevCounter;
+      savePanelsState();
+      scheduleAutoSave();
+      renderPanelsView();
+    }}
+  });
 }
 
 function panelAdd() {
