@@ -4784,9 +4784,9 @@ body.user-light-theme .pp-vat-select {
     <button class="tab" role="tab" aria-selected="false" data-section="__panels__" onclick="switchTab(this,'__panels__')" id="panels-tab" aria-controls="panels-view" title="Panels (Alt+1)">🪵 Panels</button>
     <button class="tab" role="tab" aria-selected="false" data-section="__cutlist__" onclick="switchTab(this,'__cutlist__')" id="cutlist-tab" aria-controls="cutlist-view" title="Cutlist (Alt+2)">✦ Cutlist</button>
     <button class="tab" role="tab" aria-selected="false" data-section="__quote__" onclick="switchTab(this,'__quote__')" id="quote-price-tab" aria-controls="quote-price-view" title="Quote (Alt+3)">💰 Quote</button>
-    <button class="tab" role="tab" aria-selected="false" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" aria-controls="optimize-view" title="Sheet Optimizer (Alt+5)">▦ Sheet Optimizer</button>
-    <button class="tab" role="tab" aria-selected="false" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" aria-controls="editor-view">✏ Edit Units</button>
-    <button class="tab" role="tab" aria-selected="false" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" aria-controls="summary-view" title="Summary (Alt+4)">☰ Summary</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__optimize__" onclick="switchTab(this,'__optimize__')" id="optimize-tab" aria-controls="optimize-view" title="Sheet Optimizer (Alt+4)">▦ Sheet Optimizer</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__editor__" onclick="switchTab(this,'__editor__')" id="editor-tab" aria-controls="editor-view" title="Edit Units (Alt+5)">✏ Edit Units</button>
+    <button class="tab" role="tab" aria-selected="false" data-section="__summary__" onclick="switchTab(this,'__summary__')" id="summary-tab" aria-controls="summary-view" title="Summary (Alt+6)">☰ Summary</button>
     <button class="tab" role="tab" aria-selected="false" data-section="__costing__" onclick="switchTab(this,'__costing__')" id="costing-tab" aria-controls="costing-view">📐 Costing</button>
     <!-- Overflow: less-frequent tools live inside the More dropdown.
          Buttons keep their original ids, data-section, and switchTab handlers so
@@ -6946,12 +6946,15 @@ document.addEventListener('keydown', function(ev) {
 // every cycle; this lets them switch tabs without mouse hops.
 // Suppressed when typing in form fields so it doesn't fight with browser
 // shortcuts inside inputs / textareas / selects / contenteditable.
+// Numbers follow the visual order of the Tools row: Panels, Cutlist, Quote,
+// Sheet Optimizer, Edit Units, Summary.
 const _ALT_TAB_MAP = {
   '1': '__panels__',
   '2': '__cutlist__',
   '3': '__quote__',
-  '4': '__summary__',
-  '5': '__optimize__'
+  '4': '__optimize__',
+  '5': '__editor__',
+  '6': '__summary__'
 };
 document.addEventListener('keydown', function(ev) {
   if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
@@ -6989,6 +6992,19 @@ document.addEventListener('keydown', function(ev) {
   ev.preventDefault();
   try { switchTab(btn, section); } catch(e) {}
 });
+// ── Ctrl+S / Cmd+S — save the current job ────────────────────────────────
+document.addEventListener('keydown', function(ev) {
+  if (ev.key !== 's' && ev.key !== 'S') return;
+  if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) return;
+  ev.preventDefault(); // always suppress the browser save dialog
+  if (sbUser && currentJobId) {
+    try { _setSaveChip('saving'); } catch(_) {}
+    try { saveJobToCloud(); } catch(e) {}
+  } else {
+    try { save(); } catch(e) {}
+  }
+});
+
 // ── Keyboard shortcuts legend (? key) ────────────────────────────────────
 let _kbLegendTrapWired = false;
 let _kbLegendEscHandler = null;
@@ -7072,7 +7088,8 @@ function showEdgeCodesInfo(ev) {
     + '<span style="color:var(--amber-dim);font-weight:600">W1</span><span>Short edge 1 — the <strong>width</strong> dimension (top or bottom horizontal edge)</span>'
     + '<span style="color:var(--amber-dim);font-weight:600">W2</span><span>Short edge 2 — the opposite <strong>width</strong> edge</span>'
     + '</div>'
-    + '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Click anywhere outside to close.</div>';
+    + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)">Compact form: <strong style="color:var(--amber-dim);font-family:\'JetBrains Mono\',monospace">2L1S</strong> = 2 long edges + 1 short edge in that colour, e.g. "Dunblane 2L1S".</div>'
+    + '<div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Click anywhere outside to close.</div>';
   document.body.appendChild(pop);
   // Position near the trigger if we have one, otherwise centre.
   const trigger = ev && ev.currentTarget ? ev.currentTarget : (ev && ev.target);
@@ -7351,6 +7368,17 @@ function _closeOnboardCoachMark() {
   document.getElementById('onboard-overlay')?.remove();
   document.getElementById('onboard-tip')?.remove();
 }
+
+// Recompute the spotlight on resize — the hole is positioned from a
+// getBoundingClientRect taken at show time and goes stale when the layout shifts.
+let _onboardResizeTimer = null;
+window.addEventListener('resize', () => {
+  if (!document.getElementById('onboard-overlay')) return;
+  clearTimeout(_onboardResizeTimer);
+  _onboardResizeTimer = setTimeout(() => {
+    if (document.getElementById('onboard-overlay')) _showOnboardStep(_onboardStep);
+  }, 150);
+});
 
 function _dismissOnboarding() {
   try { localStorage.setItem(_ONBOARD_KEY, '1'); } catch(e) {}
@@ -7867,6 +7895,8 @@ function _renderPanel() {
               });
               const edgeShort = [...edgeCounts.entries()].map(([c,n]) =>
                 `${c} ${n.l ? n.l+'L' : ''}${n.s ? n.s+'S' : ''}`).join(', ') || '—';
+              const edgeFull = [['L1',rp.el1],['L2',rp.el2],['W1',rp.ew1],['W2',rp.ew2]]
+                .filter(([,e]) => e).map(([k,e]) => `${k}: ${e}`).join(' · ');
               const holesTxt = (p.holes||'').toString().trim();
               const notesTxt = (p.notes||'').toString().trim();
               const extras = [];
@@ -7879,7 +7909,7 @@ function _renderPanel() {
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.l||0}</td>
                 <td style="padding:4px 8px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text)">${p.w||0}</td>
                 <td style="padding:4px 8px;color:var(--text-muted);font-size:10px">${rp.mat||''}</td>
-                <td style="padding:4px 8px;text-align:center;color:var(--amber-dim);font-size:10px">${edgeShort}</td>
+                <td style="padding:4px 8px;text-align:center;color:var(--amber-dim);font-size:10px"${edgeFull ? ` title="${edgeFull.replace(/"/g,'&quot;')}"` : ''}>${edgeShort}</td>
               </tr>${extrasRow}`;
             }).join('')}
           </tbody>
@@ -11718,6 +11748,129 @@ async function renameScenario(idx) {
   renderQuoteView();
 }
 
+// ── Scenario side-by-side compare ───────────────────────────────────────────
+// Applies each scenario in turn, runs computeQuoteTotals(), then restores the
+// active scenario — same mechanics as switchScenario but without touching the
+// visible views until the end.
+let _scenCmpEscHandler = null;
+let _scenCmpTrigger = null;
+
+function closeScenarioCompare() {
+  document.getElementById('scen-compare-modal')?.remove();
+  if (_scenCmpEscHandler) {
+    document.removeEventListener('keydown', _scenCmpEscHandler);
+    _scenCmpEscHandler = null;
+  }
+  if (_scenCmpTrigger) {
+    try { _scenCmpTrigger.focus(); } catch(_) {}
+    _scenCmpTrigger = null;
+  }
+}
+
+function _scenCompareGoto(idx) {
+  closeScenarioCompare();
+  if (idx !== (quoteState.activeScenario || 0)) switchScenario(idx);
+}
+
+function openScenarioCompare() {
+  if (!quoteState.scenarios || quoteState.scenarios.length < 2) return;
+  _scenCmpTrigger = document.activeElement;
+  const activeIdx = quoteState.activeScenario || 0;
+  _captureScenario(activeIdx);
+
+  const cols = quoteState.scenarios.map((sc, i) => {
+    _applyScenario(i);
+    const t = computeQuoteTotals();
+    const unitQty = Object.values(quantities).reduce((s, v) => s + (parseInt(v) || 0), 0);
+    const panelCount = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0).length;
+    return { name: sc.name, i, t, unitQty, panelCount };
+  });
+  // Restore the active scenario's state (and re-persist the stores that
+  // _applyScenario writes through)
+  _applyScenario(activeIdx);
+  saveQuoteState();
+
+  const inclVats = cols.map(c => c.t.grand * 1.15);
+  const minIncl = Math.min(...inclVats);
+  const baseIncl = inclVats[0];
+
+  const rowDefs = [
+    { label: 'Units selected',   val: c => c.unitQty,                          num: true,  plain: true },
+    { label: 'Custom panels',    val: c => c.panelCount,                       num: true,  plain: true },
+    { label: 'Boards & units',   val: c => fmt(c.t.unitsTotal),                num: true },
+    { label: 'Markup',           val: c => Math.round((c.t.markup || 0) * 100) + '%', num: true, plain: true },
+    { label: 'Tops',             val: c => fmt(c.t.topsTotal),                 num: true },
+    { label: 'Fees',             val: c => fmt(c.t.consultTotal + c.t.dieselTotal + c.t.deliveryTotal), num: true },
+    { label: 'Extras',           val: c => fmt(c.t.extrasTotal),               num: true },
+    { label: 'Labour',           val: c => fmt(c.t.labourTotal),               num: true },
+    { label: 'Total excl VAT',   val: c => fmt(c.t.grand),                     num: true,  strong: true },
+    { label: 'VAT 15%',          val: c => fmt(c.t.grand * 0.15),              num: true },
+    { label: 'Total incl VAT',   val: c => fmt(c.t.grand * 1.15),              num: true,  grand: true },
+  ];
+
+  const headRow = `<tr>
+    <th style="text-align:left;padding:8px 12px;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.5px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border)"></th>
+    ${cols.map(c => `<th style="text-align:right;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap">
+      <span style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px;color:${c.i === activeIdx ? 'var(--amber)' : 'var(--text)'}">${c.name}</span>
+      ${c.i === activeIdx ? '<span style="display:inline-block;margin-left:6px;font-family:\'Barlow\',sans-serif;font-size:9px;letter-spacing:0.5px;color:var(--amber);border:1px solid var(--amber-dim);padding:1px 5px;border-radius:2px">ACTIVE</span>' : ''}
+    </th>`).join('')}
+  </tr>`;
+
+  const bodyRows = rowDefs.map(r => `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))${r.grand ? ';background:rgba(212,145,58,0.06)' : ''}">
+    <td style="padding:${r.grand ? '9px' : '6px'} 12px;font-family:'Barlow',sans-serif;font-size:${r.grand ? '12px' : '11px'};color:${r.grand ? 'var(--text)' : 'var(--text-muted)'};letter-spacing:0.3px;white-space:nowrap${r.strong || r.grand ? ';font-weight:600' : ''}">${r.label}</td>
+    ${cols.map((c, ci) => {
+      const v = r.val(c);
+      let color = r.grand || r.strong ? 'var(--text)' : 'var(--text-muted)';
+      if (r.grand && inclVats[ci] === minIncl && minIncl !== Math.max(...inclVats)) color = 'var(--success, #6aaa64)';
+      return `<td style="padding:${r.grand ? '9px' : '6px'} 12px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:${r.grand ? '14px' : '12px'};color:${color}${r.grand ? ';font-weight:600' : ''}">${v}</td>`;
+    }).join('')}
+  </tr>`).join('');
+
+  const deltaRow = `<tr>
+    <td style="padding:6px 12px;font-family:'Barlow',sans-serif;font-size:11px;color:var(--text-muted);letter-spacing:0.3px;white-space:nowrap">vs ${cols[0].name} (incl VAT)</td>
+    ${cols.map((c, ci) => {
+      if (ci === 0) return '<td style="padding:6px 12px;text-align:right;font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--text-muted)">—</td>';
+      const d = inclVats[ci] - baseIncl;
+      const sign = d > 0 ? '+' : d < 0 ? '−' : '';
+      const color = d > 0 ? '#e07070' : d < 0 ? 'var(--success, #6aaa64)' : 'var(--text-muted)';
+      return `<td style="padding:6px 12px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:${color}">${sign}${fmt(Math.abs(d))}</td>`;
+    }).join('')}
+  </tr>`;
+
+  const footRow = `<tr>
+    <td style="padding:10px 12px"></td>
+    ${cols.map(c => `<td style="padding:10px 12px;text-align:right">
+      ${c.i === activeIdx ? '' : `<button onclick="_scenCompareGoto(${c.i})" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:5px 12px;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;cursor:pointer">VIEW OPTION</button>`}
+    </td>`).join('')}
+  </tr>`;
+
+  const modal = document.createElement('div');
+  modal.id = 'scen-compare-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) closeScenarioCompare(); });
+  modal.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-label="Compare quote options" style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--amber);max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;color:var(--text)">⇄ COMPARE OPTIONS</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">All amounts exclude VAT unless stated. Each option carries its own quantities, materials and extras.</div>
+        </div>
+        <button onclick="closeScenarioCompare()" aria-label="Close compare" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="overflow:auto;padding:4px 8px 8px">
+        <table style="border-collapse:collapse;min-width:100%">
+          <thead>${headRow}</thead>
+          <tbody>${bodyRows}${cols.length > 1 ? deltaRow : ''}${footRow}</tbody>
+        </table>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  _usersModalTrapFocus(modal);
+  requestAnimationFrame(() => { modal.querySelector('button')?.focus(); });
+  _scenCmpEscHandler = function(ev) { if (ev.key === 'Escape') closeScenarioCompare(); };
+  document.addEventListener('keydown', _scenCmpEscHandler);
+}
+
 function fmt(n) { return 'R ' + Math.round(n).toLocaleString('en-ZA'); }
 
 function renderQuoteView() { withScrollLock(_renderQuoteView); }
@@ -11739,8 +11892,9 @@ function _renderQuoteView() {
   });
   scenStrip += `<button class="qv-scen-add" id="qv-scen-add" title="Clone this option as a new scenario" aria-label="Clone this option as a new scenario">＋ Add option</button>`;
   scenStrip += `<button class="qv-scen-icon-btn qv-scen-rename" id="qv-scen-rename" title="Rename this option" aria-label="Rename this option">✎</button>`;
+  if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-add" id="qv-scen-compare" title="Compare all options side by side" aria-label="Compare all options side by side">⇄ Compare</button>`;
   if (quoteState.scenarios.length > 1) scenStrip += `<button class="qv-scen-icon-btn qv-scen-del" id="qv-scen-del" title="Remove this option" aria-label="Remove this option">✕</button>`;
-  if (localStorage.getItem('scenHintDismissed') === '1') scenStrip += `<button class="qv-scen-icon-btn" onclick="localStorage.removeItem('scenHintDismissed');renderQuoteView()" title="Show tip about options" aria-label="Show tip about options" style="opacity:0.45;font-size:11px;padding:0 5px">?</button>`;
+  if (localStorage.getItem('scenHintDismissed') === '1') scenStrip += `<button class="qv-scen-icon-btn" onclick="localStorage.removeItem('scenHintDismissed');renderQuoteView()" title="Show tip about options" aria-label="Show tip about options" style="font-size:12px;padding:0 7px;border:1px solid var(--border);border-radius:2px">?</button>`;
   scenStrip += `</div>`;
   if (quoteState.scenarios.length === 1 && localStorage.getItem('scenHintDismissed') !== '1') {
     scenStrip += `<div id="qv-scen-hint" style="display:flex;align-items:baseline;gap:10px;background:rgba(212,145,58,0.07);border:1px solid rgba(212,145,58,0.22);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--text-muted);line-height:1.5">
@@ -12384,6 +12538,7 @@ function _renderQuoteView() {
   // Wire scenario strip
   (quoteState.scenarios || []).forEach((_, i) => _wireToggle(`qv-scen-tab-${i}`, () => switchScenario(i)));
   _wireToggle('qv-scen-add',    addScenario);
+  _wireToggle('qv-scen-compare', openScenarioCompare);
   _wireToggle('qv-scen-rename', () => renameScenario(quoteState.activeScenario || 0));
   _wireToggle('qv-scen-del', async () => {
     const name = quoteState.scenarios?.[quoteState.activeScenario || 0]?.name || 'this option';
@@ -22747,6 +22902,61 @@ function panelBatchSetMat(mat) {
   renderPanelsView();
 }
 
+// Multi-select: row checkboxes + select-all + bulk delete
+const _panelSelected = new Set();
+
+function panelToggleSelect(id, on) {
+  if (on) _panelSelected.add(id); else _panelSelected.delete(id);
+  _panelUpdateSelBar();
+}
+
+function panelSelectAll(on) {
+  _panelSelected.clear();
+  if (on) panelsState.items.forEach(p => _panelSelected.add(p.id));
+  document.querySelectorAll('.panel-row-select').forEach(cb => { cb.checked = on; });
+  _panelUpdateSelBar();
+}
+
+function _panelUpdateSelBar() {
+  // Keep only ids that still exist
+  const live = new Set(panelsState.items.map(p => p.id));
+  [..._panelSelected].forEach(id => { if (!live.has(id)) _panelSelected.delete(id); });
+  const btn = document.getElementById('panel-del-selected-btn');
+  if (btn) {
+    const n = _panelSelected.size;
+    btn.style.display = n ? '' : 'none';
+    btn.textContent = `× DELETE SELECTED (${n})`;
+  }
+  const all = document.getElementById('panel-select-all');
+  if (all) {
+    const total = panelsState.items.length;
+    all.checked = total > 0 && _panelSelected.size === total;
+    all.indeterminate = _panelSelected.size > 0 && _panelSelected.size < total;
+  }
+}
+
+async function panelDeleteSelected() {
+  const n = _panelSelected.size;
+  if (!n) return;
+  if (!(await confirmAction(`Delete ${n} selected row${n===1?'':'s'}?`, { confirmLabel: 'DELETE' }))) return;
+  const removed = panelsState.items.filter(p => _panelSelected.has(p.id));
+  panelsState.items = panelsState.items.filter(p => !_panelSelected.has(p.id));
+  removed.forEach(p => _panelPreEditSnapshots.delete(p.id));
+  _panelSelected.clear();
+  savePanelsState();
+  scheduleAutoSave();
+  renderPanelsView();
+  showToast(`Deleted ${n} row${n===1?'':'s'}`, 'info', {
+    duration: 8000,
+    action: { label: 'UNDO', fn: () => {
+      panelsState.items = panelsState.items.concat(removed);
+      savePanelsState();
+      scheduleAutoSave();
+      renderPanelsView();
+    }}
+  });
+}
+
 async function panelClearAll() {
   if (!panelsState.items.length) return;
   const n = panelsState.items.length;
@@ -22754,6 +22964,7 @@ async function panelClearAll() {
   const snapshot = panelsState.items;
   const prevCounter = _panelIdCounter;
   panelsState.items = [];
+  _panelSelected.clear();
   _panelIdCounter = 1;
   savePanelsState();
   scheduleAutoSave();
@@ -24245,7 +24456,9 @@ function _renderPanelsView() {
   panelsState.items.forEach(p => _panelSnapshots.set(p.id, {...p}));
   const _legendCollapsed = localStorage.getItem('panelLegendCollapsed') === '1';
   const rowsHtml = panelsState.items.map((p, i) => `
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+      <input type="checkbox" class="panel-row-select" aria-label="Select row ${i+1}" ${_panelSelected.has(p.id) ? 'checked' : ''}
+        onchange="panelToggleSelect('${p.id}',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--amber)">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box', `Row ${i+1} part name`)}
       ${inp('number', p.qty, `panelField('${p.id}','qty',this.value)`, 'width:100%', `Row ${i+1} quantity`)}
       ${inp('number', p.l||'', `panelField('${p.id}','l',this.value)`, 'width:100%', `Row ${i+1} length mm`)}
@@ -24321,9 +24534,12 @@ function _renderPanelsView() {
           <option value="">Set all materials to…</option>
           ${MATS.map(m => `<option value="${m}">${m}</option>`).join('')}
         </select>
+        <button id="panel-del-selected-btn" onclick="panelDeleteSelected()"
+          style="display:${_panelSelected.size ? '' : 'none'};font-weight:500;background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">× DELETE SELECTED (${_panelSelected.size})</button>
       </div>
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+      <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+        <input type="checkbox" id="panel-select-all" aria-label="Select all rows" onchange="panelSelectAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--amber)">
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME / DESCRIPTION</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">QTY</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">LENGTH mm</div>
@@ -24345,6 +24561,7 @@ function _renderPanelsView() {
     </div>`;
   // Re-show ↩ buttons for panels that had pending edits before this re-render
   _panelPreEditSnapshots.forEach((_, id) => _panelUpdateDirtyIndicator(id));
+  _panelUpdateSelBar();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -30473,11 +30690,15 @@ function _showPlanToast(message) {
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+4</span>
-        <span style="font-size:13px;color:var(--text-muted)">Summary tab</span>
+        <span style="font-size:13px;color:var(--text-muted)">Sheet Optimizer tab</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+5</span>
-        <span style="font-size:13px;color:var(--text-muted)">Optimize tab</span>
+        <span style="font-size:13px;color:var(--text-muted)">Edit Units tab</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+6</span>
+        <span style="font-size:13px;color:var(--text-muted)">Summary tab</span>
       </div>
 
       <!-- Divider -->
@@ -30486,6 +30707,10 @@ function _showPlanToast(message) {
       <!-- Section label: Actions -->
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;font-family:'Oswald',sans-serif">Actions</div>
 
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Ctrl+S</span>
+        <span style="font-size:13px;color:var(--text-muted)">Save the current job</span>
+      </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;color:var(--text)">Alt+R</span>
         <span style="font-size:13px;color:var(--text-muted)">Regenerate cut list</span>
