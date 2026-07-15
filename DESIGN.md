@@ -34,6 +34,14 @@ colors:
   bg-light-nav: "#e8e4dc"
   excel-green: "#1d6f42"
   excel-green-dark: "#217a4b"
+  danger-strong: "#e05252"
+  danger-soft: "#e07070"
+  danger-bg: "#5a2a2a"
+  success-active: "#4caf82"
+  success-sync: "#5dba6e"
+  info: "#6aaad4"
+  info-light: "#7ab0ff"
+  info-strong: "#5090e0"
 typography:
   display:
     fontFamily: "Oswald, sans-serif"
@@ -189,6 +197,37 @@ Component-specific literals not mapped to CSS vars:
 | `#e8e4dc` | Nav tab bar background |
 
 **Exception color — Excel export:** `#1d6f42` (Excel green). Used only on the Excel export button. Never borrowed for other actions.
+
+### Semantic State Ramps
+
+Beyond the single documented `--success` / `--danger` accents, the app uses three multi-step semantic ramps for state-heavy features (P&L variance, sync status, invoice import, info callouts). These grew organically in feature code and are canonical — new state UI should reuse these values, not invent adjacent shades.
+
+**Danger ramp** (negative margins, errors, delete affordances):
+
+| Token | Hex | Role |
+|---|---|---|
+| `danger-strong` | `#e05252` | Solid danger fills, unread badge, hard error text |
+| `danger` | `#e06060` | Base danger accent (documented above) |
+| `danger-soft` | `#e07070` | Muted danger text, sync-failure status lines |
+| `danger-bg` | `#5a2a2a` | Dark danger surface / tinted backgrounds |
+
+**Success ramp** (positive margins, saved/sync states, service assignment):
+
+| Token | Hex | Role |
+|---|---|---|
+| `success` | `#6aaa64` | Base success accent (documented above) |
+| `success-active` | `#4caf82` | Active-green component state (special services, toggles) |
+| `success-sync` | `#5dba6e` | "✓ Saved" sync status text |
+
+**Info ramp** (informational callouts, links, import hints — the only cool hues in the system):
+
+| Token | Hex | Role |
+|---|---|---|
+| `info` | `#6aaad4` | Info text and icons |
+| `info-light` | `#7ab0ff` | Info emphasis / links on dark surfaces |
+| `info-strong` | `#5090e0` | Info buttons and stronger accents |
+
+**White-alpha hairlines:** `rgba(255,255,255,0.04–0.18)` is the standard family for inner dividers and subtle borders inside dark surfaces (e.g. table row separators). Prefer `--border-inner` where a token exists; the raw rgba family is acceptable inside JS-generated markup.
 
 ### Contextual rgba Overlays
 

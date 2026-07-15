@@ -34,3 +34,11 @@ Em-dashes in UI label strings (`— Select a job —`, `— New Job —`) are in
 ## Note on line numbers
 
 All line-number references above are removed intentionally — they drift ~100–250 lines with each major feature addition. Rules match by description pattern and context, not by line number.
+
+## Colored glow: primary button amber shadow
+
+`box-shadow: 0 3px 10px rgba(212,145,58,0.25)` on `.btn-primary` (and its `0 5px 14px rgba(212,145,58,0.35)` hover escalation). This is the documented "Amber Glow" in DESIGN.md's Elevation section — "the only shadow with a hue," an intentional brand signature tying the primary button to the amber accent. Not decorative drift.
+
+## Border-radius: 1px on .pp-title-mark
+
+`.pp-title-mark` (8×22px amber title bar mark) uses `border-radius: 1px` — same family as the 1px swatch rule above: a tiny decorative non-interactive element given a hairline bevel. Intentional.
