@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-23T21:30:00Z",
+  "title": "Design System: CutList Pro",
+  "extensions": {
+    "colorMeta": {
+      "amber":        { "role": "primary",  "displayName": "Measured Amber",     "canonical": "oklch(65% 0.13 65)",  "tonalRamp": ["oklch(20% 0.05 65)","oklch(30% 0.08 65)","oklch(40% 0.10 65)","oklch(50% 0.12 65)","oklch(58% 0.13 65)","oklch(65% 0.13 65)","oklch(72% 0.12 65)","oklch(85% 0.08 65)"] },
+      "amber-light":  { "role": "primary",  "displayName": "Amber Glow",         "canonical": "oklch(72% 0.12 65)",  "tonalRamp": ["oklch(22% 0.05 65)","oklch(32% 0.08 65)","oklch(42% 0.10 65)","oklch(52% 0.12 65)","oklch(60% 0.13 65)","oklch(68% 0.13 65)","oklch(72% 0.12 65)","oklch(87% 0.07 65)"] },
+      "amber-dim":    { "role": "primary",  "displayName": "Amber Shadow",       "canonical": "oklch(58% 0.13 65)",  "tonalRamp": ["oklch(18% 0.04 65)","oklch(28% 0.07 65)","oklch(38% 0.10 65)","oklch(48% 0.11 65)","oklch(55% 0.12 65)","oklch(58% 0.13 65)","oklch(68% 0.12 65)","oklch(82% 0.08 65)"] },
+      "bg-void":      { "role": "neutral",  "displayName": "Forge Black",        "canonical": "oklch(12% 0 0)",      "tonalRamp": ["oklch(8% 0 0)","oklch(12% 0 0)","oklch(15% 0.005 65)","oklch(18% 0.005 65)","oklch(22% 0.005 65)","oklch(35% 0.005 65)","oklch(55% 0.003 65)","oklch(75% 0.002 65)"] },
+      "bg-surface":   { "role": "neutral",  "displayName": "Panel Charcoal",     "canonical": "oklch(15% 0.005 65)", "tonalRamp": ["oklch(10% 0 0)","oklch(15% 0.005 65)","oklch(18% 0.005 65)","oklch(22% 0.005 65)","oklch(30% 0.005 65)","oklch(45% 0.004 65)","oklch(62% 0.003 65)","oklch(80% 0.002 65)"] },
+      "bg-input":     { "role": "neutral",  "displayName": "Input Slate",        "canonical": "oklch(18% 0.005 65)", "tonalRamp": ["oklch(10% 0 0)","oklch(15% 0.005 65)","oklch(18% 0.005 65)","oklch(22% 0.005 65)","oklch(30% 0.005 65)","oklch(46% 0.004 65)","oklch(63% 0.003 65)","oklch(81% 0.002 65)"] },
+      "bg-raised":    { "role": "neutral",  "displayName": "Raised Charcoal",    "canonical": "oklch(22% 0.005 65)", "tonalRamp": ["oklch(12% 0 0)","oklch(18% 0.005 65)","oklch(22% 0.005 65)","oklch(26% 0.005 65)","oklch(34% 0.005 65)","oklch(48% 0.004 65)","oklch(65% 0.003 65)","oklch(83% 0.002 65)"] },
+      "text-primary": { "role": "neutral",  "displayName": "Warm Parchment",     "canonical": "oklch(91% 0.015 80)", "tonalRamp": ["oklch(30% 0.01 80)","oklch(42% 0.012 80)","oklch(55% 0.013 80)","oklch(65% 0.014 80)","oklch(75% 0.015 80)","oklch(83% 0.015 80)","oklch(88% 0.015 80)","oklch(91% 0.015 80)"] },
+      "text-secondary":{ "role": "neutral", "displayName": "Aged Ink",           "canonical": "oklch(65% 0.014 80)", "tonalRamp": ["oklch(25% 0.01 80)","oklch(38% 0.012 80)","oklch(50% 0.013 80)","oklch(58% 0.013 80)","oklch(65% 0.014 80)","oklch(74% 0.015 80)","oklch(82% 0.015 80)","oklch(90% 0.012 80)"] },
+      "text-muted":   { "role": "neutral",  "displayName": "Worn Chalk",         "canonical": "oklch(60% 0.013 80)", "tonalRamp": ["oklch(22% 0.01 80)","oklch(34% 0.011 80)","oklch(46% 0.012 80)","oklch(55% 0.013 80)","oklch(60% 0.013 80)","oklch(70% 0.014 80)","oklch(80% 0.013 80)","oklch(90% 0.010 80)"] },
+      "border":       { "role": "neutral",  "displayName": "Amber-Tinted Dark",  "canonical": "oklch(24% 0.008 75)", "tonalRamp": ["oklch(14% 0.005 75)","oklch(18% 0.006 75)","oklch(22% 0.007 75)","oklch(24% 0.008 75)","oklch(30% 0.007 75)","oklch(44% 0.006 75)","oklch(60% 0.005 75)","oklch(78% 0.004 75)"] },
+      "border-light": { "role": "neutral",  "displayName": "Raised Border",      "canonical": "oklch(32% 0.008 75)", "tonalRamp": ["oklch(16% 0.005 75)","oklch(22% 0.007 75)","oklch(28% 0.008 75)","oklch(32% 0.008 75)","oklch(38% 0.007 75)","oklch(50% 0.006 75)","oklch(66% 0.005 75)","oklch(82% 0.003 75)"] },
+      "success":      { "role": "secondary","displayName": "Site Green",         "canonical": "oklch(65% 0.13 148)", "tonalRamp": ["oklch(20% 0.06 148)","oklch(30% 0.08 148)","oklch(40% 0.10 148)","oklch(50% 0.12 148)","oklch(58% 0.13 148)","oklch(65% 0.13 148)","oklch(75% 0.10 148)","oklch(88% 0.06 148)"] },
+      "danger":       { "role": "tertiary", "displayName": "Alert Red",          "canonical": "oklch(62% 0.16 18)",  "tonalRamp": ["oklch(20% 0.07 18)","oklch(30% 0.09 18)","oklch(40% 0.12 18)","oklch(50% 0.14 18)","oklch(55% 0.15 18)","oklch(62% 0.16 18)","oklch(72% 0.12 18)","oklch(85% 0.07 18)"] }
+    },
+    "typographyMeta": {
+      "display":   { "displayName": "Display",  "purpose": "App logo, primary section titles (cutlist headers), CTA button labels. Oswald 700, letter-spaced, uppercase." },
+      "headline":  { "displayName": "Headline", "purpose": "Tab section headers, card dividers, module labels. Oswald 600, compact authority." },
+      "body":      { "displayName": "Body",     "purpose": "Table cells, summary lines, form input text, general content. Barlow 400, 13–14px." },
+      "label":     { "displayName": "Label",    "purpose": "Column headers, field labels, stat labels, meta text. Barlow 500, 10–11px, uppercase, 0.3px tracked." },
+      "mono":      { "displayName": "Mono",     "purpose": "All numeric values: dimensions, quantities, costs, totals. JetBrains Mono. Stat values at 18px, table cells at 15px, metadata at 13px." }
+    },
+    "shadows": [
+      { "name": "ambient-surface",  "value": "0 1px 4px rgba(0,0,0,0.2)",          "purpose": "Cards, stats bars, material selector bars at rest. Diffuse separation from body." },
+      { "name": "elevated-panel",   "value": "0 6px 24px rgba(0,0,0,0.45)",         "purpose": "Dropdown menus and overlay panels. Strong lift for floating layers." },
+      { "name": "amber-glow",       "value": "0 3px 10px rgba(212,145,58,0.25)",    "purpose": "Primary button at rest. Amber-hued shadow ties the CTA to the brand accent." },
+      { "name": "amber-glow-hover", "value": "0 5px 14px rgba(212,145,58,0.35)",    "purpose": "Primary button on hover. Intensifies with the 1px lift." },
+      { "name": "action-hover",     "value": "0 2px 6px rgba(0,0,0,0.25)",          "purpose": "Unit action buttons on hover. Neutral lift, no hue." },
+      { "name": "focus-ring-input", "value": "0 0 0 2px rgba(212,145,58,0.15)",     "purpose": "Inputs and selects on focus. Amber ring at 15% opacity." },
+      { "name": "focus-ring-btn",   "value": "0 0 0 2px rgba(212,145,58,0.30)",     "purpose": "Action buttons on focus-visible. Amber ring at 30% opacity." }
+    ],
+    "motion": [
+      { "name": "ease-standard",   "value": "all 0.15s",                           "purpose": "Default transition for all interactive state changes (color, border, background, shadow)." },
+      { "name": "ease-lift",       "value": "transform 0.12s ease",                "purpose": "Hover lift for action buttons (translateY(-1px)). Slightly faster than color transitions." },
+      { "name": "ease-expand",     "value": "transform 0.2s",                      "purpose": "Expand/collapse chevrons (cutlist sections). Slightly slower to feel mechanical." }
+    ],
+    "breakpoints": [
+      { "name": "mobile",  "value": "640px",  "note": "Action buttons wrap below unit label; nav actions collapse." },
+      { "name": "tablet",  "value": "900px",  "note": "Sidebar collapses to full-width below this. Unit row action gap tightens." },
+      { "name": "desktop", "value": "1400px", "note": "Max content width; .main container caps here." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary CTA. Used for Generate Quote, Save Job, and other high-priority actions. Amber gradient fill.",
+      "html": "<button class=\"ds-btn-primary\">GENERATE QUOTE</button>",
+      "css": ".ds-btn-primary { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 8px 20px; background: linear-gradient(180deg, #d4913a 0%, #b8852a 100%); color: #141414; border: none; border-radius: 4px; cursor: pointer; box-shadow: 0 3px 10px rgba(212,145,58,0.25); transition: background 0.15s, transform 0.15s, box-shadow 0.15s; } .ds-btn-primary:hover { background: linear-gradient(180deg, #e8a84e 0%, #d4913a 100%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(212,145,58,0.35); } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:focus-visible { outline: 2px solid #d4913a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action. Transparent fill, muted text and border. Used for Export, Cancel, and auxiliary actions.",
+      "html": "<button class=\"ds-btn-ghost\">EXPORT PDF</button>",
+      "css": ".ds-btn-ghost { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 8px 20px; background: transparent; color: #a0927f; border: 1px solid #4a4438; border-radius: 4px; cursor: pointer; transition: color 0.15s, border-color 0.15s; } .ds-btn-ghost:hover { color: #e8e0d0; border-color: #a0927f; } .ds-btn-ghost:focus-visible { outline: 2px solid #d4913a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Action Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Row-level action button (Edit, Parts, Copy, Remove, etc.). 28px tall, ghost at rest, amber on hover. The signature interactive component.",
+      "html": "<button class=\"ds-action-btn\"><span class=\"ds-action-glyph\">✎</span><span class=\"ds-action-label\">EDIT</span></button>",
+      "css": ".ds-action-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 28px; padding: 0 8px; font-family: 'Barlow', sans-serif; font-size: 10.5px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #9c8470; background: transparent; border: 1px solid #333028; border-radius: 4px; cursor: pointer; transition: transform 0.12s ease, color 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; } .ds-action-btn:hover { color: #d4913a; border-color: #c07838; background: rgba(212,145,58,0.10); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.25); } .ds-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(212,145,58,0.30); border-color: #d4913a; } .ds-action-glyph { font-size: 13px; line-height: 1; } .ds-action-label { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard form input. bg-input fill, amber focus ring. Used for job details, client name, notes.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">CLIENT NAME</label><input class=\"ds-input\" type=\"text\" placeholder=\"Enter client name\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 5px; } .ds-field-label { font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; color: #9c8470; } .ds-input { background: #252525; border: 1px solid #333028; color: #e8e0d0; font-family: 'Barlow', sans-serif; font-size: 13px; padding: 7px 10px; border-radius: 3px; outline: none; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; } .ds-input:hover { border-color: #9c8470; } .ds-input:focus { border-color: #d4913a; box-shadow: 0 0 0 2px rgba(212,145,58,0.15); } .ds-input::placeholder { color: #9c8470; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary content container. bg-surface fill, amber-tinted border, subtle ambient shadow. Used for quote summary, job details sidebar.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">QUOTE SUMMARY</div><div class=\"ds-summary-line\"><span>Materials</span><span class=\"ds-mono\">R 4 820.00</span></div><div class=\"ds-summary-line ds-summary-total\"><span>Total</span><span class=\"ds-mono\">R 7 240.00</span></div></div>",
+      "css": ".ds-card { background: #1e1e1e; border: 1px solid #333028; border-radius: 6px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); } .ds-card-title { font-family: 'Barlow', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; color: #c07838; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #333028; } .ds-summary-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #a0927f; } .ds-mono { font-family: 'JetBrains Mono', monospace; color: #e8e0d0; } .ds-summary-total { margin-top: 12px; padding-top: 12px; border-top: 1px solid #333028; color: #e8e0d0; font-weight: 600; } .ds-summary-total .ds-mono { color: #d4913a; font-size: 15px; }"
+    },
+    {
+      "name": "Tab Navigation",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Horizontal tab bar with amber active underline. The primary wayfinding component across all app sections.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-tab ds-tab-active\">QUOTE <span class=\"ds-count ds-count-active\">3</span></button><button class=\"ds-tab\">CUTLIST</button><button class=\"ds-tab\">PANELS</button></nav>",
+      "css": ".ds-nav { background: #1e1e1e; border-bottom: 1px solid #333028; display: flex; padding: 0 24px; } .ds-tab { font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; padding: 12px 18px; color: #a0927f; background: none; border: none; border-top: none; border-left: none; border-right: none; border-bottom: 3px solid transparent; cursor: pointer; transition: color 0.15s; white-space: nowrap; } .ds-tab:hover { color: #e8e0d0; } .ds-tab-active { color: #d4913a; border-bottom-color: #d4913a; } .ds-count { display: inline-block; background: #7a5020; color: #e8a84e; font-size: 10px; padding: 1px 5px; margin-left: 6px; border-radius: 4px; } .ds-count-active { background: #d4913a; color: #141414; }"
+    },
+    {
+      "name": "Stat Display",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Label + large mono number pairing for the stats bar. Key data at a glance: total panels, sheet count, efficiency.",
+      "html": "<div class=\"ds-stat\"><span class=\"ds-stat-label\">TOTAL PANELS</span><span class=\"ds-stat-val\">24</span></div>",
+      "css": ".ds-stat { display: flex; flex-direction: column; gap: 2px; } .ds-stat-label { font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; color: #9c8470; } .ds-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: #d4913a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Master's Ledger",
+    "overview": "CutList Pro is a dark, amber-lit precision instrument — the kind of tool a master tradesperson would trust with real numbers. The visual system mirrors a craftsman's record book: near-black surfaces that recede so the data reads clearly, amber ink that signals authority without decoration, and a typographic hierarchy that makes dimensions and costs legible at a glance. Nothing is here to impress; everything is here to be useful.\n\nThe system is built on restraint. The amber accent appears where it earns its place — active states, totals, primary actions, section headings — and nowhere else. Supporting surfaces step back through a disciplined background scale. Inputs are visible without being loud.\n\nThis is not a startup tool, and it's not a consumer app. It's a professional instrument for skilled tradespeople who make their living off accurate numbers.",
+    "keyCharacteristics": [
+      "Dark-first: near-black base (#141414) with stepped surface layers up to #2e2e2e",
+      "Single amber accent family (3 tones: dim / base / light) — used only for primary actions, active states, and data emphasis",
+      "Three-font system: Oswald (display authority), Barlow (UI clarity), JetBrains Mono (numeric precision)",
+      "Minimal border radius — nearly square (2–6px) — reflects tooling, not consumer apps",
+      "Amber focus rings and glow shadows tie keyboard and interactive states to the brand",
+      "Both dark (default) and light (supplier/client) themes are first-class"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule",       "body": "Amber is used on ≤15% of any given screen at rest. It speaks once per surface — as the active tab underline, as the total value, as the primary button. Its authority comes from its restraint.", "section": "colors" },
+      { "name": "The No-Pure-White Rule",   "body": "Body text is never #ffffff or #f0f0f0. Warm parchment (#e8e0d0) is the ceiling. Pure white reads as a glitch in the amber-tinted system.", "section": "colors" },
+      { "name": "The Mono Rule",            "body": "Every dimension, quantity, and currency value is set in JetBrains Mono, not Barlow. If a number is mixed with prose, the number is still Mono. No exceptions.", "section": "typography" },
+      { "name": "The Oswald Ceiling",       "body": "Oswald is used only for display-level labels (section titles, CTA buttons, the logo). It must never appear in body text, table cells, tooltips, or form labels.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. The shadow vocabulary activates on state transitions (hover, focus, elevation). A card that casts a big shadow at rest is a card pretending to be a modal.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use JetBrains Mono for every dimension, quantity, and currency value.",
+      "Do apply amber (#d4913a) only to active states, primary actions, totals, and focus indicators.",
+      "Do use border-radius ≤6px (rounded.lg) across all components.",
+      "Do use the amber glow focus ring for focus states on inputs and selects.",
+      "Do keep transitions at 0.15s.",
+      "Do maintain both dark and light theme contrast compliance independently.",
+      "Do use Oswald only for display-level labels: section titles, CTA buttons, the logo.",
+      "Do use the 32px amber-grid body background pattern on the body only."
+    ],
+    "donts": [
+      "Don't use old-school trade software patterns (Excel-like dense grids, Windows-era form controls).",
+      "Don't add over-designed or flashy elements: hero sections, gradient overlays, heavy motion choreography.",
+      "Don't use pure white (#ffffff) for any text. The ceiling is warm parchment (#e8e0d0).",
+      "Don't apply the amber accent to inactive states, secondary labels, or decorative fills.",
+      "Don't exceed 6px border-radius on any component.",
+      "Don't use gradient text (background-clip: text).",
+      "Don't use side-stripe borders (border-left or border-right > 1px as a colored accent).",
+      "Don't break the three-font contract: Oswald for display, Barlow for UI text, JetBrains Mono for numbers.",
+      "Don't use motion for decoration. The 1px hover lift and 0.15s transitions are the full motion vocabulary.",
+      "Don't show full-saturation amber (#d4913a) on inactive states or low-priority elements."
+    ]
+  }
+}
