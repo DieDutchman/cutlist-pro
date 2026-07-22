@@ -27728,6 +27728,48 @@ function plImportedDocBlur(jobId) {
   plPersistJob(jobId);
 }
 
+// ── P&L hardware line matching: fuzzy suggest for quoted-vs-invoiced labels ──
+// Pure functions — no DOM/network access — so they're testable in isolation.
+const PL_MATCH_THRESHOLD = 0.35;
+const PL_MATCH_TIE_MARGIN = 0.1;
+
+function _plNormTokens(str) {
+  const s = (str || '').toLowerCase();
+  const words = new Set((s.match(/[a-z0-9]+/g) || []).filter(t => t.length >= 2));
+  const numbers = new Set(s.match(/\d+/g) || []);
+  return { words, numbers };
+}
+
+function _plJaccard(a, b) {
+  if (a.size === 0 && b.size === 0) return 0;
+  let inter = 0;
+  a.forEach(x => { if (b.has(x)) inter++; });
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+function _plMatchScore(labelStr, descStr) {
+  const a = _plNormTokens(labelStr);
+  const b = _plNormTokens(descStr);
+  return 0.5 * _plJaccard(a.words, b.words) + 0.5 * _plJaccard(a.numbers, b.numbers);
+}
+
+// Candidates = unclaimed, unlinked invoices in the same category scoring >=
+// threshold, restricted to the top-scoring cluster (within PL_MATCH_TIE_MARGIN
+// of the best score) so near-ties surface together instead of picking one.
+function _plSuggestMatches(cat, label, invs, excludeIds) {
+  const candidates = (invs || [])
+    .filter(inv => (inv.category || '') === cat)
+    .filter(inv => !excludeIds.has(inv.id))
+    .filter(inv => !inv.matchedQuotedKey)
+    .map(inv => ({ inv, score: _plMatchScore(label, inv.desc || '') }))
+    .filter(c => c.score >= PL_MATCH_THRESHOLD)
+    .sort((a, b) => b.score - a.score);
+  if (candidates.length === 0) return [];
+  const top = candidates[0].score;
+  return candidates.filter(c => top - c.score <= PL_MATCH_TIE_MARGIN);
+}
+
 // ── Historical price snapshot modal ───────────────────────────────────────────
 async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
