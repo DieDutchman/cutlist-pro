@@ -27770,6 +27770,30 @@ function _plSuggestMatches(cat, label, invs, excludeIds) {
   return candidates.filter(c => top - c.score <= PL_MATCH_TIE_MARGIN);
 }
 
+// ── Manual quoted-line ↔ invoice-line matching (P&L HARDWARE section) ────────
+// key format: "<category>::<label>" — see _findActualForLine / _plSuggestMatches.
+function plLinkInvoiceToQuotedLine(jobId, invoiceId, key) {
+  const pd = plData[jobId];
+  if (!pd) return;
+  const inv = (pd.invoices || []).find(i => i.id === invoiceId);
+  if (!inv) return;
+  inv.matchedQuotedKey = key;
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+function plUnlinkInvoiceMatch(jobId, invoiceId) {
+  const pd = plData[jobId];
+  if (!pd) return;
+  const inv = (pd.invoices || []).find(i => i.id === invoiceId);
+  if (!inv) return;
+  delete inv.matchedQuotedKey;
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
 // ── Historical price snapshot modal ───────────────────────────────────────────
 async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
