@@ -28579,7 +28579,7 @@ function _renderPLView() {
           return `<tr style="background:rgba(255,190,90,0.06)">
             <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
               ↳ possible match: "${c.inv.desc || ''}" — ${R(amt)}
-              <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', '${c.inv.id}', '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
+              <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', '${c.inv.id.replace(/'/g,"\\'")}', '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
             </td>
           </tr>`;
         }
@@ -28621,7 +28621,7 @@ function _renderPLView() {
               const lineVar  = lineHasA ? (lineExp - lineAct) : null;
               const linePct  = (lineHasA && lineExp > 0) ? (lineVar / lineExp * 100) : null;
               const unlinkBtns = (match && match.isManual)
-                ? match.invoiceIds.map(id => ` <button onclick="plUnlinkInvoiceMatch('${(selJobId||'').replace(/'/g,"\\'")}', '${id}')" title="Unlink manual match" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">✕</button>`).join('')
+                ? match.invoiceIds.map(id => ` <button onclick="plUnlinkInvoiceMatch('${(selJobId||'').replace(/'/g,"\\'")}', '${id.replace(/'/g,"\\'")}')" title="Unlink manual match" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">✕</button>`).join('')
                 : '';
               const mainRow = `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
                 <td style="padding:6px 12px 6px 28px;color:var(--text-muted);font-size:11px;font-style:italic">↳ ${d.label}</td>
