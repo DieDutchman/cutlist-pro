@@ -28549,6 +28549,53 @@ function _renderPLView() {
         `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
         `applied on the Quote tab, because that markup is not part of the supplier's invoice cost.`
       );
+
+      // Pre-pass: resolve every quoted hardware detail line's actual cost across
+      // ALL categories (not just the visible `rows`) before rendering, so
+      // invoices already matched (manually or exactly) are excluded from
+      // suggestions offered to OTHER lines. Keyed by object identity since
+      // hardwareExtrasDetail entries are freshly rebuilt each render.
+      const _allDetailItems = Object.values(hwExtrasByCat).flat();
+      const _lineMatches = new Map();
+      const _claimedInvoiceIds = new Set();
+      _allDetailItems.forEach(d => {
+        const result = _findActualForLine(d.category, d.label);
+        _lineMatches.set(d, result);
+        if (result) result.invoiceIds.forEach(id => _claimedInvoiceIds.add(id));
+      });
+
+      // Renders the "possible match" row shown under an unmatched quoted line.
+      // Single candidate -> inline chip + Link button. 2+ tied candidates ->
+      // dropdown + Link button. No candidates -> ''.
+      const _plRenderSuggestionRow = (cat, label) => {
+        const candidates = _plSuggestMatches(cat, label, invs, _claimedInvoiceIds);
+        if (candidates.length === 0) return '';
+        const key = `${cat}::${label}`;
+        const safeJobId = (selJobId || '').replace(/'/g, "\\'");
+        const safeKey   = key.replace(/'/g, "\\'");
+        if (candidates.length === 1) {
+          const c = candidates[0];
+          const amt = _invInclVAT(c.inv) / 1.15;
+          return `<tr style="background:rgba(255,190,90,0.06)">
+            <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
+              ↳ possible match: "${c.inv.desc || ''}" — ${R(amt)}
+              <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', '${c.inv.id}', '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
+            </td>
+          </tr>`;
+        }
+        const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}`;
+        const options = candidates.map(c => {
+          const amt = _invInclVAT(c.inv) / 1.15;
+          return `<option value="${c.inv.id}">${(c.inv.desc||'').replace(/"/g,'&quot;')} — ${R(amt)}</option>`;
+        }).join('');
+        return `<tr style="background:rgba(255,190,90,0.06)">
+          <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
+            ↳ possible match:
+            <select id="${selectId}" style="font-size:11px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:1px 4px">${options}</select>
+            <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', document.getElementById('${selectId}').value, '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
+          </td>
+        </tr>`;
+      };
       return `
     <div class="pp-table-subhead">HARDWARE</div>
     <div class="pp-table-wrap">
@@ -28568,21 +28615,27 @@ function _renderPLView() {
             // Per-line detail rows for manual hardware extras within this category
             const detailRows = (hwExtrasByCat[k] || []).map(d => {
               const lineExp = d.rawTotal || 0;
-              const lineAct = _findActualForLine(k, d.label);
+              const match    = _lineMatches.get(d);
+              const lineAct  = match ? match.amount : null;
               const lineHasA = lineAct !== null && lineAct > 0;
               const lineVar  = lineHasA ? (lineExp - lineAct) : null;
               const linePct  = (lineHasA && lineExp > 0) ? (lineVar / lineExp * 100) : null;
-              return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
+              const unlinkBtns = (match && match.isManual)
+                ? match.invoiceIds.map(id => ` <button onclick="plUnlinkInvoiceMatch('${(selJobId||'').replace(/'/g,"\\'")}', '${id}')" title="Unlink manual match" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">✕</button>`).join('')
+                : '';
+              const mainRow = `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
                 <td style="padding:6px 12px 6px 28px;color:var(--text-muted);font-size:11px;font-style:italic">↳ ${d.label}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.qty || '—'}</td>
                 <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
                 <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.unitPrice > 0 ? R(d.unitPrice) : '—'}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4;font-size:11px" title="${_hwExpTip}">${R(lineExp)}</td>
-                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${lineHasA?'var(--text)':'var(--text-muted)'};font-size:11px">${lineHasA ? R(lineAct) : '<span style="font-size:10px">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${lineHasA?'var(--text)':'var(--text-muted)'};font-size:11px">${lineHasA ? R(lineAct) + unlinkBtns : '<span style="font-size:10px">—</span>'}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" title="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" title="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               </tr>`;
+              const suggestionRow = match ? '' : _plRenderSuggestionRow(d.category, d.label);
+              return mainRow + suggestionRow;
             }).join('');
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${labels[k]}</td>
