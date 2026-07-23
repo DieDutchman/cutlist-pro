@@ -28519,13 +28519,31 @@ function _renderPLView() {
       // Per-line actual lookup: any invoice with the same category that carries
       // qty+unit_price detail can be matched by label. Falls back to qty * unitPrice / 1.15
       // estimate of actual unit cost when no matching invoice is found.
+      // Resolution order: (1) explicit manual link (matchedQuotedKey) always
+      // wins if present — the user confirmed it, so it overrides wording-based
+      // matching even if an exact-string match also exists. (2) exact
+      // case-insensitive label==desc match (original behavior, zero-friction
+      // for well-named items). (3) no match — caller computes suggestions.
       const _findActualForLine = (cat, label) => {
-        const matches = invs.filter(inv =>
+        const key = `${cat}::${label}`;
+        const manual = invs.filter(inv => inv.matchedQuotedKey === key);
+        if (manual.length > 0) {
+          return {
+            amount: manual.reduce((s, inv) => s + _invInclVAT(inv), 0) / 1.15,
+            invoiceIds: manual.map(inv => inv.id),
+            isManual: true,
+          };
+        }
+        const exact = invs.filter(inv =>
           (inv.category || '') === cat &&
           (inv.desc || '').trim().toLowerCase() === (label || '').trim().toLowerCase()
         );
-        if (matches.length === 0) return null;
-        return matches.reduce((s, inv) => s + _invInclVAT(inv), 0) / 1.15;
+        if (exact.length === 0) return null;
+        return {
+          amount: exact.reduce((s, inv) => s + _invInclVAT(inv), 0) / 1.15,
+          invoiceIds: exact.map(inv => inv.id),
+          isManual: false,
+        };
       };
       const _hwExpTip = escTitle(
         `Raw supplier cost (excl VAT). Excludes the ${Math.round(HW_HANDLING*100)}% handling markup ` +
