@@ -28524,6 +28524,9 @@ function _renderPLView() {
       // matching even if an exact-string match also exists. (2) exact
       // case-insensitive label==desc match (original behavior, zero-friction
       // for well-named items). (3) no match — caller computes suggestions.
+      // Known limitation: an invoice manually linked to one line can independently
+      // exact-match another line's label too — both would show its amount. Accepted
+      // as too rare to guard against (reviewed).
       const _findActualForLine = (cat, label) => {
         const key = `${cat}::${label}`;
         const manual = invs.filter(inv => inv.matchedQuotedKey === key);
@@ -28578,15 +28581,18 @@ function _renderPLView() {
           const amt = _invInclVAT(c.inv) / 1.15;
           return `<tr style="background:rgba(255,190,90,0.06)">
             <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
-              ↳ possible match: "${c.inv.desc || ''}" — ${R(amt)}
+              ↳ possible match: "${escHtml(c.inv.desc || '')}" — ${R(amt)}
               <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', '${c.inv.id.replace(/'/g,"\\'")}', '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
             </td>
           </tr>`;
         }
-        const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}`;
+        // Hash the full label to prevent collisions for labels differing only in non-alphanumeric chars
+        let _h = 0;
+        for (let i = 0; i < label.length; i++) _h = (_h * 31 + label.charCodeAt(i)) | 0;
+        const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}-${Math.abs(_h)}`;
         const options = candidates.map(c => {
           const amt = _invInclVAT(c.inv) / 1.15;
-          return `<option value="${c.inv.id}">${(c.inv.desc||'').replace(/"/g,'&quot;')} — ${R(amt)}</option>`;
+          return `<option value="${c.inv.id}">${escHtml(c.inv.desc||'')} — ${R(amt)}</option>`;
         }).join('');
         return `<tr style="background:rgba(255,190,90,0.06)">
           <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
