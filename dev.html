@@ -27918,8 +27918,9 @@ async function openHistoricalPriceModal(jobId) {
   const el = document.createElement('div');
   el.id = 'hist-price-modal';
   el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  el.addEventListener('click', e => { if (e.target === el) _histPriceClose(); });
   el.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--amber);max-width:520px;width:92%;max-height:85vh;display:flex;flex-direction:column">
+    <div role="dialog" aria-modal="true" aria-label="Set Historical Prices" style="background:var(--bg2);border:1px solid var(--amber);max-width:520px;width:92%;max-height:85vh;display:flex;flex-direction:column">
       <div style="padding:18px 20px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:3px;color:var(--amber);margin-bottom:4px">SET HISTORICAL PRICES</div>
         <div style="font-size:11px;color:var(--text-muted);line-height:1.6">
@@ -27947,7 +27948,11 @@ async function openHistoricalPriceModal(jobId) {
     </div>`;
   document.body.appendChild(el);
 
-  el.querySelector('#hist-price-cancel').onclick = () => el.remove();
+  const _histPriceA11y = {};
+  function _histPriceClose() { _closeModalA11y(el, _histPriceA11y); el.remove(); }
+  _openModalA11y(el, _histPriceA11y, _histPriceClose);
+
+  el.querySelector('#hist-price-cancel').onclick = _histPriceClose;
 
   el.querySelector('#hist-price-save').onclick = async () => {
     const btn = el.querySelector('#hist-price-save');
@@ -27991,7 +27996,7 @@ async function openHistoricalPriceModal(jobId) {
       if (jobId === currentJobId) {
         currentJobPriceSnapshot = newState.costingPriceSnapshot;
       }
-      el.remove();
+      _histPriceClose();
       renderPLView();
     } catch(e) {
       btn.disabled = false; btn.textContent = 'SAVE SNAPSHOT';
