@@ -5207,20 +5207,29 @@ function confirmAction(message, opts) {
   opts = opts || {};
   const confirmLabel = opts.confirmLabel || 'CONFIRM';
   const cancelLabel  = opts.cancelLabel  || 'CANCEL';
-  const type = opts.type || 'warning';
-  // Capture trigger so we can restore focus when the toast closes.
-  const triggerEl = document.activeElement;
-  const handle = showToast(message, type, {
-    duration: opts.duration === undefined ? 10000 : opts.duration,
-    actions: [
-      { label: cancelLabel, value: false },
-      { label: confirmLabel, value: true, primary: true }
-    ]
-  });
-  if (!handle || !handle.actionPromise) return Promise.resolve(false);
-  return handle.actionPromise.then(v => {
-    try { if (triggerEl && triggerEl.focus) triggerEl.focus(); } catch(_) {}
-    return v === true;
+
+  return new Promise(resolve => {
+    const state = {};
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center';
+    const settle = (val) => {
+      _closeModalA11y(modal, state);
+      modal.remove();
+      resolve(val);
+    };
+    modal.addEventListener('click', e => { if (e.target === modal) settle(false); });
+    modal.innerHTML = `
+      <div role="alertdialog" aria-modal="true" aria-label="Confirm action" style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--danger, #e06060);max-width:420px;width:92%;font-family:'Barlow',sans-serif;padding:20px">
+        <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:18px">${escHtml(message)}</div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button id="ca-cancel" style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 20px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">${escHtml(cancelLabel)}</button>
+          <button id="ca-confirm" style="background:var(--danger, #e06060);border:none;color:#fff;padding:8px 20px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;font-weight:600">${escHtml(confirmLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#ca-cancel').onclick = () => settle(false);
+    modal.querySelector('#ca-confirm').onclick = () => settle(true);
+    _openModalA11y(modal, state, () => settle(false));
   });
 }
 
