@@ -24715,6 +24715,17 @@ const drawerState = {
   },
   unitName: 'Custom Drawer Unit',
   section:  'kitchen',
+  // Face style: 'external' = today's behavior (faces overlay a generated
+  // carcass). 'internal' = faces sit recessed inside an existing carcass
+  // opening (width/height/depth typed in directly, no carcass panels
+  // generated). Absent on old saved units — always read via
+  // (ds.faceStyle || 'external') so missing data means External.
+  faceStyle: 'external',
+  // Hinge-clearance filler panels (Internal mode only) — one full-height
+  // strip per side, physically blocking the hinge-swing intrusion from an
+  // adjacent door on the same existing carcass.
+  spacerLeft:  { enabled: false, width: 20 },
+  spacerRight: { enabled: false, width: 20 },
 };
 
 function builderInput(key, val) {
@@ -26153,6 +26164,18 @@ function drawerRedraw() {
 //   face width  = carcass width − 2 × sideGap
 //   bottom face is flush with carcass bottom
 //   gaps between faces are equal, calculated from remaining height
+// Effective opening width used for face/box sizing. External mode: the
+// typed carcass width, unchanged. Internal mode: the typed opening width
+// minus whichever hinge-clearance spacer(s) are enabled — the drawer has
+// less room to work with once a filler panel blocks part of the opening.
+function drawerEffectiveOpeningWidth() {
+  const ds = drawerState;
+  if ((ds.faceStyle || 'external') !== 'internal') return ds.width;
+  const lw = ds.spacerLeft  && ds.spacerLeft.enabled  ? (ds.spacerLeft.width  || 0) : 0;
+  const rw = ds.spacerRight && ds.spacerRight.enabled ? (ds.spacerRight.width || 0) : 0;
+  return Math.max(50, ds.width - lw - rw);
+}
+
 function drawerFaceWidth() {
   return drawerState.width - 2 * drawerState.sideGap;
 }
