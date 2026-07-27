@@ -28637,6 +28637,14 @@ function _renderPLView() {
         _lineMatches.set(d, result);
         if (result) result.invoiceIds.forEach(id => _claimedInvoiceIds.add(id));
       });
+      // Count how many unmatched lines have at least one suggested candidate,
+      // for the HARDWARE section header badge (critique: feature had zero
+      // discoverability signal — you only found suggestions by scrolling).
+      let _pendingSuggestionCount = 0;
+      _allDetailItems.forEach(d => {
+        if (_lineMatches.get(d)) return;
+        if (_plSuggestMatches(d.category, d.label, invs, _claimedInvoiceIds).length > 0) _pendingSuggestionCount++;
+      });
 
       // Renders the "possible match" row shown under an unmatched quoted line.
       // Single candidate -> inline chip + Link button. 2+ tied candidates ->
@@ -28650,9 +28658,10 @@ function _renderPLView() {
         if (candidates.length === 1) {
           const c = candidates[0];
           const amt = _invInclVAT(c.inv) / 1.15;
+          const pctMatch = Math.round(c.score * 100);
           return `<tr style="background:rgba(255,190,90,0.06)">
             <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
-              ↳ possible match: "${escHtml(c.inv.desc || '')}" — ${R(amt)}
+              ↳ possible match (${pctMatch}%): "${escHtml(c.inv.desc || '')}" — ${R(amt)}
               <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', '${c.inv.id.replace(/'/g,"\\'")}', '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
             </td>
           </tr>`;
@@ -28663,7 +28672,8 @@ function _renderPLView() {
         const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}-${Math.abs(_h)}`;
         const options = candidates.map(c => {
           const amt = _invInclVAT(c.inv) / 1.15;
-          return `<option value="${c.inv.id}">${escHtml(c.inv.desc||'')} — ${R(amt)}</option>`;
+          const pctMatch = Math.round(c.score * 100);
+          return `<option value="${c.inv.id}">${escHtml(c.inv.desc||'')} — ${R(amt)} (${pctMatch}%)</option>`;
         }).join('');
         return `<tr style="background:rgba(255,190,90,0.06)">
           <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
@@ -28673,8 +28683,11 @@ function _renderPLView() {
           </td>
         </tr>`;
       };
+      const _pendingBadge = _pendingSuggestionCount > 0
+        ? ` <span style="background:rgba(212,145,58,0.15);color:var(--amber);border-radius:10px;padding:2px 8px;font-size:9px;letter-spacing:0.3px;text-transform:none">${_pendingSuggestionCount} match${_pendingSuggestionCount === 1 ? '' : 'es'} to review</span>`
+        : '';
       return `
-    <div class="pp-table-subhead">HARDWARE</div>
+    <div class="pp-table-subhead">HARDWARE${_pendingBadge}</div>
     <div class="pp-table-wrap">
       <table class="pp-table" style="border-collapse:collapse">
         <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
@@ -28706,10 +28719,10 @@ function _renderPLView() {
                 <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
                 <td style="padding:6px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.unitPrice > 0 ? R(d.unitPrice) : '—'}</td>
-                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4;font-size:11px" title="${_hwExpTip}">${R(lineExp)}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:#6aaad4;font-size:11px" data-tip="${_hwExpTip}">${R(lineExp)}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${lineHasA?'var(--text)':'var(--text-muted)'};font-size:11px">${lineHasA ? R(lineAct) + unlinkBtns : '<span style="font-size:10px">—</span>'}</td>
-                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" title="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" title="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" data-tip="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" data-tip="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               </tr>`;
               const suggestionRow = match ? '' : _plRenderSuggestionRow(d.category, d.label);
               return mainRow + suggestionRow;
@@ -28720,10 +28733,10 @@ function _renderPLView() {
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" title="${_hwExpTip}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" data-tip="${_hwExpTip}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" title="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" title="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" data-tip="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" data-tip="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>${detailRows}`;
           }).join('')}
         </tbody>
