@@ -15491,8 +15491,14 @@ function _usersModalTrapFocus(modal) {
 // object, module-level for a reused static modal or a local closure var for
 // a dynamic one — and must pass the SAME object to _closeModalA11y so the
 // right listeners get removed.
+// Tracks currently-open modals in open order, so Escape only closes the
+// topmost one when modals are nested (e.g. confirmAction() invoked from
+// within an already-open Quote Manager or Board Cleanup modal).
+const _modalA11yStack = [];
+
 function _openModalA11y(modal, state, closeFn) {
   state.trigger = document.activeElement;
+  _modalA11yStack.push(modal);
   requestAnimationFrame(() => {
     const shell = modal.querySelector('[role="dialog"], [role="alertdialog"]');
     const target = (shell || modal).querySelector(
@@ -15503,11 +15509,15 @@ function _openModalA11y(modal, state, closeFn) {
   if (state.trapHandler) modal.removeEventListener('keydown', state.trapHandler);
   state.trapHandler = _usersModalTrapFocus(modal);
   if (state.escHandler) document.removeEventListener('keydown', state.escHandler);
-  state.escHandler = function(ev) { if (ev.key === 'Escape') closeFn(); };
+  state.escHandler = function(ev) {
+    if (ev.key === 'Escape' && _modalA11yStack[_modalA11yStack.length - 1] === modal) closeFn();
+  };
   document.addEventListener('keydown', state.escHandler);
 }
 
 function _closeModalA11y(modal, state) {
+  const stackIdx = _modalA11yStack.lastIndexOf(modal);
+  if (stackIdx !== -1) _modalA11yStack.splice(stackIdx, 1);
   if (state.trapHandler) {
     modal.removeEventListener('keydown', state.trapHandler);
     state.trapHandler = null;
