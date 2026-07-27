@@ -27924,6 +27924,29 @@ function plUnlinkInvoiceMatch(jobId, invoiceId) {
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
 
+// ── Stock-sourced hardware lines (no invoice — pulled from existing stock) ───
+// key format: "<category>::<label>" — same as matchedQuotedKey. Treated as
+// zero-variance (actual == expected) in the P&L HARDWARE render, since no
+// new cash was spent on this job for that item.
+function plMarkStockSourced(jobId, key) {
+  const pd = plData[jobId];
+  if (!pd) return;
+  pd.stockSourcedKeys = pd.stockSourcedKeys || {};
+  pd.stockSourcedKeys[key] = true;
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+function plUnmarkStockSourced(jobId, key) {
+  const pd = plData[jobId];
+  if (!pd || !pd.stockSourcedKeys) return;
+  delete pd.stockSourcedKeys[key];
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
 // ── Historical price snapshot modal ───────────────────────────────────────────
 async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
@@ -28701,12 +28724,20 @@ function _renderPLView() {
         _lineMatches.set(d, result);
         if (result) result.invoiceIds.forEach(id => _claimedInvoiceIds.add(id));
       });
+      // Lines the user has flagged as "sourced from existing stock, no new
+      // invoice" — no cash spent this job, so treated as zero-variance
+      // (actual == expected) rather than a permanent unmatched dead-end.
+      const _plStockSourcedKeys = (plData[selJobId] && plData[selJobId].stockSourcedKeys) || {};
+      const _plIsStockSourced = (cat, label) => !!_plStockSourcedKeys[`${cat}::${label}`];
+
       // Count how many unmatched lines have at least one suggested candidate,
       // for the HARDWARE section header badge (critique: feature had zero
       // discoverability signal — you only found suggestions by scrolling).
+      // Lines already marked stock-sourced are resolved, not pending.
       let _pendingSuggestionCount = 0;
       _allDetailItems.forEach(d => {
         if (_lineMatches.get(d)) return;
+        if (_plIsStockSourced(d.category, d.label)) return;
         if (_plSuggestMatches(d.category, d.label, invs, _claimedInvoiceIds).length > 0) _pendingSuggestionCount++;
       });
 
@@ -28774,6 +28805,23 @@ function _renderPLView() {
           </td>
         </tr>`;
       };
+
+      // Lightweight fallback offered on every unmatched line (alongside
+      // whatever _plRenderSuggestionRow produced, even if that was ''):
+      // items pulled from existing stock genuinely have no invoice to link.
+      // Marking one treats it as zero-variance (actual == expected) instead
+      // of a permanent "no match" dead end.
+      const _plRenderStockSourceRow = (cat, label) => {
+        const key = `${cat}::${label}`;
+        const safeJobId = (selJobId || '').replace(/'/g, "\\'");
+        const safeKey   = key.replace(/'/g, "\\'");
+        return `<tr>
+          <td colspan="9" style="padding:3px 12px 6px 40px;color:var(--text-muted);font-size:10px;font-style:italic">
+            ↳ used stock you already had, no new invoice?
+            <button onclick="plMarkStockSourced('${safeJobId}', '${safeKey}')" style="margin-left:6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Mark as from stock</button>
+          </td>
+        </tr>`;
+      };
       const _pendingBadge = _pendingSuggestionCount > 0
         ? ` <span style="background:rgba(212,145,58,0.15);color:var(--amber);border-radius:10px;padding:2px 8px;font-size:9px;letter-spacing:0.3px;text-transform:none">${_pendingSuggestionCount} match${_pendingSuggestionCount === 1 ? '' : 'es'} to review</span>`
         : '';
@@ -28797,13 +28845,16 @@ function _renderPLView() {
             const detailRows = (hwExtrasByCat[k] || []).map(d => {
               const lineExp = d.rawTotal || 0;
               const match    = _lineMatches.get(d);
-              const lineAct  = match ? match.amount : null;
+              const stockSourced = !match && _plIsStockSourced(d.category, d.label);
+              const lineAct  = match ? match.amount : (stockSourced ? lineExp : null);
               const lineHasA = lineAct !== null && lineAct > 0;
               const lineVar  = lineHasA ? (lineExp - lineAct) : null;
               const linePct  = (lineHasA && lineExp > 0) ? (lineVar / lineExp * 100) : null;
               const unlinkBtns = (match && match.isManual)
                 ? match.invoiceIds.map(id => ` <button onclick="plUnlinkInvoiceMatch('${(selJobId||'').replace(/'/g,"\\'")}', '${id.replace(/'/g,"\\'")}')" title="Unlink manual match" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">✕</button>`).join('')
-                : '';
+                : stockSourced
+                  ? ` <span style="color:var(--text-muted);font-size:9px">(stock)</span> <button onclick="plUnmarkStockSourced('${(selJobId||'').replace(/'/g,"\\'")}', '${(`${d.category}::${d.label}`).replace(/'/g,"\\'")}')" title="Unmark as stock-sourced" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">↺</button>`
+                  : '';
               const mainRow = `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.03));background:rgba(255,255,255,0.015)">
                 <td style="padding:6px 12px 6px 28px;color:var(--text-muted);font-size:11px;font-style:italic">↳ ${d.label}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:11px">${d.qty || '—'}</td>
@@ -28815,7 +28866,7 @@ function _renderPLView() {
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${lineHasA?`<span style="color:${profitColor(lineVar)}" data-tip="${varTip(lineVar)}">${profitArrow(lineVar)} ${R(Math.abs(lineVar))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="padding:6px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px">${linePct!==null?`<span style="color:${profitColor(linePct)}" data-tip="${pctTip(linePct,lineVar)}">${linePct>=0?'+':''}${linePct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               </tr>`;
-              const suggestionRow = match ? '' : _plRenderSuggestionRow(d.category, d.label);
+              const suggestionRow = (match || stockSourced) ? '' : (_plRenderSuggestionRow(d.category, d.label) + _plRenderStockSourceRow(d.category, d.label));
               return mainRow + suggestionRow;
             }).join('');
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
