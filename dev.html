@@ -27890,6 +27890,16 @@ function _plSuggestMatches(cat, label, invs, excludeIds) {
   return candidates.filter(c => top - c.score <= PL_MATCH_TIE_MARGIN);
 }
 
+// Every unclaimed, unlinked invoice in a category regardless of match score —
+// the manual "browse and pick" fallback for when no candidate clears
+// _plSuggestMatches' fuzzy threshold (wording too different for the scorer).
+function _plAllUnmatchedInCategory(cat, invs, excludeIds) {
+  return (invs || [])
+    .filter(inv => (inv.category || '') === cat)
+    .filter(inv => !excludeIds.has(inv.id))
+    .filter(inv => !inv.matchedQuotedKey);
+}
+
 // ── Manual quoted-line ↔ invoice-line matching (P&L HARDWARE section) ────────
 // key format: "<category>::<label>" — see _findActualForLine / _plSuggestMatches.
 function plLinkInvoiceToQuotedLine(jobId, invoiceId, key) {
@@ -28702,13 +28712,17 @@ function _renderPLView() {
 
       // Renders the "possible match" row shown under an unmatched quoted line.
       // Single candidate -> inline chip + Link button. 2+ tied candidates ->
-      // dropdown + Link button. No candidates -> ''.
+      // dropdown + Link button. No candidates clear the fuzzy threshold ->
+      // fall back to a manual "pick from every unmatched invoice in this
+      // category" dropdown, so a line never dead-ends just because the
+      // wording was too different for the score to catch. No candidates at
+      // all (nothing unmatched left in the category) -> ''.
       const _plRenderSuggestionRow = (cat, label) => {
         const candidates = _plSuggestMatches(cat, label, invs, _claimedInvoiceIds);
-        if (candidates.length === 0) return '';
         const key = `${cat}::${label}`;
         const safeJobId = (selJobId || '').replace(/'/g, "\\'");
         const safeKey   = key.replace(/'/g, "\\'");
+
         if (candidates.length === 1) {
           const c = candidates[0];
           const amt = _invInclVAT(c.inv) / 1.15;
@@ -28720,20 +28734,43 @@ function _renderPLView() {
             </td>
           </tr>`;
         }
-        // Hash the full label to prevent collisions for labels differing only in non-alphanumeric chars
-        let _h = 0;
-        for (let i = 0; i < label.length; i++) _h = (_h * 31 + label.charCodeAt(i)) | 0;
-        const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}-${Math.abs(_h)}`;
-        const options = candidates.map(c => {
-          const amt = _invInclVAT(c.inv) / 1.15;
-          const pctMatch = Math.round(c.score * 100);
-          return `<option value="${c.inv.id}">${escHtml(c.inv.desc||'')} — ${R(amt)} (${pctMatch}%)</option>`;
+
+        if (candidates.length > 1) {
+          // Hash the full label to prevent collisions for labels differing only in non-alphanumeric chars
+          let _h = 0;
+          for (let i = 0; i < label.length; i++) _h = (_h * 31 + label.charCodeAt(i)) | 0;
+          const selectId = `pl-match-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}-${Math.abs(_h)}`;
+          const options = candidates.map(c => {
+            const amt = _invInclVAT(c.inv) / 1.15;
+            const pctMatch = Math.round(c.score * 100);
+            return `<option value="${c.inv.id}">${escHtml(c.inv.desc||'')} — ${R(amt)} (${pctMatch}%)</option>`;
+          }).join('');
+          return `<tr style="background:rgba(255,190,90,0.06)">
+            <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
+              ↳ possible match:
+              <select id="${selectId}" style="font-size:11px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:1px 4px">${options}</select>
+              <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', document.getElementById('${selectId}').value, '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
+            </td>
+          </tr>`;
+        }
+
+        // No automatic candidate cleared the fuzzy-match threshold — offer a
+        // manual browse-and-pick fallback over every still-unmatched invoice
+        // in this same category.
+        const manualCandidates = _plAllUnmatchedInCategory(cat, invs, _claimedInvoiceIds);
+        if (manualCandidates.length === 0) return '';
+        let _mh = 0;
+        for (let i = 0; i < label.length; i++) _mh = (_mh * 31 + label.charCodeAt(i)) | 0;
+        const manualSelectId = `pl-manual-sel-${(selJobId||'').replace(/[^a-zA-Z0-9]/g,'')}-${cat.replace(/[^a-zA-Z0-9]/g,'')}-${label.replace(/[^a-zA-Z0-9]/g,'')}-${Math.abs(_mh)}`;
+        const manualOptions = manualCandidates.map(inv => {
+          const amt = _invInclVAT(inv) / 1.15;
+          return `<option value="${inv.id}">${escHtml(inv.desc||'')} — ${R(amt)}</option>`;
         }).join('');
-        return `<tr style="background:rgba(255,190,90,0.06)">
-          <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--amber-dim);font-size:11px;font-style:italic">
-            ↳ possible match:
-            <select id="${selectId}" style="font-size:11px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:1px 4px">${options}</select>
-            <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', document.getElementById('${selectId}').value, '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--amber-dim);color:var(--amber-dim);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
+        return `<tr style="background:rgba(106,170,212,0.06)">
+          <td colspan="9" style="padding:5px 12px 5px 40px;color:var(--info, #6aaad4);font-size:11px;font-style:italic">
+            ↳ no automatic match — pick manually:
+            <select id="${manualSelectId}" style="font-size:11px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:1px 4px">${manualOptions}</select>
+            <button onclick="plLinkInvoiceToQuotedLine('${safeJobId}', document.getElementById('${manualSelectId}').value, '${safeKey}')" style="margin-left:8px;background:none;border:1px solid var(--info, #6aaad4);color:var(--info, #6aaad4);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Link</button>
           </td>
         </tr>`;
       };
