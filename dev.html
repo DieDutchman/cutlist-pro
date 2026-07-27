@@ -15475,6 +15475,44 @@ function _usersModalTrapFocus(modal) {
   return handler;
 }
 
+// ── Shared modal a11y wiring (focus trap + Escape + trigger capture/restore) ──
+// Works for both static modals (a pre-existing DOM node toggled via
+// display:none <-> display:flex) and dynamic modals (created and destroyed
+// via document.createElement/.remove()). The caller owns `state` — a plain
+// object, module-level for a reused static modal or a local closure var for
+// a dynamic one — and must pass the SAME object to _closeModalA11y so the
+// right listeners get removed.
+function _openModalA11y(modal, state, closeFn) {
+  state.trigger = document.activeElement;
+  requestAnimationFrame(() => {
+    const shell = modal.querySelector('[role="dialog"], [role="alertdialog"]');
+    const target = (shell || modal).querySelector(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (target) target.focus();
+  });
+  if (state.trapHandler) modal.removeEventListener('keydown', state.trapHandler);
+  state.trapHandler = _usersModalTrapFocus(modal);
+  if (state.escHandler) document.removeEventListener('keydown', state.escHandler);
+  state.escHandler = function(ev) { if (ev.key === 'Escape') closeFn(); };
+  document.addEventListener('keydown', state.escHandler);
+}
+
+function _closeModalA11y(modal, state) {
+  if (state.trapHandler) {
+    modal.removeEventListener('keydown', state.trapHandler);
+    state.trapHandler = null;
+  }
+  if (state.escHandler) {
+    document.removeEventListener('keydown', state.escHandler);
+    state.escHandler = null;
+  }
+  if (state.trigger) {
+    try { state.trigger.focus(); } catch(_) {}
+    state.trigger = null;
+  }
+}
+
 function openUsersModal() {
   _usersModalTrigger = document.activeElement;
   const modal = document.getElementById('users-modal');
