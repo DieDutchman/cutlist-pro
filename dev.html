@@ -26755,7 +26755,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
-            Face width = ${ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
+            Face width = ${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveOpeningWidth()) : ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between drawer faces + gap above top face">Face gap</span>
@@ -26799,7 +26799,7 @@ function renderDrawerBuilderHTML() {
           ${(() => {
             const cur = ds.runnerClearance ?? 8;
             const isCustom = ds.runnerClearance != null && ![8,22,27].includes(ds.runnerClearance);
-            const innerW = ds.width - 2 * ds.thickness;
+            const innerW = (ds.faceStyle || 'external') === 'internal' ? drawerEffectiveOpeningWidth() : (ds.width - 2 * ds.thickness);
             const rc = (ds.runnerClearance != null && ds.runnerClearance >= 0) ? ds.runnerClearance : 8;
             const boxOuter = innerW - rc;
             return `${isCustom ? `
@@ -26934,7 +26934,7 @@ function renderDrawerBuilderHTML() {
     <div class="bldr-preview">
       <div class="bldr-title">Preview</div>
       <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Faces overlay carcass · bottom flush · top gap = face gap</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">${(ds.faceStyle || 'external') === 'internal' ? 'Faces inset in opening · bottom flush · top gap = face gap' : 'Faces overlay carcass · bottom flush · top gap = face gap'}</div>
       <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center">
         <div style="text-align:center">
           <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--text-muted);margin-bottom:6px">FRONT VIEW</div>
@@ -26946,7 +26946,7 @@ function renderDrawerBuilderHTML() {
         </div>
       </div>
       <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
-        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${ds.width} − 2×${ds.sideGap})</div>
+        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveOpeningWidth()) : ds.width} − 2×${ds.sideGap})</div>
         <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
         ${ds.drawerType === 'pot'
           ? `<div>Pot box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>
