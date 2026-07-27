@@ -26604,20 +26604,38 @@ function renderDrawerBuilderHTML() {
       <div class="bldr-title">Drawer Builder</div>
 
       <div class="bldr-section">
+        <div class="bldr-section-head">🚪 Face Style</div>
+        <div class="bldr-section-body">
+          <div style="display:flex;gap:6px">
+            <button onclick="drawerState.faceStyle='external';drawerRedraw()" title="Faces overlay a generated carcass — the default, standalone chest of drawers"
+              style="font-weight:500;flex:1;padding:6px 0;border:1px solid ${(ds.faceStyle||'external')==='external'?'var(--amber)':'var(--border)'};background:${(ds.faceStyle||'external')==='external'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${(ds.faceStyle||'external')==='external'?'var(--amber)':'var(--text-muted)'};font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;cursor:pointer;border-radius:2px">EXTERNAL</button>
+            <button onclick="drawerState.faceStyle='internal';drawerRedraw()" title="Faces sit recessed inside an existing carcass opening — no carcass panels generated"
+              style="font-weight:500;flex:1;padding:6px 0;border:1px solid ${(ds.faceStyle||'external')==='internal'?'var(--amber)':'var(--border)'};background:${(ds.faceStyle||'external')==='internal'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${(ds.faceStyle||'external')==='internal'?'var(--amber)':'var(--text-muted)'};font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;cursor:pointer;border-radius:2px">INTERNAL</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5">
+            ${(ds.faceStyle||'external')==='internal'
+              ? 'Building inside an existing carcass — no carcass panels will be added to the cutlist. Enter the internal opening dimensions below.'
+              : 'Builds a full standalone unit with its own carcass (today\'s default behavior).'}
+          </div>
+        </div>
+      </div>
+
+      <div class="bldr-section">
         <div class="bldr-section-head">📦 Carcass</div>
         <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Width</span>
+          <div class="bldr-row"><span class="bldr-label">${(ds.faceStyle||'external')==='internal'?'Opening Width':'Width'}</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.width}" min="200" max="1800" oninput="drawerNumInput('width',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          <div class="bldr-row"><span class="bldr-label">Height</span>
+          <div class="bldr-row"><span class="bldr-label">${(ds.faceStyle||'external')==='internal'?'Opening Height':'Height'}</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.height}" min="200" max="2400" oninput="drawerNumInput('height',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          <div class="bldr-row"><span class="bldr-label">Depth</span>
+          <div class="bldr-row"><span class="bldr-label">${(ds.faceStyle||'external')==='internal'?'Opening Depth':'Depth'}</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.depth}" min="200" max="800" oninput="drawerNumInput('depth',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
+          ${(ds.faceStyle||'external')!=='internal' ? `
           <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto = carcass depth − back panel − rear gap.">Drawer depth</span>
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
@@ -26652,6 +26670,36 @@ function renderDrawerBuilderHTML() {
             style="font-weight:500;margin:4px 0 6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Barlow',sans-serif;letter-spacing:0.3px">
             ↺ RESET DEPTH TO AUTO
           </button>` : ''}
+          ` : `
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
+            Internal mode: Opening Depth above is used as the drawer box depth directly — no back-panel or rear-gap subtraction (the existing carcass already accounts for its own rear clearance).
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label">Left spacer</span>
+            <input type="checkbox" ${ds.spacerLeft && ds.spacerLeft.enabled ? 'checked' : ''}
+              onchange="drawerState.spacerLeft=drawerState.spacerLeft||{enabled:false,width:20};drawerState.spacerLeft.enabled=this.checked;drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number"
+              value="${(ds.spacerLeft && ds.spacerLeft.width) || 20}"
+              min="1" max="200" step="1" ${ds.spacerLeft && ds.spacerLeft.enabled ? '' : 'disabled'}
+              oninput="drawerState.spacerLeft=drawerState.spacerLeft||{enabled:false,width:20};drawerState.spacerLeft.width=parseFloat(this.value)||20;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label">Right spacer</span>
+            <input type="checkbox" ${ds.spacerRight && ds.spacerRight.enabled ? 'checked' : ''}
+              onchange="drawerState.spacerRight=drawerState.spacerRight||{enabled:false,width:20};drawerState.spacerRight.enabled=this.checked;drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number"
+              value="${(ds.spacerRight && ds.spacerRight.width) || 20}"
+              min="1" max="200" step="1" ${ds.spacerRight && ds.spacerRight.enabled ? '' : 'disabled'}
+              oninput="drawerState.spacerRight=drawerState.spacerRight||{enabled:false,width:20};drawerState.spacerRight.width=parseFloat(this.value)||20;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
+            Each enabled spacer adds a full-height filler panel to the cutlist on that side, and narrows the drawer box/faces by that amount — for clearing a door hinge on the same existing carcass.
+          </div>
+          `}
           <!-- Top type: solid or nailers -->
           <div style="margin-top:8px;margin-bottom:4px">
             <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
