@@ -26177,7 +26177,7 @@ function drawerEffectiveOpeningWidth() {
 }
 
 function drawerFaceWidth() {
-  return drawerState.width - 2 * drawerState.sideGap;
+  return drawerEffectiveOpeningWidth() - 2 * drawerState.sideGap;
 }
 
 function drawerFaceHeights() {
@@ -26248,6 +26248,10 @@ function drawerAutoDepth() {
 // Effective drawer box depth — honours manual override when set
 function drawerEffectiveDepth() {
   const ds = drawerState;
+  // Internal mode: the existing carcass already accounts for its own rear
+  // clearance — the typed depth IS the usable box depth, no subtraction,
+  // no manual override (there's nothing to override against).
+  if ((ds.faceStyle || 'external') === 'internal') return ds.depth;
   if (ds.drawerDepth != null && ds.drawerDepth > 0) return ds.drawerDepth;
   return drawerAutoDepth();
 }
