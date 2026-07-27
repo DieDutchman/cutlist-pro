@@ -50,25 +50,43 @@ serve(async (req) => {
         ]
       : `${systemPrompt}\n\nRead this invoice/delivery note text and extract the data as specified:\n\n${rawText}`;
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: isImage ? GROQ_VISION_MODEL : GROQ_TEXT_MODEL,
-        temperature: 0,
-        max_completion_tokens: 2048,
-        response_format: { type: 'json_object' },
-        ...(isImage ? { reasoning_effort: 'none', reasoning_format: 'hidden' } : {}),
-        messages: [
-          { role: 'user', content: userContent },
-        ],
-      }),
+    const groqBody = JSON.stringify({
+      model: isImage ? GROQ_VISION_MODEL : GROQ_TEXT_MODEL,
+      temperature: 0,
+      max_completion_tokens: 2048,
+      response_format: { type: 'json_object' },
+      ...(isImage ? { reasoning_effort: 'none', reasoning_format: 'hidden' } : {}),
+      messages: [
+        { role: 'user', content: userContent },
+      ],
     });
 
-    const data = await groqRes.json();
+    // Free-tier Groq shares a tight per-minute token budget across requests.
+    // A 429 here is transient — Groq's own error message tells us exactly how
+    // long to wait, so retry once instead of failing a request that would
+    // succeed a few seconds later.
+    let groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: groqBody,
+    });
+    let data = await groqRes.json();
+
+    if (groqRes.status === 429) {
+      const retryAfterHeader = parseFloat(groqRes.headers.get('retry-after') || '');
+      const msgMatch = (data.error?.message || '').match(/try again in ([\d.]+)s/i);
+      const waitSeconds = !isNaN(retryAfterHeader) ? retryAfterHeader
+        : msgMatch ? parseFloat(msgMatch[1])
+        : 5;
+      await new Promise(r => setTimeout(r, Math.ceil(waitSeconds * 1000) + 500));
+
+      groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: groqBody,
+      });
+      data = await groqRes.json();
+    }
 
     if (!groqRes.ok) {
       let msg = data.error?.message || 'Groq API error';

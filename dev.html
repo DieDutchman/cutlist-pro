@@ -27317,6 +27317,43 @@ function _invUnitInclVAT(inv) {
   return inv.vatIncluded === false ? up * 1.15 : up;
 }
 
+// ── Invoice-image AI-read cooldown ──────────────────────────────────────────
+// The vision model shares a tight free-tier per-minute token budget on Groq —
+// back-to-back image reads can hit a rate limit. Throttle client-side so the
+// user sees a countdown instead of an error on the second upload.
+const PL_IMAGE_COOLDOWN_SECONDS = 20;
+let _plInvoiceCooldownUntil = 0;
+let _plInvoiceCooldownTimer = null;
+
+function _plStartInvoiceCooldown(seconds) {
+  _plInvoiceCooldownUntil = Date.now() + seconds * 1000;
+  _plUpdateInvoiceCooldownUI();
+  if (_plInvoiceCooldownTimer) clearInterval(_plInvoiceCooldownTimer);
+  _plInvoiceCooldownTimer = setInterval(_plUpdateInvoiceCooldownUI, 500);
+}
+
+function _plUpdateInvoiceCooldownUI() {
+  const drop = document.getElementById('pl-pdf-drop');
+  const remaining = Math.ceil((_plInvoiceCooldownUntil - Date.now()) / 1000);
+  const hint = document.getElementById('pl-pdf-cooldown-hint');
+  if (remaining <= 0) {
+    if (_plInvoiceCooldownTimer) { clearInterval(_plInvoiceCooldownTimer); _plInvoiceCooldownTimer = null; }
+    if (drop) { drop.style.opacity = ''; drop.style.pointerEvents = ''; }
+    if (hint) hint.remove();
+    return;
+  }
+  if (drop) { drop.style.opacity = '0.5'; drop.style.pointerEvents = 'none'; }
+  if (hint) {
+    hint.textContent = `↻ Image AI reads are rate-limited — next upload available in ${remaining}s`;
+  } else if (drop) {
+    const el = document.createElement('div');
+    el.id = 'pl-pdf-cooldown-hint';
+    el.style.cssText = 'margin-top:8px;font-size:11px;color:var(--amber-dim);text-align:center';
+    el.textContent = `↻ Image AI reads are rate-limited — next upload available in ${remaining}s`;
+    drop.insertAdjacentElement('afterend', el);
+  }
+}
+
 // ── PDF Invoice Import via Anthropic API ───────────────────────────────────────
 function plOpenPDFImport(jobId) {
   const overlay = document.createElement('div');
@@ -27358,6 +27395,7 @@ function plOpenPDFImport(jobId) {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+  _plUpdateInvoiceCooldownUI();
 }
 
 function plHandlePDFDrop(event, jobId) {
@@ -27374,6 +27412,11 @@ async function plProcessPDFFile(file, jobId) {
   const status  = document.getElementById('pl-pdf-status');
   const results = document.getElementById('pl-pdf-results');
   if (!status || !results) return;
+
+  if (file.type !== 'application/pdf' && Date.now() < _plInvoiceCooldownUntil) {
+    status.innerHTML = `<span style="color:var(--amber-dim)">Please wait for the cooldown above before reading another image.</span>`;
+    return;
+  }
 
   status.innerHTML = '<span style="color:var(--amber)">↻ Reading invoice…</span>';
   results.innerHTML = '';
@@ -27460,6 +27503,7 @@ CRITICAL — detect VAT treatment, do NOT convert prices:
         },
         body: JSON.stringify({ base64, mediaType, systemPrompt, isImage: true })
       });
+      _plStartInvoiceCooldown(PL_IMAGE_COOLDOWN_SECONDS);
 
       if (!response.ok) {
         const txt = await response.text();
