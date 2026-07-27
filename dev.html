@@ -24694,6 +24694,7 @@ const drawerState = {
   drawerDepth: null,  // internal drawer box depth override (null = auto: carcassDepth − backPanel − rearGap)
   backPanel:    16,   // mm: back panel / support thickness (deducted from carcass depth)
   rearGap:      18,   // mm: gap between drawer box rear and back panel
+  frontInset:    5,   // mm: Internal mode only — how far the face/box sits recessed from the carcass front, not flush
   sideGap:       2,   // mm between face edge and carcass edge (each side)
   faceGap:       4,   // mm gap between drawer faces
   faceBottomGap: 5,   // mm gap between bottom face and opening bottom (Internal/inset mode only — External mode is flush by design)
@@ -26262,7 +26263,7 @@ function drawerReduction() {
   return b + t;
 }
 
-// Auto drawer box depth = carcassDepth − backPanel − rearGap
+// Auto drawer box depth (External mode) = carcassDepth − backPanel − rearGap
 //   · backPanel: thickness of back panel / support (default 16mm)
 //   · rearGap:   clearance between drawer box rear and back panel (default 18mm)
 function drawerAutoDepth() {
@@ -26272,15 +26273,24 @@ function drawerAutoDepth() {
   return Math.max(50, ds.depth - bp - rg);
 }
 
-// Effective drawer box depth — honours manual override when set
+// Auto drawer box depth (Internal mode) = openingDepth − backPanel − rearGap
+// − frontInset. The existing carcass still has a real back panel (backPanel)
+// needing rear clearance (rearGap), same as External — plus an extra
+// frontInset because the face/box sits recessed from the carcass front
+// rather than flush/proud like an overlay unit.
+function drawerAutoDepthInternal() {
+  const ds = drawerState;
+  const bp = (ds.backPanel  != null && ds.backPanel  >= 0) ? ds.backPanel  : 16;
+  const rg = (ds.rearGap    != null && ds.rearGap    >= 0) ? ds.rearGap    : 18;
+  const fi = (ds.frontInset != null && ds.frontInset >= 0) ? ds.frontInset : 5;
+  return Math.max(50, ds.depth - bp - rg - fi);
+}
+
+// Effective drawer box depth — honours manual override when set, in either mode
 function drawerEffectiveDepth() {
   const ds = drawerState;
-  // Internal mode: the existing carcass already accounts for its own rear
-  // clearance — the typed depth IS the usable box depth, no subtraction,
-  // no manual override (there's nothing to override against).
-  if ((ds.faceStyle || 'external') === 'internal') return ds.depth;
   if (ds.drawerDepth != null && ds.drawerDepth > 0) return ds.drawerDepth;
-  return drawerAutoDepth();
+  return (ds.faceStyle || 'external') === 'internal' ? drawerAutoDepthInternal() : drawerAutoDepth();
 }
 
 function drawerEffectiveBoxH() {
@@ -26733,20 +26743,24 @@ function renderDrawerBuilderHTML() {
           <div class="bldr-row"><span class="bldr-label">Thickness</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.thickness}" min="9" max="25" oninput="drawerNumInput('thickness',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          ${(ds.faceStyle||'external')!=='internal' ? `
-          <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto = carcass depth − back panel − rear gap.">Drawer depth</span>
+          ${(() => {
+            const isInt = (ds.faceStyle||'external') === 'internal';
+            const autoDepth = isInt ? drawerAutoDepthInternal() : drawerAutoDepth();
+            const autoNote = isInt
+              ? `Auto: opening depth − ${(ds.backPanel ?? 16) + (ds.rearGap ?? 18) + (ds.frontInset ?? 5)}mm (${ds.backPanel ?? 16}mm back panel + ${ds.rearGap ?? 18}mm rear gap + ${ds.frontInset ?? 5}mm front inset) = <strong style="color:var(--text)">${autoDepth}mm</strong>${ds.drawerDepth == null ? '' : ' — overridden'}. Leave blank for auto; override if needed.`
+              : `Auto: carcass depth − ${(ds.backPanel ?? 16) + (ds.rearGap ?? 18)}mm (${ds.backPanel ?? 16}mm back panel + ${ds.rearGap ?? 18}mm rear gap) = <strong style="color:var(--text)">${autoDepth}mm</strong>${ds.drawerDepth == null ? '' : ' — overridden'}. Leave blank for auto; override if needed.`;
+            return `
+          <div class="bldr-row"><span class="bldr-label" title="Drawer box depth (sides). Leave blank for auto.">Drawer depth</span>
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
               min="100" max="800"
-              placeholder="${drawerAutoDepth()}"
+              placeholder="${autoDepth}"
               oninput="drawerState.drawerDepth=this.value===''?null:Math.max(50,parseFloat(this.value)||0);drawerRedraw()"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
-          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
-            Auto: carcass depth − ${(ds.backPanel ?? 16) + (ds.rearGap ?? 18)}mm (${ds.backPanel ?? 16}mm back panel + ${ds.rearGap ?? 18}mm rear gap) = <strong style="color:var(--text)">${drawerAutoDepth()}mm</strong>${ds.drawerDepth == null ? '' : ' — overridden'}. Leave blank for auto; override if needed.
-          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">${autoNote}</div>
           <div class="bldr-row">
-            <span class="bldr-label" title="Thickness of back panel / support — deducted from carcass depth">Back panel</span>
+            <span class="bldr-label" title="Thickness of the existing back panel / support — deducted from opening depth">Back panel</span>
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.backPanel}"
               min="0" max="50" step="1"
@@ -26763,15 +26777,24 @@ function renderDrawerBuilderHTML() {
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
+          ${isInt ? `
+          <div class="bldr-row">
+            <span class="bldr-label" title="How far the face/box sits recessed from the carcass front — inset drawers can't sit flush with the front edge">Front inset</span>
+            <input autocomplete="off" class="bldr-input" type="number"
+              value="${ds.frontInset}"
+              min="0" max="50" step="1"
+              oninput="drawerState.frontInset=this.value===''?5:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          ` : ''}
           ${ds.drawerDepth != null ? `
           <button onclick="drawerState.drawerDepth=null;drawerRedraw()"
             style="font-weight:500;margin:4px 0 6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:3px 10px;cursor:pointer;width:100%;font-family:'Barlow',sans-serif;letter-spacing:0.3px">
             ↺ RESET DEPTH TO AUTO
-          </button>` : ''}
-          ` : `
-          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
-            Internal mode: Opening Depth above is used as the drawer box depth directly — no back-panel or rear-gap subtraction (the existing carcass already accounts for its own rear clearance).
-          </div>
+          </button>` : ''}`;
+          })()}
+          ${(ds.faceStyle||'external')==='internal' ? `
           <div class="bldr-row">
             <span class="bldr-label">Left spacer</span>
             <input type="checkbox" ${ds.spacerLeft && ds.spacerLeft.enabled ? 'checked' : ''}
@@ -26822,7 +26845,7 @@ function renderDrawerBuilderHTML() {
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
             Each enabled hinge clearance narrows the drawer FACE only (no box change, no cutlist part) — the visible face just stops short of the hinge swing zone. Set independently from the spacer above; they don't need to match.
           </div>
-          `}
+          ` : ''}
           <!-- Top type: solid or nailers -->
           <div style="margin-top:8px;margin-bottom:4px">
             <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--text-muted);margin-bottom:5px">TOP TYPE</div>
