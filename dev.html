@@ -26462,9 +26462,17 @@ function drawerSideSVG() {
   const fgPx  = Math.max(1, Math.round(fg * SCALE));
   const ddPx  = Math.round(DD * SCALE);  // drawer box depth px
 
-  // Face board shown as thin solid slab at the FRONT (overlay)
-  // It extends faceThPx past the carcass front edge
+  // Face board shown as thin solid slab at the FRONT.
+  // External mode: extends faceThPx PAST the carcass front edge (overlay).
+  // Internal mode: recessed — its outer surface sits frontInset behind the
+  // carcass front edge, and the box attaches directly behind it.
   const faceThPx = tPx;  // face board is the same board thickness
+  const isInternal = (ds.faceStyle || 'external') === 'internal';
+  const frontInsetPx = isInternal ? Math.round((ds.frontInset || 0) * SCALE) : 0;
+  // Front-most x of the face slab. External: sd (flush with carcass front,
+  // slab extends further right/proud). Internal: recessed behind sd by
+  // frontInset + the face's own thickness.
+  const faceX = isInternal ? Math.max(0, sd - frontInsetPx - faceThPx) : sd;
 
   const innerTop = tPx;
   const innerBot = sh - tPx;
@@ -26518,9 +26526,11 @@ function drawerSideSVG() {
   const effTopBoxH = drawerEffectiveTopBoxH();
   const isPot      = ds.drawerType === 'pot';
 
-  // Box parameters
-  const boxStartX = Math.max(backW + 2, sd - ddPx);
-  const boxEndX   = sd;
+  // Box parameters. External: box front is flush with the carcass front
+  // edge (sd), unchanged. Internal: box attaches directly behind the
+  // recessed face, so its front edge is the face's back surface (faceX).
+  const boxEndX   = isInternal ? faceX : sd;
+  const boxStartX = Math.max(backW + 2, boxEndX - ddPx);
   const boxInnerW = boxEndX - boxStartX;
 
   let yCur = sh;
@@ -26533,7 +26543,7 @@ function drawerSideSVG() {
 
     // ── Drawer face (solid amber slab at the front) ───────────────────────
     facesSVG += `
-      <rect x="${sd}" y="${faceTop}" width="${faceThPx}" height="${hPx}"
+      <rect x="${faceX}" y="${faceTop}" width="${faceThPx}" height="${hPx}"
         fill="rgba(212,145,58,0.35)" stroke="var(--amber)" stroke-width="1.5"/>`;
 
     // ── Drawer box (dashed outline) — use effective box height ────────────
@@ -26755,7 +26765,7 @@ function renderDrawerBuilderHTML() {
               value="${ds.drawerDepth != null ? ds.drawerDepth : ''}"
               min="100" max="800"
               placeholder="${autoDepth}"
-              oninput="drawerState.drawerDepth=this.value===''?null:Math.max(50,parseFloat(this.value)||0);drawerRedraw()"
+              oninput="drawerNumInput('drawerDepth',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span></div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">${autoNote}</div>
@@ -26764,7 +26774,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.backPanel}"
               min="0" max="50" step="1"
-              oninput="drawerState.backPanel=this.value===''?16:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              oninput="drawerNumInput('backPanel',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26773,7 +26783,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.rearGap}"
               min="0" max="100" step="1"
-              oninput="drawerState.rearGap=this.value===''?18:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              oninput="drawerNumInput('rearGap',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26783,7 +26793,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${ds.frontInset}"
               min="0" max="50" step="1"
-              oninput="drawerState.frontInset=this.value===''?5:Math.max(0,parseFloat(this.value)||0);drawerRedraw()"
+              oninput="drawerNumInput('frontInset',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26802,7 +26812,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${(ds.spacerLeft && ds.spacerLeft.width) || 20}"
               min="1" max="200" step="1" ${ds.spacerLeft && ds.spacerLeft.enabled ? '' : 'disabled'}
-              oninput="drawerState.spacerLeft=drawerState.spacerLeft||{enabled:false,width:20};drawerState.spacerLeft.width=parseFloat(this.value)||20;drawerRedraw()"
+              oninput="drawerNumInput('spacerLeft.width',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26813,7 +26823,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${(ds.spacerRight && ds.spacerRight.width) || 20}"
               min="1" max="200" step="1" ${ds.spacerRight && ds.spacerRight.enabled ? '' : 'disabled'}
-              oninput="drawerState.spacerRight=drawerState.spacerRight||{enabled:false,width:20};drawerState.spacerRight.width=parseFloat(this.value)||20;drawerRedraw()"
+              oninput="drawerNumInput('spacerRight.width',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26827,7 +26837,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${(ds.hingeClearanceLeft && ds.hingeClearanceLeft.width) || 30}"
               min="1" max="200" step="1" ${ds.hingeClearanceLeft && ds.hingeClearanceLeft.enabled ? '' : 'disabled'}
-              oninput="drawerState.hingeClearanceLeft=drawerState.hingeClearanceLeft||{enabled:false,width:30};drawerState.hingeClearanceLeft.width=parseFloat(this.value)||30;drawerRedraw()"
+              oninput="drawerNumInput('hingeClearanceLeft.width',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
@@ -26838,7 +26848,7 @@ function renderDrawerBuilderHTML() {
             <input autocomplete="off" class="bldr-input" type="number"
               value="${(ds.hingeClearanceRight && ds.hingeClearanceRight.width) || 30}"
               min="1" max="200" step="1" ${ds.hingeClearanceRight && ds.hingeClearanceRight.enabled ? '' : 'disabled'}
-              oninput="drawerState.hingeClearanceRight=drawerState.hingeClearanceRight||{enabled:false,width:30};drawerState.hingeClearanceRight.width=parseFloat(this.value)||30;drawerRedraw()"
+              oninput="drawerNumInput('hingeClearanceRight.width',this.value)"
               onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
