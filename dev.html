@@ -26286,6 +26286,7 @@ function drawerGapCheck() {
 // Bottom face is flush with carcass bottom; top gap = faceGap above top face
 function drawerSVG() {
   const ds  = drawerState;
+  const isInternal = (ds.faceStyle || 'external') === 'internal';
   const W   = ds.width, H = ds.height, T = ds.thickness;
   const fg  = ds.faceGap, sg = ds.sideGap;
   const fh  = drawerFaceHeights();
@@ -26297,6 +26298,14 @@ function drawerSVG() {
   const sgPx = Math.round(sg * SCALE);
   const fgPx = Math.max(1, Math.round(fg * SCALE));
 
+  // Internal mode: faces are inset from whichever spacer(s) are enabled,
+  // not just the sideGap reveal — offset the face x-origin accordingly.
+  const leftSpacerMM  = isInternal && ds.spacerLeft  && ds.spacerLeft.enabled  ? (ds.spacerLeft.width  || 0) : 0;
+  const rightSpacerMM = isInternal && ds.spacerRight && ds.spacerRight.enabled ? (ds.spacerRight.width || 0) : 0;
+  const leftSpacerPx  = Math.round(leftSpacerMM  * SCALE);
+  const rightSpacerPx = Math.round(rightSpacerMM * SCALE);
+  const faceXPx = leftSpacerPx + sgPx;
+
   // Draw faces bottom to top (index 0 = bottom)
   // Bottom face is flush; top gap (= faceGap) sits above the top face
   let faceSVG = '';
@@ -26304,20 +26313,37 @@ function drawerSVG() {
   fh.forEach((h, i) => {
     const hPx = Math.round(h * SCALE);
     yPx -= hPx;
-    faceSVG += `<rect x="${sgPx}" y="${yPx}" width="${fwPx}" height="${hPx}" rx="1"
+    faceSVG += `<rect x="${faceXPx}" y="${yPx}" width="${fwPx}" height="${hPx}" rx="1"
       fill="rgba(212,145,58,0.18)" stroke="var(--amber)" stroke-width="1.5"/>
     <text x="${sw/2}" y="${yPx + hPx/2}" text-anchor="middle"
       dominant-baseline="middle" font-size="9" fill="var(--amber-dim)" font-family="JetBrains Mono,monospace">${h}mm</text>`;
     yPx -= fgPx; // gap above each face (including the top gap above last face)
   });
 
+  // Hinge-clearance spacer strips (Internal mode only, whichever side(s) enabled)
+  let spacerSVG = '';
+  if (leftSpacerMM > 0) {
+    spacerSVG += `<rect x="0" y="0" width="${leftSpacerPx}" height="${sh}"
+      fill="rgba(255,255,255,0.10)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="${leftSpacerPx/2}" y="${sh/2}" text-anchor="middle" dominant-baseline="middle"
+      font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace" transform="rotate(-90 ${leftSpacerPx/2} ${sh/2})">${Math.round(leftSpacerMM)}mm</text>`;
+  }
+  if (rightSpacerMM > 0) {
+    spacerSVG += `<rect x="${sw-rightSpacerPx}" y="0" width="${rightSpacerPx}" height="${sh}"
+      fill="rgba(255,255,255,0.10)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="${sw-rightSpacerPx/2}" y="${sh/2}" text-anchor="middle" dominant-baseline="middle"
+      font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace" transform="rotate(-90 ${sw-rightSpacerPx/2} ${sh/2})">${Math.round(rightSpacerMM)}mm</text>`;
+  }
+
   // PADY=26 matches side view so both SVGs render at identical total height (sh+26)
   const PADY = 26;
   return `<svg viewBox="0 0 ${sw+20} ${sh+PADY}" width="${sw+20}" height="${sh+PADY}" xmlns="http://www.w3.org/2000/svg">
     <g transform="translate(0,10)">
-    <!-- Carcass outline -->
+    <!-- Carcass / opening outline -->
     <rect x="0" y="0" width="${sw}" height="${sh}" rx="1" fill="rgba(255,255,255,0.04)" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,2"/>
-    <!-- Drawer faces (overlay) -->
+    <!-- Hinge-clearance spacers (Internal mode) -->
+    ${spacerSVG}
+    <!-- Drawer faces -->
     ${faceSVG}
     <!-- Width dim -->
     <line x1="0" y1="${sh+6}" x2="${sw}" y2="${sh+6}" stroke="var(--text-muted)" stroke-width="0.5"/>
