@@ -26911,6 +26911,7 @@ function drawerPartsPreviewHTML() {
 
 function drawerCalcParts() {
   const ds = drawerState;
+  const isInternal = (ds.faceStyle || 'external') === 'internal';
   const W  = ds.width, H = ds.height, D = ds.depth, T = ds.thickness;
   const DD = drawerEffectiveDepth();
   const cm = ds.materials.carcass, ce = ds.materials.carcassEdge;
@@ -26918,7 +26919,11 @@ function drawerCalcParts() {
   const fh = drawerFaceHeights();
   const fw = drawerFaceWidth();
   const n  = ds.drawerCount;
-  const innerW = W - 2 * T;
+  // External: inner width assumes a generated carcass of side thickness T.
+  // Internal: the opening (minus any enabled hinge-clearance spacers) IS
+  // the internal usable width already — there's no generated side panel to
+  // subtract T for.
+  const innerW = isInternal ? drawerEffectiveOpeningWidth() : (W - 2 * T);
 
   // Runner clearance: total mm the drawer box is narrower than the inner carcass width.
   // Default 8mm (4mm each side). Soft-close 500mm runners typically need 27mm.
@@ -26933,20 +26938,36 @@ function drawerCalcParts() {
   const parts = [];
 
   // ── Carcass ──────────────────────────────────────────────────────────────
-  if (ds.topType === 'nailers') {
-    const innerW2 = W - 2 * T;
-    parts.push(p('Front Nailer (Top)', 1, innerW2, 100, cm, ce));
-    parts.push(p('Back Nailer (Top)',  1, innerW2,  70, cm, ce));
-  } else {
-    parts.push(p('Top Panel', 1, W, D, cm, ce, ce, ce, ce));
+  // Internal mode: the carcass already exists physically — nothing here is
+  // generated, only the drawer boxes/faces/spacers below.
+  if (!isInternal) {
+    if (ds.topType === 'nailers') {
+      const innerW2 = W - 2 * T;
+      parts.push(p('Front Nailer (Top)', 1, innerW2, 100, cm, ce));
+      parts.push(p('Back Nailer (Top)',  1, innerW2,  70, cm, ce));
+    } else {
+      parts.push(p('Top Panel', 1, W, D, cm, ce, ce, ce, ce));
+    }
+    parts.push(p('Bottom Panel', 1, W, D, cm, ce, '', ce, ce));
+    parts.push(p('Sides',        2, H, D, cm, ce));
+    if (ds.hasBacking) parts.push(p('Backing', 1, H, W, '3MM White Masonite'));
+    parts.push(p('Front Support', 1, innerW, 100, cm, ce));
+    parts.push(p('Back Support',  1, innerW, 70,  cm, ce));
+    // Intermediate supports between drawer boxes (n-1 gaps between n drawers)
+    if (n > 1) parts.push(p('Supports', n - 1, W, 100, cm));
   }
-  parts.push(p('Bottom Panel', 1, W, D, cm, ce, '', ce, ce));
-  parts.push(p('Sides',        2, H, D, cm, ce));
-  if (ds.hasBacking) parts.push(p('Backing', 1, H, W, '3MM White Masonite'));
-  parts.push(p('Front Support', 1, innerW, 100, cm, ce));
-  parts.push(p('Back Support',  1, innerW, 70,  cm, ce));
-  // Intermediate supports between drawer boxes (n-1 gaps between n drawers)
-  if (n > 1) parts.push(p('Supports', n - 1, W, 100, cm));
+
+  // ── Hinge-clearance spacers (Internal mode only) ────────────────────────
+  // Full-height filler strip per side, physically blocking the hinge-swing
+  // intrusion from an adjacent door on the same existing carcass.
+  if (isInternal) {
+    if (ds.spacerLeft && ds.spacerLeft.enabled && ds.spacerLeft.width > 0) {
+      parts.push(p('Left Hinge Spacer', 1, H, ds.spacerLeft.width, cm, ce));
+    }
+    if (ds.spacerRight && ds.spacerRight.enabled && ds.spacerRight.width > 0) {
+      parts.push(p('Right Hinge Spacer', 1, H, ds.spacerRight.width, cm, ce));
+    }
+  }
 
   // ── Drawer faces (overlay — full width minus side gaps) ───────────────────
   if (ds.drawerType === 'equal') {
