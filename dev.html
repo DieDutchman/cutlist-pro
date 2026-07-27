@@ -24727,6 +24727,11 @@ const drawerState = {
   // adjacent door on the same existing carcass.
   spacerLeft:  { enabled: false, width: 20 },
   spacerRight: { enabled: false, width: 20 },
+  // Face-only clearance for a door hinge (or other obstruction) that
+  // intrudes into the opening — independent of the box-side spacer above.
+  // No cutlist part is generated for this; it's purely a face-width setback.
+  hingeClearanceLeft:  { enabled: false, width: 30 },
+  hingeClearanceRight: { enabled: false, width: 30 },
 };
 
 function builderInput(key, val) {
@@ -26165,10 +26170,12 @@ function drawerRedraw() {
 //   face width  = carcass width − 2 × sideGap
 //   bottom face is flush with carcass bottom
 //   gaps between faces are equal, calculated from remaining height
-// Effective opening width used for face/box sizing. External mode: the
+// Effective opening width used for BOX sizing only. External mode: the
 // typed carcass width, unchanged. Internal mode: the typed opening width
-// minus whichever hinge-clearance spacer(s) are enabled — the drawer has
-// less room to work with once a filler panel blocks part of the opening.
+// minus whichever box-side spacer(s) are enabled — the drawer box has less
+// room once a physical filler panel blocks part of the opening. Face
+// sizing does NOT use this — see drawerEffectiveFaceOpeningWidth() below,
+// since the face's hinge clearance is independent of the box spacer.
 function drawerEffectiveOpeningWidth() {
   const ds = drawerState;
   if ((ds.faceStyle || 'external') !== 'internal') return ds.width;
@@ -26177,8 +26184,21 @@ function drawerEffectiveOpeningWidth() {
   return Math.max(50, ds.width - lw - rw);
 }
 
+// Effective opening width used for FACE sizing only. External mode: the
+// typed carcass width, unchanged. Internal mode: the typed opening width
+// minus whichever hinge-clearance(s) are enabled — the face must stop
+// short of the hinge swing zone, independent of (and usually narrower or
+// wider than) the box-side spacer.
+function drawerEffectiveFaceOpeningWidth() {
+  const ds = drawerState;
+  if ((ds.faceStyle || 'external') !== 'internal') return ds.width;
+  const lw = ds.hingeClearanceLeft  && ds.hingeClearanceLeft.enabled  ? (ds.hingeClearanceLeft.width  || 0) : 0;
+  const rw = ds.hingeClearanceRight && ds.hingeClearanceRight.enabled ? (ds.hingeClearanceRight.width || 0) : 0;
+  return Math.max(50, ds.width - lw - rw);
+}
+
 function drawerFaceWidth() {
-  return drawerEffectiveOpeningWidth() - 2 * drawerState.sideGap;
+  return drawerEffectiveFaceOpeningWidth() - 2 * drawerState.sideGap;
 }
 
 function drawerFaceHeights() {
@@ -26305,13 +26325,19 @@ function drawerSVG() {
   const sgPx = Math.round(sg * SCALE);
   const fgPx = Math.max(1, Math.round(fg * SCALE));
 
-  // Internal mode: faces are inset from whichever spacer(s) are enabled,
-  // not just the sideGap reveal — offset the face x-origin accordingly.
+  // Box-side physical spacer (structural filler panel) — independent of the
+  // face's own hinge clearance below. Drawn as its own strip further down.
   const leftSpacerMM  = isInternal && ds.spacerLeft  && ds.spacerLeft.enabled  ? (ds.spacerLeft.width  || 0) : 0;
   const rightSpacerMM = isInternal && ds.spacerRight && ds.spacerRight.enabled ? (ds.spacerRight.width || 0) : 0;
   const leftSpacerPx  = Math.round(leftSpacerMM  * SCALE);
   const rightSpacerPx = Math.round(rightSpacerMM * SCALE);
-  const faceXPx = leftSpacerPx + sgPx;
+
+  // Face-only hinge clearance — how far the FACE stops short of the hinge
+  // swing zone, independent of (and not necessarily equal to) the box
+  // spacer above. Offsets the face x-origin.
+  const leftClearanceMM  = isInternal && ds.hingeClearanceLeft  && ds.hingeClearanceLeft.enabled  ? (ds.hingeClearanceLeft.width  || 0) : 0;
+  const leftClearancePx  = Math.round(leftClearanceMM * SCALE);
+  const faceXPx = leftClearancePx + sgPx;
 
   // Internal mode: bottom face is inset by faceBottomGap from the opening
   // bottom, not flush — matches drawerFaceHeights' available-space math.
@@ -26745,7 +26771,32 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
-            Each enabled spacer adds a full-height filler panel to the cutlist on that side, and narrows the drawer box/faces by that amount — for clearing a door hinge on the same existing carcass.
+            Each enabled spacer adds a full-height physical filler panel to the cutlist on that side, and narrows the drawer box by that amount — for clearing a door hinge or other obstruction inside the carcass.
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="How much the FACE must stop short of the hinge swing zone — independent of the box spacer above, no cutlist part generated">Left hinge clearance</span>
+            <input type="checkbox" ${ds.hingeClearanceLeft && ds.hingeClearanceLeft.enabled ? 'checked' : ''}
+              onchange="drawerState.hingeClearanceLeft=drawerState.hingeClearanceLeft||{enabled:false,width:30};drawerState.hingeClearanceLeft.enabled=this.checked;drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number"
+              value="${(ds.hingeClearanceLeft && ds.hingeClearanceLeft.width) || 30}"
+              min="1" max="200" step="1" ${ds.hingeClearanceLeft && ds.hingeClearanceLeft.enabled ? '' : 'disabled'}
+              oninput="drawerState.hingeClearanceLeft=drawerState.hingeClearanceLeft||{enabled:false,width:30};drawerState.hingeClearanceLeft.width=parseFloat(this.value)||30;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div class="bldr-row">
+            <span class="bldr-label" title="How much the FACE must stop short of the hinge swing zone — independent of the box spacer above, no cutlist part generated">Right hinge clearance</span>
+            <input type="checkbox" ${ds.hingeClearanceRight && ds.hingeClearanceRight.enabled ? 'checked' : ''}
+              onchange="drawerState.hingeClearanceRight=drawerState.hingeClearanceRight||{enabled:false,width:30};drawerState.hingeClearanceRight.enabled=this.checked;drawerRedraw()">
+            <input autocomplete="off" class="bldr-input" type="number"
+              value="${(ds.hingeClearanceRight && ds.hingeClearanceRight.width) || 30}"
+              min="1" max="200" step="1" ${ds.hingeClearanceRight && ds.hingeClearanceRight.enabled ? '' : 'disabled'}
+              oninput="drawerState.hingeClearanceRight=drawerState.hingeClearanceRight||{enabled:false,width:30};drawerState.hingeClearanceRight.width=parseFloat(this.value)||30;drawerRedraw()"
+              onblur="drawerRedraw()">
+            <span class="bldr-unit">mm</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin:2px 0 6px;padding-left:2px;line-height:1.5">
+            Each enabled hinge clearance narrows the drawer FACE only (no box change, no cutlist part) — the visible face just stops short of the hinge swing zone. Set independently from the spacer above; they don't need to match.
           </div>
           `}
           <!-- Top type: solid or nailers -->
@@ -26777,7 +26828,7 @@ function renderDrawerBuilderHTML() {
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 8px;padding-left:2px">
-            Face width = ${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveOpeningWidth()) : ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
+            Face width = ${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveFaceOpeningWidth()) : ds.width} − 2×${ds.sideGap} = <strong style="color:var(--text)">${fw}mm</strong>
           </div>
           <div class="bldr-row">
             <span class="bldr-label" title="Gap between drawer faces + gap above top face">Face gap</span>
@@ -26979,7 +27030,7 @@ function renderDrawerBuilderHTML() {
         </div>
       </div>
       <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:2">
-        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveOpeningWidth()) : ds.width} − 2×${ds.sideGap})</div>
+        <div>Face width: <strong style="color:var(--text)">${fw}mm</strong> (${(ds.faceStyle || 'external') === 'internal' ? Math.round(drawerEffectiveFaceOpeningWidth()) : ds.width} − 2×${ds.sideGap})</div>
         <div>Face gap: <strong style="color:var(--text)">${ds.faceGap}mm</strong> (between faces + above top face)</div>
         ${ds.drawerType === 'pot'
           ? `<div>Pot box height: <strong style="color:var(--amber)">${drawerEffectiveBoxH()}mm</strong>${ds.boxHeight==null?' (auto)':' ✏'}</div>
