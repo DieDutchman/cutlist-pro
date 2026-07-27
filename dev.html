@@ -4805,8 +4805,8 @@ body.user-light-theme .pp-vat-select {
   </div>
 </div>
 
-<div id="qm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center">
-  <div id="qm-modal" style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+<div id="qm-overlay" onclick="if(event.target===this)closeQuoteManager()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;align-items:center;justify-content:center">
+  <div id="qm-modal" role="dialog" aria-modal="true" aria-label="Quote Manager" style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:var(--line);flex-shrink:0">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">💾 Quote Manager</div>
       <button onclick="closeQuoteManager()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
@@ -4861,7 +4861,7 @@ body.user-light-theme .pp-vat-select {
   <div id="pl-view" style="display:none"></div>
   <!-- FEEDBACK MODAL -->
   <div id="feedback-modal" onclick="if(event.target===this)closeFeedbackModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--border);width:500px;max-width:95vw;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Feedback" style="background:var(--bg2);border:1px solid var(--border);width:500px;max-width:95vw;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">&#x1F4AC; Feedback</div>
         <button onclick="closeFeedbackModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">&times;</button>
@@ -4922,7 +4922,7 @@ body.user-light-theme .pp-vat-select {
 
   <!-- ═══ PLAN IMPORT MODAL [BETA] ═══════════════════════════════════════════ -->
   <div id="plan-import-modal" onclick="if(event.target===this)closePlanImportModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9200;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Import Floor Plan" style="background:var(--bg2);border:1px solid var(--border);width:680px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">📐 Import Floor Plan <span style="color:var(--amber);font-size:11px;letter-spacing:2px;margin-left:6px">[BETA]</span></div>
         <button onclick="closePlanImportModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">&times;</button>
@@ -4935,7 +4935,7 @@ body.user-light-theme .pp-vat-select {
 
   <!-- ═══ BULK PRICE ADJUSTMENT MODAL ═══════════════════════════════════════ -->
   <div id="bulk-adjust-modal" onclick="if(event.target===this)closeBulkAdjustModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Bulk Price Adjustment" style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
         <button onclick="closeBulkAdjustModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
@@ -4977,7 +4977,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
   <div id="import-prices-modal" onclick="if(event.target===this)closeImportPricesModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9050;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Import Price List" style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
         <button onclick="closeImportPricesModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
@@ -5057,7 +5057,7 @@ body.user-light-theme .pp-vat-select {
   </div>
 
     <div id="board-cleanup-modal" onclick="if(event.target===this)closeBoardCleanupModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9100;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+    <div role="dialog" aria-modal="true" aria-label="Manage Supabase Boards" style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">🗃 Manage Supabase Boards</div>
         <button onclick="closeBoardCleanupModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
@@ -15552,9 +15552,11 @@ function closeUsersModal() {
 }
 
 // ── Board Cleanup Modal ───────────────────────────────────────────────────────
+const _boardCleanupModalA11y = {};
 async function openBoardCleanupModal() {
   const modal = document.getElementById('board-cleanup-modal');
   modal.style.display = 'flex';
+  _openModalA11y(modal, _boardCleanupModalA11y, closeBoardCleanupModal);
   const body = document.getElementById('board-cleanup-body');
   body.innerHTML = `<div style="color:var(--text-muted);padding:20px 0">Loading from Supabase…</div>`;
   try {
@@ -15663,10 +15665,12 @@ function showWipBanner(storageKey, containerId) {
 }
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
+const _feedbackModalA11y = {};
 function openFeedbackModal() {
   if (canManageUsers()) { openUsersModal(); showUsersTab('feedback'); return; }
   const modal = document.getElementById('feedback-modal');
   modal.style.display = 'flex';
+  _openModalA11y(modal, _feedbackModalA11y, closeFeedbackModal);
   const activeTab = document.querySelector('.tab.active');
   const tabLabel = activeTab ? activeTab.textContent.trim() : '';
   const hint = document.getElementById('fb-tab-hint');
@@ -15720,7 +15724,9 @@ function onFbScreenshotPicked(input) {
 }
 
 function closeFeedbackModal() {
-  document.getElementById('feedback-modal').style.display = 'none';
+  const modal = document.getElementById('feedback-modal');
+  _closeModalA11y(modal, _feedbackModalA11y);
+  modal.style.display = 'none';
 }
 
 async function submitFeedback() {
@@ -15924,7 +15930,9 @@ async function markFeedbackRead(id) {
 }
 
 function closeBoardCleanupModal() {
-  document.getElementById('board-cleanup-modal').style.display = 'none';
+  const modal = document.getElementById('board-cleanup-modal');
+  _closeModalA11y(modal, _boardCleanupModalA11y);
+  modal.style.display = 'none';
   loadSupplierPrices(); // re-sync after cleanup
 }
 
@@ -18586,6 +18594,7 @@ async function reloadSupplierPrices() {
 // ─── Bulk Price Adjustment ────────────────────────────────────────────────────
 let _bulkAdjCats = { boards: true, edges: true, services: true };
 
+const _bulkAdjustModalA11y = {};
 async function openBulkAdjustModal() {
   _bulkAdjCats = { boards: true, edges: true, services: true };
   document.getElementById('bulk-adjust-pct').value = '0';
@@ -18595,7 +18604,9 @@ async function openBulkAdjustModal() {
   // then refresh from Supabase so the list reflects the supplier's live
   // price rows (boards/edges deleted or renamed in the DB are filtered out).
   updateBulkAdjustPreview();
-  document.getElementById('bulk-adjust-modal').style.display = 'flex';
+  const _bulkModal = document.getElementById('bulk-adjust-modal');
+  _bulkModal.style.display = 'flex';
+  _openModalA11y(_bulkModal, _bulkAdjustModalA11y, closeBulkAdjustModal);
   try {
     await loadSupplierPrices();
   } catch(e) {
@@ -18607,7 +18618,9 @@ async function openBulkAdjustModal() {
 }
 
 function closeBulkAdjustModal() {
-  document.getElementById('bulk-adjust-modal').style.display = 'none';
+  const modal = document.getElementById('bulk-adjust-modal');
+  _closeModalA11y(modal, _bulkAdjustModalA11y);
+  modal.style.display = 'none';
 }
 
 function toggleBulkCat(cat) {
@@ -18788,6 +18801,7 @@ async function applyBulkPriceAdjustment() {
 // ─────────────────────────────────────────────────────────────────────────────
 let _importParsedRows = [];
 
+const _importPricesModalA11y = {};
 function openImportPricesModal() {
   if (!canEditPrices()) return;
   _importParsedRows = [];
@@ -18803,11 +18817,15 @@ function openImportPricesModal() {
   btn.textContent = 'IMPORT';
   const inp = document.getElementById('import-file-input');
   if (inp) inp.value = '';
-  document.getElementById('import-prices-modal').style.display = 'flex';
+  const modal = document.getElementById('import-prices-modal');
+  modal.style.display = 'flex';
+  _openModalA11y(modal, _importPricesModalA11y, closeImportPricesModal);
 }
 
 function closeImportPricesModal() {
-  document.getElementById('import-prices-modal').style.display = 'none';
+  const modal = document.getElementById('import-prices-modal');
+  _closeModalA11y(modal, _importPricesModalA11y);
+  modal.style.display = 'none';
 }
 
 function downloadPriceTemplate() {
@@ -22814,6 +22832,7 @@ function renderQMList() {
   }).join('');
 }
 
+const _qmModalA11y = {};
 function openQuoteManager() {
   const nameInput = document.getElementById('qm-save-name');
   if (!nameInput.value) {
@@ -22822,11 +22841,15 @@ function openQuoteManager() {
     if (client || house) nameInput.value = [client, house].filter(Boolean).join(' – ');
   }
   renderQMList();
-  document.getElementById('qm-overlay').style.display = 'flex';
+  const overlay = document.getElementById('qm-overlay');
+  overlay.style.display = 'flex';
+  _openModalA11y(overlay, _qmModalA11y, closeQuoteManager);
 }
 
 function closeQuoteManager() {
-  document.getElementById('qm-overlay').style.display = 'none';
+  const overlay = document.getElementById('qm-overlay');
+  _closeModalA11y(overlay, _qmModalA11y);
+  overlay.style.display = 'none';
 }
 
 document.getElementById('qm-overlay').addEventListener('click', function(e) {
@@ -30285,18 +30308,20 @@ const PLAN_MAX_FILE_MB = 10;
 let _planImportRooms = [];
 let _planImportLastFile = null; // preserved across error → retry so user doesn't re-upload
 
+const _planImportModalA11y = {};
 function openPlanImportModal() {
   _planImportRooms = [];
   _planImportLastFile = null;
   const modal = document.getElementById('plan-import-modal');
   if (!modal) return;
   modal.style.display = 'flex';
+  _openModalA11y(modal, _planImportModalA11y, closePlanImportModal);
   renderPlanImportState('upload');
 }
 
 function closePlanImportModal() {
   const modal = document.getElementById('plan-import-modal');
-  if (modal) modal.style.display = 'none';
+  if (modal) { _closeModalA11y(modal, _planImportModalA11y); modal.style.display = 'none'; }
   _planImportRooms = [];
   _planImportLastFile = null;
 }
