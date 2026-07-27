@@ -27947,6 +27947,29 @@ function plUnmarkStockSourced(jobId, key) {
   if (view) { view._selectedJobId = jobId; renderPLView(); }
 }
 
+// Category-wide variant: for auto-calculated hardware totals (hinges,
+// runners, handles, drilling) that never go through the manual "+Hardware"
+// extras flow, so they have no per-line detail row to mark individually —
+// key is just the P&L category name (e.g. "Hardware – Hinges").
+function plMarkCategoryStockSourced(jobId, categoryKey) {
+  const pd = plData[jobId];
+  if (!pd) return;
+  pd.stockSourcedCategories = pd.stockSourcedCategories || {};
+  pd.stockSourcedCategories[categoryKey] = true;
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
+function plUnmarkCategoryStockSourced(jobId, categoryKey) {
+  const pd = plData[jobId];
+  if (!pd || !pd.stockSourcedCategories) return;
+  delete pd.stockSourcedCategories[categoryKey];
+  plPersistJob(jobId);
+  const view = document.getElementById('pl-view');
+  if (view) { view._selectedJobId = jobId; renderPLView(); }
+}
+
 // ── Historical price snapshot modal ───────────────────────────────────────────
 async function openHistoricalPriceModal(jobId) {
   const job = sbJobs.find(j => j.id === jobId);
@@ -28655,6 +28678,24 @@ function _renderPLView() {
           hwActual[cat] += _invInclVAT(inv) / 1.15;
         }
       });
+      // Whole categories the user has flagged as "entirely sourced from
+      // existing stock, no invoice for any of it" (e.g. auto-calculated
+      // hinge/runner/handle costs that never go through the manual-extras
+      // per-line flow, so they have no detail row to mark individually).
+      // Applied before totals are summed so TOTAL stays consistent with
+      // each category row's own display.
+      const _plStockSourcedCategories = (plData[selJobId] && plData[selJobId].stockSourcedCategories) || {};
+      const _plCategoriesShownAsStock = new Set();
+      const _plCategoriesEligibleForStockMark = new Set();
+      Object.keys(hwExpected).forEach(k => {
+        if (hwActual[k] > 0 || !(hwExpected[k] > 0)) return;
+        if (_plStockSourcedCategories[k]) {
+          hwActual[k] = hwExpected[k];
+          _plCategoriesShownAsStock.add(k);
+        } else {
+          _plCategoriesEligibleForStockMark.add(k);
+        }
+      });
       const labels = {
         'Hardware – Hinges':  'Hinges',
         'Hardware – Runners': 'Runners',
@@ -28869,6 +28910,18 @@ function _renderPLView() {
               const suggestionRow = (match || stockSourced) ? '' : (_plRenderSuggestionRow(d.category, d.label) + _plRenderStockSourceRow(d.category, d.label));
               return mainRow + suggestionRow;
             }).join('');
+            const categoryStockSourced = _plCategoriesShownAsStock.has(k);
+            const categoryStockOfferRow = _plCategoriesEligibleForStockMark.has(k)
+              ? `<tr>
+                  <td colspan="9" style="padding:3px 12px 6px 28px;color:var(--text-muted);font-size:10px;font-style:italic">
+                    ↳ all ${labels[k].toLowerCase()} for this job used stock you already had, no new invoice?
+                    <button onclick="plMarkCategoryStockSourced('${(selJobId||'').replace(/'/g,"\\'")}', '${k.replace(/'/g,"\\'")}')" style="margin-left:6px;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:10px;padding:1px 8px;cursor:pointer;border-radius:3px">Mark category as from stock</button>
+                  </td>
+                </tr>`
+              : '';
+            const categoryUnmarkBtn = categoryStockSourced
+              ? ` <span style="color:var(--text-muted);font-size:9px">(stock)</span> <button onclick="plUnmarkCategoryStockSourced('${(selJobId||'').replace(/'/g,"\\'")}', '${k.replace(/'/g,"\\'")}')" title="Unmark as stock-sourced" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;padding:0 0 0 4px">↺</button>`
+              : '';
             return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
               <td style="padding:9px 12px;color:var(--text)">${labels[k]}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
@@ -28876,10 +28929,10 @@ function _renderPLView() {
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
               <td style="padding:9px 10px;text-align:right;color:var(--text-muted)"><span style="font-size:10px">—</span></td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasE?'#6aaad4':'var(--text-muted)'}" data-tip="${_hwExpTip}">${hasE ? R(exp) : '<span style="font-size:10px">—</span>'}</td>
-              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) : '<span style="font-size:10px">—</span>'}</td>
+              <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;color:${hasA?'var(--text)':'var(--text-muted)'}">${hasA ? R(act) + categoryUnmarkBtn : '<span style="font-size:10px">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${(hasA && hasE)?`<span style="color:${profitColor(v)}" data-tip="${varTip(v)}">${profitArrow(v)} ${R(Math.abs(v))}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="padding:9px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px">${(pct!==null && hasA)?`<span style="color:${profitColor(pct)}" data-tip="${pctTip(pct,v)}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
-            </tr>${detailRows}`;
+            </tr>${detailRows}${categoryStockOfferRow}`;
           }).join('')}
         </tbody>
         <tfoot><tr style="border-top:1px solid var(--border);background:var(--bg3)">
