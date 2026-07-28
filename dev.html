@@ -26202,18 +26202,27 @@ function drawerFaceWidth() {
   return drawerEffectiveFaceOpeningWidth() - 2 * drawerState.sideGap;
 }
 
+// Internal mode: bottom face sits above the opening's real bottom panel
+// (thickness ds.thickness), plus a small reveal (faceBottomGap) above that
+// panel's inside face — not flush with the carcass's outer bottom edge.
+// External mode: no carcass panel to clear, offset is 0.
+function drawerBottomInsetMM() {
+  const ds = drawerState;
+  if ((ds.faceStyle || 'external') !== 'internal') return 0;
+  return (ds.thickness || 0) + (ds.faceBottomGap || 0);
+}
+
 function drawerFaceHeights() {
   const ds = drawerState;
-  const isInternal = (ds.faceStyle || 'external') === 'internal';
   const H  = ds.height;
   const n  = ds.drawerCount;
   const fg = ds.faceGap; // gap between faces
 
   // Total face space = carcass height minus all gaps
   // Gaps: (n-1) between faces + 1 at the top (top gap = faceGap)
-  // Internal mode also reserves a bottom reveal (faceBottomGap) — the bottom
-  // face is inset from the opening bottom, not flush like External overlay.
-  const bottomGap     = isInternal ? (ds.faceBottomGap || 0) : 0;
+  // Internal mode also reserves the bottom panel + reveal (drawerBottomInsetMM) —
+  // the bottom face is inset from the opening bottom, not flush like External overlay.
+  const bottomGap     = drawerBottomInsetMM();
   const totalForGaps  = n * fg + bottomGap;  // n gaps total: (n-1) between faces + 1 above top face, plus bottom reveal in Internal mode
   const available     = H - totalForGaps; // space for all faces combined
 
@@ -26319,20 +26328,18 @@ function drawerEffectiveTopBoxH() {
 function drawerTopGapMM() {
   const ds = drawerState;
   if (ds.drawerType !== 'equal') return ds.faceGap;
-  const isInternal = (ds.faceStyle || 'external') === 'internal';
   const n  = ds.drawerCount;
   const fh = drawerFaceHeights();
-  const bottomGap = isInternal ? (ds.faceBottomGap || 0) : 0;
+  const bottomGap = drawerBottomInsetMM();
   const sumFaces = fh.reduce((s,h)=>s+h,0);
   return Math.max(0, ds.height - bottomGap - sumFaces - (n-1) * ds.faceGap);
 }
 
 function drawerGapCheck() {
   const ds = drawerState;
-  const isInternal = (ds.faceStyle || 'external') === 'internal';
   const n  = ds.drawerCount;
   const fh = drawerFaceHeights();
-  const bottomGap = isInternal ? (ds.faceBottomGap || 0) : 0;
+  const bottomGap = drawerBottomInsetMM();
   const topGap = drawerTopGapMM();
   const total = fh.reduce((s,h)=>s+h,0) + (n-1)*ds.faceGap + topGap + bottomGap;
   return { total, diff: ds.height - total };
@@ -26370,9 +26377,9 @@ function drawerSVG() {
   const leftClearancePx  = Math.round(leftClearanceMM * SCALE);
   const faceXPx = leftClearancePx + sgPx;
 
-  // Internal mode: bottom face is inset by faceBottomGap from the opening
-  // bottom, not flush — matches drawerFaceHeights' available-space math.
-  const bottomGapPx = isInternal ? Math.round((ds.faceBottomGap || 0) * SCALE) : 0;
+  // Internal mode: bottom face is inset by the bottom panel + reveal from the
+  // opening bottom, not flush — matches drawerFaceHeights' available-space math.
+  const bottomGapPx = Math.round(drawerBottomInsetMM() * SCALE);
 
   // Draw faces bottom to top (index 0 = bottom)
   // External: bottom face flush, top gap above top face.
@@ -26412,7 +26419,7 @@ function drawerSVG() {
   let bottomGapSVG = '';
   if (bottomGapPx > 0) {
     bottomGapSVG = `<line x1="${faceXPx}" y1="${sh-bottomGapPx}" x2="${faceXPx}" y2="${sh}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,2"/>
-    <text x="${faceXPx+4}" y="${sh-bottomGapPx/2}" dominant-baseline="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${Math.round(ds.faceBottomGap||0)}mm</text>`;
+    <text x="${faceXPx+4}" y="${sh-bottomGapPx/2}" dominant-baseline="middle" font-size="7" fill="var(--text-muted)" font-family="JetBrains Mono,monospace">${Math.round(drawerBottomInsetMM())}mm</text>`;
   }
 
   // PADY=26 matches side view so both SVGs render at identical total height (sh+26)
@@ -26517,12 +26524,12 @@ function drawerSideSVG() {
 
   // ── Drawer faces + boxes + runner lines ──────────────────────────────────
   // Cursor mirrors drawerSVG() exactly: External starts flush at sh;
-  // Internal starts inset by faceBottomGap. Final (top) gap uses the same
-  // drawerTopGapMM() 'equal' mode uses to absorb any rounding leftover.
+  // Internal starts inset by the bottom panel + reveal. Final (top) gap uses
+  // the same drawerTopGapMM() 'equal' mode uses to absorb any rounding leftover.
   let facesSVG  = '';
   let boxesSVG  = '';
   let runnerSVG = '';
-  const faceBottomGapPx = isInternal ? Math.round((ds.faceBottomGap || 0) * SCALE) : 0;
+  const faceBottomGapPx = Math.round(drawerBottomInsetMM() * SCALE);
   const topGapPx = Math.max(1, Math.round(drawerTopGapMM() * SCALE));
 
   // Effective box heights (manual override or auto)
@@ -26898,12 +26905,12 @@ function renderDrawerBuilderHTML() {
           </div>
           ${(ds.faceStyle || 'external') === 'internal' ? `
           <div class="bldr-row">
-            <span class="bldr-label" title="Gap between the bottom face and the bottom of the opening — inset drawers need a reveal here too, not just flush">Bottom gap</span>
+            <span class="bldr-label" title="Reveal above the opening's bottom panel — the face sits above the panel itself (${ds.thickness}mm), plus this extra reveal on top of it">Bottom reveal</span>
             <input autocomplete="off" class="bldr-input" type="number" value="${ds.faceBottomGap ?? 5}" min="0" max="20" step="0.5" oninput="drawerNumInput('faceBottomGap',this.value)" onblur="drawerRedraw()">
             <span class="bldr-unit">mm</span>
           </div>
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
-            Bottom face inset by ${ds.faceBottomGap ?? 5}mm · top gap = ${Math.round(drawerTopGapMM())}mm${ds.drawerType==='equal' ? ' (face gap + any rounding leftover)' : ' (face gap)'}
+            Bottom face inset by ${ds.thickness}mm panel + ${ds.faceBottomGap ?? 5}mm reveal = <strong style="color:var(--text)">${Math.round(drawerBottomInsetMM())}mm</strong> · top gap = ${Math.round(drawerTopGapMM())}mm${ds.drawerType==='equal' ? ' (face gap + any rounding leftover)' : ' (face gap)'}
           </div>
           ` : `
           <div style="font-size:10px;color:var(--text-muted);margin:2px 0 0;padding-left:2px">
@@ -27079,7 +27086,7 @@ function renderDrawerBuilderHTML() {
     <div class="bldr-preview">
       <div class="bldr-title">Preview</div>
       <div class="bldr-dims-badge">${ds.width}W × ${ds.height}H × ${ds.depth}D mm</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">${(ds.faceStyle || 'external') === 'internal' ? `Faces inset in opening · bottom inset ${ds.faceBottomGap ?? 5}mm · top gap ${Math.round(drawerTopGapMM())}mm` : `Faces overlay carcass · bottom flush · top gap ${Math.round(drawerTopGapMM())}mm`}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">${(ds.faceStyle || 'external') === 'internal' ? `Faces inset in opening · bottom inset ${Math.round(drawerBottomInsetMM())}mm · top gap ${Math.round(drawerTopGapMM())}mm` : `Faces overlay carcass · bottom flush · top gap ${Math.round(drawerTopGapMM())}mm`}</div>
       <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center">
         <div style="text-align:center">
           <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--text-muted);margin-bottom:6px">FRONT VIEW</div>
