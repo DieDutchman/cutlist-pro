@@ -39,10 +39,14 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 ### 📊 P&L (Profit & Loss)
 - Side-by-side expected vs actual cost breakdown per material category (boards, edging, hardware, labour)
 - Labour cost input with estimate fallback from the costing config
-- **PDF Invoice Import** — upload a supplier invoice (PDF, JPG, or PNG) and Claude extracts every line item automatically; review and edit before committing
+- **PDF Invoice Import** — upload a supplier invoice (PDF, JPG, or PNG) and AI (Groq, vision + text models) extracts every line item automatically; review and edit before committing
   - Invoice Details strip: invoice number, supplier, date, and grand total pre-filled from the extraction and editable before import
   - Duplicate detection: warns if the same invoice number + supplier has already been imported
+  - Rate-limit cooldown timer — if the free-tier AI quota is briefly exhausted, a visible countdown shows when the next upload can be retried
 - **Imported Invoice Documents registry** — compact table above the invoice lines showing every imported PDF document (invoice #, supplier, date, total, line count); collapse/expand toggle; inline-editable invoice number and supplier; × removes the document and all its lines in one action
+- **Hardware line matching** — quoted hardware lines are automatically matched against imported invoice lines by fuzzy name comparison (e.g. quoted "Plinth 150mm x 3m" matches invoiced "ALI COVERED PLINTH 150x3m"); suggested matches can be confirmed with one click
+  - Manual "pick from list" fallback when no suggestion clears the match threshold — pick the correct invoice line by hand, filtered to the same material/edging category
+  - **Stock-sourced marking** — mark a hardware line (or an entire category) as sourced from stock instead of an invoice, so it's excluded from the invoice-matching flow and shown as zero-variance ("—") rather than skewing actual cost against an invoice that doesn't exist
 - Manual invoice line entry with supplier, category, amount, and VAT incl/excl toggle
 - Invoice lines assignable to specific board types or edging to populate the Actual column in the material breakdown
 - Historical price snapshot — lock the supplier prices at job-quote time so re-opening a saved job doesn't shift the expected costs
@@ -82,6 +86,19 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 - Build completely custom units from scratch
 - Drag-and-drop part editor with edging per side
 
+### 🗂 Drawer Builder
+- Second mode of the Builder tab (toggle next to Unit Builder) — generates a drawer stack's full cutlist (faces, boxes, runners) from a few dimensions
+- **Face Style: External or Internal**
+  - **External** (default, unchanged) — builds a standalone chest of drawers, generating its own carcass (top/bottom/sides/back/supports); faces overlay the carcass with a reveal
+  - **Internal (inset)** — builds drawers *inside an existing carcass* instead of generating one: enter the opening's width/height/depth directly, faces sit recessed inside the opening rather than overlaying it
+    - Faces are correctly inset from the opening's real top/bottom panels (nailer/solid top and bottom panel thickness), not flush with the outer opening edges — a configurable reveal sits on top of that panel thickness at both top and bottom
+    - Depth accounts for the existing carcass's back panel and rear gap, plus a small front inset so the face isn't flush with the front of the carcass
+    - Optional **left/right spacers** — physical filler panels for the drawer *box*, sized to clear door hinges or other obstructions intruding into the opening
+    - Optional **left/right hinge clearance** — independent of the box spacers, deducts space from the drawer *face* only (no cut part generated) so the face doesn't foul a nearby door hinge
+- Equal / pot / custom drawer-height modes, with automatic balancing so identical ("equal") drawers always divide the available height exactly, absorbing any rounding remainder into the top gap
+- Live front and side (depth cross-section) SVG preview, updating as dimensions change
+- Generates the full drawer cutlist (faces, box sides/back/bottom, runner clearance) alongside any spacer panels, ready to send to the cutlist/costing flow
+
 ### ⇪ Import Unit
 - Import a unit from an `.xlsx` / `.xls` / `.csv` file, or paste raw text — AI (Claude) parses parts, dimensions, materials, and edging
 - Materials and edging are matched to your board list automatically
@@ -119,7 +136,8 @@ Cutlist Pro takes your cabinet layout, generates a clean cut list your supplier 
 |---|---|
 | Frontend | Vanilla HTML/CSS/JS — single file, no build step |
 | Auth & Database | [Supabase](https://supabase.com) |
-| AI Import Parser | [Anthropic Claude API](https://docs.anthropic.com) |
+| AI Import Parser (cutlist/unit import) | [Anthropic Claude API](https://docs.anthropic.com) |
+| AI Invoice OCR (P&L invoice import) | [Groq API](https://groq.com) — free tier, vision + text models |
 | Excel Export | [ExcelJS](https://github.com/exceljs/exceljs) + [SheetJS](https://sheetjs.com) |
 | Hosting | GitHub Pages |
 
@@ -232,9 +250,10 @@ Key views to explore:
 - **Cutlist tab** — generated parts table grouped by material, with Excel export
 - **Quote tab** — full client-facing quote with hardware, bases, skirting, and VAT
 - **Costing tab** — per-unit material cost breakdown and margin view
-- **P&L tab** — expected vs actual cost tracking with PDF invoice import
+- **P&L tab** — expected vs actual cost tracking with PDF invoice import and fuzzy hardware line matching
 - **Sheet Optimizer tab** — visual bin-packing of all cut parts onto full sheets
 - **Import tab** — AI-assisted cutlist import from any Excel/CSV format
+- **Builder tab** — Unit Builder and Drawer Builder (External/Internal face style) modes
 
 ---
 
