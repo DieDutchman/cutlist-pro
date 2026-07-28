@@ -26212,6 +26212,16 @@ function drawerBottomInsetMM() {
   return (ds.thickness || 0) + (ds.faceBottomGap || 0);
 }
 
+// Internal mode: top face sits below the opening's real top panel/nailer
+// (thickness ds.thickness), plus the faceGap reveal below that panel's
+// inside face — same mirrored logic as drawerBottomInsetMM(). External
+// mode: no carcass panel to clear, the gap is just faceGap as before.
+function drawerTopInsetMM() {
+  const ds = drawerState;
+  if ((ds.faceStyle || 'external') !== 'internal') return ds.faceGap;
+  return (ds.thickness || 0) + (ds.faceGap || 0);
+}
+
 function drawerFaceHeights() {
   const ds = drawerState;
   const H  = ds.height;
@@ -26219,11 +26229,14 @@ function drawerFaceHeights() {
   const fg = ds.faceGap; // gap between faces
 
   // Total face space = carcass height minus all gaps
-  // Gaps: (n-1) between faces + 1 at the top (top gap = faceGap)
-  // Internal mode also reserves the bottom panel + reveal (drawerBottomInsetMM) —
-  // the bottom face is inset from the opening bottom, not flush like External overlay.
+  // Gaps: (n-1) between faces + 1 at the top (top gap = drawerTopInsetMM(),
+  // reserving the top panel/nailer thickness in Internal mode, faceGap in
+  // External). Internal mode also reserves the bottom panel + reveal
+  // (drawerBottomInsetMM) — the bottom face is inset from the opening
+  // bottom, not flush like External overlay.
   const bottomGap     = drawerBottomInsetMM();
-  const totalForGaps  = n * fg + bottomGap;  // n gaps total: (n-1) between faces + 1 above top face, plus bottom reveal in Internal mode
+  const topGap0       = drawerTopInsetMM();
+  const totalForGaps  = (n - 1) * fg + topGap0 + bottomGap;
   const available     = H - totalForGaps; // space for all faces combined
 
   if (ds.drawerType === 'equal') {
@@ -26319,15 +26332,16 @@ function drawerEffectiveTopBoxH() {
   return Math.max(10, topH - drawerReduction());
 }
 
-// Top gap (space above the topmost face). Normally equals faceGap. In
+// Top gap (space above the topmost face). Normally equals drawerTopInsetMM()
+// (faceGap in External, top panel/nailer thickness + faceGap in Internal). In
 // 'equal' drawer mode it also absorbs whatever 0..(n-1)mm couldn't divide
 // evenly among identical faces, so 'equal' mode always balances exactly —
 // the leftover goes into the gap instead of making one face uneven.
-// 'pot'/'custom' modes are unaffected (their own remainder handling
-// already consumes all available space, so this returns plain faceGap).
+// 'pot'/'custom' modes are unaffected (their own remainder handling already
+// consumes all available space, so this returns plain drawerTopInsetMM()).
 function drawerTopGapMM() {
   const ds = drawerState;
-  if (ds.drawerType !== 'equal') return ds.faceGap;
+  if (ds.drawerType !== 'equal') return drawerTopInsetMM();
   const n  = ds.drawerCount;
   const fh = drawerFaceHeights();
   const bottomGap = drawerBottomInsetMM();
