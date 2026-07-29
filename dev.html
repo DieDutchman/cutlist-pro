@@ -24546,7 +24546,7 @@ function _renderPanelsView() {
   panelsState.items.forEach(p => _panelSnapshots.set(p.id, {...p}));
   const _legendCollapsed = localStorage.getItem('panelLegendCollapsed') === '1';
   const rowsHtml = panelsState.items.map((p, i) => `
-    <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) 180px;gap:6px;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
       <input type="checkbox" class="panel-row-select" aria-label="Select row ${i+1}" ${_panelSelected.has(p.id) ? 'checked' : ''}
         onchange="panelToggleSelect('${p.id}',this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--amber)">
       ${inp('text', (p.name||'').replace(/"/g,'&quot;'), `panelField('${p.id}','name',this.value)`, 'width:100%;box-sizing:border-box', `Row ${i+1} part name`)}
@@ -24628,7 +24628,7 @@ function _renderPanelsView() {
           style="display:${_panelSelected.size ? '' : 'none'};font-weight:500;background:none;border:1px solid #5a2a2a;color:#e05252;padding:4px 10px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">× DELETE SELECTED (${_panelSelected.size})</button>
       </div>
       <!-- Column headers -->
-      <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) auto;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
+      <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 60px 80px 80px minmax(0,180px) minmax(0,140px) minmax(0,140px) minmax(0,140px) minmax(0,140px) 180px;gap:6px;padding:4px 10px;margin-bottom:2px;border:1px solid transparent">
         <input type="checkbox" id="panel-select-all" aria-label="Select all rows" onchange="panelSelectAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--amber)">
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">NAME / DESCRIPTION</div>
         <div style="font-weight:500;font-size:10px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0.3px">QTY</div>
