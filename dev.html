@@ -6388,7 +6388,7 @@ function _setSaveChip(state) {
     chip.style.color = '#e07070';
   } else {
     chip.textContent = '⬤ Saved';
-    chip.style.color = 'var(--text-muted)';
+    chip.style.color = 'var(--green)';
   }
 }
 function _signalSave() {
@@ -18201,6 +18201,10 @@ function saveUnitParts(unitId) {
 function scheduleAutoSave() {
   if (!sbUser || !currentJobId) return;
   if (_isLoadingJob) return;
+  // Flip the chip off "Saved" the moment a change is queued, not just once
+  // the debounced write actually starts — otherwise it reads "Saved" for
+  // the full 4s debounce window while changes are still unsaved.
+  try { _setSaveChip('saving'); } catch(e) {}
   // State changed since last cutlist render — mark stale + refresh the
   // regenerate badge if the cutlist tab is currently visible.
   if (_cutlistEverGenerated) {
