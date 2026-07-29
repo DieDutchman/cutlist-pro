@@ -16899,6 +16899,16 @@ function openMoveUnitPopup(unitId, anchorEl) {
 
 function moveUnitToRoom(unitId, targetSectionId) {
   document.getElementById('move-unit-popup')?.remove();
+  // A per-unit material override is seeded with the OLD room's concrete
+  // wood/edging values at the moment it was toggled on (see
+  // toggleUnitMatOverride) — it doesn't track the room dynamically like the
+  // default (non-overridden) path does. Left in place, a moved unit stays
+  // pinned to its origin room's colours instead of picking up the
+  // destination room's selection, which is what "move" should do.
+  if (unitMatOverrides[unitId]) {
+    delete unitMatOverrides[unitId];
+    saveUnitMatOverrides();
+  }
   const _isUserMode = usesUserUnits() && userRooms.length > 0;
   if (_isUserMode) {
     const idx = userUnits.findIndex(u => u.id === unitId);
