@@ -20902,12 +20902,14 @@ function _renderPricesView() {
         </div>
       </div>` : ''}
 
-      <!-- Cutting & Services -->
+      <!-- Edging Billing -->
       <div style="margin-top:28px">
         <div class="pp-section-head" style="margin-top:0">
-          <span>Cutting &amp; Services</span>
-          ${admin ? `<div style="display:flex;align-items:center;gap:10px;font-weight:400">
-            <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none">Edging billing:</span>
+          <span>Edging Billing</span>
+          <span class="pp-section-sub">How edging metres are rounded and billed against the invoice</span>
+        </div>
+        <div style="border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          ${admin ? `<span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none">Rounding mode:</span>
             <div class="pp-toggle-group">
               <button onclick="costingPrices.extras.edgeRoundPerPart=false;saveCostingPrices();pushSupplierPrice('service','Edge Rounding Mode',costingPrices.extras.edgeRoundPerPart?1:0);renderPricesView()"
                 class="${!costingPrices.extras.edgeRoundPerPart?'is-active':''}">Per job total</button>
@@ -20915,7 +20917,7 @@ function _renderPricesView() {
                 class="${costingPrices.extras.edgeRoundPerPart?'is-active':''}">Per panel</button>
             </div>
             <span style="font-size:11px;color:var(--text-muted);cursor:help" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices.">ⓘ</span>
-            ${!costingPrices.extras.edgeRoundPerPart ? `<span style="display:flex;align-items:center;gap:6px;margin-left:6px">
+            ${!costingPrices.extras.edgeRoundPerPart ? `<span style="display:flex;align-items:center;gap:6px;margin-left:10px;padding-left:10px;border-left:1px solid var(--border)">
               <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none">Trim allowance</span>
               <input autocomplete="off" type="number" min="0" step="5" value="${costingPrices.extras.edgeTrimMm || 0}"
                 style="width:56px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
@@ -20923,8 +20925,14 @@ function _renderPricesView() {
                 onchange="costingPrices.extras.edgeTrimMm=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Edge Trim Allowance mm',this.value)"
                 onblur="costingPrices.extras.edgeTrimMm=parseFloat(this.value)||0;saveCostingPrices()">
               <span style="font-size:11px;color:var(--text-muted)">mm/side</span>
-            </span>` : ''}
-          </div>` : `<span class="pp-section-sub">Edging: <strong style="color:var(--text);letter-spacing:0.5px">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
+            </span>` : ''}` : `<span class="pp-section-sub">Edging: <strong style="color:var(--text);letter-spacing:0.5px">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
+        </div>
+      </div>
+
+      <!-- Cutting & Services -->
+      <div style="margin-top:28px">
+        <div class="pp-section-head" style="margin-top:0">
+          <span>Cutting &amp; Services</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18));border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
