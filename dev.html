@@ -13758,6 +13758,8 @@ const costingPrices = {
   matSpecialOrder: {}, // { [matName]: true } — must buy full sheet, supplier doesn't stock
   matFullSheet: {},    // { [matName]: true } — supplier sells full sheets only (offcuts included)
   matPriceDates: {},   // { [matName]: ISO string } — when price was last updated by supplier
+  edgePriceDates: {},  // { [edgeName]: ISO string } — when price was last updated by supplier
+  servicePriceDates: {}, // { [extrasKey]: ISO string } — cutLabel/cutLabelMasonite/drilling/hPrice/boardSurcharge
   matSheetDims: {},    // { [matName]: { l, w } } — supplier-set sheet dimensions (mm); falls back to MATERIAL_SHEET_DEFAULTS
   // Custom hardware items: [{id, name, pricePerUnit, qty}]
   customHardware: [],
@@ -13779,7 +13781,9 @@ try {
   if (saved.matMinSheets)    Object.assign(costingPrices.matMinSheets,    saved.matMinSheets);
   if (saved.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, saved.matSpecialOrder);
   if (saved.matFullSheet)    Object.assign(costingPrices.matFullSheet,    saved.matFullSheet);
-  if (saved.matPriceDates)   Object.assign(costingPrices.matPriceDates,   saved.matPriceDates);
+  if (saved.matPriceDates)      Object.assign(costingPrices.matPriceDates,      saved.matPriceDates);
+  if (saved.edgePriceDates)     Object.assign(costingPrices.edgePriceDates,     saved.edgePriceDates);
+  if (saved.servicePriceDates)  Object.assign(costingPrices.servicePriceDates,  saved.servicePriceDates);
   if (saved.matSheetDims)    Object.assign(costingPrices.matSheetDims,    saved.matSheetDims);
   if (saved.specialServices && Array.isArray(saved.specialServices)) costingPrices.specialServices = saved.specialServices;
   if (saved.tops)         Object.assign(costingPrices.tops,     saved.tops);
@@ -18337,19 +18341,22 @@ async function loadSupplierPrices() {
       }
     }
     // Add all Supabase edges
+    costingPrices.edgePriceDates = {};
     sbEdges.forEach(r => {
       costingPrices.edge[r.name] = Number(r.price);
       if (!EDGES.includes(r.name)) EDGES.push(r.name);
+      if (r.updated_at) costingPrices.edgePriceDates[r.name] = r.updated_at;
     });
 
     loadSpecialServicesFromSupabase(rows);
 
     // Reset billing mode flags — they'll be rebuilt from Supabase meta
-    costingPrices.matFullSheet    = {};
-    costingPrices.matSpecialOrder = {};
-    costingPrices.matMinSheets    = {};
-    costingPrices.matPriceDates   = {};
-    costingPrices.matSheetDims    = {};
+    costingPrices.matFullSheet     = {};
+    costingPrices.matSpecialOrder  = {};
+    costingPrices.matMinSheets     = {};
+    costingPrices.matPriceDates    = {};
+    costingPrices.servicePriceDates = {};
+    costingPrices.matSheetDims     = {};
 
     rows.forEach(row => {
       if (row.category === 'board') {
@@ -18380,10 +18387,16 @@ async function loadSupplierPrices() {
           'Board Surcharge':        'boardSurcharge',
         };
         const key = map[row.name];
-        if (key) costingPrices.extras[key] = Number(row.price);
+        if (key) {
+          costingPrices.extras[key] = Number(row.price);
+          if (row.updated_at) costingPrices.servicePriceDates[key] = row.updated_at;
+        }
         // Edge rounding mode: stored as price=1 (per panel) or price=0 (per job)
         if (row.name === 'Edge Rounding Mode') {
           costingPrices.extras.edgeRoundPerPart = Number(row.price) === 1;
+        }
+        if (row.name === 'Edge Trim Allowance mm') {
+          costingPrices.extras.edgeTrimMm = Number(row.price) || 0;
         }
       }
     });
@@ -18788,9 +18801,11 @@ async function applyBulkPriceAdjustment() {
       batchPayload.push({ category: 'board', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: JSON.stringify(bm) });
     } else if (it.cat === 'edge') {
       costingPrices.edge[it.name] = it.after;
+      costingPrices.edgePriceDates[it.name] = now;
       batchPayload.push({ category: 'edge', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: null });
     } else if (it.cat === 'service') {
       costingPrices.extras[it.extrasKey] = it.after;
+      costingPrices.servicePriceDates[it.extrasKey] = now;
       batchPayload.push({ category: 'service', name: it.name, price: it.after, updated_at: now, supplier_id: activeSupplierRow?.id || null, meta: null });
     } else if (it.cat === 'special_service') {
       it.svcRef.price = it.after;
@@ -19195,6 +19210,24 @@ async function pushSupplierPrice(category, name, price, meta) {
       // Also record locally so the timestamp shows without waiting for a reload
       costingPrices.matPriceDates[name] = now;
       try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+    } else if (category === 'edge') {
+      costingPrices.edgePriceDates[name] = now;
+      if (meta) payload.meta = JSON.stringify(meta);
+      try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+    } else if (category === 'service') {
+      const _svcMap = {
+        'Cut & Label - Boards':   'cutLabel',
+        'Cut & Label - Masonite': 'cutLabelMasonite',
+        'Hinge Drilling':         'drilling',
+        'Supplier HPrice':        'hPrice',
+        'Board Surcharge':        'boardSurcharge',
+      };
+      const _svcKey = _svcMap[name];
+      if (_svcKey) {
+        costingPrices.servicePriceDates[_svcKey] = now;
+        try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
+      }
+      if (meta) payload.meta = JSON.stringify(meta);
     } else if (meta) {
       payload.meta = JSON.stringify(meta);
     }
@@ -19238,6 +19271,18 @@ function renderSyncBadge() {
   el.style.color = s.color;
 }
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Shared "↻ last updated" badge for a price row — used by boards, edging, and
+// Cutting & Services rows so all three show the same freshness indicator.
+function priceDateBadge(isoDate) {
+  if (!isoDate) return '';
+  const dateStr = new Date(isoDate).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+  const ageMs   = Date.now() - new Date(isoDate).getTime();
+  const color   = ageMs < 30 * 24*60*60*1000 ? '#4caf82'         // < 30 days — green
+    : ageMs < 90 * 24*60*60*1000 ? 'var(--amber-dim)'            // 30–90 days — amber
+    : 'var(--red)';                                              // > 90 days — stale
+  return `<span title="Price last updated ${dateStr}" style="font-size:9px;color:${color};font-family:'JetBrains Mono',monospace;white-space:nowrap">↻ ${dateStr}</span>`;
+}
 
 function saveCostingPrices() {
   try { localStorage.setItem('cutlist_costing_prices', JSON.stringify(costingPrices)); } catch(e) {}
@@ -19740,6 +19785,7 @@ async function migrateRenamedNamesAcrossJobs(renamesObj) {
       });
       // costingPrices.edge — keyed by full edge key
       if (renameKeys(s.costingPrices.edge, edgeMap)) dirty = true;
+      if (renameKeys(s.costingPrices.edgePriceDates, edgeMap)) dirty = true;
 
       // customBoards array — board/edge name fields
       if (Array.isArray(s.costingPrices.customBoards)) {
@@ -20512,6 +20558,7 @@ function _renderPricesView() {
           onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
           onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
+        ${priceDateBadge(costingPrices.edgePriceDates?.[edgeKey])}
         ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\'")}')" title="Rename edging" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">✏</button>` : ''}
         <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging" ${roBtn}
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer;width:28px;flex-shrink:0">×</button>
@@ -20595,6 +20642,7 @@ function _renderPricesView() {
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
           onblur="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span class="cv-unit">/m</span>
+        ${priceDateBadge(costingPrices.edgePriceDates?.[e])}
       </div>`).join('')}</div>` : '';
 
   const addBoardForm = admin ? `
@@ -20694,18 +20742,7 @@ function _renderPricesView() {
          </span>` : '';
 
     // ── Price timestamp ──────────────────────────────────────────────────────
-    const priceDate = costingPrices.matPriceDates?.[mat];
-    const priceDateStr = priceDate
-      ? new Date(priceDate).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' })
-      : null;
-    const priceAgeMs  = priceDate ? (Date.now() - new Date(priceDate).getTime()) : null;
-    const priceAgeColor = priceAgeMs === null ? 'var(--text-muted)'
-      : priceAgeMs < 30  * 24*60*60*1000 ? '#4caf82'   // < 30 days — green
-      : priceAgeMs < 90  * 24*60*60*1000 ? 'var(--amber-dim)' // 30–90 days — amber
-      : 'var(--red)';                                    // > 90 days — stale
-    const timestampHtml = priceDateStr
-      ? `<span title="Price last updated ${priceDateStr}" style="font-size:9px;color:${priceAgeColor};font-family:'JetBrains Mono',monospace;white-space:nowrap">↻ ${priceDateStr}</span>`
-      : '';
+    const timestampHtml = priceDateBadge(costingPrices.matPriceDates?.[mat]);
 
     // ── Sheet dimension defaults (supplier-set → MATERIAL_SHEET_DEFAULTS → 2750×1830)
     const _supplierDims = costingPrices.matSheetDims?.[mat];
@@ -20777,6 +20814,7 @@ function _renderPricesView() {
             onchange="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('edge','${edgeKey}',this.value)"
             onblur="costingPrices.edge['${safeKey}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
+          ${priceDateBadge(costingPrices.edgePriceDates?.[edgeKey])}
           ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer">✏</button>` : ''}
           <button onclick="removeBoardEdging('${safeKey}')" ${roBtn}
             style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer">×</button>
@@ -20823,6 +20861,7 @@ function _renderPricesView() {
           onchange="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()"
           onblur="costingPrices.edge['${e}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:11px;color:var(--text-muted)">/m</span>
+        ${priceDateBadge(costingPrices.edgePriceDates?.[e])}
         <button onclick="removeBoardEdging('${e.replace(/'/g,"\\'")}')\"
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 8px;cursor:pointer">× Remove</button>
       </div>`).join('')}
@@ -20941,6 +20980,7 @@ function _renderPricesView() {
               onchange="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Boards',this.value)"
               onblur="costingPrices.extras.cutLabel=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
+            ${priceDateBadge(costingPrices.servicePriceDates?.cutLabel)}
           </div>
           <div class="cv-extra-row" style="padding:8px 12px;border-bottom:1px solid var(--border-inner, rgba(255,255,255,0.18))">
             <span class="cv-extra-label">Cut &amp; Label – Masonite <span style="font-size:10px;color:var(--text-muted)">(per sheet)</span></span>
@@ -20948,6 +20988,7 @@ function _renderPricesView() {
               onchange="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Cut & Label - Masonite',this.value)"
               onblur="costingPrices.extras.cutLabelMasonite=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
+            ${priceDateBadge(costingPrices.servicePriceDates?.cutLabelMasonite)}
           </div>
           <div class="cv-extra-row" style="padding:8px 12px;border-right:1px solid var(--border-inner-strong, rgba(255,255,255,0.22))">
             <span class="cv-extra-label">Hinge Drilling <span style="font-size:10px;color:var(--text-muted)">(per hole)</span></span>
@@ -20955,6 +20996,7 @@ function _renderPricesView() {
               onchange="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Hinge Drilling',this.value)"
               onblur="costingPrices.extras.drilling=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
+            ${priceDateBadge(costingPrices.servicePriceDates?.drilling)}
           </div>
           <div class="cv-extra-row" style="padding:8px 12px">
             <span class="cv-extra-label">Supplier Handling <span style="font-size:10px;color:var(--text-muted)">(per line)</span></span>
@@ -20962,6 +21004,7 @@ function _renderPricesView() {
               onchange="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Supplier HPrice',this.value)"
               onblur="costingPrices.extras.hPrice=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">R</span>
+            ${priceDateBadge(costingPrices.servicePriceDates?.hPrice)}
           </div>
           <div class="cv-extra-row" style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06)">
             <span class="cv-extra-label">Board Surcharge <span style="font-size:10px;color:var(--text-muted)">(% on board cost only)</span></span>
@@ -20969,6 +21012,7 @@ function _renderPricesView() {
               onchange="costingPrices.extras.boardSurcharge=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();refreshQuoteTotals();pushSupplierPrice('service','Board Surcharge',this.value)"
               onblur="costingPrices.extras.boardSurcharge=parseFloat(this.value)||0;saveCostingPrices()">
             <span style="font-size:10px;color:var(--text-muted)">%</span>
+            ${priceDateBadge(costingPrices.servicePriceDates?.boardSurcharge)}
           </div>
         </div>
       </div>
@@ -22653,7 +22697,9 @@ function _applyStateInner(state) {
     if (state.costingPrices.matMinSheets)    Object.assign(costingPrices.matMinSheets,    state.costingPrices.matMinSheets);
     if (state.costingPrices.matSpecialOrder) Object.assign(costingPrices.matSpecialOrder, state.costingPrices.matSpecialOrder);
     if (state.costingPrices.matFullSheet)    Object.assign(costingPrices.matFullSheet,    state.costingPrices.matFullSheet);
-    if (state.costingPrices.matPriceDates)   Object.assign(costingPrices.matPriceDates,   state.costingPrices.matPriceDates);
+    if (state.costingPrices.matPriceDates)     Object.assign(costingPrices.matPriceDates,     state.costingPrices.matPriceDates);
+    if (state.costingPrices.edgePriceDates)    Object.assign(costingPrices.edgePriceDates,    state.costingPrices.edgePriceDates);
+    if (state.costingPrices.servicePriceDates) Object.assign(costingPrices.servicePriceDates, state.costingPrices.servicePriceDates);
     // customHardware is global (My Costs) — not restored from job state
 
     // Rebuild runtime MATS / EDGES / COLORS / EDGE_COLORS from restored state
@@ -27594,7 +27640,9 @@ function plCalcFromState(state) {
     costingPrices.matMinSheets    = snap.costingPrices.matMinSheets    || {};
     costingPrices.matSpecialOrder = snap.costingPrices.matSpecialOrder || {};
     costingPrices.matFullSheet    = snap.costingPrices.matFullSheet    || {};
-    costingPrices.matPriceDates   = snap.costingPrices.matPriceDates   || {};
+    costingPrices.matPriceDates      = snap.costingPrices.matPriceDates      || {};
+    costingPrices.edgePriceDates     = snap.costingPrices.edgePriceDates     || {};
+    costingPrices.servicePriceDates  = snap.costingPrices.servicePriceDates  || {};
     costingPrices.specialServices = snap.costingPrices.specialServices || [];
 
     userUnits.length = 0;    snap.userUnits.forEach(u => userUnits.push(u));
