@@ -13740,6 +13740,7 @@ const costingPrices = {
     hPrice:         5.31,
     boardSurcharge:    0,
     edgeRoundPerPart: false, // false = round total per edge type (old); true = round per physical panel (per supplier invoice)
+    edgeTrimMm: 0, // mm of trim allowance added to EACH END of every edge run (job-total mode only) — e.g. 50 means 100mm added per edge instance (both ends)
   },
   hardware: {
     hingeNormal:  22,
@@ -19252,11 +19253,16 @@ function saveCostingPrices() {
 // Edging cost for a single edge — rounds per physical piece if edgeRoundPerPart is set
 function calcEdgeMeters(edgeLengthM, qty) {
   if (costingPrices.extras.edgeRoundPerPart) {
-    // Round up each physical panel separately, then multiply
+    // Round up each physical panel separately, then multiply. Trim allowance
+    // is skipped here — a whole-piece rounded up to the next metre already
+    // absorbs a small trim, adding it too would double-count waste.
     return Math.ceil(edgeLengthM) * qty;
   }
-  // Original behaviour: accumulate raw, round at the end (caller does Math.ceil + 1)
-  return edgeLengthM * qty;
+  // Job-total mode: each edge RUN gets a trim allowance on both ends (e.g.
+  // edgeTrimMm=50 → 100mm added per instance) before accumulating raw, then
+  // the caller rounds the pooled total once (Math.ceil + 1).
+  const trimM = 2 * ((costingPrices.extras.edgeTrimMm || 0) / 1000);
+  return (edgeLengthM + trimM) * qty;
 }
 
 // Final rounding step — only applies in total-mode (per-part mode already rounded above)
@@ -20909,6 +20915,15 @@ function _renderPricesView() {
                 class="${costingPrices.extras.edgeRoundPerPart?'is-active':''}">Per panel</button>
             </div>
             <span style="font-size:11px;color:var(--text-muted);cursor:help" title="Per job total: all edging accumulated then rounded once. Per panel: each physical panel rounded to nearest metre individually — matches most supplier invoices.">ⓘ</span>
+            ${!costingPrices.extras.edgeRoundPerPart ? `<span style="display:flex;align-items:center;gap:6px;margin-left:6px">
+              <span style="font-size:11px;color:var(--text-muted);font-family:'Barlow',sans-serif;letter-spacing:0;text-transform:none">Trim allowance</span>
+              <input autocomplete="off" type="number" min="0" step="5" value="${costingPrices.extras.edgeTrimMm || 0}"
+                style="width:56px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:12px;outline:none"
+                title="Added to EACH END of every edge run before rounding — e.g. 50 = 100mm per edge instance, matching supplier trim waste"
+                onchange="costingPrices.extras.edgeTrimMm=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults();pushSupplierPrice('service','Edge Trim Allowance mm',this.value)"
+                onblur="costingPrices.extras.edgeTrimMm=parseFloat(this.value)||0;saveCostingPrices()">
+              <span style="font-size:11px;color:var(--text-muted)">mm/side</span>
+            </span>` : ''}
           </div>` : `<span class="pp-section-sub">Edging: <strong style="color:var(--text);letter-spacing:0.5px">${costingPrices.extras.edgeRoundPerPart ? 'Per panel' : 'Per job total'}</strong></span>`}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border)">
