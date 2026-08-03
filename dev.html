@@ -13230,6 +13230,26 @@ function computeJobMatBreakdown() {
   return { matBreakdown, edgeBreakdown, cutLabelExpected, cutLabelSheets };
 }
 
+// Board Surcharge is applied as a single job-wide addition on top of
+// computeQuoteTotals()'s unitsTotal (see boardSurchargeAmt there) — it is
+// NOT baked into computeJobMatBreakdown()'s per-material rows, since other
+// callers (Costing view, XLSX export) already add it as their own separate
+// line item and would double-count it if it were folded in here too.
+// P&L's per-material Boards breakdown has no such separate line, so without
+// this it silently omits real spend whenever the surcharge is enabled —
+// making Actual look inflated against Expected. Distributes it back onto
+// each row proportional to that row's own raw board cost, matching exactly
+// how boardSurchargeAmt itself is computed.
+function applyBoardSurchargeToMatBreakdown(matBreakdown) {
+  const pct     = costingPrices.extras.boardSurcharge || 0;
+  const enabled = quoteState.boardSurchargeEnabled !== false; // default on
+  if (pct <= 0 || !enabled) return matBreakdown;
+  return matBreakdown.map(b => ({
+    ...b,
+    cost: b.cost + b.billedSh * b.pricePerSheet * (pct / 100),
+  }));
+}
+
 // ── Labour cost calculation ─────────────────────────────────────────────────
 // Returns 0 when labour is disabled. Two modes:
 //   per-sqm  — every part on every selected unit contributes
@@ -27604,7 +27624,7 @@ function plCalcFromState(state) {
       hardwareExpected: t.hardwareExpected,
       hardwareExtrasDetail: t.hardwareExtrasDetail || [],
       topsExtrasDetail:     t.topsExtrasDetail     || [],
-      matBreakdown:   _snapBreakdown.matBreakdown,
+      matBreakdown:   applyBoardSurchargeToMatBreakdown(_snapBreakdown.matBreakdown),
       edgeBreakdown:  _snapBreakdown.edgeBreakdown,
       cutLabelExpected: _snapBreakdown.cutLabelExpected || 0,
       cutLabelSheets:   _snapBreakdown.cutLabelSheets   || 0,
@@ -28572,7 +28592,7 @@ function _renderPLView() {
         hardwareExpected: t.hardwareExpected,
         hardwareExtrasDetail: t.hardwareExtrasDetail || [],
         topsExtrasDetail:     t.topsExtrasDetail     || [],
-        matBreakdown:   _liveBreakdown.matBreakdown,
+        matBreakdown:   applyBoardSurchargeToMatBreakdown(_liveBreakdown.matBreakdown),
         edgeBreakdown:  _liveBreakdown.edgeBreakdown,
         cutLabelExpected: _liveBreakdown.cutLabelExpected || 0,
         cutLabelSheets:   _liveBreakdown.cutLabelSheets   || 0,
@@ -29906,7 +29926,7 @@ async function plExportXLSX(jobId) {
         consult: t.consultTotal, diesel: t.dieselTotal, extras: t.extrasTotal,
         labourExpected: t.labourTotal || 0, markup: t.markup,
         hardwareExpected: t.hardwareExpected,
-        matBreakdown: _lb.matBreakdown, edgeBreakdown: _lb.edgeBreakdown,
+        matBreakdown: applyBoardSurchargeToMatBreakdown(_lb.matBreakdown), edgeBreakdown: _lb.edgeBreakdown,
       };
     } catch(e) {}
   } else if (selJob && selJob._state) {
