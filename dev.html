@@ -9664,11 +9664,12 @@ function buildUnitForm(id) {
       <button class="btn btn-primary" onclick="saveUnit('${id}')">💾 Save Unit</button>
       <button class="btn btn-ghost" onclick="editingUnitId=null;renderEditor()">Cancel</button>
       ${usesUserUnits()
-        ? `<button class="btn btn-danger-soft" onclick="editorDeleteUserUnit('${id}')">🗑 Delete Unit</button>`
+        ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')" title="Save your current changes as a new unit, leaving this one untouched">⧉ Copy Unit</button>
+           <button class="btn btn-danger-soft" onclick="editorDeleteUserUnit('${id}')">🗑 Delete Unit</button>`
         : isCustom
-          ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')">⧉ Copy Unit</button>
+          ? `<button class="btn btn-ghost" onclick="copyUnit('${id}')" title="Save your current changes as a new unit, leaving this one untouched">⧉ Copy Unit</button>
              <button class="btn btn-danger-soft" onclick="deleteUnit('${id}')">🗑 Delete Unit</button>`
-          : `<button class="btn btn-ghost" onclick="copyUnit('${id}')">⧉ Copy Unit</button>
+          : `<button class="btn btn-ghost" onclick="copyUnit('${id}')" title="Save your current changes as a new unit, leaving this one untouched">⧉ Copy Unit</button>
              <button class="btn btn-ghost" onclick="resetUnit('${id}')">↩ Reset to Default</button>
              <button class="btn btn-danger-soft" onclick="deleteBuiltinUnit('${id}')">🗑 Delete Unit</button>`
       }
@@ -9776,12 +9777,20 @@ function copyUnit(id) {
   const source = getEffectiveUnits().find(u => u.id === id);
   if (!source) return;
   const newId = (usesUserUnits() ? 'uu_' : 'custom_') + Date.now();
+  // Only ever called from this unit's own open editor (buildUnitForm) — read
+  // the in-progress edited name/section/parts instead of the last-saved
+  // values, so unsaved changes (e.g. a rescale) land in the copy instead of
+  // being silently discarded.
+  const formName    = document.getElementById('ef-name')?.value.trim();
+  const formSection = document.getElementById('ef-section')?.value;
+  const formParts   = readPartsFromTable();
+  const baseName    = formName || source.name;
   const copy = {
     id: newId,
-    section: source.section,
-    name: source.name + ' (Copy)',
+    section: formSection || source.section,
+    name: baseName === source.name ? baseName + ' (Copy)' : baseName,
     price: source.price || 0,
-    parts: (source.parts || []).map(p => ({...p})),
+    parts: (formParts.length ? formParts : source.parts || []).map(p => ({...p})),
     ...(source.keepMats ? { keepMats: true } : {}),
   };
   if (usesUserUnits()) {
