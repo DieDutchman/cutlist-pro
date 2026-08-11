@@ -15155,6 +15155,7 @@ async function saveJobToCloud() {
       if (_owrapS) _owrapS.style.display = 'flex';
       const _swSave = document.getElementById('job-status-wrap');
       if (_swSave) _swSave.style.display = 'flex';
+      try { _renderJobStatusBadge(); } catch(e) {}
     } else {
       await loadUserJobs();
     }
@@ -15248,6 +15249,11 @@ async function newJob() {
   currentJobPriceSnapshot = null;
   const _jsWrap = document.getElementById('job-status-wrap');
   if (_jsWrap) _jsWrap.style.display = 'none';
+  // Refresh the badge's own text/colour now, not just its visibility — it
+  // gets revealed again on first save (saveJobToCloud) without a re-render,
+  // so leaving stale DOM here would show the PREVIOUS job's status label
+  // the moment this new job is saved.
+  try { _renderJobStatusBadge(); } catch(e) {}
   // Clear job details
   ['job-client','job-house','job-address','job-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
