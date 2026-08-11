@@ -2856,6 +2856,11 @@
   /* Hide secondary header buttons — keep Generate Cutlist */
   .header-actions .btn-ghost { display: none; }
   .header-actions .btn-primary { width: auto; }
+  /* Save chip: collapse to just the coloured dot — label text would crowd
+     an already-tight phone header, but the dot alone still answers "did it
+     save?" at a glance without needing to scroll back to the job bar. */
+  #autosave-chip-header-label { display: none; }
+  #autosave-chip-header { padding: 0 2px; }
 
   /* Nav tabs: even tighter — reinforce compact padding from tablet rule */
   .tab { padding: 4px 7px !important; font-size: 10px; letter-spacing: 0.5px; min-height: 32px; }
@@ -4759,6 +4764,7 @@ body.user-light-theme .pp-vat-select {
 <!-- Share / Export modal -->
 
   <div class="header-actions">
+    <span id="autosave-chip-header" aria-live="polite" style="font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted);white-space:nowrap;padding:0 6px;transition:color 0.2s;display:flex;align-items:center;gap:4px;flex-shrink:0"><span id="autosave-chip-header-dot">⬤</span><span id="autosave-chip-header-label">Saved</span></span>
     <button class="btn btn-ghost" onclick="openQuoteManager()">💾 Quotes</button>
     <button class="btn btn-ghost" onclick="clearAll()">Clear All</button>
 
@@ -6377,18 +6383,26 @@ try {
 
 let _saveFlashTimer = null;
 function _setSaveChip(state) {
-  const chip = document.getElementById('autosave-chip');
-  if (!chip) return;
   clearTimeout(_saveFlashTimer);
+  let icon, text, color;
   if (state === 'saving') {
-    chip.textContent = '⬤ Saving…';
-    chip.style.color = 'var(--amber)';
+    icon = '⬤'; text = 'Saving…'; color = 'var(--amber)';
   } else if (state === 'error') {
-    chip.textContent = '⚠ Not saved';
-    chip.style.color = '#e07070';
+    icon = '⚠'; text = 'Not saved'; color = '#e07070';
   } else {
-    chip.textContent = '⬤ Saved';
-    chip.style.color = 'var(--green)';
+    icon = '⬤'; text = 'Saved'; color = 'var(--green)';
+  }
+  const chip = document.getElementById('autosave-chip');
+  if (chip) { chip.textContent = icon + ' ' + text; chip.style.color = color; }
+  // Sticky-header copy of the same chip — stays visible while scrolled deep
+  // into a room's content (job-bar chip above scrolls out of view).
+  const hWrap  = document.getElementById('autosave-chip-header');
+  const hDot   = document.getElementById('autosave-chip-header-dot');
+  const hLabel = document.getElementById('autosave-chip-header-label');
+  if (hWrap && hDot && hLabel) {
+    hDot.textContent = icon;
+    hLabel.textContent = text;
+    hWrap.style.color = color;
   }
 }
 function _signalSave() {
