@@ -10224,6 +10224,49 @@ function calcSpacersCost(spacers) {
   return spacers.items.reduce((s, item) => s + _calcItemCost(item), 0);
 }
 
+// Same shape as _calcItemCost but uses billedSheetsForMat (per-material minimums/
+// full-sheet/special-order rules) instead of the plain billSheets rounding used for
+// plant-on panels. Factored out of buildSpacersCard's inline per-row calc so
+// updateAddonRowCost() can reuse it for the surgical (non-full-rerender) cost update.
+function _calcSpacerItemCost(item) {
+  if (!item.w || !item.h) return 0;
+  const lM = item.h / 1000, wM = item.w / 1000;
+  const withWaste = lM * wM * item.qty * WASTE_FACTOR;
+  const matCost   = billedSheetsForMat(item.mat, withWaste, SHEET_AREA) * (costingPrices.mat[item.mat] || 0);
+  let edgeCost = 0;
+  [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l]) => {
+    if (k) edgeCost += l * item.qty * (costingPrices.edge[k] || 0);
+  });
+  const cutCost = Math.ceil(withWaste / SHEET_AREA) * costingPrices.extras.cutLabel;
+  return matCost + edgeCost + cutCost;
+}
+
+// Surgical update for a plant-on/spacer row after a Qty/Width/Height/Material/Edge
+// commit: recompute that row's cost line and the card's running total in place,
+// without touching innerHTML on any ancestor of the <input>/<select> elements.
+// This is what lets focus survive Tab (see buildPlantOnCard/buildSpacersCard —
+// those used to call renderPanel() on every onchange, which destroyed and recreated
+// the very input the browser was about to tab into).
+function updateAddonRowCost(secId, kind, i) {
+  const group = bedroomAddons[secId] && bedroomAddons[secId][kind];
+  const item = group && group.items[i];
+  if (!item) return;
+  const cost = kind === 'plantOn' ? _calcItemCost(item) : _calcSpacerItemCost(item);
+  const costEl = document.getElementById(`ac-cost-${kind}-${secId}-${i}`);
+  if (costEl) {
+    costEl.style.display = cost > 0 ? '' : 'none';
+    const strong = costEl.querySelector('strong');
+    if (strong) strong.textContent = `R ${Math.round(cost).toLocaleString('en-ZA')}`;
+  }
+  const total = kind === 'plantOn' ? calcPlantOnCost(group) : calcSpacersCost(group);
+  const totalEl = document.getElementById(`ac-total-${kind}-${secId}`);
+  if (totalEl) {
+    totalEl.style.display = total > 0 ? '' : 'none';
+    const strong = totalEl.querySelector('strong');
+    if (strong) strong.textContent = `R ${Math.round(total).toLocaleString('en-ZA')}`;
+  }
+}
+
 function buildPlantOnCard(secId) {
   const po   = bedroomAddons[secId].plantOn;
   const save = `saveBedroomAddons();renderPanel()`;
@@ -10247,35 +10290,35 @@ function buildPlantOnCard(secId) {
         <div class="addon-field">
           <label>Qty</label>
           <input autocomplete="off" type="number" min="1" value="${item.qty}"
-            onchange="${ref}.qty=parseInt(this.value)||1;${save}"
+            onchange="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})"
             onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Width (mm)</label>
           <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 600"
-            onchange="${ref}.w=parseInt(this.value)||0;${save}"
+            onchange="${ref}.w=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})"
             onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Height (mm)</label>
           <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
-            onchange="${ref}.h=parseInt(this.value)||0;${save}"
+            onchange="${ref}.h=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})"
             onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
       </div>
       <div class="addon-row">
         <div class="addon-field wide">
           <label>Material</label>
-          <select autocomplete="off" onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})">${matOptsHtml}</select>
         </div>
       </div>
       <div class="addon-row">
-        <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
-        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
-        <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','plantOn',${i})">${edgeOpts(item.ew2)}</select></div>
       </div>
-      ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
+      <div id="ac-cost-plantOn-${secId}-${i}" class="addon-cost" style="${cost > 0 ? '' : 'display:none'}">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>
     </div>`;
   });
 
@@ -10289,7 +10332,7 @@ function buildPlantOnCard(secId) {
           style="font-weight:500;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:6px 16px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px">
           + ADD PANEL
         </button>
-        ${totalCost > 0 ? `<span style="font-size:12px;color:var(--text-muted)">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>` : ''}
+        <span id="ac-total-plantOn-${secId}" style="font-size:12px;color:var(--text-muted);${totalCost > 0 ? '' : 'display:none'}">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>
         <button onclick="saveAddonPreset('${secId}')"
           style="font-weight:500;background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.4);color:#4caf82;padding:5px 12px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;margin-left:auto">
           💾 SAVE AS PRESET
@@ -10324,16 +10367,7 @@ function buildSpacersCard(secId) {
   sp.items.forEach((item, i) => {
     const ref = `bedroomAddons['${secId}'].spacers.items[${i}]`;
     const matOptsHtml = MATS.map(m => `<option value="${m}" ${m===item.mat?'selected':''}>${m}</option>`).join('');
-    const cost = (item.w && item.h)
-      ? (() => {
-          const lM = item.h/1000, wM = item.w/1000;
-          const ww  = lM * wM * item.qty * WASTE_FACTOR;
-          const mc  = billedSheetsForMat(item.mat, ww, SHEET_AREA) * (costingPrices.mat[item.mat]||0);
-          let ec = 0;
-          [[item.el1,lM],[item.el2,lM],[item.ew1,wM],[item.ew2,wM]].forEach(([k,l])=>{ if(k) ec+=l*item.qty*(costingPrices.edge[k]||0); });
-          return mc + ec + Math.ceil(ww/SHEET_AREA)*costingPrices.extras.cutLabel;
-        })()
-      : 0;
+    const cost = _calcSpacerItemCost(item);
 
     itemsHtml += `<div style="background:var(--bg2);border:1px solid var(--border);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -10347,35 +10381,35 @@ function buildSpacersCard(secId) {
         <div class="addon-field">
           <label>Qty</label>
           <input autocomplete="off" type="number" min="1" value="${item.qty}"
-            onchange="${ref}.qty=parseInt(this.value)||1;${save}"
+            onchange="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})"
             onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Width (mm)</label>
           <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 100"
-            onchange="${ref}.w=parseInt(this.value)||0;${save}"
+            onchange="${ref}.w=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})"
             onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
         <div class="addon-field">
           <label>Height (mm)</label>
           <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
-            onchange="${ref}.h=parseInt(this.value)||0;${save}"
+            onchange="${ref}.h=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})"
             onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
         </div>
       </div>
       <div class="addon-row">
         <div class="addon-field wide">
           <label>Material</label>
-          <select autocomplete="off" onchange="${ref}.mat=this.value;${save}">${matOptsHtml}</select>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})">${matOptsHtml}</select>
         </div>
       </div>
       <div class="addon-row">
-        <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;${save}">${edgeOpts(item.el1)}</select></div>
-        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;${save}">${edgeOpts(item.el2)}</select></div>
-        <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;${save}">${edgeOpts(item.ew1)}</select></div>
-        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;${save}">${edgeOpts(item.ew2)}</select></div>
+        <div class="addon-field" title="L1 — long edge 1 (height of part)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field" title="W1 — short edge 1 (width of part)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','spacers',${i})">${edgeOpts(item.ew2)}</select></div>
       </div>
-      ${cost > 0 ? `<div class="addon-cost">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>` : ''}
+      <div id="ac-cost-spacers-${secId}-${i}" class="addon-cost" style="${cost > 0 ? '' : 'display:none'}">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>
     </div>`;
   });
 
@@ -10389,7 +10423,7 @@ function buildSpacersCard(secId) {
           style="font-weight:500;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:6px 16px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px">
           + ADD SPACER
         </button>
-        ${totalCost > 0 ? `<span style="font-size:12px;color:var(--text-muted)">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>` : ''}
+        <span id="ac-total-spacers-${secId}" style="font-size:12px;color:var(--text-muted);${totalCost > 0 ? '' : 'display:none'}">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>
       </div>
     </div>` : '';
 
