@@ -15096,8 +15096,26 @@ function getJobState() {
   };
 }
 
-async function saveJobToCloud() {
-  if (!sbUser) return;
+// Serializes saveJobToCloud() calls so at most one PATCH is ever in flight.
+// Each call captures getJobState() at ITS OWN start — if two calls were
+// allowed to run concurrently, an older one (started first, capturing an
+// earlier state) finishing AFTER a newer one (e.g. slow network on the
+// first request) would land its stale PATCH last and silently overwrite
+// the newer data. That's a lost-update race that can drop anything saved
+// in between (e.g. a just-created unit that never makes it to the server).
+// Chaining onto a shared tail promise means every call — including ones
+// that `await` it (archive/delete/duplicate) — only resolves once ITS OWN
+// turn has actually run and captured fully current state, in FIFO order,
+// with zero overlap.
+let _saveChainTail = Promise.resolve();
+function saveJobToCloud() {
+  if (!sbUser) return Promise.resolve();
+  const run = _saveChainTail.then(() => _saveJobToCloudInner());
+  _saveChainTail = run.catch(() => {}); // keep the chain alive even if this turn errors
+  return run;
+}
+
+async function _saveJobToCloudInner() {
   // If a prior applyState() threw mid-restore, the in-memory state is partial
   // and writing it back would clobber server fields (jobStatus, plData,
   // userRooms, etc.) that never made it into globals. Refuse to save until
