@@ -12092,7 +12092,7 @@ function _renderQuoteView() {
 
     let secDisplayTotal = 0;
     // Tally this room's hardware while we iterate its units.
-    const _rh = { hinges: 0, h160: 0, h240: 0, runnerSets: {} };
+    const _rh = { hinges: 0, h160: 0, h240: 0, runnerSets: {}, screwCost: 0 };
 
     units.forEach(u => {
       const qty   = quantities[u.id] || 0;
@@ -12108,6 +12108,7 @@ function _renderQuoteView() {
         if (unitHasHandles(u.id)) _rh.h160   += _c.handle160Count || 0;
         if (unitHasHandles(u.id)) _rh.h240   += _c.handle240Count || 0;
         if (unitHasRunners(u.id) && _c.runnerSets) mergeRunnerSets(_rh.runnerSets, _c.runnerSets);
+        _rh.screwCost += _c.screwCost || 0;
       }
       mainHtml += `<tr>
         <td class="qv-qty">${qty}×</td>
@@ -12226,7 +12227,7 @@ function _renderQuoteView() {
       if (sectionHasHandles(sec.id) && _rh.h160 > 0) _h160CostR = _rh.h160 * _hw.handle160;
       if (sectionHasHandles(sec.id) && _rh.h240 > 0) _h240CostR = _rh.h240 * _hw.handle240;
 
-      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR;
+      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR + _rh.screwCost;
       // Only render the Hardware row when there is actually something to show.
       if (_roomHwTotal > 0) {
         const _open = !!(quoteState.hwBreakdownOpen && quoteState.hwBreakdownOpen[sec.id]);
@@ -12261,6 +12262,9 @@ function _renderQuoteView() {
           }
           if (_h240CostR > 0) {
             mainHtml += _subRow('Handles 240mm', `${_rh.h240} pcs × R${_hw.handle240.toFixed(0)}`, _h240CostR);
+          }
+          if (_rh.screwCost > 0) {
+            mainHtml += _subRow('Screws', 'chipboard + machine', _rh.screwCost);
           }
         }
       }
@@ -12354,7 +12358,7 @@ function _renderQuoteView() {
   const hingePrice  = quoteState.hingeType  === 'soft' ? hw.hingeSoft  : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
 
-  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0, totalScrewCost = 0;
   const allRunnerSets = {};
 
   sectionData.forEach(({ units }) => {
@@ -12368,6 +12372,7 @@ function _renderQuoteView() {
       if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
       if (unitHasHandles(u.id)) totalHandle240 += c.handle240Count || 0;
       if (unitHasRunners(u.id) && c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
+      totalScrewCost += c.screwCost || 0;
     });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
@@ -12382,7 +12387,7 @@ function _renderQuoteView() {
   const runnerCostTotal  = calcRunnerCost();
   const handle160Total   = totalHandle160 * hw.handle160;
   const handle240Total   = totalHandle240 * hw.handle240;
-  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total;
+  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total + totalScrewCost;
   const autoHwHandling   = autoHwTotal * HW_HANDLING;
   const autoHwGrand      = autoHwTotal + autoHwHandling;
   const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
@@ -22074,7 +22079,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const allMatM2  = {};
   const allEdgeM  = {};
   let totalMat = 0, totalEdge = 0, totalCutLabel = 0, totalDrilling = 0;
-  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0, totalScrewCost = 0;
   const allRunnerSets = {};  // merged { stdSize: count } across all units
   let grandTotal  = 0;
 
@@ -22088,6 +22093,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalHinges    += c.hingeCount;
     totalHandle160 += c.handle160Count;
     totalHandle240 += c.handle240Count;
+    totalScrewCost += c.screwCost || 0;
     if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     Object.entries(c.matM2).forEach(([mat, m2]) => { allMatM2[mat] = (allMatM2[mat]||0) + m2; });
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
@@ -22133,7 +22139,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   }, 0);
   const total160Cost    = totalHandle160 * hw.handle160;
   const total240Cost    = totalHandle240 * hw.handle240;
-  const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost;
+  const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost + totalScrewCost;
   const totalHwHandling    = totalHardware * HW_HANDLING;  // 15% on auto-calculated hardware
 
   // ── Hardware extras from Quote tab ──────────────────────────────
