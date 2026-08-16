@@ -12041,6 +12041,12 @@ function _renderQuoteView() {
   const _panelsPooled   = calcPanelsCostPooled(quotePanelItems);
   unitsTotal += _panelsPooled.total;
 
+  // Screw cost pooled once across the WHOLE job (not per unit — see
+  // calcJobScrewCost) — added below alongside Tops/Extras/Labour rather than
+  // folded into unitsTotal, since it isn't attributable to any single unit.
+  const screwPackCost  = calcJobScrewCost(sectionData.flatMap(d => d.units), quantities);
+  const screwPackGrand = screwPackCost * (1 + HW_HANDLING);
+
   // Board surcharge — applies only to board material cost (not cut/handling/hardware/extras)
   const _boardSurchargePct     = costingPrices.extras.boardSurcharge || 0;
   const _boardSurchargeEnabled = quoteState.boardSurchargeEnabled !== false; // default on
@@ -12060,8 +12066,8 @@ function _renderQuoteView() {
   const extrasTotal    = quoteState.extras.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const labourTotal    = calcLabourCost();
   const unitsWithMarkup = unitsTotal * (1 + quoteState.markup);
-  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
-  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  const subtotal       = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal + screwPackGrand;
+  const withMarkup     = unitsWithMarkup + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal + screwPackGrand;
 
   // ── Main area: unit breakdown ──
   let mainHtml = `
@@ -12092,7 +12098,7 @@ function _renderQuoteView() {
 
     let secDisplayTotal = 0;
     // Tally this room's hardware while we iterate its units.
-    const _rh = { hinges: 0, h160: 0, h240: 0, runnerSets: {}, screwCost: 0 };
+    const _rh = { hinges: 0, h160: 0, h240: 0, runnerSets: {} };
 
     units.forEach(u => {
       const qty   = quantities[u.id] || 0;
@@ -12102,13 +12108,15 @@ function _renderQuoteView() {
       // Hardware tally for this unit — only when the unit actually has parts
       // (calcUnitCost short-circuits otherwise). Uses per-unit flags so the
       // numbers match the costing-tab logic exactly.
+      // Screws are excluded here — screw pack cost is pooled once for the
+      // whole job (not attributable to a single room), shown only in the
+      // sidebar Hardware total.
       if (qty && u.parts && u.parts.length > 0) {
         const _c = calcUnitCost(u, qty);
         if (unitHasHinges (u.id)) _rh.hinges += _c.hingeCount    || 0;
         if (unitHasHandles(u.id)) _rh.h160   += _c.handle160Count || 0;
         if (unitHasHandles(u.id)) _rh.h240   += _c.handle240Count || 0;
         if (unitHasRunners(u.id) && _c.runnerSets) mergeRunnerSets(_rh.runnerSets, _c.runnerSets);
-        _rh.screwCost += _c.screwCost || 0;
       }
       mainHtml += `<tr>
         <td class="qv-qty">${qty}×</td>
@@ -12227,7 +12235,7 @@ function _renderQuoteView() {
       if (sectionHasHandles(sec.id) && _rh.h160 > 0) _h160CostR = _rh.h160 * _hw.handle160;
       if (sectionHasHandles(sec.id) && _rh.h240 > 0) _h240CostR = _rh.h240 * _hw.handle240;
 
-      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR + _rh.screwCost;
+      const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR;
       // Only render the Hardware row when there is actually something to show.
       if (_roomHwTotal > 0) {
         const _open = !!(quoteState.hwBreakdownOpen && quoteState.hwBreakdownOpen[sec.id]);
@@ -12262,9 +12270,6 @@ function _renderQuoteView() {
           }
           if (_h240CostR > 0) {
             mainHtml += _subRow('Handles 240mm', `${_rh.h240} pcs × R${_hw.handle240.toFixed(0)}`, _h240CostR);
-          }
-          if (_rh.screwCost > 0) {
-            mainHtml += _subRow('Screws', 'chipboard + machine', _rh.screwCost);
           }
         }
       }
@@ -12358,7 +12363,7 @@ function _renderQuoteView() {
   const hingePrice  = quoteState.hingeType  === 'soft' ? hw.hingeSoft  : hw.hingeNormal;
   const runnerPrice = quoteState.runnerType === 'soft' ? hw.runnerSoft : hw.runnerNormal;
 
-  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0, totalScrewCost = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
   const allRunnerSets = {};
 
   sectionData.forEach(({ units }) => {
@@ -12372,7 +12377,6 @@ function _renderQuoteView() {
       if (unitHasHandles(u.id)) totalHandle160 += c.handle160Count || 0;
       if (unitHasHandles(u.id)) totalHandle240 += c.handle240Count || 0;
       if (unitHasRunners(u.id) && c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
-      totalScrewCost += c.screwCost || 0;
     });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
@@ -12383,14 +12387,17 @@ function _renderQuoteView() {
     return sum + count * (hwItem ? hwItem.pricePerUnit : runnerPrice);
   }, 0);
 
+  // Screw cost is pooled once for the WHOLE job (not summed per-unit) — see
+  // calcJobScrewCost. screwPackCost/screwPackGrand are also used below to
+  // add the (otherwise unit-total-excluded) screw charge into subtotal/grand.
   const hingeCostTotal   = totalHinges    * hingePrice;
   const runnerCostTotal  = calcRunnerCost();
   const handle160Total   = totalHandle160 * hw.handle160;
   const handle240Total   = totalHandle240 * hw.handle240;
-  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total + totalScrewCost;
+  const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total + screwPackCost;
   const autoHwHandling   = autoHwTotal * HW_HANDLING;
   const autoHwGrand      = autoHwTotal + autoHwHandling;
-  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0 || totalScrewCost > 0;
+  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0 || screwPackCost > 0;
 
   // Standalone Hardware section removed — hardware now lives per-room (🔩 Hardware ▾ row
   // inside each room table) and the aggregate is shown in the sidebar Hardware total row.
@@ -13121,6 +13128,12 @@ function computeQuoteTotals() {
   const _pooledPanels = panelsState.items.filter(p => p.l > 0 && p.w > 0 && p.qty > 0);
   if (_pooledPanels.length) unitsTotal += calcPanelsCostPooled(_pooledPanels).total;
 
+  // Screw cost pooled once across the WHOLE job (not per unit) — see
+  // calcJobScrewCost. Added alongside Tops/Extras/Labour below, mirroring
+  // renderQuoteView, since it isn't attributable to any single unit.
+  const screwPackCost  = calcJobScrewCost(sectionData.flatMap(d => d.units), quantities);
+  const screwPackGrand = screwPackCost * (1 + HW_HANDLING);
+
   // Board surcharge on board material cost only (respects per-job toggle)
   const _bsPct = costingPrices.extras.boardSurcharge || 0;
   if (_bsPct > 0 && quoteState.boardSurchargeEnabled !== false) {
@@ -13199,10 +13212,10 @@ function computeQuoteTotals() {
   // No markup is applied to labour: it's a flat cost flowing straight to grand
   // total, mirroring how Tops / Fees / Extras are treated.
   const labourTotal  = calcLabourCost();
-  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
+  const subtotal     = unitsTotal + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal + screwPackGrand;
   const markup       = quoteState.markup || 0;
-  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal;
-  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, labourTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail };
+  const grand        = unitsTotal * (1 + markup) + topsTotal + consultTotal + dieselTotal + deliveryTotal + extrasTotal + labourTotal + screwPackGrand;
+  return { unitsTotal, topsTotal, topsExcl, topsDelivery, topsHandling, consultTotal, dieselTotal, deliveryTotal, extrasTotal, labourTotal, subtotal, grand, markup, hardwareExpected, hardwareExtrasDetail, topsExtrasDetail, screwPackCost, screwPackGrand };
 }
 
 // Build per-material breakdown from ALL sources: units, standalone panels, bedroom addons.
@@ -20523,24 +20536,44 @@ function calcUnitCost(u, unitQty) {
     : 0;
   const handle160Cost = includeHandles ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHandles ? handle240Count * hw.handle240 : 0;
+  // Raw screw counts only — NOT costed per unit. Packs are bought once for
+  // the whole job (see calcJobScrewCost below), so charging per-unit pack
+  // rounding here would bill a job needing 300 screws across 2 units as 2
+  // packs instead of the 1 pack it actually takes.
   const screwCounts   = includeHardware
     ? screwCountsForUnit(u, unitQty, hingeCount, runnerCount, handle160Count + handle240Count)
     : { screw16: 0, screw25: 0, screw40: 0, screwM4: 0 };
-  const screwCost      = includeHardware
-    ? Object.entries(screwCounts).reduce((sum, [key, count]) =>
-        sum + Math.ceil(count / SCREW_PACK_SIZE[key]) * (hw[key] || 0), 0)
-    : 0;
-  const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost + screwCost;
+  const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
   const svcCost = calcSpecialServicesCost(unitSpecialServices[u.id]);
   const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost + svcCost;
 
   return { matM2, edgeM, partCount, doorCount, matCost, edgeCost, cutLabelCost, drillingCost,
            hingeCount, runnerCount, runnerSets, handle160Count, handle240Count,
-           hingeCost, runnerCost, handle160Cost, handle240Cost, screwCounts, screwCost,
+           hingeCost, runnerCost, handle160Cost, handle240Cost, screwCounts,
            hardwareCost, hwHandlingCost,
            hPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
+}
+
+// Screw cost pooled ONCE across the whole job — packs are bought per job,
+// not per unit, so a job needing 300 screws total across several units
+// costs 1 pack, not 1 pack per unit that happens to use part of that count.
+function calcJobScrewCost(jobUnits, jobQuantities) {
+  const totals = { screw16: 0, screw25: 0, screw40: 0, screwM4: 0 };
+  jobUnits.forEach(u => {
+    const qty = jobQuantities[u.id] || 0;
+    if (!qty || !u.parts || !u.parts.length) return;
+    const c = calcUnitCost(u, qty);
+    if (!c.screwCounts) return;
+    totals.screw16 += c.screwCounts.screw16 || 0;
+    totals.screw25 += c.screwCounts.screw25 || 0;
+    totals.screw40 += c.screwCounts.screw40 || 0;
+    totals.screwM4 += c.screwCounts.screwM4 || 0;
+  });
+  const hw = costingPrices.hardware;
+  return Object.entries(totals).reduce((sum, [key, count]) =>
+    sum + Math.ceil(count / SCREW_PACK_SIZE[key]) * (hw[key] || 0), 0);
 }
 
 function hardwareRows(c, sectionId) {
@@ -20582,16 +20615,8 @@ function hardwareRows(c, sectionId) {
       rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} set${c.runnerCount!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
     }
   }
-  const _screwLabels = { screw16: '3.5×16mm', screw25: '3.5×25mm', screw40: '3.5×40mm', screwM4: 'M4×40mm Machine' };
-  if (c.screwCounts) {
-    Object.entries(c.screwCounts).forEach(([key, count]) => {
-      if (!count) return;
-      const packs = Math.ceil(count / SCREW_PACK_SIZE[key]);
-      const price = hw[key] || 0;
-      const cost  = packs * price;
-      rows += `<tr><td>Screws – ${_screwLabels[key]} (${packs} pack${packs!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${price}×${packs}</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
-    });
-  }
+  // Screw cost is NOT shown per unit — it's pooled once for the whole job
+  // (see calcJobScrewCost, rendered as its own line in the job total below).
   if (rows) {
     const hwHandling = c.hwHandlingCost || 0;
     rows = `<tr class="cv-subtotal"><td>Hardware (subtotal)</td><td colspan="3"></td><td class="num cost">R ${Math.round(c.hardwareCost).toLocaleString('en-ZA')}</td></tr>` + rows;
@@ -22079,7 +22104,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   const allMatM2  = {};
   const allEdgeM  = {};
   let totalMat = 0, totalEdge = 0, totalCutLabel = 0, totalDrilling = 0;
-  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0, totalScrewCost = 0;
+  let totalHinges = 0, totalHandle160 = 0, totalHandle240 = 0;
   const allRunnerSets = {};  // merged { stdSize: count } across all units
   let grandTotal  = 0;
 
@@ -22093,12 +22118,18 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     totalHinges    += c.hingeCount;
     totalHandle160 += c.handle160Count;
     totalHandle240 += c.handle240Count;
-    totalScrewCost += c.screwCost || 0;
     if (c.runnerSets) mergeRunnerSets(allRunnerSets, c.runnerSets);
     Object.entries(c.matM2).forEach(([mat, m2]) => { allMatM2[mat] = (allMatM2[mat]||0) + m2; });
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
+
+  // Screw cost pooled once for the WHOLE job (not summed per-unit like the
+  // other hardware totals above) — see calcJobScrewCost. Not part of
+  // grandTotal's per-unit c.total sum, so it's added explicitly below,
+  // alongside its 15% handling, wherever grandTotal becomes the real total.
+  const screwPackCost  = calcJobScrewCost(selectedUnits, quantities);
+  const screwPackGrand = screwPackCost * (1 + HW_HANDLING);
 
   // Fold panel items into the combined totals — pool by material first
   if (panelItems.length > 0) {
@@ -22139,7 +22170,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   }, 0);
   const total160Cost    = totalHandle160 * hw.handle160;
   const total240Cost    = totalHandle240 * hw.handle240;
-  const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost + totalScrewCost;
+  const totalHardware      = totalHingeCost + totalRunnerCost + total160Cost + total240Cost + screwPackCost;
   const totalHwHandling    = totalHardware * HW_HANDLING;  // 15% on auto-calculated hardware
 
   // ── Hardware extras from Quote tab ──────────────────────────────
@@ -22184,7 +22215,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
   );
   const _quoteOtherTotal = _quoteOtherExtras.reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
 
-  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal + _quoteOtherTotal;
+  const grandTotalAll  = grandTotal + topsTotal + extraHwTotal + extraHwHandling + _quoteBaseTotal + _quoteSkTotal + _quoteOtherTotal + screwPackGrand;
 
   const R   = n => 'R ' + Math.round(n).toLocaleString('en-ZA');
   const pct = n => grandTotalAll > 0 ? `<span style="color:var(--text-muted);font-size:10px"> (${Math.round(n/grandTotalAll*100)}%)</span>` : '';
@@ -22254,6 +22285,7 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
         const label   = hwItem ? hwItem.name : `${runnerLabel} ${size}mm`;
         return `<tr><td>${label} (${count} set${count!==1?'s':''})</td><td class="num">—</td><td class="num">R${price} × ${count}</td><td class="num cost">${R(count * price)}</td></tr>`;
       }).join('') + (allRunnerSets[0] ? `<tr><td>Runners – ${runnerLabel} (${allRunnerSets[0]} set${allRunnerSets[0]!==1?'s':''})</td><td class="num">—</td><td class="num">R${runnerPrice} × ${allRunnerSets[0]}</td><td class="num cost">${R(allRunnerSets[0]*runnerPrice)}</td></tr>` : '') : '',
+    screwPackCost  > 0 ? `<tr><td>Screws <span style="font-size:10px;color:var(--text-muted)">(pooled — whole job)</span></td><td class="num">—</td><td class="num">—</td><td class="num cost">${R(screwPackCost)}</td></tr>` : '',
   ].join('');
 
   // Section header helper — no percentage, just clean label + total
