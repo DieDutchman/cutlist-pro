@@ -20352,6 +20352,23 @@ function calcSectionCost(secId, sectionUnits, quantities) {
   return matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hPriceCost;
 }
 
+// Screw counts for one unit, given its already-computed hinge/drawer/handle
+// counts. drawerCount = number of drawers (one runner set per drawer).
+// handleCount = handle160Count + handle240Count (doors + drawer faces).
+// Carcass screws (3.5x40mm) are flat-per-unit-instance and only apply to
+// kitchen F*/W* units — no numbers exist yet for bedroom/linnekast/bathroom.
+function screwCountsForUnit(u, unitQty, hingeCount, drawerCount, handleCount) {
+  const isFloor = /^F\d/.test(u.name) && u.section === 'kitchen';
+  const isWall  = /^W\d/.test(u.name) && u.section === 'kitchen';
+
+  const screw25 = drawerCount * 24;                 // 20 drawer box + 4 drawer face
+  const screw16 = drawerCount * 12 + hingeCount * 6; // runners+box+carcass ties, + 6/hinge
+  const screwM4 = handleCount * 2;                   // 2 per handle (door or drawer face)
+  const screw40 = isFloor ? unitQty * 18 : isWall ? unitQty * 20 : 0;
+
+  return { screw16, screw25, screw40, screwM4 };
+}
+
 function calcUnitCost(u, unitQty) {
   // Per-section, per-type hardware flags. Drilling (hinge holes) follows hinges.
   const includeHinges   = unitHasHinges(u.id);
