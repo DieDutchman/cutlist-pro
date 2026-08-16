@@ -20507,7 +20507,9 @@ function calcUnitCost(u, unitQty) {
     : 0;
   const handle160Cost = includeHandles ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHandles ? handle240Count * hw.handle240 : 0;
-  const screwCounts   = screwCountsForUnit(u, unitQty, hingeCount, runnerCount, handle160Count + handle240Count);
+  const screwCounts   = includeHardware
+    ? screwCountsForUnit(u, unitQty, hingeCount, runnerCount, handle160Count + handle240Count)
+    : { screw16: 0, screw25: 0, screw40: 0, screwM4: 0 };
   const screwCost      = includeHardware
     ? Object.entries(screwCounts).reduce((sum, [key, count]) =>
         sum + Math.ceil(count / SCREW_PACK_SIZE[key]) * (hw[key] || 0), 0)
