@@ -9103,6 +9103,7 @@ function generateSummary() {
   {
     const _bomRunnerSets = {};
     let _bomHinges = 0, _bomH160 = 0, _bomH240 = 0, _bomShelfPins = 0;
+    let _bomScrew16 = 0, _bomScrew25 = 0, _bomScrew40 = 0, _bomScrewM4 = 0;
 
     selectedUnits.forEach(u => {
       const unitQty = quantities[u.id] || 0;
@@ -9117,6 +9118,12 @@ function generateSummary() {
       if (incHandles) _bomH160   += c.handle160Count || 0;
       if (incHandles) _bomH240   += c.handle240Count || 0;
       if (incRunners && c.runnerSets) mergeRunnerSets(_bomRunnerSets, c.runnerSets);
+      if ((incHinges || incRunners || incHandles) && c.screwCounts) {
+        _bomScrew16 += c.screwCounts.screw16 || 0;
+        _bomScrew25 += c.screwCounts.screw25 || 0;
+        _bomScrew40 += c.screwCounts.screw40 || 0;
+        _bomScrewM4 += c.screwCounts.screwM4 || 0;
+      }
 
       // Shelf pins — 4 per shelf part. Exclude obvious non-shelves (supports,
       // backs, braces) that happen to contain the word "shelf".
@@ -9143,6 +9150,10 @@ function generateSummary() {
     if (_bomH160 > 0) _bomRows.push({ item: 'Handles 160mm', qty: _bomH160, unit: 'pcs' });
     if (_bomH240 > 0) _bomRows.push({ item: 'Handles 240mm', qty: _bomH240, unit: 'pcs' });
     if (_bomShelfPins > 0) _bomRows.push({ item: 'Shelf Pins', qty: _bomShelfPins, unit: 'pcs' });
+    if (_bomScrew16 > 0) _bomRows.push({ item: 'Chipboard Screws 3.5×16mm', qty: Math.ceil(_bomScrew16 / SCREW_PACK_SIZE.screw16), unit: 'packs' });
+    if (_bomScrew25 > 0) _bomRows.push({ item: 'Chipboard Screws 3.5×25mm', qty: Math.ceil(_bomScrew25 / SCREW_PACK_SIZE.screw25), unit: 'packs' });
+    if (_bomScrew40 > 0) _bomRows.push({ item: 'Chipboard Screws 3.5×40mm', qty: Math.ceil(_bomScrew40 / SCREW_PACK_SIZE.screw40), unit: 'packs' });
+    if (_bomScrewM4 > 0) _bomRows.push({ item: 'Machine Screws M4×40mm',    qty: Math.ceil(_bomScrewM4 / SCREW_PACK_SIZE.screwM4), unit: 'packs' });
 
     if (_bomRows.length) {
       html += `
