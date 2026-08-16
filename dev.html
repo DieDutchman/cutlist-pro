@@ -20507,14 +20507,20 @@ function calcUnitCost(u, unitQty) {
     : 0;
   const handle160Cost = includeHandles ? handle160Count * hw.handle160 : 0;
   const handle240Cost = includeHandles ? handle240Count * hw.handle240 : 0;
-  const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost;
+  const screwCounts   = screwCountsForUnit(u, unitQty, hingeCount, runnerCount, handle160Count + handle240Count);
+  const screwCost      = includeHardware
+    ? Object.entries(screwCounts).reduce((sum, [key, count]) =>
+        sum + Math.ceil(count / SCREW_PACK_SIZE[key]) * (hw[key] || 0), 0)
+    : 0;
+  const hardwareCost  = hingeCost + runnerCost + handle160Cost + handle240Cost + screwCost;
   const hwHandlingCost = hardwareCost * HW_HANDLING;
   const svcCost = calcSpecialServicesCost(unitSpecialServices[u.id]);
   const total = matCost + edgeCost + cutLabelCost + drillingCost + hardwareCost + hwHandlingCost + hPriceCost + svcCost;
 
   return { matM2, edgeM, partCount, doorCount, matCost, edgeCost, cutLabelCost, drillingCost,
            hingeCount, runnerCount, runnerSets, handle160Count, handle240Count,
-           hingeCost, runnerCost, handle160Cost, handle240Cost, hardwareCost, hwHandlingCost,
+           hingeCost, runnerCost, handle160Cost, handle240Cost, screwCounts, screwCost,
+           hardwareCost, hwHandlingCost,
            hPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
 }
@@ -20557,6 +20563,16 @@ function hardwareRows(c, sectionId) {
     } else {
       rows += `<tr><td>Runners – ${runnerLabel} (${c.runnerCount} set${c.runnerCount!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${runnerPrice}×${c.runnerCount}</td><td class="num cost">R ${Math.round(c.runnerCost).toLocaleString('en-ZA')}</td></tr>`;
     }
+  }
+  const _screwLabels = { screw16: '3.5×16mm', screw25: '3.5×25mm', screw40: '3.5×40mm', screwM4: 'M4×40mm Machine' };
+  if (c.screwCounts) {
+    Object.entries(c.screwCounts).forEach(([key, count]) => {
+      if (!count) return;
+      const packs = Math.ceil(count / SCREW_PACK_SIZE[key]);
+      const price = hw[key] || 0;
+      const cost  = packs * price;
+      rows += `<tr><td>Screws – ${_screwLabels[key]} (${packs} pack${packs!==1?'s':''})</td><td colspan="3" class="num" style="color:var(--text-muted);font-size:11px">R${price}×${packs}</td><td class="num cost">R ${Math.round(cost).toLocaleString('en-ZA')}</td></tr>`;
+    });
   }
   if (rows) {
     const hwHandling = c.hwHandlingCost || 0;
