@@ -13643,6 +13643,9 @@ const HW_HANDLING = 0.15;           // 15% handling fee on hardware
 // Standard drawer runner lengths (mm) — always round UP to the next size
 const RUNNER_STANDARD_SIZES = [300, 350, 400, 450, 500];
 
+// Screw pack sizes (fixed — not user-editable, matches supplier pack counts)
+const SCREW_PACK_SIZE = { screw16: 1000, screw25: 1000, screw40: 800, screwM4: 50 };
+
 // Return the smallest standard runner size that fits the given drawer depth (mm)
 // e.g. 480mm depth → 500mm runner, 350mm depth → 350mm runner, 290mm depth → 300mm
 function runnerSizeForDepth(depthMm) {
@@ -13827,6 +13830,10 @@ const costingPrices = {
     runnerSoft:   185,
     handle160:    28,
     handle240:    38,
+    screw16:       0,
+    screw25:       0,
+    screw40:       0,
+    screwM4:       0,
   },
   // Custom boards added per-job: [{id, boardName, boardPrice, edgeName, edgePrice}]
   customBoards: [],
@@ -21690,6 +21697,12 @@ function _renderMaterialsView() {
         ${catItems('handle')}
         ${suggestions('handle', ['96mm', '128mm', '320mm', '512mm', 'Knob', 'Edge Pull', 'Flush Pull'])}
         ${addRow('handle', 'e.g. 96mm, 320mm, Knob…')}
+
+        ${section('Screws')}
+        ${fixedRow('3.5×16mm', 'per pack of 1000', 'screw16', hw)}
+        ${fixedRow('3.5×25mm', 'per pack of 1000', 'screw25', hw)}
+        ${fixedRow('3.5×40mm', 'per pack of 800', 'screw40', hw)}
+        ${fixedRow('M4×40mm Machine', 'per pack of 50', 'screwM4', hw)}
 
         ${section('Other Services')}
         <div class="cv-extra-row">
