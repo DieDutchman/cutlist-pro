@@ -10024,7 +10024,7 @@ function scalePartHeight(part, baseHeight, newHeight) {
   const n = part.name.toLowerCase();
 
   // These parts never scale with unit height — they are horizontal/depth pieces
-  const neverScaleH = /\b(top|bottom|shelf|shelve|base|nailer|kick|back|rail|drawer[\s-]?(front|back|side|bottom|box)|support)\b/.test(n);
+  const neverScaleH = /\b(top|bottom|shelf|shelve|base|nailer|kick|rail|drawer[\s-]?(front|back|side|bottom|box)|support)\b/.test(n);
   if (neverScaleH) return { ...part, _lMode: null, _wMode: null };
 
   // Minimum part dimension to consider as height-derived:
