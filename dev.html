@@ -12390,7 +12390,7 @@ function _renderQuoteView() {
   const autoHwTotal      = hingeCostTotal + runnerCostTotal + handle160Total + handle240Total + totalScrewCost;
   const autoHwHandling   = autoHwTotal * HW_HANDLING;
   const autoHwGrand      = autoHwTotal + autoHwHandling;
-  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0;
+  const hasAutoHw        = totalHinges > 0 || totalRunners > 0 || totalHandle160 > 0 || totalHandle240 > 0 || totalScrewCost > 0;
 
   // Standalone Hardware section removed — hardware now lives per-room (🔩 Hardware ▾ row
   // inside each room table) and the aggregate is shown in the sidebar Hardware total row.
