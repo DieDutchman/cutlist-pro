@@ -12092,6 +12092,11 @@ function _renderQuoteView() {
     </div>`;
   }
 
+  // Collected per-room hardware subtotals (hinges/runners/handles only —
+  // screws are pooled job-wide, added separately) so the sidebar Hardware
+  // breakdown can show "which room" alongside the pooled screw line.
+  const _hwByRoom = [];
+
   sectionData.forEach(({ sec, units }) => {
     mainHtml += `<div class="qv-section-head">${sec.label}</div>
       <table class="qv-table"><tbody>`;
@@ -12236,6 +12241,7 @@ function _renderQuoteView() {
       if (sectionHasHandles(sec.id) && _rh.h240 > 0) _h240CostR = _rh.h240 * _hw.handle240;
 
       const _roomHwTotal = _hingeCostR + _runnerCostR + _h160CostR + _h240CostR;
+      if (_roomHwTotal > 0) _hwByRoom.push({ label: sec.label, amount: _roomHwTotal });
       // Only render the Hardware row when there is actually something to show.
       if (_roomHwTotal > 0) {
         const _open = !!(quoteState.hwBreakdownOpen && quoteState.hwBreakdownOpen[sec.id]);
@@ -12562,10 +12568,22 @@ function _renderQuoteView() {
         <span class="label">Delivery <span style="font-size:10px;color:var(--text-muted)">(material delivery)</span></span>
         <span class="val" id="qv-val-delivery">${fmt(deliveryTotal)}</span>
       </div>` : ''}
-      ${hasAutoHw ? `<div class="qv-total-row">
-        <span class="label">🔩 Hardware <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span></span>
+      ${hasAutoHw ? `<div class="qv-total-row" id="qv-sidebar-hw" role="button" tabindex="0" style="cursor:pointer;user-select:none">
+        <span class="label">🔩 Hardware <span style="font-size:10px;color:var(--text-muted)">(incl. ${Math.round(HW_HANDLING*100)}% handling)</span>
+          <span style="font-size:10px;color:var(--amber);margin-left:4px;display:inline-block;transition:transform 0.2s;transform:rotate(${quoteState.hwOpen?'180':'0'}deg)">▾</span>
+        </span>
         <span class="val" id="qv-val-hw">${fmt(autoHwGrand)}</span>
-      </div>` : ''}
+      </div>
+      ${quoteState.hwOpen ? [
+        ..._hwByRoom.map(r => `<div class="qv-total-row" style="padding-left:14px">
+          <span class="label" style="font-size:11px;color:var(--text-muted)">↳ ${escHtml(r.label)}</span>
+          <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(r.amount)}</span>
+        </div>`),
+        screwPackCost > 0 ? `<div class="qv-total-row" style="padding-left:14px">
+          <span class="label" style="font-size:11px;color:var(--text-muted)">↳ Screws <span style="opacity:0.75">(pooled — whole job)</span></span>
+          <span class="val" style="font-size:11px;color:var(--text-muted)">${fmt(screwPackCost)}</span>
+        </div>` : ''
+      ].join('') : ''}` : ''}
       ${extrasTotal > 0 ? `<div class="qv-total-row">
         <span class="label">Extras</span>
         <span class="val" id="qv-val-extras">${fmt(extrasTotal)}</span>
@@ -12637,6 +12655,7 @@ function _renderQuoteView() {
 
   _wireToggle('qv-head-tops',    () => { quoteState.topsOpen = !quoteState.topsOpen; saveQuoteState(); renderQuoteView(); });
   _wireToggle('qv-head-fees',    () => { quoteState.feesOpen = !quoteState.feesOpen; saveQuoteState(); renderQuoteView(); });
+  _wireToggle('qv-sidebar-hw',   () => { quoteState.hwOpen = !quoteState.hwOpen; saveQuoteState(); renderQuoteView(); });
 
   // Per-room Hardware breakdown toggles — one wire per visible room HW row.
   sectionData.forEach(({ sec }) => {
