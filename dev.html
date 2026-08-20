@@ -4566,6 +4566,12 @@ body.user-light-theme .pp-vat-select {
     <div id="job-status-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border);min-width:150px;z-index:9100;box-shadow:0 6px 20px rgba(0,0,0,0.5);padding:4px 0">
     </div>
   </div>
+  <!-- Frozen-price badge — hidden unless the open job has a costingPriceSnapshot -->
+  <div id="price-frozen-badge" style="display:none;align-items:center;gap:6px;font-size:10px;color:var(--amber-dim);white-space:nowrap">
+    <span id="price-frozen-badge-text">📌 Prices as quoted</span>
+    <button id="price-frozen-badge-update" onclick="_unfreezeCurrentJobPricesFromBadge()"
+      style="background:none;border:none;color:var(--amber);text-decoration:underline;cursor:pointer;font-family:'Barlow',sans-serif;font-size:10px;padding:0">Update to current</button>
+  </div>
   <!-- Zone separator: job-context → primary actions -->
   <span aria-hidden="true" style="display:inline-block;width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0"></span>
   <button onclick="saveJobToCloud()" id="job-save-btn"
@@ -15104,6 +15110,35 @@ function _renderJobStatusBadge() {
   btn.style.background = s.bg;
 }
 
+// Shows "📌 Prices as quoted {date}" next to the job status badge whenever
+// the open job is Frozen — regardless of whether that came from the
+// automatic staleness prompt or the manual "Set Historical Prices" modal.
+function _renderPriceFrozenBadge() {
+  const wrap = document.getElementById('price-frozen-badge');
+  if (!wrap) return;
+  if (!currentJobPriceSnapshot) {
+    wrap.style.display = 'none';
+    return;
+  }
+  const textEl = document.getElementById('price-frozen-badge-text');
+  const savedAt = currentJobPriceSnapshot.savedAt
+    ? new Date(currentJobPriceSnapshot.savedAt).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: '2-digit' })
+    : '';
+  textEl.textContent = '📌 Prices as quoted' + (savedAt ? ` ${savedAt}` : '');
+  wrap.style.display = 'flex';
+}
+
+// Badge's "Update to current" link — same action as the stale-prompt's
+// "Update to current prices" button, reachable any time a job is Frozen.
+function _unfreezeCurrentJobPricesFromBadge() {
+  _unfreezeCurrentJobPrices();
+  try { if (document.getElementById('quote-view')?.style.display !== 'none') renderQuoteView(); } catch(e) {}
+  try { if (document.getElementById('costing-view')?.style.display !== 'none') renderCostingView(); } catch(e) {}
+  try { renderPLView(); } catch(e) {}
+  _renderPriceFrozenBadge();
+  try { scheduleAutoSave(); } catch(e) {}
+}
+
 function toggleJobStatusMenu() {
   const menu = document.getElementById('job-status-menu');
   if (!menu) return;
@@ -22839,7 +22874,7 @@ function applyState(state) {
       ? state.costingPriceSnapshot
       : null;
     currentJobPriceAckWatermark = (typeof state.priceAckWatermark === 'string') ? state.priceAckWatermark : null;
-    // Archive flag — restore early so rebuildJobSelect() sees the right value
+    if (typeof _renderPriceFrozenBadge === 'function') _renderPriceFrozenBadge();
     currentJobArchived = state.archived === true;
   } catch(e) {
     console.warn('[applyState] critical-field pre-restore warned:', e);
