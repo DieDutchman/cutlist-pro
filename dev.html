@@ -22931,10 +22931,35 @@ function _applyStateInner(state) {
     });
   }
   if (state.costingPrices) {
-    if (state.costingPrices.mat)          Object.assign(costingPrices.mat,      state.costingPrices.mat);
-    if (state.costingPrices.edge)         Object.assign(costingPrices.edge,     state.costingPrices.edge);
-    if (state.costingPrices.extras)       Object.assign(costingPrices.extras,   state.costingPrices.extras);
-    if (state.costingPrices.hardware)     Object.assign(costingPrices.hardware, state.costingPrices.hardware);
+    // mat/edge/extras/hardware VALUES are no longer restored from this
+    // job's own last-saved mirror (state.costingPrices.*) — that was the
+    // root cause of jobs silently reverting to stale prices on open. A job
+    // is either Frozen (uses its currentJobPriceSnapshot, already restored
+    // by applyState() before this function runs) or Live (always resets to
+    // true-current liveCostingPrices). The job's own state.costingPrices.*
+    // mirror is still captured by getJobState() as a harmless byproduct —
+    // it survives only as the comparison reference the staleness-detection
+    // logic (applyState(), after this function returns) needs.
+    if (currentJobPriceSnapshot) {
+      Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+      Object.assign(costingPrices.mat, currentJobPriceSnapshot.mat || {});
+      Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+      Object.assign(costingPrices.edge, currentJobPriceSnapshot.edge || {});
+      if (currentJobPriceSnapshot.extras)   Object.assign(costingPrices.extras,   currentJobPriceSnapshot.extras);
+      if (currentJobPriceSnapshot.hardware) Object.assign(costingPrices.hardware, currentJobPriceSnapshot.hardware);
+    } else if (liveCostingPrices.mat) {
+      Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+      Object.assign(costingPrices.mat, liveCostingPrices.mat);
+      Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+      Object.assign(costingPrices.edge, liveCostingPrices.edge);
+      Object.assign(costingPrices.extras,   liveCostingPrices.extras);
+      Object.assign(costingPrices.hardware, liveCostingPrices.hardware);
+    }
+    // else: liveCostingPrices.mat is still null (cold boot, no sync has
+    // completed yet this session) — leave costingPrices at its hardcoded/
+    // localStorage defaults; the imminent first loadSupplierPrices() call
+    // populates it directly, same as today (see restoreLastJob/
+    // onLoginSuccess ordering — this branch is cold-boot-only).
     if (state.costingPrices.tops)         Object.assign(costingPrices.tops,     state.costingPrices.tops);
     if (Array.isArray(state.costingPrices.customBoards)) costingPrices.customBoards = state.costingPrices.customBoards;
     if (Array.isArray(state.costingPrices.hiddenMats))   costingPrices.hiddenMats   = state.costingPrices.hiddenMats;
@@ -27819,10 +27844,29 @@ function plCalcFromState(state) {
 
     // costingPrices — prices from when the job was saved
     if (st.costingPrices) {
-      if (st.costingPrices.mat)             { Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]); Object.assign(costingPrices.mat, st.costingPrices.mat); }
-      if (st.costingPrices.edge)            { Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge, st.costingPrices.edge); }
-      if (st.costingPrices.extras)          Object.assign(costingPrices.extras,   st.costingPrices.extras);
-      if (st.costingPrices.hardware)        Object.assign(costingPrices.hardware, st.costingPrices.hardware);
+      // mat/edge/extras/hardware VALUES: same fix as _applyStateInner() —
+      // reset to true-current liveCostingPrices instead of this job's own
+      // stale last-saved mirror. No Frozen-specific branch needed here: if
+      // the TARGET job (st, which may not be the currently-open job — see
+      // this function's swap/restore pattern) is Frozen, the existing
+      // `if (st.costingPriceSnapshot)` override a few lines below already
+      // correctly overwrites these with st's own snapshot afterward.
+      if (liveCostingPrices.mat) {
+        Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]);
+        Object.assign(costingPrices.mat, liveCostingPrices.mat);
+        Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]);
+        Object.assign(costingPrices.edge, liveCostingPrices.edge);
+        Object.assign(costingPrices.extras,   liveCostingPrices.extras);
+        Object.assign(costingPrices.hardware, liveCostingPrices.hardware);
+      } else {
+        // Cold boot fallback (no sync yet this session) — fall back to
+        // this job's own last-saved mirror rather than leaving
+        // costingPrices at hardcoded defaults for a P&L calc.
+        if (st.costingPrices.mat)      { Object.keys(costingPrices.mat).forEach(k=>delete costingPrices.mat[k]); Object.assign(costingPrices.mat, st.costingPrices.mat); }
+        if (st.costingPrices.edge)     { Object.keys(costingPrices.edge).forEach(k=>delete costingPrices.edge[k]); Object.assign(costingPrices.edge, st.costingPrices.edge); }
+        if (st.costingPrices.extras)   Object.assign(costingPrices.extras,   st.costingPrices.extras);
+        if (st.costingPrices.hardware) Object.assign(costingPrices.hardware, st.costingPrices.hardware);
+      }
       if (st.costingPrices.matMinSheets)    costingPrices.matMinSheets    = st.costingPrices.matMinSheets;
       if (st.costingPrices.matSpecialOrder) costingPrices.matSpecialOrder = st.costingPrices.matSpecialOrder;
       if (st.costingPrices.matFullSheet)    costingPrices.matFullSheet    = st.costingPrices.matFullSheet;
