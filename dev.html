@@ -13938,6 +13938,18 @@ try {
   }
 } catch(e) {}
 
+// Canonical live/current prices — independent of `costingPrices`, which a
+// Frozen job's load can temporarily fill with historical values. mat/edge/
+// extras are populated from raw Supabase rows the first time
+// loadSupplierPrices() completes this session (see loadSupplierPrices);
+// null until then signals "no sync yet, don't compare/reset against this."
+// hardware is local-only (not Supabase-synced) — captured once here, then
+// kept current in lockstep by every direct edit (see fixedRow() below).
+let liveCostingPrices = {
+  mat: null, edge: null, extras: null,
+  hardware: JSON.parse(JSON.stringify(costingPrices.hardware)),
+};
+
 // ── Price History ─────────────────────────────────────────────────────────────
 let priceHistoryVisible = false;
 
@@ -21726,8 +21738,8 @@ function _renderMaterialsView() {
     <div class="cv-extra-row">
       <span class="cv-extra-label">${label} <span style="font-size:10px;color:var(--amber-dim)">★</span> <span style="font-size:10px;color:var(--text-muted)">(${unit})</span></span>
       <input autocomplete="off" class="cv-extra-input" type="number" min="0" value="${obj[key]||0}"
-        onchange="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices();refreshCostingResults()"
-        onblur="costingPrices.hardware.${key}=parseFloat(this.value)||0;saveCostingPrices()">
+        onchange="costingPrices.hardware.${key}=parseFloat(this.value)||0;liveCostingPrices.hardware.${key}=costingPrices.hardware.${key};saveCostingPrices();refreshCostingResults()"
+        onblur="costingPrices.hardware.${key}=parseFloat(this.value)||0;liveCostingPrices.hardware.${key}=costingPrices.hardware.${key};saveCostingPrices()">
       <span style="font-size:10px;color:var(--text-muted)">R</span>
     </div>`;
 
