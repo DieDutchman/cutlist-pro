@@ -15207,6 +15207,7 @@ function getJobState() {
     // Historical price snapshot (P&L only) — survives autosave by living in a
     // dedicated top-level field that isn't recomputed from live globals.
     costingPriceSnapshot: currentJobPriceSnapshot,
+    priceAckWatermark: currentJobPriceAckWatermark,
     // NOTE: customUnits, unitOverrides, deletedUnits are global template settings
     // — they live in localStorage only and are NOT saved/restored per job
   };
@@ -22837,6 +22838,7 @@ function applyState(state) {
       && state.costingPriceSnapshot.mat && Object.keys(state.costingPriceSnapshot.mat).length > 0)
       ? state.costingPriceSnapshot
       : null;
+    currentJobPriceAckWatermark = (typeof state.priceAckWatermark === 'string') ? state.priceAckWatermark : null;
     // Archive flag — restore early so rebuildJobSelect() sees the right value
     currentJobArchived = state.archived === true;
   } catch(e) {
@@ -22846,6 +22848,7 @@ function applyState(state) {
   try {
     _applyStateInner(state);
     _jobRestoreFailed = false;
+    _detectStalePrices(state);
   } catch (err) {
     // A throw partway through would leave the UI in a half-restored state
     // (quoteState/quantities applied but rooms/userUnits skipped). Latch the
@@ -27699,6 +27702,95 @@ function _unfreezeCurrentJobPrices() {
     Object.assign(costingPrices.hardware, liveCostingPrices.hardware);
   }
   currentJobPriceAckWatermark = _priceLoadedAt;
+}
+
+// Compares this job's own last-saved price mirror (state.costingPrices —
+// what was live when this job's autosave last ran) against true-current
+// liveCostingPrices, scoped to what this job's cutlist actually uses (mat/
+// edge) plus the job-wide extras/hardware fields (always relevant). Shows
+// the staleness prompt on a real difference; silently acks otherwise.
+function _detectStalePrices(state) {
+  if (!liveCostingPrices.mat) return;           // no sync completed this session yet
+  if (currentJobPriceSnapshot) return;           // already Frozen — user made their choice
+  if (state.priceAckWatermark === _priceLoadedAt) return; // nothing new since last check
+  if (!state.costingPrices) { currentJobPriceAckWatermark = _priceLoadedAt; return; }
+
+  const mb = computeJobMatBreakdown();
+  const changed = [];
+  (mb.matBreakdown || []).forEach(({ mat }) => {
+    const was = (state.costingPrices.mat || {})[mat] || 0;
+    const now = liveCostingPrices.mat[mat] || 0;
+    if (was !== now) changed.push(mat);
+  });
+  (mb.edgeBreakdown || []).forEach(({ edgeKey }) => {
+    const was = (state.costingPrices.edge || {})[edgeKey] || 0;
+    const now = liveCostingPrices.edge[edgeKey] || 0;
+    if (was !== now && !changed.includes(edgeKey)) changed.push(edgeKey);
+  });
+  ['cutLabel', 'cutLabelMasonite', 'drilling', 'hPrice', 'boardSurcharge'].forEach(k => {
+    const was = (state.costingPrices.extras || {})[k] || 0;
+    const now = liveCostingPrices.extras[k] || 0;
+    if (was !== now && !changed.includes(k)) changed.push(k);
+  });
+  Object.keys(liveCostingPrices.hardware || {}).forEach(k => {
+    const was = (state.costingPrices.hardware || {})[k] || 0;
+    const now = liveCostingPrices.hardware[k] || 0;
+    if (was !== now && !changed.includes(k)) changed.push(k);
+  });
+
+  if (changed.length === 0) {
+    currentJobPriceAckWatermark = _priceLoadedAt;
+    return;
+  }
+  _showPriceStalePrompt(state, changed);
+}
+
+// Modal: "Prices have changed since this job was quoted" — two choices,
+// mirroring confirmAction()'s _openModalA11y usage pattern.
+function _showPriceStalePrompt(state, changedNames) {
+  const shown = changedNames.slice(0, 3).map(escHtml).join(', ');
+  const more  = changedNames.length > 3 ? ` — ${changedNames.length - 3} more not shown` : '';
+
+  const el = document.createElement('div');
+  el.id = 'price-stale-prompt-modal';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:\'Barlow\',sans-serif';
+  const a11yState = {};
+  const settle = () => { _closeModalA11y(el, a11yState); el.remove(); };
+  el.addEventListener('click', e => { if (e.target === el) settle(); }); // outside click = no default choice, stays as-is until reopened
+  el.innerHTML = `
+    <div role="alertdialog" aria-modal="true" aria-label="Prices have changed" style="background:var(--bg2);border:1px solid var(--amber);max-width:460px;width:92%;font-family:'Barlow',sans-serif;padding:20px">
+      <div style="font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--amber);margin-bottom:8px">PRICES HAVE CHANGED SINCE THIS JOB WAS QUOTED</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">${shown}${more}</div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button id="price-stale-keep" style="font-weight:500;background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 18px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">KEEP PRICES AS QUOTED</button>
+        <button id="price-stale-update" style="background:var(--amber);border:none;color:#111;padding:8px 18px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer;font-weight:600">UPDATE TO CURRENT PRICES</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  const _rerenderAfterChoice = () => {
+    try { if (document.getElementById('quote-view')?.style.display !== 'none') renderQuoteView(); } catch(e) {}
+    try { if (document.getElementById('costing-view')?.style.display !== 'none') renderCostingView(); } catch(e) {}
+    try { renderPLView(); } catch(e) {}
+    try { _renderPriceFrozenBadge(); } catch(e) {}
+    try { scheduleAutoSave(); } catch(e) {}
+  };
+
+  el.querySelector('#price-stale-update').onclick = () => {
+    // Already Live (per _applyStateInner's reset) — nothing to mutate,
+    // just ack. If this job happened to be Frozen from before this feature
+    // shipped (old manual snapshot with mat/edge only), clear it too.
+    _unfreezeCurrentJobPrices();
+    settle();
+    _rerenderAfterChoice();
+  };
+  el.querySelector('#price-stale-keep').onclick = () => {
+    _freezeCurrentJobPrices(state.costingPrices, 'auto');
+    settle();
+    _rerenderAfterChoice();
+  };
+
+  _openModalA11y(el, a11yState, () => { /* no outside-click default action */ });
 }
 
 function plLoad() {
