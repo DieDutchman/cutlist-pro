@@ -27625,10 +27625,56 @@ let plDocCollapsed = {};
 // Set by plProcessPDFFile, consumed by plImportSelectedLines, then cleared.
 let _plPendingDoc = null;
 
-// Per-job historical price snapshot (set by openHistoricalPriceModal save and
-// restored by applyState). Lives outside costingPrices so autosaves do not
-// clobber it with live supplier prices. Shape: { mat:{}, edge:{}, savedAt:'' }.
+// Per-job historical price snapshot (set by openHistoricalPriceModal save,
+// the price-staleness prompt, or the "Update to current" badge; restored by
+// applyState). Lives outside costingPrices so autosaves do not clobber it
+// with live supplier prices. Shape: { mat:{}, edge:{}, extras:{}, hardware:{},
+// savedAt:'', source: 'auto'|'manual' }. extras/hardware/source are optional
+// — older manually-saved snapshots only have mat/edge/savedAt.
 let currentJobPriceSnapshot = null;
+
+// Sync watermark (see _priceLoadedAt) in effect the last time THIS job's
+// price-staleness prompt was shown-and-answered, or found to have nothing
+// to ask. Compared against current _priceLoadedAt on next open: equal →
+// skip the check; different → prices moved again, re-check. Restored by
+// applyState alongside currentJobPriceSnapshot.
+let currentJobPriceAckWatermark = null;
+
+// Freeze this job's prices "as quoted" using the given last-saved price
+// mirror (job's own state.costingPrices — what was live when this job's
+// autosave last ran). Applies immediately to live costingPrices so the
+// current view reflects the freeze without a reload.
+function _freezeCurrentJobPrices(jobPriceMirror, source) {
+  currentJobPriceSnapshot = {
+    mat:      { ...((jobPriceMirror && jobPriceMirror.mat)      || {}) },
+    edge:     { ...((jobPriceMirror && jobPriceMirror.edge)     || {}) },
+    extras:   { ...((jobPriceMirror && jobPriceMirror.extras)   || {}) },
+    hardware: { ...((jobPriceMirror && jobPriceMirror.hardware) || {}) },
+    savedAt: new Date().toISOString(),
+    source: source || 'auto',
+  };
+  Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+  Object.assign(costingPrices.mat, currentJobPriceSnapshot.mat);
+  Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+  Object.assign(costingPrices.edge, currentJobPriceSnapshot.edge);
+  Object.assign(costingPrices.extras,   currentJobPriceSnapshot.extras);
+  Object.assign(costingPrices.hardware, currentJobPriceSnapshot.hardware);
+  currentJobPriceAckWatermark = _priceLoadedAt;
+}
+
+// Return this job to Live — always true-current prices, never a stored copy.
+function _unfreezeCurrentJobPrices() {
+  currentJobPriceSnapshot = null;
+  if (liveCostingPrices.mat) {
+    Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+    Object.assign(costingPrices.mat, liveCostingPrices.mat);
+    Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+    Object.assign(costingPrices.edge, liveCostingPrices.edge);
+    Object.assign(costingPrices.extras,   liveCostingPrices.extras);
+    Object.assign(costingPrices.hardware, liveCostingPrices.hardware);
+  }
+  currentJobPriceAckWatermark = _priceLoadedAt;
+}
 
 function plLoad() {
   try { plData = JSON.parse(localStorage.getItem('cutlist_pl_data') || '{}'); } catch(e) { plData = {}; }
@@ -27795,6 +27841,8 @@ function plCalcFromState(state) {
         Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
         Object.assign(costingPrices.edge, st.costingPriceSnapshot.edge);
       }
+      if (st.costingPriceSnapshot.extras)   Object.assign(costingPrices.extras,   st.costingPriceSnapshot.extras);
+      if (st.costingPriceSnapshot.hardware) Object.assign(costingPrices.hardware, st.costingPriceSnapshot.hardware);
     }
 
     // userUnits & customUnits (for getEffectiveUnits)
@@ -28711,10 +28759,19 @@ async function openHistoricalPriceModal(jobId) {
     // snapshot. Keeping the snapshot in its own field guarantees survival
     // across autosaves and page reloads (Bug 2).
     const newState = JSON.parse(JSON.stringify(job._state));
+    // Manual snapshot only lets the user type mat/edge prices (the modal's
+    // UI is boards/edging only) — carry forward whatever extras/hardware
+    // this job already had frozen (if any), so re-saving mat/edge via this
+    // modal doesn't silently drop a previously-frozen hardware/extras set.
+    const _existingExtras   = (job._state.costingPriceSnapshot && job._state.costingPriceSnapshot.extras)   || {};
+    const _existingHardware = (job._state.costingPriceSnapshot && job._state.costingPriceSnapshot.hardware) || {};
     newState.costingPriceSnapshot = {
       mat:  histMat,
       edge: histEdge,
+      extras:   _existingExtras,
+      hardware: _existingHardware,
       savedAt: new Date().toISOString(),
+      source: 'manual',
     };
 
     try {
