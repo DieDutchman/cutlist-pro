@@ -18584,6 +18584,20 @@ async function loadSupplierPrices() {
       .pop();
     _priceLoadedAt = latestTs || new Date().toISOString();
     try { localStorage.setItem('cutlist_prices_loaded_at', _priceLoadedAt); } catch(e) {}
+
+    // Snapshot true-current prices for liveCostingPrices. Safe to copy from
+    // costingPrices HERE specifically (not anywhere else) because every
+    // assignment above this point in this same synchronous try block wrote
+    // costingPrices.mat/.edge/.extras directly and authoritatively from the
+    // rows just fetched — no job load or snapshot-apply can interleave
+    // between those writes and this line (no `await` in between). Copying
+    // costingPrices at any OTHER point in the app risks capturing a
+    // Frozen job's values instead of true-live ones — do not reuse this
+    // pattern elsewhere without the same ordering guarantee.
+    liveCostingPrices.mat    = JSON.parse(JSON.stringify(costingPrices.mat));
+    liveCostingPrices.edge   = JSON.parse(JSON.stringify(costingPrices.edge));
+    liveCostingPrices.extras = JSON.parse(JSON.stringify(costingPrices.extras));
+
     console.log(`[Supabase] Loaded ${rows.length} supplier prices (watermark: ${_priceLoadedAt})`);
   } catch(e) {
     sbSyncStatus = 'error';
