@@ -18634,6 +18634,24 @@ async function loadSupplierPrices() {
     liveCostingPrices.edge   = JSON.parse(JSON.stringify(costingPrices.edge));
     liveCostingPrices.extras = JSON.parse(JSON.stringify(costingPrices.extras));
 
+    // If the currently-open job is Frozen, this sync just overwrote its
+    // displayed prices with the live values above (costingPrices.mat/.edge/
+    // .extras were written from Supabase rows earlier in this same try
+    // block). Re-apply the job's own snapshot on top so a sync (cold boot,
+    // manual reload, supplier switch, stale-price poll) never silently
+    // un-freezes what's on screen while the "Prices as quoted" badge still
+    // claims it's frozen — liveCostingPrices itself must stay genuinely
+    // live regardless, which is why this happens AFTER the capture above,
+    // not instead of it.
+    if (currentJobPriceSnapshot) {
+      Object.keys(costingPrices.mat).forEach(k => delete costingPrices.mat[k]);
+      Object.assign(costingPrices.mat, currentJobPriceSnapshot.mat || {});
+      Object.keys(costingPrices.edge).forEach(k => delete costingPrices.edge[k]);
+      Object.assign(costingPrices.edge, currentJobPriceSnapshot.edge || {});
+      if (currentJobPriceSnapshot.extras)   Object.assign(costingPrices.extras,   currentJobPriceSnapshot.extras);
+      if (currentJobPriceSnapshot.hardware) Object.assign(costingPrices.hardware, currentJobPriceSnapshot.hardware);
+    }
+
     console.log(`[Supabase] Loaded ${rows.length} supplier prices (watermark: ${_priceLoadedAt})`);
   } catch(e) {
     sbSyncStatus = 'error';
@@ -22883,7 +22901,7 @@ function applyState(state) {
   try {
     _applyStateInner(state);
     _jobRestoreFailed = false;
-    _detectStalePrices(state);
+    try { _detectStalePrices(state); } catch(e) { console.error('[applyState] stale-price detection failed (restore itself succeeded):', e); }
   } catch (err) {
     // A throw partway through would leave the UI in a half-restored state
     // (quoteState/quantities applied but rooms/userUnits skipped). Latch the
