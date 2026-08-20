@@ -281,6 +281,44 @@ applyState(job.state)
        └─ same?      → ack watermark, silently, no prompt
 ```
 
+## Addendum (2026-08-20) — re-verified before implementation
+
+Line references throughout this doc predate the screw-hardware-tracking
+feature (`docs/superpowers/specs/2026-08-16-screw-hardware-design.md`),
+which added ~150-190 lines earlier in the file, shifting everything below.
+Core architecture and mechanism described above are unchanged and confirmed
+still accurate; only line numbers moved. Current locations, for the
+implementation plan to use:
+
+- `currentJobPriceSnapshot` global: `dev.html:27605`
+- `getJobState()`: `dev.html:15159`
+- `applyState()`: `dev.html:22789`, `_applyStateInner()`: `dev.html:22836`
+- costingPrices mirror restore block (the root-cause bug, §1's quoted
+  snippet): `dev.html:22908-22911` — unchanged in content, confirmed exact
+  match to the spec's original quote
+- `loadSupplierPrices()`: `dev.html:18429`
+- `openHistoricalPriceModal()`: `dev.html:28565`
+- `plCalcFromState()`: `dev.html:27677`, snapshot override block:
+  `dev.html:27763-27770`
+- `_renderJobStatusBadge()`: `dev.html:15085`
+- `computeJobMatBreakdown()`: `dev.html:13244`
+- `restoreLastJob()`: `dev.html:14643`, `loadJobFromSelect()`:
+  `dev.html:15303`
+- `_priceLoadedAt` global: `dev.html:18726`, set in
+  `loadSupplierPrices()`: `dev.html:18573`
+
+One scope note the original spec predates: `costingPrices.hardware` now
+also includes `screw16`/`screw25`/`screw40`/`screwM4` (added by the screw-
+tracking feature), alongside the original `hingeNormal`/`hingeSoft`/
+`runnerNormal`/`runnerSoft`/`handle160`/`handle240`. All eight fields are
+edited through a single shared template function, `fixedRow()`
+(`dev.html:21725`), not scattered per-field handlers as §1's "every direct
+hardware-price edit site" phrasing implies — so the hardware write-through
+to `liveCostingPrices.hardware` (§1) is a **single edit** to `fixedRow()`'s
+`onchange`/`onblur`, not an enumeration of sites. All eight fields are
+therefore automatically in scope for freeze/live/prompt behavior with no
+extra work.
+
 ## Verification
 
 No automated test framework, no browser in this environment (established
