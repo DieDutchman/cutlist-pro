@@ -12013,14 +12013,28 @@ function _renderQuoteView() {
     'bth_top','fl_solid_back',
   ]);
 
+  // Pool material sheet billing once across all units in the job — sheet
+  // minimums must apply to the combined m² per material, not once per unit
+  // (see calcJobMaterialBilling). Each unit keeps its own edging/hardware/
+  // drilling/services cost, but its material cost becomes its proportional
+  // share of the pooled job total (allocateUnitMaterialShare) — so two
+  // units sharing a material no longer each round up to their own sheet
+  // minimum, while per-unit line prices still sum exactly to the total.
+  const _jobUnitsForMat = sectionData.flatMap(d => d.units);
+  const _jobMatBilling  = calcJobMaterialBilling(_jobUnitsForMat, quantities);
+
   // Pre-compute per-unit display prices (used for line items only)
   const unitCostCache = {};
   sectionData.forEach(d => d.units.forEach(u => {
     const qty = quantities[u.id] || 0;
     if (STATIC_PRICE_IDS.has(u.id) || !u.parts || u.parts.length === 0) {
       unitCostCache[u.id] = u.price || 0;
+    } else if (qty > 0) {
+      const c = calcUnitCost(u, qty);
+      const matShare = allocateUnitMaterialShare(c.matM2, _jobMatBilling.perMat);
+      unitCostCache[u.id] = (c.total - c.matCost - c.cutLabelCost - c.matHPriceCost + matShare) / qty;
     } else {
-      unitCostCache[u.id] = qty > 0 ? calcUnitCost(u, qty).total / qty : 0;
+      unitCostCache[u.id] = 0;
     }
   }));
 
@@ -13114,6 +13128,14 @@ function computeQuoteTotals() {
     return { sec, units, hasEnabledAddons };
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
+  // Pool material sheet billing once across all units in the job — sheet
+  // minimums must apply to the combined m² per material, not once per unit
+  // (see calcJobMaterialBilling). Mirrors the identical fix in
+  // _renderQuoteView so the P&L/XLSX/print totals here always match what
+  // the user sees on the Quote tab.
+  const _jobUnitsForMat = sectionData.flatMap(d => d.units);
+  const _jobMatBilling  = calcJobMaterialBilling(_jobUnitsForMat, quantities);
+
   // Per-unit cost cache — same as renderQuoteView
   // Also accumulate raw (excl HW_HANDLING) hardware costs by category for P&L Expected.
   const unitCostCache = {};
@@ -13124,7 +13146,13 @@ function computeQuoteTotals() {
       unitCostCache[u.id] = u.price || 0;
     } else if (qty > 0) {
       const c = calcUnitCost(u, qty);
-      unitCostCache[u.id] = c.total / qty;
+      // Exclude this unit's own material sheet-billing (matCost/cutLabelCost/
+      // matHPriceCost) and replace it with the unit's proportional share of
+      // the job-pooled material billing — otherwise two units sharing a
+      // material each round up to their own sheet minimum independently,
+      // inflating the quote (the bug this fixes).
+      const matShare = allocateUnitMaterialShare(c.matM2, _jobMatBilling.perMat);
+      unitCostCache[u.id] = (c.total - c.matCost - c.cutLabelCost - c.matHPriceCost + matShare) / qty;
       // Auto-hardware raw cost per category (only if this unit's section has hardware enabled).
       // calcUnitCost already zeroes these when includeHardware is false, so we can sum unconditionally.
       _hwRaw.hinges   += c.hingeCost     || 0;
@@ -20592,7 +20620,13 @@ function calcUnitCost(u, unitQty) {
   // Cost calculations
   let matCost = 0, edgeCost = 0, cutLabelCost = 0;
   let totalSheets = 0, masoniteSheets = 0, boardSheets = 0;
-  let hPriceCost = 0;
+  // hPriceCost is split into its material- and edge-attributable portions so
+  // job-level material pooling (calcJobMaterialBilling / computeQuoteTotals /
+  // _renderQuoteView) can exclude just the material share of this unit's
+  // supplier-handling cost without touching the edge share, which stays
+  // per-unit as before. hPriceCost below remains the same combined total
+  // any existing caller (e.g. the internal Costing Breakdown page) expects.
+  let matHPriceCost = 0, edgeHPriceCost = 0;
   const hPrice = costingPrices.extras.hPrice || 0;
   Object.entries(matM2).forEach(([mat, m2]) => {
     const pricePerSheet = costingPrices.mat[mat] || 0;
@@ -20608,16 +20642,17 @@ function calcUnitCost(u, unitQty) {
     cutLabelCost += sheets * rate;
     // hPrice: charged once per billed sheet (material line) + once per cut sheet
     // Use the higher of the two to avoid double-counting
-    hPriceCost += Math.max(billed, sheets) * hPrice;
+    matHPriceCost += Math.max(billed, sheets) * hPrice;
     if (isMasonite) masoniteSheets += sheets; else boardSheets += sheets;
   });
   Object.entries(edgeM).forEach(([comboKey, m]) => {
     const edgeKey = comboKey.split('|')[0];
     const rounded = finalRoundEdge(m);
     const pricePerM = costingPrices.edge[edgeKey] || 0;
-    edgeCost   += rounded * pricePerM;
-    hPriceCost += rounded * hPrice;
+    edgeCost       += rounded * pricePerM;
+    edgeHPriceCost += rounded * hPrice;
   });
+  const hPriceCost = matHPriceCost + edgeHPriceCost;
   // Hinge drilling follows the hinges flag (no hinges = no drill holes to pay for).
   const drillingCost  = includeHinges ? doorCount * costingPrices.extras.drilling : 0;
   const hw            = costingPrices.hardware;
@@ -20651,7 +20686,7 @@ function calcUnitCost(u, unitQty) {
            hingeCount, runnerCount, runnerSets, handle160Count, handle240Count,
            hingeCost, runnerCost, handle160Cost, handle240Cost, screwCounts,
            hardwareCost, hwHandlingCost,
-           hPriceCost, svcCost, total,
+           hPriceCost, matHPriceCost, edgeHPriceCost, svcCost, total,
            totalSheets, boardSheets, masoniteSheets };
 }
 
@@ -20673,6 +20708,85 @@ function calcJobScrewCost(jobUnits, jobQuantities) {
   const hw = costingPrices.hardware;
   return Object.entries(totals).reduce((sum, [key, count]) =>
     sum + Math.ceil(count / SCREW_PACK_SIZE[key]) * (hw[key] || 0), 0);
+}
+
+// Material sheet billing pooled ONCE across the whole job's units — sheet
+// minimums (billedSheetsForMat's 0.25-sheet floor / full-sheet / special-
+// order rules) must apply to the combined m² per material, not once per
+// unit. Mirrors calcJobScrewCost (screws bought once per job) and
+// calcPanelsCostPooled (standalone panels pooled by material) — this is the
+// same pattern applied to unit material cost, which was the one place it
+// was missing. Before this fix, two units each using 0.15 sheets of the
+// same material were billed as 2 × 0.25-sheet minimum (0.5 sheets) instead
+// of 1 × 0.25-sheet minimum (0.25 sheets) for their combined 0.3 sheets.
+//
+// Returns job-wide totals AND a per-material breakdown (perMat) so callers
+// that show a price per unit can allocate each unit its proportional share
+// of the pooled cost — see allocateUnitMaterialShare below. Shares are
+// proportional to each unit's raw m² of that material, so they sum exactly
+// to the pooled total (no reconciliation gap, no double sheet-minimum
+// rounding).
+function calcJobMaterialBilling(jobUnits, jobQuantities) {
+  const allMatM2 = {};
+  jobUnits.forEach(u => {
+    const qty = jobQuantities[u.id] || 0;
+    if (!qty || !u.parts || !u.parts.length) return;
+    const c = calcUnitCost(u, qty);
+    Object.entries(c.matM2 || {}).forEach(([mat, m2]) => {
+      allMatM2[mat] = (allMatM2[mat] || 0) + m2;
+    });
+  });
+
+  const hPrice = costingPrices.extras.hPrice || 0;
+  let matCost = 0, cutLabelCost = 0, hPriceCost = 0;
+  let totalSheets = 0, boardSheets = 0, masoniteSheets = 0;
+  const perMat = {}; // mat -> { totalM2, cost } — cost = this material's full pooled billed cost
+
+  Object.entries(allMatM2).forEach(([mat, m2]) => {
+    if (!(m2 > 0)) return;
+    const pricePerSheet = costingPrices.mat[mat] || 0;
+    const withWaste     = m2 * WASTE_FACTOR;
+    const billed        = billedSheetsForMat(mat, withWaste, SHEET_AREA);
+    const thisMatCost    = billed * pricePerSheet;
+
+    const sheets = Math.max(Math.ceil(withWaste / SHEET_AREA), Math.ceil(billed));
+    const isMasonite = mat === '3MM White Masonite';
+    const rate = isMasonite ? costingPrices.extras.cutLabelMasonite : costingPrices.extras.cutLabel;
+    const thisCutLabelCost = sheets * rate;
+    const thisHPriceCost   = Math.max(billed, sheets) * hPrice;
+
+    matCost      += thisMatCost;
+    cutLabelCost += thisCutLabelCost;
+    hPriceCost   += thisHPriceCost;
+    totalSheets  += sheets;
+    if (isMasonite) masoniteSheets += sheets; else boardSheets += sheets;
+
+    perMat[mat] = { totalM2: m2, cost: thisMatCost + thisCutLabelCost + thisHPriceCost };
+  });
+
+  return {
+    matCost, cutLabelCost, hPriceCost,
+    total: matCost + cutLabelCost + hPriceCost,
+    totalSheets, boardSheets, masoniteSheets,
+    perMat,
+  };
+}
+
+// Given a single unit's own raw matM2 map (from calcUnitCost) and the
+// job-pooled perMat breakdown (from calcJobMaterialBilling), returns this
+// unit's proportional share of the pooled material cost — proportional to
+// its raw m² share of each material. Summed across every unit sharing a
+// material, shares add up to exactly that material's pooled cost, so
+// per-unit displayed prices stay meaningful (and additive) while sheet
+// minimums are still only applied once, job-wide.
+function allocateUnitMaterialShare(unitMatM2, perMat) {
+  let share = 0;
+  Object.entries(unitMatM2 || {}).forEach(([mat, m2]) => {
+    const pm = perMat[mat];
+    if (!pm || !(pm.totalM2 > 0)) return;
+    share += (m2 / pm.totalM2) * pm.cost;
+  });
+  return share;
 }
 
 function hardwareRows(c, sectionId) {
@@ -22209,10 +22323,13 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
 
   selectedUnits.forEach(u => {
     const c = calcUnitCost(u, quantities[u.id] || 0);
-    grandTotal     += c.total;
-    totalMat       += c.matCost;
+    // Material sheet billing (matCost/cutLabelCost/matHPriceCost) is pooled
+    // once across all selected units below (calcJobMaterialBilling) instead
+    // of summed per-unit here — otherwise each unit rounds up to its own
+    // sheet minimum independently, inflating grandTotal/totalMat beyond
+    // what the pooled matRows table below actually shows.
+    grandTotal     += c.total - c.matCost - c.cutLabelCost - c.matHPriceCost;
     totalEdge      += c.edgeCost;
-    totalCutLabel  += c.cutLabelCost;
     totalDrilling  += c.drillingCost;
     totalHinges    += c.hingeCount;
     totalHandle160 += c.handle160Count;
@@ -22222,6 +22339,14 @@ function buildCombinedSummary(selectedUnits, panelItems = []) {
     Object.entries(c.edgeM).forEach(([key, m])  => { allEdgeM[key] = (allEdgeM[key]||0) + m; });
   });
   const totalRunners = totalRunnerCount(allRunnerSets);
+
+  // Pooled job-wide material billing for the selected units — sheet
+  // minimums apply once to the combined m² per material (see
+  // calcJobMaterialBilling), matching how panels/screws are pooled below.
+  const _unitsMatBilling = calcJobMaterialBilling(selectedUnits, quantities);
+  totalMat      = _unitsMatBilling.matCost;
+  totalCutLabel = _unitsMatBilling.cutLabelCost;
+  grandTotal   += _unitsMatBilling.total;
 
   // Screw cost pooled once for the WHOLE job (not summed per-unit like the
   // other hardware totals above) — see calcJobScrewCost. Not part of
