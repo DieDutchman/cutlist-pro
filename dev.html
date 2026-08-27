@@ -31001,20 +31001,14 @@ function stackIdenticalParts(parts, usableH, kerf) {
   return result;
 }
 
-function optimizeMaterial(parts, opts) {
-  // Phase 3 — pull sheet dims from the first part of this material group.
-  // collectOptimizerParts() tags every part with sheetL/sheetW so the group is
-  // homogeneous by definition.
-  const sheetL = (parts[0] && parts[0].sheetL) || opts.sheetW;
-  const sheetW = (parts[0] && parts[0].sheetW) || opts.sheetH;
-  const usableW = sheetL - opts.trim * 2;
-  const usableH = sheetW - opts.trim * 2;
-
-  // Phase 4 — stack identical parts before packing
-  const workParts = (opts.stackIdentical !== false)
-    ? stackIdenticalParts(parts, usableH, opts.kerf)
-    : parts.slice();
-
+/**
+ * Runs the scrap-fitting loop + standard-sheets loop for a given work-parts
+ * list. Factored out of optimizeMaterial() so it can be run once for the
+ * stacked work list and once for the raw (unstacked) list, letting the
+ * caller compare the two and keep whichever needs fewer sheets. Semantics
+ * (sheetL/sheetW/oversized) are unchanged from the original inline loop.
+ */
+function packAllSheets(workParts, opts, sheetL, sheetW, usableW, usableH) {
   const sheets = [];
   let remaining = workParts;
 
@@ -31054,7 +31048,58 @@ function optimizeMaterial(parts, opts) {
     });
     remaining = res.unplaced;
   }
-  return { sheets, oversized: remaining, sheetL, sheetW };
+  return { sheets, oversized: remaining };
+}
+
+// Total placed area / total usable sheet area across every sheet in the
+// result — used to tie-break stacked vs. unstacked packing when both use
+// the same number of sheets.
+function sheetPackEfficiency(sheets, opts) {
+  let placedArea = 0, sheetArea = 0;
+  sheets.forEach(s => {
+    const uw = s.sheetL - opts.trim * 2;
+    const uh = s.sheetW - opts.trim * 2;
+    sheetArea += uw * uh;
+    s.placed.forEach(p => { placedArea += p.w * p.h; });
+  });
+  return sheetArea > 0 ? placedArea / sheetArea : 0;
+}
+
+function optimizeMaterial(parts, opts) {
+  // Phase 3 — pull sheet dims from the first part of this material group.
+  // collectOptimizerParts() tags every part with sheetL/sheetW so the group is
+  // homogeneous by definition.
+  const sheetL = (parts[0] && parts[0].sheetL) || opts.sheetW;
+  const sheetW = (parts[0] && parts[0].sheetW) || opts.sheetH;
+  const usableW = sheetL - opts.trim * 2;
+  const usableH = sheetW - opts.trim * 2;
+
+  if (opts.stackIdentical === false) {
+    const { sheets, oversized } = packAllSheets(parts.slice(), opts, sheetL, sheetW, usableW, usableH);
+    return { sheets, oversized, sheetL, sheetW };
+  }
+
+  // Phase 4 — stacking pre-groups identical parts into combined blocks before
+  // packing starts, which is blind to the actual free-rect layout: a large
+  // stacked block can eat space that would otherwise let everything fit on
+  // fewer sheets. Pack both ways and keep whichever result needs fewer
+  // sheets, so stacking is only applied when it's actually a net win (or
+  // free) rather than blindly.
+  const stackedParts = stackIdenticalParts(parts, usableH, opts.kerf);
+  const stackedResult = packAllSheets(stackedParts, opts, sheetL, sheetW, usableW, usableH);
+  const unstackedResult = packAllSheets(parts.slice(), opts, sheetL, sheetW, usableW, usableH);
+
+  let chosen;
+  if (stackedResult.sheets.length !== unstackedResult.sheets.length) {
+    chosen = stackedResult.sheets.length < unstackedResult.sheets.length ? stackedResult : unstackedResult;
+  } else {
+    const stackedEff = sheetPackEfficiency(stackedResult.sheets, opts);
+    const unstackedEff = sheetPackEfficiency(unstackedResult.sheets, opts);
+    // Prefer stacked on an exact tie — it's a free saw-convenience win.
+    chosen = unstackedEff > stackedEff ? unstackedResult : stackedResult;
+  }
+
+  return { sheets: chosen.sheets, oversized: chosen.oversized, sheetL, sheetW };
 }
 
 // Derive guillotine cut lines from placed part edges. xs/ys are interior cuts
