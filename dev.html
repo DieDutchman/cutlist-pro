@@ -25706,7 +25706,8 @@ function builderSideAnnotationHTML() {
   </div>`;
 }
 
-function builderRedraw() {
+function builderRedraw() { withScrollLock(_builderRedraw); }
+function _builderRedraw() {
   // Keep bayStyles array length in sync with number of bays
   const nBays = builderDivXs().length + 1;
   const d = builderState.doors;
@@ -26054,14 +26055,14 @@ function builderShelfListHTML() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-left:58px">
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Y from top</span>
-          <input autocomplete="off" class="bldr-input" type="number" style="width:100%;box-sizing:border-box"
+          <input autocomplete="off" id="bldr-shelf-y-${sh.id}" class="bldr-input" type="number" style="width:100%;box-sizing:border-box"
             placeholder="auto (${Math.round(resolvedY)}mm)"
             value="${sh.y !== null ? sh.y : ''}"
             oninput="builderShelfY('${sh.id}',this.value)">
         </div>
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Depth −mm <span style="color:var(--amber-dim)">(= ${shelfD}mm)</span></span>
-          <input autocomplete="off" class="bldr-input" type="number" min="0" max="${D}" style="width:100%;box-sizing:border-box"
+          <input autocomplete="off" id="bldr-shelf-depth-${sh.id}" class="bldr-input" type="number" min="0" max="${D}" style="width:100%;box-sizing:border-box"
             value="${sh.depthReduction ?? 10}"
             oninput="builderShelfDepth('${sh.id}',this.value)">
         </div>
@@ -26567,7 +26568,7 @@ function _renderBuilderView() {
 function builderSaveUnit() {
   const geo = builderGeometry();
   const doors = builderDoorSizes();
-  const { H, W, T, innerH } = geo;
+  const { H, W, T, innerH, innerW } = geo;
   const D = builderState.depth;
   const bs = builderState;
   const bk = bs.backing;
@@ -26586,10 +26587,10 @@ function builderSaveUnit() {
   if (bs.topType === 'nailers') {
     parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
     parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
-    parts.push(cp('Bottom Panel', W, D));
+    parts.push(cp('Bottom Panel', innerW, D));
   } else {
-    parts.push(cp('Top Panel',    W, D));
-    parts.push(cp('Bottom Panel', W, D));
+    parts.push(cp('Top Panel',    innerW, D));
+    parts.push(cp('Bottom Panel', innerW, D));
   }
   parts.push(
     cp('Left Side',    H, D),
