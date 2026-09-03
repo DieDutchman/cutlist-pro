@@ -25180,6 +25180,7 @@ function _renderPanelsView() {
 const builderState = {
   height: 720, width: 600, depth: 560, thickness: 16,
   topType: 'solid', // 'solid' | 'nailers'
+  bottomPlacement: 'inside', // 'inside' | 'full' — inside: sides run full H, bottom is captured (innerW). full: bottom spans full W, sides sit on top (H - T)
   // Each shelf: { id, y, span, bays, depthReduction }
   shelves: [
     { id: 's1', y: null, span: 'full', bays: [], depthReduction: 10, supportRail: false, supportRailPlacement: 'outside' },
@@ -25889,6 +25890,13 @@ function builderShelfY(id, val) {
   if (!sh) return;
   const v = parseFloat(val);
   sh.y = (isNaN(v) || val === '') ? null : v;
+  // Note: no redraw here — this input is type=number, and rebuilding the DOM
+  // node under an active cursor resets caret position to 0 (selection APIs
+  // aren't supported on number inputs). State updates live; the full redraw
+  // (preview/list refresh) is deferred to onblur via builderShelfYCommit.
+}
+function builderShelfYCommit(id, val) {
+  builderShelfY(id, val);
   builderRedraw();
 }
 function builderShelfSupportRail(id, val) {
@@ -25904,6 +25912,11 @@ function builderShelfDepth(id, val) {
   const sh = builderState.shelves.find(s => s.id === id);
   if (!sh) return;
   sh.depthReduction = parseFloat(val) || 0;
+  // Note: no redraw here — see builderShelfY for why. Redraw is deferred to
+  // onblur via builderShelfDepthCommit.
+}
+function builderShelfDepthCommit(id, val) {
+  builderShelfDepth(id, val);
   builderRedraw();
 }
 
@@ -26058,13 +26071,15 @@ function builderShelfListHTML() {
           <input autocomplete="off" id="bldr-shelf-y-${sh.id}" class="bldr-input" type="number" style="width:100%;box-sizing:border-box"
             placeholder="auto (${Math.round(resolvedY)}mm)"
             value="${sh.y !== null ? sh.y : ''}"
-            oninput="builderShelfY('${sh.id}',this.value)">
+            oninput="builderShelfY('${sh.id}',this.value)"
+            onblur="builderShelfYCommit('${sh.id}',this.value)">
         </div>
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Depth −mm <span style="color:var(--amber-dim)">(= ${shelfD}mm)</span></span>
           <input autocomplete="off" id="bldr-shelf-depth-${sh.id}" class="bldr-input" type="number" min="0" max="${D}" style="width:100%;box-sizing:border-box"
             value="${sh.depthReduction ?? 10}"
-            oninput="builderShelfDepth('${sh.id}',this.value)">
+            oninput="builderShelfDepth('${sh.id}',this.value)"
+            onblur="builderShelfDepthCommit('${sh.id}',this.value)">
         </div>
       </div>
 
@@ -26107,6 +26122,10 @@ function build3DView() {
   const backT = bk.enabled ? (bk.type === 'solid' ? T : 3) : 0;
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
   const RAIL_H = bk.supportHeight || 100;
+  // 'full' bottom placement: sides sit ON TOP of the full-width bottom board, so their
+  // lower edge starts at T (not 0) — this also lets the bottom board's now-full-width
+  // corners show through instead of being painted over by the sides.
+  const sideY0 = bs.bottomPlacement === 'full' ? T : 0;
 
   // Oblique projection: front face is flat, depth goes up-right at 45° foreshortened
   const OBL   = 0.45;
@@ -26235,7 +26254,7 @@ function build3DView() {
   // Bottom board
   boxR(0, 0, 0, W, T, D, ...CB);
   // Left side
-  boxR(0, 0, 0, T, H, D, ...CB);
+  boxR(0, sideY0, 0, T, H, D, ...CB);
 
   // Dividers
   geo.divXs.forEach((x, i) => {
@@ -26260,7 +26279,7 @@ function build3DView() {
   });
 
   // Right side (painted after shelves)
-  boxR(W-T, 0, 0, W, H, D, ...CB);
+  boxR(W-T, sideY0, 0, W, H, D, ...CB);
 
   // Top
   if (bs.topType === 'nailers') {
@@ -26426,6 +26445,16 @@ function _renderBuilderView() {
               ${bs.topType==='nailers' ? `<div style="font-size:10px;color:var(--text-muted);line-height:1.6">Front: ${geo.innerW} × 100mm<br>Back: ${geo.innerW} × 70mm</div>` : ''}
             </div>
           </div>
+          <div class="bldr-row" style="align-items:flex-start">
+            <span class="bldr-label">Bottom</span>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+              <div style="display:flex;gap:4px">
+                <button onclick="builderState.bottomPlacement='inside';builderRedraw()" style="font-weight:500;flex:1;padding:5px 0;border:1px solid ${bs.bottomPlacement==='inside'?'var(--amber)':'var(--border)'};background:${bs.bottomPlacement==='inside'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${bs.bottomPlacement==='inside'?'var(--amber)':'var(--text-muted)'};font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;cursor:pointer;border-radius:2px">INSIDE</button>
+                <button onclick="builderState.bottomPlacement='full';builderRedraw()" style="font-weight:500;flex:1;padding:5px 0;border:1px solid ${bs.bottomPlacement==='full'?'var(--amber)':'var(--border)'};background:${bs.bottomPlacement==='full'?'rgba(212,145,58,0.15)':'var(--bg3)'};color:${bs.bottomPlacement==='full'?'var(--amber)':'var(--text-muted)'};font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;cursor:pointer;border-radius:2px">FULL WIDTH</button>
+              </div>
+              ${bs.bottomPlacement==='full' ? `<div style="font-size:10px;color:var(--text-muted);line-height:1.6">Sides: ${bs.height - bs.thickness}mm (H − T)<br>Bottom: ${bs.width} × ${bs.depth}mm (full width)</div>` : ''}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -26583,18 +26612,24 @@ function builderSaveUnit() {
 
   const cp = (n, l, w) => ({ name:n, qty:1, l, w, mat:cm, el1:ce, el2:ce, ew1:ce, ew2:ce, holes:'' });
 
+  // Bottom placement: 'inside' (default, unchanged) = bottom is captured between the
+  // sides, sides run the full outer H. 'full' = bottom spans the full outer W and the
+  // sides sit on top of it, so sides are shortened by one board thickness (H - T).
+  const bottomWidth = bs.bottomPlacement === 'full' ? W : innerW;
+  const sideLength  = bs.bottomPlacement === 'full' ? H - T : H;
+
   const parts = [];
   if (bs.topType === 'nailers') {
     parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
     parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
-    parts.push(cp('Bottom Panel', innerW, D));
+    parts.push(cp('Bottom Panel', bottomWidth, D));
   } else {
     parts.push(cp('Top Panel',    innerW, D));
-    parts.push(cp('Bottom Panel', innerW, D));
+    parts.push(cp('Bottom Panel', bottomWidth, D));
   }
   parts.push(
-    cp('Left Side',    H, D),
-    cp('Right Side',   H, D),
+    cp('Left Side',    sideLength, D),
+    cp('Right Side',   sideLength, D),
   );
 
   if (bk.enabled) {
