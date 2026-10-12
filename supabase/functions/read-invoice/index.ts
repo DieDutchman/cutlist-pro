@@ -10,6 +10,40 @@ const CORS = {
 const GROQ_VISION_MODEL = 'qwen/qwen3.8-27b';
 const GROQ_TEXT_MODEL = 'openai/gpt-oss-120b';
 
+// Groq periodically retires/renames a model id (e.g. qwen3.6-27b -> qwen3.8-27b).
+// Cache the live replacement per isolate so we don't re-discover it on every request.
+const modelCache = new Map<string, string>();
+
+function isModelNotFound(data: any): boolean {
+  const msg = (data?.error?.message || '').toLowerCase();
+  return data?.error?.code === 'model_not_found'
+    || msg.includes('does not exist')
+    || msg.includes('decommissioned');
+}
+
+// Ask Groq what's live and pick the newest model in the same family (e.g. "qwen/").
+async function discoverReplacementModel(apiKey: string, staleModel: string): Promise<string | null> {
+  const familyPrefix = staleModel.split('/')[0] + '/';
+  const res = await fetch('https://api.groq.com/openai/v1/models', {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const candidates = (data.data || [])
+    .filter((m: any) => m.id !== staleModel && typeof m.id === 'string' && m.id.startsWith(familyPrefix) && m.active !== false)
+    .sort((a: any, b: any) => (b.created || 0) - (a.created || 0));
+  return candidates[0]?.id || null;
+}
+
+async function callGroq(apiKey: string, body: string) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body,
+  });
+  return { res, data: await res.json() };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
@@ -50,8 +84,11 @@ serve(async (req) => {
         ]
       : `${systemPrompt}\n\nRead this invoice/delivery note text and extract the data as specified:\n\n${rawText}`;
 
-    const groqBody = JSON.stringify({
-      model: isImage ? GROQ_VISION_MODEL : GROQ_TEXT_MODEL,
+    const defaultModel = isImage ? GROQ_VISION_MODEL : GROQ_TEXT_MODEL;
+    const model = modelCache.get(defaultModel) || defaultModel;
+
+    const buildBody = (m: string) => JSON.stringify({
+      model: m,
       temperature: 0,
       max_completion_tokens: 2048,
       response_format: { type: 'json_object' },
@@ -65,12 +102,7 @@ serve(async (req) => {
     // A 429 here is transient — Groq's own error message tells us exactly how
     // long to wait, so retry once instead of failing a request that would
     // succeed a few seconds later.
-    let groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: groqBody,
-    });
-    let data = await groqRes.json();
+    let { res: groqRes, data } = await callGroq(apiKey, buildBody(model));
 
     if (groqRes.status === 429) {
       const retryAfterHeader = parseFloat(groqRes.headers.get('retry-after') || '');
@@ -80,12 +112,17 @@ serve(async (req) => {
         : 5;
       await new Promise(r => setTimeout(r, Math.ceil(waitSeconds * 1000) + 500));
 
-      groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: groqBody,
-      });
-      data = await groqRes.json();
+      ({ res: groqRes, data } = await callGroq(apiKey, buildBody(model)));
+    }
+
+    // Groq retired/renamed the model id (happens periodically) — look up its
+    // live replacement in the same family and retry once before giving up.
+    if (!groqRes.ok && isModelNotFound(data)) {
+      const replacement = await discoverReplacementModel(apiKey, model);
+      if (replacement) {
+        modelCache.set(defaultModel, replacement);
+        ({ res: groqRes, data } = await callGroq(apiKey, buildBody(replacement)));
+      }
     }
 
     if (!groqRes.ok) {
