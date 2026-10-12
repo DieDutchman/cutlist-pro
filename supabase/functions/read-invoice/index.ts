@@ -7,7 +7,7 @@ const CORS = {
 };
 
 // Vision model for scanned/photographed invoices (images). Text model for PDF-extracted text.
-const GROQ_VISION_MODEL = 'qwen/qwen3.6-27b';
+const GROQ_VISION_MODEL = 'qwen/qwen3.8-27b';
 const GROQ_TEXT_MODEL = 'openai/gpt-oss-120b';
 
 serve(async (req) => {
