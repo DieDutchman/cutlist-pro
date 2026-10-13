@@ -12044,7 +12044,7 @@ function _renderQuoteView() {
     units.forEach(u => {
       unitsTotal += (unitCostCache[u.id] || 0) * (quantities[u.id] || 0);
     });
-    if (ADDON_SECTIONS.includes(sec.id)) {
+    if (getAddonSections().includes(sec.id)) {
       const addons = bedroomAddons[sec.id] || {};
       [addons.plantOn, addons.spacers].forEach(group => {
         if (!group?.enabled) return;
@@ -12188,7 +12188,7 @@ function _renderQuoteView() {
     });
 
     // Addon line items — show ≈ estimated cost; included in section total
-    if (ADDON_SECTIONS.includes(sec.id)) {
+    if (getAddonSections().includes(sec.id)) {
       const addons = bedroomAddons[sec.id] || {};
       if (addons.plantOn?.enabled) {
         addons.plantOn.items.forEach((item, i) => {
