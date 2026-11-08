@@ -7725,8 +7725,8 @@ function _renderPanel() {
   // For user mode: material selector only if there are units
   let html = (isUserMode && units.length === 0) ? '' : buildMatSelector(matGroupIds);
 
-  // Width Builder button for Custom section (admin only)
-  if (!isUserMode && currentSection === 'custom') {
+  // Width Builder button — admin's built-in Custom tab, or any custom-room tab
+  if ((!isUserMode && currentSection === 'custom') || (isUserMode && userRoom)) {
     html += `<div style="padding:14px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="btn btn-primary" style="font-size:13px;padding:10px 24px" onclick="openCustomBuilder()">
         ⚡ Build Custom Unit
