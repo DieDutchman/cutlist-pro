@@ -15469,9 +15469,41 @@ async function loadJobFromSelect() {
   }
 }
 
+// Three-way choice (keep / start fresh / cancel) for what to do with the
+// current job's rooms when starting a new one. Separate from confirmAction
+// since that's a binary confirm/cancel — this needs a distinct third option.
+function chooseNewJobRoomsMode() {
+  return new Promise(resolve => {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center';
+    const settle = (v) => { modal.remove(); resolve(v); };
+    modal.addEventListener('click', e => { if (e.target === modal) settle(null); });
+    modal.innerHTML = `
+      <div role="alertdialog" aria-modal="true" aria-label="Rooms for this job" style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--amber);max-width:420px;width:92%;font-family:'Barlow',sans-serif;padding:22px">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text);margin-bottom:10px">ROOMS FOR THIS JOB</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">Keep your current rooms and units as the starting point for this new job, or start with none and build fresh. Either way, your current job keeps its own rooms exactly as they are.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="njr-keep" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:10px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">KEEP CURRENT ROOMS</button>
+          <button id="njr-fresh" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">START WITH NO ROOMS</button>
+          <button id="njr-cancel" style="background:none;border:none;color:var(--text-muted);padding:6px;font-family:'Barlow',sans-serif;font-size:11px;cursor:pointer">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#njr-keep').onclick   = () => settle('keep');
+    modal.querySelector('#njr-fresh').onclick  = () => settle('fresh');
+    modal.querySelector('#njr-cancel').onclick = () => settle(null);
+  });
+}
+
 async function newJob() {
   _closeOnboardCoachMark();
   if (!(await confirmAction('Start a new job? Unsaved changes will be lost.', { confirmLabel: 'START NEW' }))) return;
+  let _keepRoomsForNewJob = false;
+  if (!isSuperuser() && userRooms.length > 0) {
+    const choice = await chooseNewJobRoomsMode();
+    if (choice === null) return;
+    _keepRoomsForNewJob = choice === 'keep';
+  }
   currentJobId = null;
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   persistLastJobId(null);
@@ -15506,10 +15538,11 @@ async function newJob() {
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
   Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
   // Rooms + user units are job-scoped for non-superuser roles — reset so the
-  // "Add Your First Room" onboarding flow triggers for a fresh job. Superuser
-  // rooms/units are profile-scoped (persisted via templates blob) and must
-  // survive a new-job reset.
-  if (!isSuperuser()) {
+  // "Add Your First Room" onboarding flow triggers for a fresh job, unless
+  // the user explicitly chose to keep them via chooseNewJobRoomsMode() above.
+  // Superuser rooms/units are profile-scoped (persisted via templates blob)
+  // and must survive a new-job reset regardless.
+  if (!isSuperuser() && !_keepRoomsForNewJob) {
     userRooms = [];
     userUnits = [];
   }
@@ -15536,9 +15569,11 @@ async function newJob() {
       spacers: { enabled: false, items: [defaultSpacer()] },
     };
   });
-  // For non-superusers, userRooms was cleared above so drop any orphaned
-  // ur_xxx addon keys entirely rather than leaving empty stubs behind.
-  if (!isSuperuser()) {
+  // For non-superusers who didn't keep their rooms, userRooms was cleared
+  // above so drop any orphaned ur_xxx addon keys entirely rather than
+  // leaving empty stubs behind. Skip this when rooms were kept — those
+  // ur_xxx keys were just re-seeded blank above and are still valid.
+  if (!isSuperuser() && !_keepRoomsForNewJob) {
     Object.keys(bedroomAddons).forEach(k => {
       if (!ADDON_SECTIONS.includes(k)) delete bedroomAddons[k];
     });
@@ -17016,6 +17051,7 @@ function openAddRoomModal() {
         <button onclick="confirmAddRoom()" style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">CREATE ROOM</button>
         <button onclick="document.getElementById('add-room-modal').remove()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
+      <button onclick="confirmAddRoomAndImport()" style="font-weight:500;width:100%;margin-top:10px;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:9px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">⇪ CREATE ROOM &amp; IMPORT UNITS FROM A PREVIOUS JOB</button>
     </div>`;
   document.body.appendChild(modal);
   // Select first icon by default
@@ -17036,9 +17072,12 @@ function getSelectedRoomIcon() {
   return sel ? sel.textContent.trim() : '🏠';
 }
 
-function confirmAddRoom() {
+// Shared room-creation logic for the Add Room modal. Returns the new room's
+// id, or null if validation failed (name empty). Used by both the plain
+// "Create Room" button and "Create Room & Import Units" below.
+function _createRoomFromAddModal() {
   const name = document.getElementById('new-room-name')?.value.trim();
-  if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return; }
+  if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return null; }
   const id = 'ur_' + Date.now();
   const icon = getSelectedRoomIcon();
   // Superuser: capture which template section's units this room shows
@@ -17054,7 +17093,7 @@ function confirmAddRoom() {
   }
   // Seed bedroomAddons for this room
   ensureBedroomAddons(id);
-  document.getElementById('add-room-modal').remove();
+  document.getElementById('add-room-modal')?.remove();
   renderUserRoomsNav();
   // Switch to new room
   const btn = document.querySelector(`button[data-section="${id}"]`);
@@ -17062,6 +17101,157 @@ function confirmAddRoom() {
   scheduleAutoSave();
   // Superuser: persist rooms across sessions via the profile templates blob
   if (isSuperuser() && sbUser) pushTemplatesToCloud();
+  return id;
+}
+
+function confirmAddRoom() {
+  _createRoomFromAddModal();
+}
+
+function confirmAddRoomAndImport() {
+  const id = _createRoomFromAddModal();
+  if (id) openImportUnitsFromJobModal(id);
+}
+
+// ── Import units from a previous job into a (new) room ───────────────────────
+// Separate from openImportUnitModal (which parses a pasted/uploaded parts
+// list into a brand-new unit) — this copies real units that already exist
+// on one of the account's own previously saved jobs.
+let _iufjState = { targetSectionId: null, rooms: [], units: [] };
+
+async function openImportUnitsFromJobModal(targetSectionId) {
+  _iufjState = { targetSectionId, rooms: [], units: [] };
+  const modal = document.createElement('div');
+  modal.id = 'import-from-job-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) closeImportUnitsFromJobModal(); });
+  modal.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-label="Import units from a previous job" style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:2px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNITS FROM A PREVIOUS JOB</div>
+        <div style="font-size:12px;color:var(--text-muted)">Pick an old job, then choose which units to copy into this room.</div>
+      </div>
+      <div style="padding:14px 24px;border-bottom:1px solid var(--border)">
+        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Job</label>
+        <select id="iufj-job-select" autocomplete="off" onchange="_iufjLoadJob(this.value)"
+          style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          <option value="">Loading jobs…</option>
+        </select>
+      </div>
+      <div id="iufj-body" style="flex:1;overflow-y:auto;padding:4px 24px"></div>
+      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+        <span id="iufj-summary" style="font-size:12px;color:var(--text-muted);flex:1">Select a job to see its units.</span>
+        <button id="iufj-import-btn" onclick="_iufjDoImport()" disabled
+          style="font-weight:500;background:var(--amber);color:#111;border:none;padding:10px 20px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:not-allowed;opacity:0.4">IMPORT SELECTED</button>
+        <button onclick="closeImportUnitsFromJobModal()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CLOSE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  _iufjPopulateJobList();
+}
+
+function closeImportUnitsFromJobModal() {
+  document.getElementById('import-from-job-modal')?.remove();
+}
+
+async function _iufjPopulateJobList() {
+  const sel = document.getElementById('iufj-job-select');
+  if (!sel || !sbUser) return;
+  try {
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,updated_at&user_id=eq.${sbUser.id}&order=updated_at.desc&limit=50`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const candidates = rows.filter(j => j.id !== currentJobId);
+    if (!candidates.length) {
+      sel.innerHTML = '<option value="">No previous jobs found</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— Select a job —</option>' + candidates.map(j => {
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const label = [j.client, j.house, j.address].filter(Boolean).join(' · ') || 'Untitled job';
+      return `<option value="${j.id}">${_esc(label)} — ${date}</option>`;
+    }).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Failed to load jobs</option>';
+  }
+}
+
+async function _iufjLoadJob(jobId) {
+  const body = document.getElementById('iufj-body');
+  const importBtn = document.getElementById('iufj-import-btn');
+  _iufjState.rooms = []; _iufjState.units = [];
+  importBtn.disabled = true; importBtn.style.opacity = '0.4'; importBtn.style.cursor = 'not-allowed';
+  if (!jobId) { body.innerHTML = ''; document.getElementById('iufj-summary').textContent = 'Select a job to see its units.'; return; }
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">↻ Loading units…</div>';
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?select=state&id=eq.${jobId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const state = rows[0]?.state || {};
+    const rooms = Array.isArray(state.userRooms) ? state.userRooms : [];
+    const units = Array.isArray(state.userUnits) ? state.userUnits : [];
+    _iufjState.rooms = rooms;
+    _iufjState.units = units;
+    if (!units.length) {
+      body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">That job has no units to import.</div>';
+      document.getElementById('iufj-summary').textContent = '0 units available.';
+      return;
+    }
+    const roomName = (sectionId) => rooms.find(r => r.id === sectionId)?.name || sectionId;
+    const byRoom = new Map();
+    units.forEach(u => {
+      const key = u.section || '—';
+      if (!byRoom.has(key)) byRoom.set(key, []);
+      byRoom.get(key).push(u);
+    });
+    body.innerHTML = [...byRoom.entries()].map(([sectionId, us]) => `
+      <div style="margin:10px 0">
+        <div style="font-weight:500;font-size:11px;color:var(--amber-dim);letter-spacing:0.3px;text-transform:uppercase;margin-bottom:6px">${_esc(roomName(sectionId))}</div>
+        ${us.map(u => `
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:var(--text);cursor:pointer">
+            <input type="checkbox" class="iufj-unit-cb" value="${u.id}" onchange="_iufjUpdateSummary()">
+            <span>${_esc(u.name)}</span>
+            <span style="font-size:11px;color:var(--text-muted)">${(u.parts||[]).length} part${(u.parts||[]).length===1?'':'s'}</span>
+          </label>`).join('')}
+      </div>`).join('');
+    document.getElementById('iufj-summary').textContent = `${units.length} unit${units.length===1?'':'s'} available.`;
+  } catch(e) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:#e07070;font-size:12px">Failed to load: ${_esc(e.message)}</div>`;
+  }
+}
+
+function _iufjUpdateSummary() {
+  const n = document.querySelectorAll('.iufj-unit-cb:checked').length;
+  const importBtn = document.getElementById('iufj-import-btn');
+  document.getElementById('iufj-summary').textContent = n > 0 ? `${n} unit${n===1?'':'s'} selected.` : `${_iufjState.units.length} unit${_iufjState.units.length===1?'':'s'} available.`;
+  importBtn.disabled = n === 0;
+  importBtn.style.opacity = n === 0 ? '0.4' : '1';
+  importBtn.style.cursor = n === 0 ? 'not-allowed' : 'pointer';
+}
+
+function _iufjDoImport() {
+  const checked = [...document.querySelectorAll('.iufj-unit-cb:checked')].map(cb => cb.value);
+  if (!checked.length) return;
+  const targetSectionId = _iufjState.targetSectionId;
+  let count = 0;
+  checked.forEach((unitId, i) => {
+    const src = _iufjState.units.find(u => u.id === unitId);
+    if (!src) return;
+    const newId = 'uu_imp_' + Date.now() + '_' + i;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = newId;
+    copy.section = targetSectionId;
+    userUnits.push(copy);
+    quantities[newId] = 0;
+    count++;
+  });
+  closeImportUnitsFromJobModal();
+  updateCounts();
+  renderPanel();
+  scheduleAutoSave();
+  showToast(`Imported ${count} unit${count===1?'':'s'}`, 'success');
 }
 
 async function renameRoomPrompt(roomId) {
