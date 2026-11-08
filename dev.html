@@ -7885,6 +7885,7 @@ function _renderPanel() {
     const userBtns = `
       <button class="unit-action-btn" onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button>
       <button class="unit-action-btn" onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts"><span class="uab-glyph">🔧</span><span class="uab-label">Parts</span></button>
+      ${u.builderConfig ? `<button class="unit-action-btn" onclick="builderLoadUnit('${u.id}')" title="Reopen this unit's Builder settings to change its structure"><span class="uab-glyph">🔨</span><span class="uab-label">Edit in Builder</span></button>` : ''}
       ${canMoveUnit ? `<button class="unit-action-btn" onclick="openMoveUnitPopup('${u.id}',this)" title="Move unit to another room"><span class="uab-glyph">✂</span><span class="uab-label">Move</span></button>` : ''}
       ${isUserMode ? `<button class="unit-action-btn" onclick="archiveUserUnit('${u.id}')" title="Hide this unit without deleting it — restore it from the archive bar below"><span class="uab-glyph">📦</span><span class="uab-label">Archive</span></button>` : ''}
       ${canRemoveUnit ? `<button class="unit-action-btn is-danger" onclick="${isUserMode ? `deleteUserUnit('${u.id}')` : `deleteCustomUnit('${u.id}')`}" title="Remove unit permanently"><span class="uab-glyph">×</span><span class="uab-label">Remove</span></button>` : ''}`;
@@ -25601,8 +25602,23 @@ const builderState = {
   section: 'kitchen',
 };
 
+// Pristine snapshot of builderState's initial shape, captured before any
+// mutation — used by builderCancelEdit() to reset back to a blank slate
+// when backing out of an in-progress "edit in Builder" session.
+const _builderStateDefaults = JSON.parse(JSON.stringify(builderState));
+
 let _bldrShelfIdCounter = 2;
 let _builderMode = (() => { try { return localStorage.getItem('cutlist_builder_mode') || 'unit'; } catch(e) { return 'unit'; } })(); // 'unit' | 'drawer'
+
+// Set by builderLoadUnit() when reopening a unit built via 🔨 Unit Builder or
+// 🗂 Drawer Builder for in-place editing (see docs/superpowers/specs/2026-11-08-edit-existing-unit-design.md).
+// _builderEditingUnitId: the unit's id, or null when building something new.
+// _builderEditingUnitSource: 'user' | 'custom' — which array it lives in, so
+// the save flow writes back to the right place. Both are cleared on save,
+// on explicit cancel, and implicitly when switching Unit Builder <-> Drawer
+// Builder mode (the two tools have incompatible recipes).
+let _builderEditingUnitId = null;
+let _builderEditingUnitSource = null;
 
 // ── Drawer Builder State ──────────────────────────────────────────────────────
 const drawerState = {
@@ -25653,6 +25669,9 @@ const drawerState = {
   hingeClearanceLeft:  { enabled: false, width: 30 },
   hingeClearanceRight: { enabled: false, width: 30 },
 };
+
+// Pristine snapshot of drawerState's initial shape — see _builderStateDefaults above.
+const _drawerStateDefaults = JSON.parse(JSON.stringify(drawerState));
 
 function builderInput(key, val) {
   const keys = key.split('.');
@@ -26814,15 +26833,18 @@ function _renderBuilderView() {
   // This guarantees both buttons are always clickable, even if content
   // rendering below throws an error.
   bv.innerHTML = `<div class="bldr-mode-bar" style="display:flex;align-items:center;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;position:relative;z-index:2">
-    <button onclick="_builderMode='unit';try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
+    <button onclick="_builderMode='unit';_builderEditingUnitId=null;_builderEditingUnitSource=null;try{localStorage.setItem('cutlist_builder_mode','unit')}catch(e){}renderBuilderView()"
       style="font-weight:500;padding:10px 20px;font-family:'Barlow',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='unit'?'var(--amber)':'transparent'};background:${_builderMode==='unit'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='unit'?'var(--amber)':'var(--text-muted)'}">
       🔨 <span style="letter-spacing:1px">UNIT BUILDER</span>
     </button>
-    <button onclick="_builderMode='drawer';try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
+    <button onclick="_builderMode='drawer';_builderEditingUnitId=null;_builderEditingUnitSource=null;try{localStorage.setItem('cutlist_builder_mode','drawer')}catch(e){}renderBuilderView()"
       style="font-weight:500;padding:10px 20px;font-family:'Barlow',sans-serif;font-size:11px;cursor:pointer;border:none;border-bottom:3px solid ${_builderMode==='drawer'?'var(--amber)':'transparent'};background:${_builderMode==='drawer'?'rgba(212,145,58,0.06)':'none'};color:${_builderMode==='drawer'?'var(--amber)':'var(--text-muted)'}">
       🗂 <span style="letter-spacing:1px">DRAWER BUILDER</span>
     </button>
-  </div><div id="bldr-content-area"></div>`;
+  </div>${_builderEditingUnitId ? `<div class="bldr-editing-banner" style="display:flex;align-items:center;gap:10px;background:rgba(212,145,58,0.10);border-bottom:1px solid var(--amber);padding:8px 16px;flex-shrink:0;font-family:'Barlow',sans-serif;font-size:12px;color:var(--text)">
+    <span>✏ Editing: <strong>${escHtml((_builderMode === 'drawer' ? drawerState : builderState).unitName || '')}</strong></span>
+    <button onclick="builderCancelEdit()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 12px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">✕ Cancel</button>
+  </div>` : ''}<div id="bldr-content-area"></div>`;
 
   showWipBanner('builder', 'builder-view');
 
@@ -27033,7 +27055,54 @@ function _renderBuilderView() {
   setTimeout(() => requestAnimationFrame(build3DView), 80);
 }
 
-function builderSaveUnit() {
+// Reopen a unit previously created via 🔨 Unit Builder or 🗂 Drawer Builder so
+// its structural recipe (builderConfig) can be tweaked and re-saved in place,
+// instead of only being scale/manual-part editable. Units built any other way
+// (⚡ Build Custom Unit, Width/Height Builder, templates, imports) have no
+// recipe to reconstruct from — the "🔨 Edit in Builder" button that calls
+// this doesn't render for those, but we still guard defensively here.
+function builderLoadUnit(unitId) {
+  let unit = userUnits.find(u => u.id === unitId);
+  let source = 'user';
+  if (!unit) {
+    unit = customUnits.find(u => u.id === unitId);
+    source = 'custom';
+  }
+  if (!unit || !unit.builderType || !unit.builderConfig) {
+    showToast("This unit wasn't created in the Builder, so it can't be edited here — use Parts instead.", 'error');
+    return;
+  }
+
+  _builderMode = unit.builderType === 'drawer' ? 'drawer' : 'unit';
+  try { localStorage.setItem('cutlist_builder_mode', _builderMode); } catch(e) {}
+  _builderEditingUnitId = unitId;
+  _builderEditingUnitSource = source;
+
+  const target = _builderMode === 'drawer' ? drawerState : builderState;
+  // Keys missing from an older saved config (e.g. a unit built before some
+  // newer builder field existed) simply keep their current default, since
+  // Object.assign only overwrites keys present in the source.
+  Object.assign(target, JSON.parse(JSON.stringify(unit.builderConfig)));
+
+  switchTab(document.getElementById('builder-tab'), '__builder__');
+}
+
+// Back out of an in-progress "edit in Builder" session without saving —
+// clears the editing globals and resets builderState/drawerState back to
+// their defaults so the user can start building something new.
+function builderCancelEdit() {
+  _builderEditingUnitId = null;
+  _builderEditingUnitSource = null;
+  Object.assign(builderState, JSON.parse(JSON.stringify(_builderStateDefaults)));
+  Object.assign(drawerState, JSON.parse(JSON.stringify(_drawerStateDefaults)));
+  renderBuilderView();
+}
+
+async function builderSaveUnit() {
+  if (_builderEditingUnitId) {
+    if (!(await confirmAction('This regenerates all parts from the Builder settings — any manual edits made via Parts since will be lost. Continue?', { confirmLabel: 'REGENERATE' }))) return;
+  }
+
   const geo = builderGeometry();
   const doors = builderDoorSizes();
   const { H, W, T, innerH, innerW } = geo;
@@ -27115,9 +27184,61 @@ function builderSaveUnit() {
     mat: dm, ...edgeFor('doors', de), holes:'2 per door'
   }));
 
+  const builderConfig = JSON.parse(JSON.stringify(bs));
+
+  // Editing an existing unit: overwrite it in place. id and price are left
+  // untouched so quantities, material overrides, and special-service links
+  // keyed by this id keep working with zero extra bookkeeping.
+  if (_builderEditingUnitId) {
+    const arr = _builderEditingUnitSource === 'user' ? userUnits : customUnits;
+    const existing = arr.find(u => u.id === _builderEditingUnitId);
+    if (existing) {
+      existing.name = name;
+      existing.section = bs.section;
+      existing.parts = parts;
+      existing.buildW = W;
+      existing.buildH = H;
+      existing.builderType = 'unit';
+      existing.builderConfig = builderConfig;
+      _builderEditingUnitId = null;
+      _builderEditingUnitSource = null;
+      if (arr === userUnits) scheduleAutoSave(); else saveCustomUnits();
+      updateCounts();
+      renderPanel();
+      showToast(`"${name}" updated`, 'success');
+      return;
+    }
+    // Edge case: the unit was deleted elsewhere while mid-edit. Don't lose
+    // the work — fall through and save it as a new unit instead.
+    _builderEditingUnitId = null;
+    _builderEditingUnitSource = null;
+    const id = 'bld_' + Date.now();
+    const unit = { id, name, section: bs.section, parts, price: 0, buildW: W, buildH: H, builderType: 'unit', builderConfig };
+    if (usesUserUnits() && userRooms.length > 0) {
+      userUnits.push(unit);
+      scheduleAutoSave();
+    } else {
+      customUnits.push(unit);
+      saveCustomUnits();
+    }
+    updateCounts();
+    renderPanel();
+    showToast(`Original unit no longer exists — "${name}" saved as a new unit instead.`, 'info');
+    return;
+  }
+
   const id = 'bld_' + Date.now();
-  customUnits.push({ id, name, section: bs.section, parts, price: 0, buildW: W, buildH: H });
-  saveCustomUnits();
+  const unit = { id, name, section: bs.section, parts, price: 0, buildW: W, buildH: H, builderType: 'unit', builderConfig };
+  // Bundled fix: branch userUnits vs customUnits the same way drawerSaveUnit()
+  // already does — non-superuser (or superuser-with-rooms) accounts get their
+  // own userUnits list instead of landing in the shared customUnits pool.
+  if (usesUserUnits() && userRooms.length > 0) {
+    userUnits.push(unit);
+    scheduleAutoSave();
+  } else {
+    customUnits.push(unit);
+    saveCustomUnits();
+  }
   updateCounts();
   showToast(`"${name}" added to ${bs.section} unit list`, 'success');
 }
@@ -28278,11 +28399,59 @@ function drawerCalcParts() {
   return parts.filter(pr => pr.qty > 0 && pr.l > 0 && pr.w > 0);
 }
 
-function drawerSaveUnit() {
+async function drawerSaveUnit() {
+  if (_builderEditingUnitId) {
+    if (!(await confirmAction('This regenerates all parts from the Builder settings — any manual edits made via Parts since will be lost. Continue?', { confirmLabel: 'REGENERATE' }))) return;
+  }
+
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
+  const builderConfig = JSON.parse(JSON.stringify(drawerState));
+
+  // Editing an existing unit: overwrite it in place. id and price are left
+  // untouched so quantities, material overrides, and special-service links
+  // keyed by this id keep working with zero extra bookkeeping.
+  if (_builderEditingUnitId) {
+    const arr = _builderEditingUnitSource === 'user' ? userUnits : customUnits;
+    const existing = arr.find(u => u.id === _builderEditingUnitId);
+    if (existing) {
+      existing.name = name;
+      existing.section = drawerState.section;
+      existing.parts = parts;
+      existing.buildW = drawerState.width;
+      existing.buildH = drawerState.height;
+      existing.builderType = 'drawer';
+      existing.builderConfig = builderConfig;
+      _builderEditingUnitId = null;
+      _builderEditingUnitSource = null;
+      if (arr === userUnits) scheduleAutoSave(); else saveCustomUnits();
+      updateCounts();
+      renderPanel();
+      showToast(`"${name}" updated`, 'success');
+      return;
+    }
+    // Edge case: the unit was deleted elsewhere while mid-edit. Don't lose
+    // the work — fall through and save it as a new unit instead.
+    _builderEditingUnitId = null;
+    _builderEditingUnitSource = null;
+    const id = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
+    const unit = { id, name, section: drawerState.section, parts, price: 0, buildW: drawerState.width, buildH: drawerState.height, builderType: 'drawer', builderConfig };
+    if (usesUserUnits() && userRooms.length > 0) {
+      userUnits.push(unit);
+      scheduleAutoSave();
+    } else {
+      customUnits.push(unit);
+      saveCustomUnits();
+    }
+    if (!(id in quantities)) quantities[id] = 0;
+    updateCounts();
+    renderPanel();
+    showToast(`Original unit no longer exists — "${name}" saved as a new unit instead.`, 'info');
+    return;
+  }
+
   const id    = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
-  const unit  = { id, name, section: drawerState.section, parts, price: 0, buildW: drawerState.width, buildH: drawerState.height };
+  const unit  = { id, name, section: drawerState.section, parts, price: 0, buildW: drawerState.width, buildH: drawerState.height, builderType: 'drawer', builderConfig };
   if (usesUserUnits() && userRooms.length > 0) {
     // User mode (admin + user) — save to their own units list
     userUnits.push(unit);
