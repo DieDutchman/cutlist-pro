@@ -37,13 +37,13 @@
     --text: #1a1612;
     --text-dim: #4a3f30;
     --text-muted: #6a5e50;
-    --border: #9a8e7e;
+    --border: #857a69;
     --border-light: #8a7e6e;
     --border-inner: rgba(0,0,0,0.14);
     --border-inner-strong: rgba(0,0,0,0.20);
-    --amber: #b87030;
-    --amber-dim: #c88040;
-    --amber-light: #d09050;
+    --amber: #864f19;
+    --amber-dim: #774720;
+    --amber-light: #925a10;
   }
   body.supplier-theme .nav-tabs, body.user-light-theme .nav-tabs { background: #e8e4dc; border-bottom-color: #c8c0b0; }
   body.supplier-theme .tab, body.user-light-theme .tab { color: #4a3f30; }
@@ -670,6 +670,17 @@
     }
     .unit-action-btn { height: 32px; padding: 0 10px; }
     .unit-action-btn.is-icon { width: 32px; }
+  }
+
+  /* Touch/tablet: .unit-action-btn is intentionally excluded from the generic
+     44px touch-target rule (see "[role=button]:not(.unit-action-btn)" below)
+     because at mouse-driven desktop widths it stays compact (28px / 32px under
+     the narrow-viewport rule above). But "narrow viewport" isn't the same as
+     "touch input" — a touch/tablet user on a wide screen still needs the full
+     44px target. This is additive: it only raises min-height for coarse
+     pointers and never shrinks the existing mouse sizing. */
+  @media (pointer: coarse) {
+    .unit-action-btn { min-height: 44px; }
   }
 
   /* ── QUOTE SUMMARY SIDEBAR ── */
@@ -3225,9 +3236,7 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
     linear-gradient(rgba(212,145,58,.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(212,145,58,.05) 1px, transparent 1px);
   background-size: 52px 52px;
-  animation: lp-drift 90s linear infinite;
 }
-@keyframes lp-drift { to { background-position: 52px 52px; } }
 
 .lp-glow {
   position: absolute;
@@ -3237,11 +3246,7 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   top: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, rgba(212,145,58,.1) 0%, transparent 62%);
-  animation: lp-pulse 5s ease-in-out infinite;
-}
-@keyframes lp-pulse {
-  0%,100% { opacity:.65; transform:translate(-50%,-50%) scale(1); }
-  50%      { opacity:1;   transform:translate(-50%,-50%) scale(1.07); }
+  opacity: .65;
 }
 
 .lp-wrap {
@@ -3249,11 +3254,6 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   z-index: 1;
   width: 380px;
   max-width: 95vw;
-  animation: lp-enter .7s cubic-bezier(.16,1,.3,1) both;
-}
-@keyframes lp-enter {
-  from { opacity:0; transform:translateY(24px); }
-  to   { opacity:1; transform:translateY(0); }
 }
 
 .lp-header { text-align:center; margin-bottom:28px; }
@@ -4658,7 +4658,7 @@ body.user-light-theme .pp-vat-select {
   <span style="font-size:13px;color:var(--amber)">📢</span>
   <span id="price-stale-msg" style="font-size:12px;color:var(--text);flex:1">Supplier has updated prices since you last loaded — reload prices for accurate quotes.</span>
   <button onclick="reloadSupplierPrices()" style="font-weight:500;background:var(--amber);color:#111;border:none;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;padding:5px 14px;cursor:pointer">↻ RELOAD PRICES</button>
-  <button onclick="document.getElementById('price-stale-banner').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px">×</button>
+  <button onclick="document.getElementById('price-stale-banner').style.display='none'" aria-label="Dismiss price update notice" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px">×</button>
 </div>
 
 <!-- ═══ USERS MODAL ══════════════════════════════════════════════════════════ -->
@@ -4822,7 +4822,7 @@ body.user-light-theme .pp-vat-select {
   <div id="qm-modal" role="dialog" aria-modal="true" aria-label="Quote Manager" style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:var(--line);flex-shrink:0">
       <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">💾 Quote Manager</div>
-      <button onclick="closeQuoteManager()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+      <button onclick="closeQuoteManager()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
     </div>
 
     <!-- Save current -->
@@ -4951,7 +4951,7 @@ body.user-light-theme .pp-vat-select {
     <div role="dialog" aria-modal="true" aria-label="Bulk Price Adjustment" style="background:var(--bg2);border:1px solid var(--border);width:600px;max-width:95vw;max-height:88vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">↑ Bulk Price Adjustment</div>
-        <button onclick="closeBulkAdjustModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+        <button onclick="closeBulkAdjustModal()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
       </div>
       <div style="padding:20px;overflow-y:auto;flex:1">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
@@ -4993,7 +4993,7 @@ body.user-light-theme .pp-vat-select {
     <div role="dialog" aria-modal="true" aria-label="Import Price List" style="background:var(--bg2);border:1px solid var(--border);width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">⇪ Import Price List</div>
-        <button onclick="closeImportPricesModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+        <button onclick="closeImportPricesModal()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
       </div>
       <div style="padding:20px;overflow-y:auto;flex:1">
         <div style="display:flex;align-items:center;gap:0;margin-bottom:16px">
@@ -5073,7 +5073,7 @@ body.user-light-theme .pp-vat-select {
     <div role="dialog" aria-modal="true" aria-label="Manage Supabase Boards" style="background:var(--bg2);border:1px solid var(--border);width:520px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--text)">🗃 Manage Supabase Boards</div>
-        <button onclick="closeBoardCleanupModal()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
+        <button onclick="closeBoardCleanupModal()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1;padding:0">×</button>
       </div>
       <div style="font-size:11px;color:var(--text-muted);padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0;line-height:1.6">
         Delete old or duplicate entries directly from Supabase. Closing this modal will re-sync the board list.
@@ -5088,7 +5088,7 @@ body.user-light-theme .pp-vat-select {
   <div id="hb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="cb-overlay" class="wb-overlay" style="display:none"></div>
   <div id="img-lightbox" class="img-lightbox" style="display:none" onclick="closeLightbox()">
-    <button class="img-lightbox-close" onclick="closeLightbox()">×</button>
+    <button class="img-lightbox-close" onclick="closeLightbox()" aria-label="Close">×</button>
     <img id="img-lightbox-img" alt="" style="display:none">
     <div id="img-lightbox-svg" style="display:none" onclick="event.stopPropagation()"></div>
     <div class="img-lightbox-caption" id="img-lightbox-caption"></div>
@@ -6290,7 +6290,7 @@ function openTemplateEditor(id) {
     <div style="background:var(--bg2);border:1px solid var(--border);width:760px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:2.5px;color:var(--text)">${existing ? '✏ EDIT TEMPLATE' : '+ NEW TEMPLATE'}</div>
-        <button onclick="document.getElementById('tpl-edit-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+        <button onclick="document.getElementById('tpl-edit-modal').remove()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
       </div>
       <div style="flex:1;overflow-y:auto;padding:18px 20px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
@@ -10269,7 +10269,7 @@ function buildAddonPresetsBar(secId) {
         style="font-weight:500;background:rgba(212,145,58,0.15);border:1px solid var(--amber-dim);color:var(--amber);font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;padding:3px 10px;cursor:pointer">
         APPLY
       </button>
-      <button onclick="deleteAddonPreset('${p.id}')"
+      <button onclick="deleteAddonPreset('${p.id}')" aria-label="Delete preset"
         style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 6px;cursor:pointer">×</button>
     </div>`).join('');
 }
@@ -10690,7 +10690,7 @@ function _renderWidthBuilder() {
     <div class="wb-modal">
       <div class="wb-header">
         <div class="wb-title">⚡ Width Builder</div>
-        <button onclick="closeWidthBuilder()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+        <button onclick="closeWidthBuilder()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
       </div>
       <div class="wb-body">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${catTabs}</div>
@@ -10958,7 +10958,7 @@ function _renderCustomBuilder() {
     <div class="wb-modal" style="max-width:900px;width:95vw">
       <div class="wb-header">
         <div class="wb-title">⚡ Build Custom Unit</div>
-        <button onclick="closeCustomBuilder()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+        <button onclick="closeCustomBuilder()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
       </div>
       <div class="wb-body">
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${catTabs}</div>
@@ -11190,7 +11190,7 @@ function _renderHeightBuilder() {
     <div class="wb-modal">
       <div class="wb-header">
         <div class="wb-title">↕ Height Builder</div>
-        <button onclick="closeHeightBuilder()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+        <button onclick="closeHeightBuilder()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
       </div>
       <div class="wb-body">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${catTabs}</div>
@@ -11533,13 +11533,13 @@ function inferUnitGeometry(unit) {
 
 function renderUnitDiagramSVG(unit, unitName) {
   if (!unit) {
-    return `<div class="udp-header"><span class="udp-title">Unit not found</span><button class="udp-close" onclick="closeLightbox()">×</button></div>`;
+    return `<div class="udp-header"><span class="udp-title">Unit not found</span><button class="udp-close" onclick="closeLightbox()" aria-label="Close">×</button></div>`;
   }
   if (!unit.parts || unit.parts.length === 0) {
     return `
       <div class="udp-header">
         <span class="udp-title">${(unitName||unit.name||'Unit').replace(/</g,'&lt;')}</span>
-        <button class="udp-close" onclick="closeLightbox()">×</button>
+        <button class="udp-close" onclick="closeLightbox()" aria-label="Close">×</button>
       </div>
       <div class="udp-body"><div class="udp-empty">
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:3px;color:#d4913a;margin-bottom:10px">NO PARTS DEFINED</div>
@@ -11795,7 +11795,7 @@ function renderUnitDiagramSVG(unit, unitName) {
     <div class="udp-header">
       <span class="udp-title">${name}</span>
       <div class="udp-chips">${chips.join('')}</div>
-      <button class="udp-close" onclick="closeLightbox()">×</button>
+      <button class="udp-close" onclick="closeLightbox()" aria-label="Close">×</button>
     </div>
     <div class="udp-body">
       <div class="udp-views">
@@ -12662,7 +12662,7 @@ function _renderQuoteView() {
           <span style="color:var(--text)">${_previewNames}${_moreCount}</span>
         </div>
       </div>
-      <button onclick="document.getElementById('qv-extras-reminder')?.remove()" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 2px;align-self:flex-start">×</button>
+      <button onclick="document.getElementById('qv-extras-reminder')?.remove()" aria-label="Dismiss" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 2px;align-self:flex-start">×</button>
     </div>`;
   }
 
@@ -13049,7 +13049,7 @@ function buildBaseExtraRow(e, i) {
       </div>
     </td>
     <td></td>
-    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})" aria-label="Remove extra">×</button></td>
   </tr>`;
 }
 
@@ -13111,7 +13111,7 @@ function buildSkirtingExtraRow(e, i) {
       </div>
     </td>
     <td></td>
-    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})" aria-label="Remove extra">×</button></td>
   </tr>`;
 }
 
@@ -13159,7 +13159,7 @@ function buildExtraRow(e, i) {
           oninput="quoteState.extras[${i}].otherQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].otherQty*_otherUnitPrice(quoteState.extras[${i}].otherType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
-      <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+      <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})" aria-label="Remove extra">×</button></td>
     </tr>`;
   }
   if (e.hwType) {
@@ -13183,7 +13183,7 @@ function buildExtraRow(e, i) {
           oninput="quoteState.extras[${i}].hwQty=parseInt(this.value)||1;quoteState.extras[${i}].amount=quoteState.extras[${i}].hwQty*_hwUnitPrice(quoteState.extras[${i}].hwType)*(1+HW_HANDLING);saveQuoteState();refreshQuoteTotals();document.getElementById('qv-extra-total-${i}').innerHTML=fmt(quoteState.extras[${i}].amount)+' <span style=\\'font-size:10px;color:var(--text-muted)\\'>incl. ${Math.round(HW_HANDLING*100)}% handling</span>'">
         <span id="qv-extra-total-${i}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);white-space:nowrap">${fmt(total)} <span style="font-size:10px;color:var(--text-muted)">incl. ${Math.round(HW_HANDLING*100)}% handling</span></span>
       </td>
-      <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+      <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})" aria-label="Remove extra">×</button></td>
     </tr>`;
   }
   // Custom free-form row
@@ -13194,7 +13194,7 @@ function buildExtraRow(e, i) {
     <td><input autocomplete="off" class="qv-extra-input num" type="number" min="0" value="${e.amount||''}"
       placeholder="0"
       oninput="quoteState.extras[${i}].amount=parseFloat(this.value)||0;saveQuoteState();refreshQuoteTotals()"></td>
-    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})">×</button></td>
+    <td><button class="qv-extra-del" onclick="removeQuoteExtra(${i})" aria-label="Remove extra">×</button></td>
   </tr>`;
 }
 
@@ -13646,9 +13646,28 @@ function setDeposit(value) {
 function printQuotePDF() {
   const quoteEl = document.getElementById('quote-price-view');
   if (!quoteEl) return;
+  // Clone so we can convert live Extras/Tops inputs+selects to static text for
+  // print without touching the live, interactive DOM. These fields (W/D/Qty,
+  // Sets, plinth/skirting qty, hardware qty, custom extra desc/amount, Tops
+  // type/m²) store their value ONLY in the input/select element — there is no
+  // read-only fallback — so without this they print blank next to a real price.
+  const printClone = quoteEl.cloneNode(true);
+  printClone.querySelectorAll('input.qv-extra-input, input.qv-tops-input').forEach(inp => {
+    const span = document.createElement('span');
+    span.textContent = inp.value || (inp.getAttribute('placeholder') ? '' : '0');
+    span.setAttribute('style', inp.getAttribute('style') || '');
+    inp.replaceWith(span);
+  });
+  printClone.querySelectorAll('select.qv-extra-input, select.qv-tops-input').forEach(sel => {
+    const span = document.createElement('span');
+    const opt = sel.options[sel.selectedIndex];
+    span.textContent = opt ? opt.textContent : (sel.value || '');
+    span.setAttribute('style', sel.getAttribute('style') || '');
+    sel.replaceWith(span);
+  });
   // Grab just the inner layout so the boardInfoBar and totals sidebar travel along
   const win = window.open('', '_blank', 'width=960,height=740');
-  if (!win) { alert('Pop-up blocked — please allow pop-ups for this site and try again.'); return; }
+  if (!win) { showToast('Pop-up blocked — please allow pop-ups for this site and try again.', 'error'); return; }
   win.document.write(`<!DOCTYPE html><html><head>
     <meta charset="utf-8">
     <title>Quote</title>
@@ -13665,11 +13684,12 @@ function printQuotePDF() {
       .qv-sidebar { width: 240px; flex-shrink: 0; }
       .qv-card-title { font-weight: 700; font-size: 12pt; margin-bottom: 8px; }
       .qv-total-block { margin-top: 10px; }
-      /* hide interactive controls in print */
+      /* hide any remaining interactive controls in print (safety net — the
+         Extras/Tops fields above are converted to text before this point) */
       input[type=range], input[type=number], button { display: none !important; }
       @media print { @page { margin: 15mm; } }
     </style>
-  </head><body>${quoteEl.innerHTML}</body></html>`);
+  </head><body>${printClone.innerHTML}</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(() => { win.print(); win.close(); }, 500);
@@ -16888,7 +16908,7 @@ async function openTrialContactModal(state) {
               : 'Trial expires: <strong style="color:var(--text)">' + expDate + '</strong>'}
           </div>
         </div>
-        <button id="tcm-close-btn"
+        <button id="tcm-close-btn" aria-label="Close"
           style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:0 4px">×</button>
       </div>
 
@@ -18086,7 +18106,7 @@ function openTemplateBrowser() {
           <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text)">📋 COPY FROM TEMPLATE</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Copying to: <strong style="color:var(--amber)">${userRooms.find(r=>r.id===currentSection)?.name || currentSection}</strong></div>
         </div>
-        <button onclick="document.getElementById('template-browser-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
+        <button onclick="document.getElementById('template-browser-modal').remove()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;line-height:1">×</button>
       </div>
       <div style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 12px;background:var(--bg2)">${tabsHtml}</div>
       <div style="padding:10px 20px;background:rgba(212,145,58,0.08);border-bottom:1px solid var(--amber-dim);flex-shrink:0;display:flex;align-items:flex-start;gap:10px">
@@ -21321,7 +21341,7 @@ function _renderPricesView() {
         <span style="font-size:10px;color:var(--text-muted);width:16px">/m</span>
         ${priceDateBadge(costingPrices.edgePriceDates?.[edgeKey])}
         ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\'")}')" title="Rename edging" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">✏</button>` : ''}
-        <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging" ${roBtn}
+        <button onclick="removeBoardEdging('${safeKey}')" title="Remove edging" aria-label="Remove edging" ${roBtn}
           style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>`;
     }).join('');
@@ -21345,7 +21365,7 @@ function _renderPricesView() {
           onblur="costingPrices.mat['${mat}']=parseFloat(this.value)||0;saveCostingPrices()">
         <span style="font-size:10px;color:var(--text-muted);width:16px">/sh</span>
         ${admin ? `<button onclick="renameMat('${mat.replace(/'/g,"\'")}')" title="Rename board" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">✏</button>` : ''}
-        <button onclick="${delFn}" title="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
+        <button onclick="${delFn}" title="Remove board" aria-label="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;width:28px;flex-shrink:0">×</button>
       </div>
       ${edgeRows}
       ${admin ? `<div class="cv-extra-row" style="padding:5px 0 5px 0;border-bottom:none;border-top:1px solid rgba(255,255,255,0.04);gap:6px;align-items:center;flex-wrap:wrap">
@@ -21544,7 +21564,7 @@ function _renderPricesView() {
             onblur="costingPrices.mat['${safeMatJS}']=parseFloat(this.value)||0;saveCostingPrices()">
           <span style="font-size:11px;color:var(--text-muted)">/sheet</span>
           ${admin ? `<button onclick="renameMat('${safeMatJS}')" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 6px;cursor:pointer">✏</button>` : ''}
-          <button onclick="${delFn}" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
+          <button onclick="${delFn}" aria-label="Remove board" ${roBtn} style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 6px;cursor:pointer">×</button>
           ${minHtml}
         </div>
         ${sheetDimHtml}
@@ -21577,7 +21597,7 @@ function _renderPricesView() {
           <span style="font-size:11px;color:var(--text-muted)">/m</span>
           ${priceDateBadge(costingPrices.edgePriceDates?.[edgeKey])}
           ${admin ? `<button onclick="renameEdge('${edgeKey.replace(/'/g,"\\'")}')\" style="background:none;border:1px solid var(--border);color:var(--amber-dim);font-size:11px;padding:1px 5px;cursor:pointer">✏</button>` : ''}
-          <button onclick="removeBoardEdging('${safeKey}')" ${roBtn}
+          <button onclick="removeBoardEdging('${safeKey}')" aria-label="Remove edging" ${roBtn}
             style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 4px;cursor:pointer">×</button>
         </div>`;
       }).join('');
@@ -21812,7 +21832,7 @@ function _renderPricesView() {
                     `<option value="${u}" ${svc.unit===u?'selected':''}>${u}</option>`).join('')}
                 </select>
                 <span style="font-size:10px;color:var(--text-muted)">R</span>
-                ${admin ? `<button onclick="removeSpecialService('${svc.id}')"
+                ${admin ? `<button onclick="removeSpecialService('${svc.id}')" aria-label="Remove special service"
                   style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0">×</button>` : ''}
               </div>`).join('')}
         </div>
@@ -22201,7 +22221,7 @@ function openSpecialServicesPopup(targetId, targetType, anchorEl) {
   popup.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;color:var(--amber)">⚙ SPECIAL SERVICES</span>
-      <button onclick="document.getElementById('svc-popup').remove()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;padding:0">×</button>
+      <button onclick="document.getElementById('svc-popup').remove()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;line-height:1;padding:0">×</button>
     </div>
     <div id="svc-popup-body">${renderSpecialServicesWidget(targetId, targetType)}</div>`;
   document.body.appendChild(popup);
@@ -22302,7 +22322,7 @@ function _renderMaterialsView() {
       <span style="font-size:10px;color:var(--text-muted)">R</span>
       <button onclick="addMyCostItemToQuote('${h.id}')" title="Add to quote extras"
         style="background:rgba(93,186,110,0.12);border:1px solid rgba(93,186,110,0.4);color:#5dba6e;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Quote</button>
-      <button onclick="removeCustomHardware('${h.id}')" title="Remove"
+      <button onclick="removeCustomHardware('${h.id}')" title="Remove" aria-label="Remove hardware item"
         style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;flex-shrink:0">×</button>
     </div>`).join('');
 
@@ -22385,7 +22405,7 @@ function _renderMaterialsView() {
           <span style="font-size:10px;color:var(--text-muted)">R</span>
           <button onclick="addMyCostItemToQuote('${h.id}')" title="Add to quote extras"
             style="background:rgba(93,186,110,0.12);border:1px solid rgba(93,186,110,0.4);color:#5dba6e;font-size:11px;padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Quote</button>
-          <button onclick="removeCustomHardware('${h.id}')"
+          <button onclick="removeCustomHardware('${h.id}')" aria-label="Remove hardware item"
             style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:12px;padding:1px 5px;cursor:pointer;flex-shrink:0">×</button>
         </div>`).join('') : `<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No items yet.</div>`}
         <div class="cv-extra-row" style="gap:6px;padding-top:10px">
@@ -24688,7 +24708,7 @@ function renderImportedCutlistView() {
         <td style="padding:3px 4px">${edgeSel(p.ew2||'', `updateImportedPart(${i},'ew2',this.value)`, '90px')}</td>
         <td style="padding:3px 4px">${inp(p.holes||'', 'text', `updateImportedPart(${i},'holes',this.value)`, '90px')}</td>
         <td style="padding:3px 6px;text-align:center">
-          <button onclick="deleteImportedPart(${i})" title="Delete row"
+          <button onclick="deleteImportedPart(${i})" title="Delete row" aria-label="Delete row"
             style="background:none;border:1px solid #5a2a2a;color:#e05252;font-size:11px;padding:1px 6px;cursor:pointer">×</button>
         </td>
       </tr>`).join('');
@@ -25233,7 +25253,7 @@ function openSaveAsUnitModal(parts, defaultLabel) {
     <div style="background:var(--bg2);border:1px solid var(--border);width:540px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">🪵 SAVE AS UNIT</div>
-        <button onclick="document.getElementById('sau-overlay').remove()"
+        <button onclick="document.getElementById('sau-overlay').remove()" aria-label="Close"
           style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
       </div>
       <div style="padding:20px;overflow-y:auto;flex:1">
@@ -28995,7 +29015,7 @@ function plOpenPDFImport(jobId) {
     <div style="background:var(--bg2);border:1px solid var(--border);width:880px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text)">📄 IMPORT INVOICE PDF</div>
-        <button onclick="document.getElementById('pl-pdf-overlay').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+        <button onclick="document.getElementById('pl-pdf-overlay').remove()" aria-label="Close" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">×</button>
       </div>
       <div style="padding:20px;overflow-y:auto;flex:1">
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.7">
@@ -32039,7 +32059,7 @@ function renderOptimizer() {
   const scrapRowsHtml = (st.scraps || []).map((s, idx) =>
     `<div class="opt-scrap-row" style="display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12px">
       <span style="flex:1">${s.l} × ${s.w} mm</span>
-      <button class="btn btn-ghost" style="padding:2px 8px" onclick="removeScrap(${idx})">×</button>
+      <button class="btn btn-ghost" style="padding:2px 8px" onclick="removeScrap(${idx})" aria-label="Remove scrap">×</button>
     </div>`
   ).join('');
   const scrapsHtml = `
@@ -32491,7 +32511,7 @@ function renderPlanReview() {
           style="width:100px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;text-align:right">
         <span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;width:24px">mm</span>
         <button onclick="removePlanWall('${room._id}','${w._id}')"
-          title="Remove wall"
+          title="Remove wall" aria-label="Remove wall"
           style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:11px;cursor:pointer;line-height:1">×</button>
       </div>
     `).join('');

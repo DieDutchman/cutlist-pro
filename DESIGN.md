@@ -27,8 +27,10 @@ colors:
   text-light: "#1a1612"
   text-light-dim: "#4a3f30"
   text-light-muted: "#6a5e50"
-  border-light-theme: "#9a8e7e"
-  amber-light-theme: "#b87030"
+  border-light-theme: "#857a69"
+  amber-light-theme: "#864f19"
+  amber-dim-light-theme: "#774720"
+  amber-light-light-theme: "#925a10"
   bg-light-unit-card: "#f5f2ee"
   bg-light-ticker: "#f5e8d0"
   bg-light-nav: "#e8e4dc"
@@ -174,19 +176,21 @@ Colors used for specific semantic purposes in discrete app features. These are n
 
 ### Light Theme (supplier-theme / user-light-theme)
 
-The warm light theme is used by suppliers and in client-facing views. All dark-theme CSS variables are overridden; the amber accent shifts slightly warmer.
+The warm light theme is used by suppliers and in client-facing views. All dark-theme CSS variables are overridden; the amber accent shifts warmer **and darker** than the dark-theme family — every amber/border token here is chosen to independently clear WCAG AA against the `#f0ede8` body surface (4.5:1 for tokens used as text, 3:1 for `--border` as a UI-only element), verified with the real relative-luminance contrast formula (not eyeballed).
 
-| Token | Hex | Role |
-|---|---|---|
-| `--bg` | `#f0ede8` | Body surface |
-| `--bg2` | `#faf8f5` | Card / panel surface |
-| `--bg3` | `#edeae4` | Input / raised surface |
-| `--bg4` | `#e4e0d8` | Hovered panel |
-| `--text` | `#1a1612` | Primary text |
-| `--text-dim` | `#4a3f30` | Secondary text |
-| `--text-muted` | `#6a5e50` | Muted / labels |
-| `--border` | `#9a8e7e` | Default border |
-| `--amber` | `#b87030` | Amber accent (warmer in light mode) |
+| Token | Hex | Role | Contrast vs `#f0ede8` |
+|---|---|---|---|
+| `--bg` | `#f0ede8` | Body surface | — |
+| `--bg2` | `#faf8f5` | Card / panel surface | — |
+| `--bg3` | `#edeae4` | Input / raised surface | — |
+| `--bg4` | `#e4e0d8` | Hovered panel | — |
+| `--text` | `#1a1612` | Primary text | 15.4:1 |
+| `--text-dim` | `#4a3f30` | Secondary text | 8.8:1 |
+| `--text-muted` | `#6a5e50` | Muted / labels | 5.4:1 |
+| `--border` | `#857a69` | Default border (UI component, non-text) | 3.6:1 |
+| `--amber` | `#864f19` | Amber accent (warmer + darker in light mode) | 5.7:1 |
+| `--amber-dim` | `#774720` | Subdued amber — card titles, section labels (darkest of the family) | 6.6:1 |
+| `--amber-light` | `#925a10` | Amber emphasis/hover tone (lightest of the family, still used as text in places like `.qty-input.nonzero`) | 4.9:1 |
 
 Component-specific literals not mapped to CSS vars:
 
