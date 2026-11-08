@@ -7725,8 +7725,8 @@ function _renderPanel() {
   // For user mode: material selector only if there are units
   let html = (isUserMode && units.length === 0) ? '' : buildMatSelector(matGroupIds);
 
-  // Width Builder button for Custom section (admin only)
-  if (!isUserMode && currentSection === 'custom') {
+  // Width Builder button — admin's built-in Custom tab, or any custom-room tab
+  if ((!isUserMode && currentSection === 'custom') || (isUserMode && userRoom)) {
     html += `<div style="padding:14px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="btn btn-primary" style="font-size:13px;padding:10px 24px" onclick="openCustomBuilder()">
         ⚡ Build Custom Unit
@@ -7877,7 +7877,11 @@ function _renderPanel() {
     // Standard template units (no id prefix match) still get Edit/Parts for dimension tweaks
     const isCustomUnit = u.id && (u.id.startsWith('uu_') || u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_'));
     const canRemoveUnit = isUserMode || (isSuperuser() && isCustomUnit);
-    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isSuperuser() && isCustomUnit && sections.length > 1);
+    // Show Move whenever there's at least one room the unit isn't already in —
+    // not just when the account has multiple rooms. A single-room account needs
+    // this exactly when a unit is misfiled under a static legacy section and
+    // has to be moved into that one room.
+    const canMoveUnit   = isUserMode ? userRooms.some(r => r.id !== u.section) : (isSuperuser() && isCustomUnit && sections.length > 1);
     const userBtns = `
       <button class="unit-action-btn" onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button>
       <button class="unit-action-btn" onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts"><span class="uab-glyph">🔧</span><span class="uab-label">Parts</span></button>
@@ -8016,6 +8020,7 @@ function _renderPanel() {
       bedroomAddons[currentSection] = {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers: { enabled: false, items: [defaultSpacer()] },
+        slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
       };
     }
     html += `<div class="addon-section-title">
@@ -8024,6 +8029,7 @@ function _renderPanel() {
     </div>`;
     html += buildPlantOnCard(currentSection);
     html += buildSpacersCard(currentSection);
+    html += buildSlidingDoorsCard(currentSection);
   }
 
   document.getElementById('unit-panel').innerHTML = html;
@@ -8241,14 +8247,15 @@ function generateCutlist() {
     const secLabel = userRooms.find(r => r.id === secId)?.name
       || sections.find(s => s.id === secId)?.label
       || secId;
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
+      const partLabel = ['Plant-on / Spacer', 'Plant-on / Spacer', 'Sliding Door'][gi];
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
-        const part = { name: 'Plant-on / Spacer', mat: item.mat,
+        const part = { name: partLabel, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'' };
         allParts.push({
-          partName: 'Plant-on / Spacer', unitName: secLabel, _section: secId, qty: item.qty,
+          partName: partLabel, unitName: secLabel, _section: secId, qty: item.qty,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
           holes: '', category: getCategory(part),
@@ -8472,7 +8479,7 @@ function generateCutlist() {
   if (!hasContent) {
     const hasAddons = getAddonSections().some(secId => {
       const a = bedroomAddons[secId] || {};
-      return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+      return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     });
     html += `<div class="empty-state">No units or panels found.<br>Go back and add quantities, or add panels in the Panels tab.</div>`;
   }
@@ -8756,7 +8763,7 @@ function generateSummary() {
   const selectedUnits = getEffectiveUnits().filter(u => (quantities[u.id]||0) > 0);
   const hasAddons = getAddonSections().some(secId => {
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       false;
   });
   const hasPanels = panelsState.items.some(p => p.l > 0 && p.w > 0 && p.qty > 0);
@@ -8933,12 +8940,13 @@ function generateSummary() {
   const addonParts = [];
   getAddonSections().forEach(secId => {
     const addons = bedroomAddons[secId] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
+      const partLabel = ['Plant-on / Spacer', 'Plant-on / Spacer', 'Sliding Door'][gi];
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
         addonParts.push({
-          name: 'Plant-on / Spacer',
+          name: partLabel,
           qty: item.qty || 1,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
@@ -9907,8 +9915,25 @@ const WB_CATEGORIES = [
 let wbState = { catId:'floor', baseUnitId: null, width: 450 };
 
 function parseBaseWidth(unit) {
+  // Builder-made units (Custom Unit Builder, Drawer Builder) know their exact
+  // outer width from creation — use it instead of guessing from part dims,
+  // which are often inset (e.g. a Top Panel sized to the INNER width).
+  if (unit.buildW) return unit.buildW;
+
   const m = unit.name.match(/[FWCT](\d{3,4})/);
   if (m) return parseInt(m[1]);
+
+  // Prefer a known horizontal part (top/bottom/shelf) — its longer dimension
+  // IS the cabinet width. This avoids the dims-frequency fallback below
+  // mistaking a tall unit's repeated HEIGHT (e.g. two sides + a back all
+  // sharing a 2400mm wardrobe height) for the width, which Math.max would
+  // then pick over the real (smaller) width.
+  const horizontalPart = unit.parts.find(p => /\b(top|bottom|shelf|shelve)\b/i.test(p.name));
+  if (horizontalPart) {
+    const longer = Math.max(horizontalPart.l, horizontalPart.w);
+    if (longer >= 150 && longer <= 2400) return longer;
+  }
+
   // fallback: find max dimension that appears like a unit width
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
   const candidates = dims.filter(d => d >= 150 && d <= 2400);
@@ -9990,6 +10015,10 @@ function autoUnitNameHeight(baseUnit, newHeight) {
 }
 
 function parseBaseHeight(unit) {
+  // Builder-made units know their exact outer height from creation — see
+  // parseBaseWidth's buildW for the same reasoning.
+  if (unit.buildH) return unit.buildH;
+
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
 
   // 1. Known wardrobe / linnekast heights (exact match ±5mm)
@@ -10075,7 +10104,7 @@ function getAddonSections() {
 
 function ensureBedroomAddons(id) {
   if (!bedroomAddons[id]) {
-    bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+    bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]}, slidingDoors: {enabled:false, items:[defaultSlidingDoor()]} };
   }
 }
 
@@ -10092,11 +10121,20 @@ function defaultSpacer() {
            el1: 'Dunblane Edging 1mm', el2: '', ew1: 'Dunblane Edging 1mm', ew2: '' };
 }
 
+// Sliding doors are visible on all 4 sides in the track (unlike a hinged
+// door's back face, or a spacer's hidden faces), so default to full edging.
+function defaultSlidingDoor() {
+  return { qty: 1, w: 0, h: 0, mat: 'Dunblane',
+           el1: 'Dunblane Edging 1mm', el2: 'Dunblane Edging 1mm',
+           ew1: 'Dunblane Edging 1mm', ew2: 'Dunblane Edging 1mm' };
+}
+
 let bedroomAddons = {};
 ADDON_SECTIONS.forEach(sec => {
   bedroomAddons[sec] = {
     plantOn:  { enabled: false, items: [defaultAddon()] },
     spacers:  { enabled: false, items: [defaultSpacer()] },
+    slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
   };
 });
 try {
@@ -10132,6 +10170,10 @@ try {
           };
         }
       }
+      // slidingDoors — no legacy single-object format to migrate from (new feature)
+      if (saved[sec].slidingDoors && Array.isArray(saved[sec].slidingDoors.items)) {
+        bedroomAddons[sec].slidingDoors = saved[sec].slidingDoors;
+      }
 
     });
   }
@@ -10161,6 +10203,7 @@ async function saveAddonPreset(secId) {
     secId,
     plantOn: JSON.parse(JSON.stringify(section.plantOn)),
     spacers:  JSON.parse(JSON.stringify(section.spacers)),
+    slidingDoors: JSON.parse(JSON.stringify(section.slidingDoors || { enabled: false, items: [defaultSlidingDoor()] })),
     savedAt: new Date().toLocaleDateString('en-ZA'),
   };
   addonPresets.push(preset);
@@ -10181,9 +10224,10 @@ async function deleteAddonPreset(id) {
 async function applyAddonPreset(presetId, targetSecId) {
   const preset = addonPresets.find(p => p.id === presetId);
   if (!preset) return;
-  if (!(await confirmAction(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons and spacers.`, { confirmLabel: 'APPLY' }))) return;
+  if (!(await confirmAction(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons, spacers and sliding doors.`, { confirmLabel: 'APPLY' }))) return;
   bedroomAddons[targetSecId].plantOn = JSON.parse(JSON.stringify(preset.plantOn));
   bedroomAddons[targetSecId].spacers  = JSON.parse(JSON.stringify(preset.spacers));
+  bedroomAddons[targetSecId].slidingDoors = JSON.parse(JSON.stringify(preset.slidingDoors || { enabled: false, items: [defaultSlidingDoor()] }));
   saveBedroomAddons();
   renderPanel();
 }
@@ -10256,6 +10300,11 @@ function calcSpacersCost(spacers) {
   return spacers.items.reduce((s, item) => s + _calcItemCost(item), 0);
 }
 
+function calcSlidingDoorsCost(slidingDoors) {
+  if (!slidingDoors.enabled) return 0;
+  return slidingDoors.items.reduce((s, item) => s + _calcSpacerItemCost(item), 0);
+}
+
 // Same shape as _calcItemCost but uses billedSheetsForMat (per-material minimums/
 // full-sheet/special-order rules) instead of the plain billSheets rounding used for
 // plant-on panels. Factored out of buildSpacersCard's inline per-row calc so
@@ -10290,7 +10339,7 @@ function updateAddonRowCost(secId, kind, i) {
     const strong = costEl.querySelector('strong');
     if (strong) strong.textContent = `R ${Math.round(cost).toLocaleString('en-ZA')}`;
   }
-  const total = kind === 'plantOn' ? calcPlantOnCost(group) : calcSpacersCost(group);
+  const total = kind === 'plantOn' ? calcPlantOnCost(group) : kind === 'slidingDoors' ? calcSlidingDoorsCost(group) : calcSpacersCost(group);
   const totalEl = document.getElementById(`ac-total-${kind}-${secId}`);
   if (totalEl) {
     totalEl.style.display = total > 0 ? '' : 'none';
@@ -10464,6 +10513,92 @@ function buildSpacersCard(secId) {
       <span class="addon-icon">📐</span>
       <span class="addon-label">Spacers / Fillers <span style="font-size:11px;color:var(--text-muted)">${sp.enabled && sp.items.length > 0 ? '('+sp.items.length+' piece'+(sp.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${sp.enabled ? 'on' : ''}">${sp.enabled ? 'ON' : 'OFF'}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+// Sliding doors — same free-entry qty/width/height/material/edging shape as
+// Spacers, but a distinct, clearly-labeled addon type instead of hijacking
+// Plant-on/Spacer for an actual door. Defensive init: older saved jobs/
+// snapshots predating this feature won't have .slidingDoors yet.
+function buildSlidingDoorsCard(secId) {
+  if (!bedroomAddons[secId].slidingDoors) {
+    bedroomAddons[secId].slidingDoors = { enabled: false, items: [defaultSlidingDoor()] };
+  }
+  const sd   = bedroomAddons[secId].slidingDoors;
+  const save = `saveBedroomAddons();renderPanel()`;
+  const edgeOpts = (val) => EDGES.map(e => `<option value="${e}" ${e===val?'selected':''}>${e||'— none —'}</option>`).join('');
+
+  let itemsHtml = '';
+  sd.items.forEach((item, i) => {
+    const ref = `bedroomAddons['${secId}'].slidingDoors.items[${i}]`;
+    const matOptsHtml = MATS.map(m => `<option value="${m}" ${m===item.mat?'selected':''}>${m}</option>`).join('');
+    const cost = _calcSpacerItemCost(item);
+
+    itemsHtml += `<div style="background:var(--bg2);border:1px solid var(--border);padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">SLIDING DOOR ${i+1}</span>
+        ${sd.items.length > 1
+          ? `<button onclick="bedroomAddons['${secId}'].slidingDoors.items.splice(${i},1);${save}"
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove sliding door">×</button>`
+          : ''}
+      </div>
+      <div class="addon-row">
+        <div class="addon-field">
+          <label>Qty</label>
+          <input autocomplete="off" type="number" min="1" value="${item.qty}"
+            onchange="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
+        </div>
+        <div class="addon-field">
+          <label>Width (mm)</label>
+          <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 900"
+            onchange="${ref}.w=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
+        </div>
+        <div class="addon-field">
+          <label>Height (mm)</label>
+          <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
+            onchange="${ref}.h=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
+        </div>
+      </div>
+      <div class="addon-row">
+        <div class="addon-field wide">
+          <label>Material</label>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${matOptsHtml}</select>
+        </div>
+      </div>
+      <div class="addon-row">
+        <div class="addon-field" title="L1 — long edge 1 (height of door)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field" title="W1 — short edge 1 (width of door)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.ew2)}</select></div>
+      </div>
+      <div id="ac-cost-slidingDoors-${secId}-${i}" class="addon-cost" style="${cost > 0 ? '' : 'display:none'}">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>
+    </div>`;
+  });
+
+  const totalCost = calcSlidingDoorsCost(sd);
+
+  const body = sd.enabled ? `
+    <div class="addon-body">
+      ${itemsHtml}
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+        <button onclick="bedroomAddons['${secId}'].slidingDoors.items.push(defaultSlidingDoor());${save}"
+          style="font-weight:500;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:6px 16px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px">
+          + ADD SLIDING DOOR
+        </button>
+        <span id="ac-total-slidingDoors-${secId}" style="font-size:12px;color:var(--text-muted);${totalCost > 0 ? '' : 'display:none'}">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>
+      </div>
+    </div>` : '';
+
+  return `<div class="addon-card ${sd.enabled ? 'active' : ''}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${sd.enabled}" onclick="bedroomAddons['${secId}'].slidingDoors.enabled=!bedroomAddons['${secId}'].slidingDoors.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].slidingDoors.enabled=!bedroomAddons['${secId}'].slidingDoors.enabled;${save}}">
+      <span class="addon-icon">🚪</span>
+      <span class="addon-label">Sliding Doors <span style="font-size:11px;color:var(--text-muted)">${sd.enabled && sd.items.length > 0 ? '('+sd.items.length+' piece'+(sd.items.length>1?'s':'')+')' : ''}</span></span>
+      <span class="addon-toggle ${sd.enabled ? 'on' : ''}">${sd.enabled ? 'ON' : 'OFF'}</span>
     </div>
     ${body}
   </div>`;
@@ -10678,10 +10813,12 @@ function createWidthBuilderUnit() {
   const newId = 'custom_' + Date.now();
   const newUnit = {
     id: newId,
-    section: 'custom',
+    section: baseUnit.section || 'custom',
     name: unitName,
     price: 0,
     parts: scaledParts,
+    buildW: newWidth,
+    buildH: baseUnit.buildH,
   };
 
   customUnits.push(newUnit);
@@ -10719,7 +10856,7 @@ const CB_CATEGORIES = [
   { id:'custom',   label:'Custom / Imported',   test: u => !!(u.id && (u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_') || u.id.startsWith('uu_'))) },
 ];
 
-let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined };
+let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined, section: undefined };
 
 function openCustomBuilder() {
   const all = getEffectiveUnits().filter(u => u.parts && u.parts.length > 0);
@@ -10764,6 +10901,13 @@ function _renderCustomBuilder() {
 
   const unitOpts = units.map(u =>
     `<option value="${u.id}" ${u.id===cbState.baseUnitId?'selected':''}>${u.name}</option>`).join('');
+
+  const roomList = (usesUserUnits() && userRooms.length > 0)
+    ? userRooms.map(r => ({ id: r.id, label: r.name }))
+    : sections;
+  const targetSection = cbState.section || base?.section || roomList[0]?.id;
+  const sectionOpts = roomList.map(r =>
+    `<option value="${r.id}" ${r.id===targetSection?'selected':''}>${r.label}</option>`).join('');
 
   const baseW = base ? parseBaseWidth(base)  : 600;
   const baseH = base ? parseBaseHeight(base) : 720;
@@ -10821,7 +10965,7 @@ function _renderCustomBuilder() {
         <div class="wb-controls" style="margin-bottom:14px">
           <div class="wb-field">
             <label>Base Unit</label>
-            <select autocomplete="off" class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
+            <select autocomplete="off" class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;cbState.section=undefined;renderCustomBuilder()">
               ${unitOpts}
             </select>
           </div>
@@ -10889,6 +11033,8 @@ function _renderCustomBuilder() {
       <div class="wb-footer">
         <input class="wb-name-input" id="cb-unit-name" value="${unitName.replace(/"/g,'&quot;')}"
           placeholder="Unit name…" oninput="cbState.customName=this.value">
+        <select autocomplete="off" id="cb-unit-section" class="wb-select" title="Save to room/section"
+          onchange="cbState.section=this.value">${sectionOpts}</select>
         <button class="btn btn-primary" style="white-space:nowrap" onclick="createCustomBuilderUnit()">
           ✚ Create Unit
         </button>
@@ -10956,19 +11102,21 @@ function createCustomBuilderUnit() {
   });
 
   const id = (usesUserUnits() ? 'uu_cb_' : 'custom_cb_') + Date.now();
-  const section = currentSection;
+  const section = cbState.section || base.section;
   if (usesUserUnits() && userRooms.length > 0) {
-    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0, buildW: newW, buildH: newH });
     if (!(id in quantities)) quantities[id] = 0;
     scheduleAutoSave();
   } else {
-    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0, buildW: newW, buildH: newH });
     if (!(id in quantities)) quantities[id] = 0;
     saveCustomUnits();
   }
   updateCounts();
-  renderPanel();
   closeCustomBuilder();
+  const destTab = document.querySelector(`[data-section="${section}"]`);
+  if (destTab) switchTab(destTab, section);
+  else { currentSection = section; renderPanel(); }
   // Flash confirmation
   setTimeout(() => showToast(`"${unitName}" added to ${section} unit list`, 'success'), 50);
 }
@@ -11149,7 +11297,10 @@ function createHeightBuilderUnit() {
   });
 
   const newId = 'custom_h_' + Date.now();
-  const newUnit = { id: newId, section: 'custom', name: unitName, price: 0, parts: scaledParts };
+  const newUnit = {
+    id: newId, section: baseUnit.section || 'custom', name: unitName, price: 0, parts: scaledParts,
+    buildW: baseUnit.buildW, buildH: newHeight,
+  };
   customUnits.push(newUnit);
   quantities[newId] = 0;
   saveCustomUnits();
@@ -11775,6 +11926,7 @@ function _applyScenario(idx) {
       bedroomAddons[sec] = saved[sec] || {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers:  { enabled: false, items: [defaultSpacer()] },
+        slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
       };
     });
     Object.keys(saved).forEach(sec => {
@@ -11998,7 +12150,7 @@ function _renderQuoteView() {
   const sectionData = activeSections.map(sec => {
     const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
-    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    const hasEnabledAddons = [addons.plantOn, addons.spacers, addons.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
@@ -12046,7 +12198,7 @@ function _renderQuoteView() {
     });
     if (getAddonSections().includes(sec.id)) {
       const addons = bedroomAddons[sec.id] || {};
-      [addons.plantOn, addons.spacers].forEach(group => {
+      [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
         if (!group?.enabled) return;
         group.items.forEach(item => {
           if (item.w && item.h) unitsTotal += _calcItemCost(item);
@@ -12211,6 +12363,19 @@ function _renderQuoteView() {
           mainHtml += `<tr>
             <td class="qv-qty">${item.qty}×</td>
             <td class="qv-unit-name" style="color:var(--text-muted)">Spacer${addons.spacers.items.length > 1 ? ' '+(i+1) : ''} <span style="font-size:11px">(${item.w}×${item.h}mm ${item.mat})</span></td>
+            <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)">${fmt(cost/item.qty)}</td>
+            <td class="qv-line-total" style="color:var(--text-muted)">${fmt(cost)}</td>
+          </tr>`;
+        });
+      }
+      if (addons.slidingDoors?.enabled) {
+        addons.slidingDoors.items.forEach((item, i) => {
+          if (!item.w || !item.h) return;
+          const cost = _calcSpacerItemCost(item);
+          secDisplayTotal += cost;
+          mainHtml += `<tr>
+            <td class="qv-qty">${item.qty}×</td>
+            <td class="qv-unit-name" style="color:var(--text-muted)">Sliding Door${addons.slidingDoors.items.length > 1 ? ' '+(i+1) : ''} <span style="font-size:11px">(${item.w}×${item.h}mm ${item.mat})</span></td>
             <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)">${fmt(cost/item.qty)}</td>
             <td class="qv-line-total" style="color:var(--text-muted)">${fmt(cost)}</td>
           </tr>`;
@@ -13124,7 +13289,7 @@ function computeQuoteTotals() {
   const sectionData = activeSections.map(sec => {
     const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
-    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    const hasEnabledAddons = [addons.plantOn, addons.spacers, addons.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
@@ -13171,7 +13336,7 @@ function computeQuoteTotals() {
     });
     // Addons for this section (any section key, including custom rooms)
     const addons = bedroomAddons[sec.id] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
     });
@@ -13299,7 +13464,7 @@ function computeJobMatBreakdown() {
     });
     // Bedroom addons: plant-on panels + spacers
     const addons = bedroomAddons[sec.id] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
@@ -15428,9 +15593,41 @@ async function loadJobFromSelect() {
   }
 }
 
+// Three-way choice (keep / start fresh / cancel) for what to do with the
+// current job's rooms when starting a new one. Separate from confirmAction
+// since that's a binary confirm/cancel — this needs a distinct third option.
+function chooseNewJobRoomsMode() {
+  return new Promise(resolve => {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center';
+    const settle = (v) => { modal.remove(); resolve(v); };
+    modal.addEventListener('click', e => { if (e.target === modal) settle(null); });
+    modal.innerHTML = `
+      <div role="alertdialog" aria-modal="true" aria-label="Rooms for this job" style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--amber);max-width:420px;width:92%;font-family:'Barlow',sans-serif;padding:22px">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;color:var(--text);margin-bottom:10px">ROOMS FOR THIS JOB</div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">Keep your current rooms and units as the starting point for this new job, or start with none and build fresh. Either way, your current job keeps its own rooms exactly as they are.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="njr-keep" style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:10px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">KEEP CURRENT ROOMS</button>
+          <button id="njr-fresh" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:pointer">START WITH NO ROOMS</button>
+          <button id="njr-cancel" style="background:none;border:none;color:var(--text-muted);padding:6px;font-family:'Barlow',sans-serif;font-size:11px;cursor:pointer">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#njr-keep').onclick   = () => settle('keep');
+    modal.querySelector('#njr-fresh').onclick  = () => settle('fresh');
+    modal.querySelector('#njr-cancel').onclick = () => settle(null);
+  });
+}
+
 async function newJob() {
   _closeOnboardCoachMark();
   if (!(await confirmAction('Start a new job? Unsaved changes will be lost.', { confirmLabel: 'START NEW' }))) return;
+  let _keepRoomsForNewJob = false;
+  if (!isSuperuser() && userRooms.length > 0) {
+    const choice = await chooseNewJobRoomsMode();
+    if (choice === null) return;
+    _keepRoomsForNewJob = choice === 'keep';
+  }
   currentJobId = null;
   try { localStorage.removeItem('cutlist_current_job_id'); } catch(e) {}
   persistLastJobId(null);
@@ -15465,10 +15662,11 @@ async function newJob() {
   Object.keys(unitSpecialServices).forEach(k => delete unitSpecialServices[k]);
   Object.keys(panelSpecialServices).forEach(k => delete panelSpecialServices[k]);
   // Rooms + user units are job-scoped for non-superuser roles — reset so the
-  // "Add Your First Room" onboarding flow triggers for a fresh job. Superuser
-  // rooms/units are profile-scoped (persisted via templates blob) and must
-  // survive a new-job reset.
-  if (!isSuperuser()) {
+  // "Add Your First Room" onboarding flow triggers for a fresh job, unless
+  // the user explicitly chose to keep them via chooseNewJobRoomsMode() above.
+  // Superuser rooms/units are profile-scoped (persisted via templates blob)
+  // and must survive a new-job reset regardless.
+  if (!isSuperuser() && !_keepRoomsForNewJob) {
     userRooms = [];
     userUnits = [];
   }
@@ -15493,11 +15691,14 @@ async function newJob() {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
       spacers: { enabled: false, items: [defaultSpacer()] },
+      slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
     };
   });
-  // For non-superusers, userRooms was cleared above so drop any orphaned
-  // ur_xxx addon keys entirely rather than leaving empty stubs behind.
-  if (!isSuperuser()) {
+  // For non-superusers who didn't keep their rooms, userRooms was cleared
+  // above so drop any orphaned ur_xxx addon keys entirely rather than
+  // leaving empty stubs behind. Skip this when rooms were kept — those
+  // ur_xxx keys were just re-seeded blank above and are still valid.
+  if (!isSuperuser() && !_keepRoomsForNewJob) {
     Object.keys(bedroomAddons).forEach(k => {
       if (!ADDON_SECTIONS.includes(k)) delete bedroomAddons[k];
     });
@@ -15627,6 +15828,7 @@ async function deleteCurrentJob() {
       bedroomAddons[sec] = {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers: { enabled: false, items: [defaultSpacer()] },
+        slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
       };
     });
     if (!isSuperuser()) {
@@ -16975,6 +17177,7 @@ function openAddRoomModal() {
         <button onclick="confirmAddRoom()" style="flex:1;background:var(--amber);color:#111;border:none;padding:11px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer">CREATE ROOM</button>
         <button onclick="document.getElementById('add-room-modal').remove()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:11px 18px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CANCEL</button>
       </div>
+      <button onclick="confirmAddRoomAndImport()" style="font-weight:500;width:100%;margin-top:10px;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:9px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">⇪ CREATE ROOM &amp; IMPORT UNITS FROM A PREVIOUS JOB</button>
     </div>`;
   document.body.appendChild(modal);
   // Select first icon by default
@@ -16995,9 +17198,12 @@ function getSelectedRoomIcon() {
   return sel ? sel.textContent.trim() : '🏠';
 }
 
-function confirmAddRoom() {
+// Shared room-creation logic for the Add Room modal. Returns the new room's
+// id, or null if validation failed (name empty). Used by both the plain
+// "Create Room" button and "Create Room & Import Units" below.
+function _createRoomFromAddModal() {
   const name = document.getElementById('new-room-name')?.value.trim();
-  if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return; }
+  if (!name) { const e=document.getElementById('add-room-err'); e.textContent='Please enter a room name.'; e.style.display='block'; return null; }
   const id = 'ur_' + Date.now();
   const icon = getSelectedRoomIcon();
   // Superuser: capture which template section's units this room shows
@@ -17013,7 +17219,7 @@ function confirmAddRoom() {
   }
   // Seed bedroomAddons for this room
   ensureBedroomAddons(id);
-  document.getElementById('add-room-modal').remove();
+  document.getElementById('add-room-modal')?.remove();
   renderUserRoomsNav();
   // Switch to new room
   const btn = document.querySelector(`button[data-section="${id}"]`);
@@ -17021,6 +17227,157 @@ function confirmAddRoom() {
   scheduleAutoSave();
   // Superuser: persist rooms across sessions via the profile templates blob
   if (isSuperuser() && sbUser) pushTemplatesToCloud();
+  return id;
+}
+
+function confirmAddRoom() {
+  _createRoomFromAddModal();
+}
+
+function confirmAddRoomAndImport() {
+  const id = _createRoomFromAddModal();
+  if (id) openImportUnitsFromJobModal(id);
+}
+
+// ── Import units from a previous job into a (new) room ───────────────────────
+// Separate from openImportUnitModal (which parses a pasted/uploaded parts
+// list into a brand-new unit) — this copies real units that already exist
+// on one of the account's own previously saved jobs.
+let _iufjState = { targetSectionId: null, rooms: [], units: [] };
+
+async function openImportUnitsFromJobModal(targetSectionId) {
+  _iufjState = { targetSectionId, rooms: [], units: [] };
+  const modal = document.createElement('div');
+  modal.id = 'import-from-job-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;display:flex;align-items:center;justify-content:center';
+  modal.addEventListener('click', e => { if (e.target === modal) closeImportUnitsFromJobModal(); });
+  modal.innerHTML = `
+    <div role="dialog" aria-modal="true" aria-label="Import units from a previous job" style="background:var(--bg2);border:1px solid var(--border);width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;font-family:'Barlow',sans-serif">
+      <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:2px;color:var(--text);margin-bottom:4px">⇪ IMPORT UNITS FROM A PREVIOUS JOB</div>
+        <div style="font-size:12px;color:var(--text-muted)">Pick an old job, then choose which units to copy into this room.</div>
+      </div>
+      <div style="padding:14px 24px;border-bottom:1px solid var(--border)">
+        <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Job</label>
+        <select id="iufj-job-select" autocomplete="off" onchange="_iufjLoadJob(this.value)"
+          style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none">
+          <option value="">Loading jobs…</option>
+        </select>
+      </div>
+      <div id="iufj-body" style="flex:1;overflow-y:auto;padding:4px 24px"></div>
+      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+        <span id="iufj-summary" style="font-size:12px;color:var(--text-muted);flex:1">Select a job to see its units.</span>
+        <button id="iufj-import-btn" onclick="_iufjDoImport()" disabled
+          style="font-weight:500;background:var(--amber);color:#111;border:none;padding:10px 20px;font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0.3px;cursor:not-allowed;opacity:0.4">IMPORT SELECTED</button>
+        <button onclick="closeImportUnitsFromJobModal()" style="font-weight:500;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:10px 16px;font-family:'Barlow',sans-serif;font-size:12px;cursor:pointer">CLOSE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  _iufjPopulateJobList();
+}
+
+function closeImportUnitsFromJobModal() {
+  document.getElementById('import-from-job-modal')?.remove();
+}
+
+async function _iufjPopulateJobList() {
+  const sel = document.getElementById('iufj-job-select');
+  if (!sel || !sbUser) return;
+  try {
+    const res = await fetchWithAuth(
+      `${SB_URL}/rest/v1/jobs?select=id,client,house,address,updated_at&user_id=eq.${sbUser.id}&order=updated_at.desc&limit=50`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const candidates = rows.filter(j => j.id !== currentJobId);
+    if (!candidates.length) {
+      sel.innerHTML = '<option value="">No previous jobs found</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— Select a job —</option>' + candidates.map(j => {
+      const date = new Date(j.updated_at).toLocaleDateString('en-ZA', { day:'2-digit', month:'short', year:'2-digit' });
+      const label = [j.client, j.house, j.address].filter(Boolean).join(' · ') || 'Untitled job';
+      return `<option value="${j.id}">${_esc(label)} — ${date}</option>`;
+    }).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Failed to load jobs</option>';
+  }
+}
+
+async function _iufjLoadJob(jobId) {
+  const body = document.getElementById('iufj-body');
+  const importBtn = document.getElementById('iufj-import-btn');
+  _iufjState.rooms = []; _iufjState.units = [];
+  importBtn.disabled = true; importBtn.style.opacity = '0.4'; importBtn.style.cursor = 'not-allowed';
+  if (!jobId) { body.innerHTML = ''; document.getElementById('iufj-summary').textContent = 'Select a job to see its units.'; return; }
+  body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">↻ Loading units…</div>';
+  try {
+    const res = await fetchWithAuth(`${SB_URL}/rest/v1/jobs?select=state&id=eq.${jobId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    const state = rows[0]?.state || {};
+    const rooms = Array.isArray(state.userRooms) ? state.userRooms : [];
+    const units = Array.isArray(state.userUnits) ? state.userUnits : [];
+    _iufjState.rooms = rooms;
+    _iufjState.units = units;
+    if (!units.length) {
+      body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">That job has no units to import.</div>';
+      document.getElementById('iufj-summary').textContent = '0 units available.';
+      return;
+    }
+    const roomName = (sectionId) => rooms.find(r => r.id === sectionId)?.name || sectionId;
+    const byRoom = new Map();
+    units.forEach(u => {
+      const key = u.section || '—';
+      if (!byRoom.has(key)) byRoom.set(key, []);
+      byRoom.get(key).push(u);
+    });
+    body.innerHTML = [...byRoom.entries()].map(([sectionId, us]) => `
+      <div style="margin:10px 0">
+        <div style="font-weight:500;font-size:11px;color:var(--amber-dim);letter-spacing:0.3px;text-transform:uppercase;margin-bottom:6px">${_esc(roomName(sectionId))}</div>
+        ${us.map(u => `
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:var(--text);cursor:pointer">
+            <input type="checkbox" class="iufj-unit-cb" value="${u.id}" onchange="_iufjUpdateSummary()">
+            <span>${_esc(u.name)}</span>
+            <span style="font-size:11px;color:var(--text-muted)">${(u.parts||[]).length} part${(u.parts||[]).length===1?'':'s'}</span>
+          </label>`).join('')}
+      </div>`).join('');
+    document.getElementById('iufj-summary').textContent = `${units.length} unit${units.length===1?'':'s'} available.`;
+  } catch(e) {
+    body.innerHTML = `<div style="padding:20px;text-align:center;color:#e07070;font-size:12px">Failed to load: ${_esc(e.message)}</div>`;
+  }
+}
+
+function _iufjUpdateSummary() {
+  const n = document.querySelectorAll('.iufj-unit-cb:checked').length;
+  const importBtn = document.getElementById('iufj-import-btn');
+  document.getElementById('iufj-summary').textContent = n > 0 ? `${n} unit${n===1?'':'s'} selected.` : `${_iufjState.units.length} unit${_iufjState.units.length===1?'':'s'} available.`;
+  importBtn.disabled = n === 0;
+  importBtn.style.opacity = n === 0 ? '0.4' : '1';
+  importBtn.style.cursor = n === 0 ? 'not-allowed' : 'pointer';
+}
+
+function _iufjDoImport() {
+  const checked = [...document.querySelectorAll('.iufj-unit-cb:checked')].map(cb => cb.value);
+  if (!checked.length) return;
+  const targetSectionId = _iufjState.targetSectionId;
+  let count = 0;
+  checked.forEach((unitId, i) => {
+    const src = _iufjState.units.find(u => u.id === unitId);
+    if (!src) return;
+    const newId = 'uu_imp_' + Date.now() + '_' + i;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = newId;
+    copy.section = targetSectionId;
+    userUnits.push(copy);
+    quantities[newId] = 0;
+    count++;
+  });
+  closeImportUnitsFromJobModal();
+  updateCounts();
+  renderPanel();
+  scheduleAutoSave();
+  showToast(`Imported ${count} unit${count===1?'':'s'}`, 'success');
 }
 
 async function renameRoomPrompt(roomId) {
@@ -17956,6 +18313,11 @@ function applyRoleRestrictions() {
               Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
             </div>
             <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+            <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Also worth doing early — add the customer's details for this job.</div>
+              <button onclick="toggleJobDetailsPopover();setTimeout(()=>document.getElementById('job-client')?.focus(),0)"
+                style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 18px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">📋 ADD CUSTOMER DETAILS</button>
+            </div>
           </div>`;
       }, 0);
     }
@@ -20032,7 +20394,7 @@ async function migrateRenamedNamesAcrossJobs(renamesObj) {
     if (s.bedroomAddons && typeof s.bedroomAddons === 'object') {
       Object.values(s.bedroomAddons).forEach(sec => {
         if (!sec) return;
-        [sec.plantOn, sec.spacers].forEach(group => {
+        [sec.plantOn, sec.spacers, sec.slidingDoors].forEach(group => {
           if (!group || !Array.isArray(group.items)) return;
           group.items.forEach(item => {
             if (!item) return;
@@ -20457,7 +20819,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
 
   // Pool addon parts into same material buckets — no separate cut & label
   const addons = bedroomAddons[secId] || {};
-  [addons.plantOn, addons.spacers].forEach(group => {
+  [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
     if (!group || !group.enabled) return;
     group.items.forEach(item => {
       if (!item.w || !item.h) return;
@@ -22189,11 +22551,12 @@ function _renderCostingView() {
     if (secUnitsSelected) return;
     const addons = bedroomAddons[secId] || {};
     const activeItems = [];
-    [addons.plantOn, addons.spacers].forEach((group, gi) => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
       group.items.forEach((item, ii) => {
         if (!item.w || !item.h) return;
-        activeItems.push({ item, label: gi === 0 ? `Plant-on${group.items.length > 1 ? ' ' + (ii+1) : ''}` : `Spacer${group.items.length > 1 ? ' ' + (ii+1) : ''}`, isBase: false });
+        const _addonGroupLabel = ['Plant-on', 'Spacer', 'Sliding Door'][gi];
+        activeItems.push({ item, label: `${_addonGroupLabel}${group.items.length > 1 ? ' ' + (ii+1) : ''}`, isBase: false });
       });
     });
     const bases = addons.bases;
@@ -22288,7 +22651,7 @@ function _renderCostingView() {
   const hasAddonOnlySecs = addonSections.some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       (a.bases?.enabled && (a.bases.type === 'feet'
         ? (a.bases.items||[]).some(i => i.qty > 0)
         : (a.bases.items||[]).some(i => i.l && i.w))) ||
@@ -22741,11 +23104,12 @@ function _refreshCostingResults() {
     if (selectedUnits.some(u => u.section === secId)) return;
     const addons = bedroomAddons[secId] || {};
     const activeItems = [];
-    [addons.plantOn, addons.spacers].forEach((group, gi) => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
       group.items.forEach((item, ii) => {
         if (!item.w || !item.h) return;
-        activeItems.push({ item, label: gi === 0 ? `Plant-on${group.items.length > 1 ? ' ' + (ii+1) : ''}` : `Spacer${group.items.length > 1 ? ' ' + (ii+1) : ''}` });
+        const _addonGroupLabel = ['Plant-on', 'Spacer', 'Sliding Door'][gi];
+        activeItems.push({ item, label: `${_addonGroupLabel}${group.items.length > 1 ? ' ' + (ii+1) : ''}` });
       });
     });
     if (!activeItems.length) return;
@@ -22781,7 +23145,7 @@ function _refreshCostingResults() {
   const _hasAddonOnly = addonSections.some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       false;
   });
   if (selectedUnits.length > 0 || _hasPanels || _hasHwExtras || _hasAddonOnly) {
@@ -22898,7 +23262,7 @@ function checkAndRemapOrphans() {
     if (p.mat && !MATS.includes(p.mat)) orphans.add(p.mat);
   });
   Object.values(bedroomAddons).forEach(sec => {
-    [sec?.plantOn, sec?.spacers].forEach(group => {
+    [sec?.plantOn, sec?.spacers, sec?.slidingDoors].forEach(group => {
       (group?.items || []).forEach(item => {
         if (item.mat && !MATS.includes(item.mat)) orphans.add(item.mat);
       });
@@ -22972,7 +23336,7 @@ function checkAndRemapOrphans() {
     });
 
     Object.values(bedroomAddons).forEach(sec => {
-      [sec?.plantOn, sec?.spacers].forEach(group => {
+      [sec?.plantOn, sec?.spacers, sec?.slidingDoors].forEach(group => {
         (group?.items || []).forEach(item => {
           if (mapping[item.mat]) item.mat = mapping[item.mat];
         });
@@ -23055,6 +23419,7 @@ function _applyStateInner(state) {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
       spacers:  { enabled: false, items: [defaultSpacer()] },
+      slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
     };
   });
   // Clear panels
@@ -23100,6 +23465,7 @@ function _applyStateInner(state) {
         bedroomAddons[sec] = {
           plantOn: { enabled: false, items: [defaultAddon()] },
           spacers: { enabled: false, items: [defaultSpacer()] },
+          slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
         };
       }
       if (saved.plantOn)
@@ -23108,6 +23474,11 @@ function _applyStateInner(state) {
         const s = saved.spacers;
         bedroomAddons[sec].spacers = Array.isArray(s.items)
           ? s : { enabled: s.enabled||false, items: [defaultSpacer()] };
+      }
+      if (saved.slidingDoors) {
+        const sd = saved.slidingDoors;
+        bedroomAddons[sec].slidingDoors = Array.isArray(sd.items)
+          ? sd : { enabled: sd.enabled||false, items: [defaultSlidingDoor()] };
       }
     });
   }
@@ -25212,6 +25583,20 @@ const builderState = {
     door:        'Dunblane',
     doorEdge:    'Dunblane Edging 1mm',
   },
+  // Which of the 4 sides (l1/l2 = long edges, w1/w2 = short edges — same
+  // convention as the Plant-on/Spacer L1/L2/W1/W2 fields) get edge banding,
+  // per part type. Defaults to all 4 so existing units keep their current
+  // look; turn individual sides off per part type as needed.
+  edgeSides: {
+    topPanel:     { l1:true, l2:true, w1:true, w2:true },
+    bottomPanel:  { l1:true, l2:true, w1:true, w2:true },
+    leftSide:     { l1:true, l2:true, w1:true, w2:true },
+    rightSide:    { l1:true, l2:true, w1:true, w2:true },
+    supportRails: { l1:true, l2:true, w1:true, w2:true },
+    shelves:      { l1:true, l2:true, w1:true, w2:true },
+    dividers:     { l1:true, l2:true, w1:true, w2:true },
+    doors:        { l1:true, l2:true, w1:true, w2:true },
+  },
   unitName: 'Custom Unit',
   section: 'kitchen',
 };
@@ -26358,19 +26743,41 @@ function build3DView() {
 
 
 
+// Per-part-type edge-side picker — 4 checkboxes (L1/L2/W1/W2), used under
+// each edge-material dropdown in the Materials & Edging panel.
+function builderEdgeSideRow(type, label) {
+  const m = builderState.edgeSides[type];
+  const cb = (side, title) => `<label title="${title}" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);cursor:pointer;white-space:nowrap">
+    <input type="checkbox" ${m[side] ? 'checked' : ''} onchange="builderState.edgeSides['${type}'].${side}=this.checked;builderRedraw()" style="margin:0">${side.toUpperCase()}</label>`;
+  return `<div class="bldr-row">
+    <span class="bldr-label" style="font-size:11px">${label}</span>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${cb('l1','Long edge 1')}${cb('l2','Long edge 2')}${cb('w1','Short edge 1')}${cb('w2','Short edge 2')}
+    </div>
+  </div>`;
+}
+
 function renderBuilderView() { withScrollLock(_renderBuilderView); }
 function _renderBuilderView() {
   const bv = document.getElementById('builder-view');
   if (!bv) return;
 
-  const sectionOpts = [
-    { id:'kitchen', label:'Kitchen' },
-    { id:'mainbedroom', label:'Main Bedroom' },
-    { id:'sparebedroom', label:'Spare Bedroom' },
-    { id:'linnekast', label:'Linne Kas' },
-    { id:'bathroom', label:'Badkamer' },
-    { id:'custom', label:'Custom' },
-  ].map(s => `<option value="${s.id}" ${builderState.section===s.id?'selected':''}>${s.label}</option>`).join('');
+  // Build section list — standard rooms + any user-created rooms (same
+  // pattern as the Drawer Builder below). Without this, a custom-room
+  // account only ever sees the 6 static legacy sections here, so a built
+  // unit silently lands in one of those instead of the user's actual room
+  // and never shows up in that room's own unit list.
+  const _bldrStdSecs  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
+  const _bldrUserSecs = userRooms.filter(r => !_bldrStdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
+  const _bldrAllSecs  = usesUserUnits() && userRooms.length > 0 ? _bldrUserSecs : [..._bldrStdSecs, ..._bldrUserSecs];
+
+  // For user-mode (admin + user), ensure builderState.section is one of their actual rooms
+  if (usesUserUnits() && userRooms.length > 0 && !_bldrAllSecs.find(s => s.id === builderState.section)) {
+    builderState.section = _bldrAllSecs[0]?.id || builderState.section;
+  }
+
+  const sectionOpts = _bldrAllSecs
+    .map(s => `<option value="${s.id}" ${builderState.section===s.id?'selected':''}>${s.label}</option>`).join('');
 
   const matOpts = (sel) => MATS.map(m => `<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
   const edgeOpts = (sel) => ['', ...EDGES].map(e => `<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
@@ -26544,6 +26951,15 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.carcassEdge)}
             </select></div>
+          ${mt.carcassEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px">Edge sides per part</div>
+            ${builderEdgeSideRow('topPanel',     'Top Panel')}
+            ${builderEdgeSideRow('bottomPanel',  'Bottom Panel')}
+            ${builderEdgeSideRow('leftSide',     'Left Side')}
+            ${builderEdgeSideRow('rightSide',    'Right Side')}
+            ${builderEdgeSideRow('supportRails', 'Support Rails')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26554,6 +26970,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.shelfEdge)}
             </select></div>
+          ${mt.shelfEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('shelves', 'Shelves')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26564,6 +26984,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.dividerEdge)}
             </select></div>
+          ${mt.dividerEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('dividers', 'Dividers')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26579,6 +27003,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.doorEdge)}
             </select></div>
+          ${mt.doorEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('doors', 'Doors')}
+          </div>` : ''}
         </div>
       </div>` : ''}
 
@@ -26610,7 +27038,14 @@ function builderSaveUnit() {
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
   const name = bs.unitName.trim() || 'Custom Unit';
 
-  const cp = (n, l, w) => ({ name:n, qty:1, l, w, mat:cm, el1:ce, el2:ce, ew1:ce, ew2:ce, holes:'' });
+  // Per-part-type edge sides: which of the 4 sides actually get the edge
+  // material, instead of always banding all 4. `type` keys into
+  // builderState.edgeSides (see its definition for the l1/l2/w1/w2 convention).
+  const edgeFor = (type, mat) => {
+    const m = bs.edgeSides[type] || { l1:true, l2:true, w1:true, w2:true };
+    return { el1: m.l1 ? mat : '', el2: m.l2 ? mat : '', ew1: m.w1 ? mat : '', ew2: m.w2 ? mat : '' };
+  };
+  const cp = (n, l, w, type) => ({ name:n, qty:1, l, w, mat:cm, ...edgeFor(type, ce), holes:'' });
 
   // Bottom placement: 'inside' (default, unchanged) = bottom is captured between the
   // sides, sides run the full outer H. 'full' = bottom spans the full outer W and the
@@ -26622,14 +27057,14 @@ function builderSaveUnit() {
   if (bs.topType === 'nailers') {
     parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
     parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
-    parts.push(cp('Bottom Panel', bottomWidth, D));
+    parts.push(cp('Bottom Panel', bottomWidth, D, 'bottomPanel'));
   } else {
-    parts.push(cp('Top Panel',    innerW, D));
-    parts.push(cp('Bottom Panel', bottomWidth, D));
+    parts.push(cp('Top Panel',    innerW, D, 'topPanel'));
+    parts.push(cp('Bottom Panel', bottomWidth, D, 'bottomPanel'));
   }
   parts.push(
-    cp('Left Side',    sideLength, D),
-    cp('Right Side',   sideLength, D),
+    cp('Left Side',    sideLength, D, 'leftSide'),
+    cp('Right Side',   sideLength, D, 'rightSide'),
   );
 
   if (bk.enabled) {
@@ -26643,34 +27078,34 @@ function builderSaveUnit() {
 
   if (supportsEnabled) {
     const railW = bk.supportPlacement === 'outside' ? W : (W - 2 * T);
-    parts.push(cp('Support Rail Top',    railW, bk.supportHeight));
-    parts.push(cp('Support Rail Bottom', railW, bk.supportHeight));
+    parts.push(cp('Support Rail Top',    railW, bk.supportHeight, 'supportRails'));
+    parts.push(cp('Support Rail Bottom', railW, bk.supportHeight, 'supportRails'));
   }
 
   geo.divXs.forEach((x, i) => {
     const dH = geo.dividerHeights[i] ?? innerH;
-    parts.push({ name:`Divider ${i+1}`, qty:1, l:dH, w:D, mat:cm, el1:ve, el2:ve, ew1:ve, ew2:ve, holes:'' });
+    parts.push({ name:`Divider ${i+1}`, qty:1, l:dH, w:D, mat:cm, ...edgeFor('dividers', ve), holes:'' });
   });
 
   geo.resolvedShelves.forEach((sh, i) => {
     sh.segments.forEach((seg, si) => {
       const label = sh.span === 'full' ? `Shelf ${i+1}` : `Shelf ${i+1} Bay ${(sh.bays||[si]).map(b=>b+1).join('+')}`;
-      parts.push({ name:label, qty:1, l:Math.round(seg.w), w:sh.shelfD, mat:cm, el1:se, el2:se, ew1:se, ew2:se, holes:'' });
+      parts.push({ name:label, qty:1, l:Math.round(seg.w), w:sh.shelfD, mat:cm, ...edgeFor('shelves', se), holes:'' });
     });
     if (sh.supportRail) {
       const placement = sh.supportRailPlacement || 'outside';
       const railW = placement === 'outside' ? W : (W - 2 * T);
-      parts.push(cp(`Support Rail S${i+1} (${placement})`, railW, 100));
+      parts.push(cp(`Support Rail S${i+1} (${placement})`, railW, 100, 'supportRails'));
     }
   });
 
   doors.forEach(d => parts.push({
     name: `Door ${d.label}`, qty:1, l:Math.round(d.h), w:Math.round(d.w),
-    mat: dm, el1:de, el2:de, ew1:de, ew2:de, holes:'2 per door'
+    mat: dm, ...edgeFor('doors', de), holes:'2 per door'
   }));
 
   const id = 'bld_' + Date.now();
-  customUnits.push({ id, name, section: bs.section, parts, price: 0 });
+  customUnits.push({ id, name, section: bs.section, parts, price: 0, buildW: W, buildH: H });
   saveCustomUnits();
   updateCounts();
   showToast(`"${name}" added to ${bs.section} unit list`, 'success');
@@ -27836,7 +28271,7 @@ function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
   const id    = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
-  const unit  = { id, name, section: drawerState.section, parts, price: 0 };
+  const unit  = { id, name, section: drawerState.section, parts, price: 0, buildW: drawerState.width, buildH: drawerState.height };
   if (usesUserUnits() && userRooms.length > 0) {
     // User mode (admin + user) — save to their own units list
     userUnits.push(unit);
@@ -28142,9 +28577,10 @@ function plCalcFromState(state) {
     // bedroomAddons — all sections including custom rooms
     if (st.bedroomAddons) {
       Object.keys(st.bedroomAddons).forEach(sec => {
-        if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]} };
+        if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]}, slidingDoors:{enabled:false,items:[]} };
         if (st.bedroomAddons[sec].plantOn) Object.assign(bedroomAddons[sec].plantOn, st.bedroomAddons[sec].plantOn);
         if (st.bedroomAddons[sec].spacers) bedroomAddons[sec].spacers = st.bedroomAddons[sec].spacers;
+        if (st.bedroomAddons[sec].slidingDoors) bedroomAddons[sec].slidingDoors = st.bedroomAddons[sec].slidingDoors;
       });
     }
 
@@ -32031,10 +32467,11 @@ function applyPlanToJob() {
             materialConfig[id] = { wood: 'Dunblane', edging: 'Dunblane' };
           }
         }
-        if (typeof bedroomAddons !== 'undefined' && !bedroomAddons[id] && typeof defaultAddon === 'function' && typeof defaultSpacer === 'function') {
+        if (typeof bedroomAddons !== 'undefined' && !bedroomAddons[id] && typeof defaultAddon === 'function' && typeof defaultSpacer === 'function' && typeof defaultSlidingDoor === 'function') {
           bedroomAddons[id] = {
             plantOn: { enabled: false, items: [defaultAddon()] },
-            spacers: { enabled: false, items: [defaultSpacer()] }
+            spacers: { enabled: false, items: [defaultSpacer()] },
+            slidingDoors: { enabled: false, items: [defaultSlidingDoor()] }
           };
         }
         createdRooms++;
