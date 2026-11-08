@@ -17997,6 +17997,11 @@ function applyRoleRestrictions() {
               Start by adding your first room — give it a name like "Kitchen" or "Main Bedroom", then add units to it from the template library or create your own.
             </div>
             <button onclick="openAddRoomModal()" style="background:var(--amber);color:#111;border:none;padding:12px 28px;font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer">＋ ADD YOUR FIRST ROOM</button>
+            <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Also worth doing early — add the customer's details for this job.</div>
+              <button onclick="toggleJobDetailsPopover();setTimeout(()=>document.getElementById('job-client')?.focus(),0)"
+                style="font-weight:500;background:rgba(212,145,58,0.12);border:1px solid var(--amber-dim);color:var(--amber);padding:8px 18px;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;cursor:pointer">📋 ADD CUSTOMER DETAILS</button>
+            </div>
           </div>`;
       }, 0);
     }
