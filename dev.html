@@ -3353,6 +3353,47 @@ body.user-light-theme #job-sync-status.sync-error   { background: rgba(192,64,64
   border-color: var(--amber);
   box-shadow: 0 0 0 3px rgba(212,145,58,.08);
 }
+.lp-input-pw {
+  padding-right: 40px;
+}
+
+.lp-pw-wrap {
+  position: relative;
+}
+.lp-pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+.lp-pw-toggle:hover {
+  color: var(--amber);
+  background: rgba(212,145,58,.10);
+}
+.lp-pw-toggle:focus-visible {
+  outline: none;
+  color: var(--amber);
+  box-shadow: 0 0 0 2px rgba(212,145,58,.30);
+}
+.lp-pw-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  pointer-events: none;
+}
 
 #login-btn, #setpw-btn {
   transition: background .18s, letter-spacing .22s, box-shadow .18s;
@@ -4428,8 +4469,15 @@ body.user-light-theme .pp-vat-select {
       </div>
       <div style="margin-bottom:20px">
         <label class="lp-field-label">Password</label>
-        <input id="login-password" type="password" autocomplete="current-password" class="lp-input"
-          onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="lp-pw-wrap">
+          <input id="login-password" type="password" autocomplete="current-password" class="lp-input lp-input-pw"
+            onkeydown="if(event.key==='Enter')doLogin()">
+          <button type="button" class="lp-pw-toggle" aria-label="Show password" tabindex="0"
+            onclick="togglePasswordVisibility('login-password', this)">
+            <svg class="lp-pw-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="lp-pw-icon-off" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div id="login-error" style="display:none;background:rgba(224,82,82,0.15);border:1px solid #5a2a2a;color:#e07070;padding:8px 12px;font-size:12px;margin-bottom:16px"></div>
       <button id="login-btn" onclick="doLogin()"
@@ -4449,13 +4497,27 @@ body.user-light-theme .pp-vat-select {
       </div>
       <div style="margin-bottom:16px">
         <label class="lp-field-label">New Password</label>
-        <input id="setpw-password" type="password" autocomplete="new-password" class="lp-input"
-          onkeydown="if(event.key==='Enter')document.getElementById('setpw-confirm').focus()">
+        <div class="lp-pw-wrap">
+          <input id="setpw-password" type="password" autocomplete="new-password" class="lp-input lp-input-pw"
+            onkeydown="if(event.key==='Enter')document.getElementById('setpw-confirm').focus()">
+          <button type="button" class="lp-pw-toggle" aria-label="Show password" tabindex="0"
+            onclick="togglePasswordVisibility('setpw-password', this)">
+            <svg class="lp-pw-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="lp-pw-icon-off" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div style="margin-bottom:20px">
         <label class="lp-field-label">Confirm Password</label>
-        <input id="setpw-confirm" type="password" autocomplete="new-password" class="lp-input"
-          onkeydown="if(event.key==='Enter')doSetPassword()">
+        <div class="lp-pw-wrap">
+          <input id="setpw-confirm" type="password" autocomplete="new-password" class="lp-input lp-input-pw"
+            onkeydown="if(event.key==='Enter')doSetPassword()">
+          <button type="button" class="lp-pw-toggle" aria-label="Show password" tabindex="0"
+            onclick="togglePasswordVisibility('setpw-confirm', this)">
+            <svg class="lp-pw-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="lp-pw-icon-off" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div id="setpw-error" style="display:none;background:rgba(224,82,82,0.15);border:1px solid #5a2a2a;color:#e07070;padding:8px 12px;font-size:12px;margin-bottom:16px"></div>
       <button id="setpw-btn" onclick="doSetPassword()"
@@ -14229,6 +14291,21 @@ async function fetchWithAuth(url, options = {}) {
 }
 
 // ── Login / Logout ────────────────────────────────────────────────────────────
+function togglePasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const selStart = input.selectionStart, selEnd = input.selectionEnd;
+  const nowShowing = input.type === 'password';
+  input.type = nowShowing ? 'text' : 'password';
+  const iconOn  = btnEl.querySelector('.lp-pw-icon-on');
+  const iconOff = btnEl.querySelector('.lp-pw-icon-off');
+  if (iconOn)  iconOn.style.display  = nowShowing ? 'none'  : 'block';
+  if (iconOff) iconOff.style.display = nowShowing ? 'block' : 'none';
+  btnEl.setAttribute('aria-label', nowShowing ? 'Hide password' : 'Show password');
+  input.focus();
+  try { input.setSelectionRange(selStart, selEnd); } catch (e) {}
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-password').value;
