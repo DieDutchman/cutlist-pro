@@ -25253,6 +25253,20 @@ const builderState = {
     door:        'Dunblane',
     doorEdge:    'Dunblane Edging 1mm',
   },
+  // Which of the 4 sides (l1/l2 = long edges, w1/w2 = short edges — same
+  // convention as the Plant-on/Spacer L1/L2/W1/W2 fields) get edge banding,
+  // per part type. Defaults to all 4 so existing units keep their current
+  // look; turn individual sides off per part type as needed.
+  edgeSides: {
+    topPanel:     { l1:true, l2:true, w1:true, w2:true },
+    bottomPanel:  { l1:true, l2:true, w1:true, w2:true },
+    leftSide:     { l1:true, l2:true, w1:true, w2:true },
+    rightSide:    { l1:true, l2:true, w1:true, w2:true },
+    supportRails: { l1:true, l2:true, w1:true, w2:true },
+    shelves:      { l1:true, l2:true, w1:true, w2:true },
+    dividers:     { l1:true, l2:true, w1:true, w2:true },
+    doors:        { l1:true, l2:true, w1:true, w2:true },
+  },
   unitName: 'Custom Unit',
   section: 'kitchen',
 };
@@ -26399,6 +26413,20 @@ function build3DView() {
 
 
 
+// Per-part-type edge-side picker — 4 checkboxes (L1/L2/W1/W2), used under
+// each edge-material dropdown in the Materials & Edging panel.
+function builderEdgeSideRow(type, label) {
+  const m = builderState.edgeSides[type];
+  const cb = (side, title) => `<label title="${title}" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);cursor:pointer;white-space:nowrap">
+    <input type="checkbox" ${m[side] ? 'checked' : ''} onchange="builderState.edgeSides['${type}'].${side}=this.checked;builderRedraw()" style="margin:0">${side.toUpperCase()}</label>`;
+  return `<div class="bldr-row">
+    <span class="bldr-label" style="font-size:11px">${label}</span>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${cb('l1','Long edge 1')}${cb('l2','Long edge 2')}${cb('w1','Short edge 1')}${cb('w2','Short edge 2')}
+    </div>
+  </div>`;
+}
+
 function renderBuilderView() { withScrollLock(_renderBuilderView); }
 function _renderBuilderView() {
   const bv = document.getElementById('builder-view');
@@ -26593,6 +26621,15 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.carcassEdge)}
             </select></div>
+          ${mt.carcassEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px">Edge sides per part</div>
+            ${builderEdgeSideRow('topPanel',     'Top Panel')}
+            ${builderEdgeSideRow('bottomPanel',  'Bottom Panel')}
+            ${builderEdgeSideRow('leftSide',     'Left Side')}
+            ${builderEdgeSideRow('rightSide',    'Right Side')}
+            ${builderEdgeSideRow('supportRails', 'Support Rails')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26603,6 +26640,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.shelfEdge)}
             </select></div>
+          ${mt.shelfEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('shelves', 'Shelves')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26613,6 +26654,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.dividerEdge)}
             </select></div>
+          ${mt.dividerEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('dividers', 'Dividers')}
+          </div>` : ''}
         </div>
       </div>
 
@@ -26628,6 +26673,10 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.doorEdge)}
             </select></div>
+          ${mt.doorEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('doors', 'Doors')}
+          </div>` : ''}
         </div>
       </div>` : ''}
 
@@ -26659,7 +26708,14 @@ function builderSaveUnit() {
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
   const name = bs.unitName.trim() || 'Custom Unit';
 
-  const cp = (n, l, w) => ({ name:n, qty:1, l, w, mat:cm, el1:ce, el2:ce, ew1:ce, ew2:ce, holes:'' });
+  // Per-part-type edge sides: which of the 4 sides actually get the edge
+  // material, instead of always banding all 4. `type` keys into
+  // builderState.edgeSides (see its definition for the l1/l2/w1/w2 convention).
+  const edgeFor = (type, mat) => {
+    const m = bs.edgeSides[type] || { l1:true, l2:true, w1:true, w2:true };
+    return { el1: m.l1 ? mat : '', el2: m.l2 ? mat : '', ew1: m.w1 ? mat : '', ew2: m.w2 ? mat : '' };
+  };
+  const cp = (n, l, w, type) => ({ name:n, qty:1, l, w, mat:cm, ...edgeFor(type, ce), holes:'' });
 
   // Bottom placement: 'inside' (default, unchanged) = bottom is captured between the
   // sides, sides run the full outer H. 'full' = bottom spans the full outer W and the
@@ -26671,14 +26727,14 @@ function builderSaveUnit() {
   if (bs.topType === 'nailers') {
     parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
     parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
-    parts.push(cp('Bottom Panel', bottomWidth, D));
+    parts.push(cp('Bottom Panel', bottomWidth, D, 'bottomPanel'));
   } else {
-    parts.push(cp('Top Panel',    innerW, D));
-    parts.push(cp('Bottom Panel', bottomWidth, D));
+    parts.push(cp('Top Panel',    innerW, D, 'topPanel'));
+    parts.push(cp('Bottom Panel', bottomWidth, D, 'bottomPanel'));
   }
   parts.push(
-    cp('Left Side',    sideLength, D),
-    cp('Right Side',   sideLength, D),
+    cp('Left Side',    sideLength, D, 'leftSide'),
+    cp('Right Side',   sideLength, D, 'rightSide'),
   );
 
   if (bk.enabled) {
@@ -26692,30 +26748,30 @@ function builderSaveUnit() {
 
   if (supportsEnabled) {
     const railW = bk.supportPlacement === 'outside' ? W : (W - 2 * T);
-    parts.push(cp('Support Rail Top',    railW, bk.supportHeight));
-    parts.push(cp('Support Rail Bottom', railW, bk.supportHeight));
+    parts.push(cp('Support Rail Top',    railW, bk.supportHeight, 'supportRails'));
+    parts.push(cp('Support Rail Bottom', railW, bk.supportHeight, 'supportRails'));
   }
 
   geo.divXs.forEach((x, i) => {
     const dH = geo.dividerHeights[i] ?? innerH;
-    parts.push({ name:`Divider ${i+1}`, qty:1, l:dH, w:D, mat:cm, el1:ve, el2:ve, ew1:ve, ew2:ve, holes:'' });
+    parts.push({ name:`Divider ${i+1}`, qty:1, l:dH, w:D, mat:cm, ...edgeFor('dividers', ve), holes:'' });
   });
 
   geo.resolvedShelves.forEach((sh, i) => {
     sh.segments.forEach((seg, si) => {
       const label = sh.span === 'full' ? `Shelf ${i+1}` : `Shelf ${i+1} Bay ${(sh.bays||[si]).map(b=>b+1).join('+')}`;
-      parts.push({ name:label, qty:1, l:Math.round(seg.w), w:sh.shelfD, mat:cm, el1:se, el2:se, ew1:se, ew2:se, holes:'' });
+      parts.push({ name:label, qty:1, l:Math.round(seg.w), w:sh.shelfD, mat:cm, ...edgeFor('shelves', se), holes:'' });
     });
     if (sh.supportRail) {
       const placement = sh.supportRailPlacement || 'outside';
       const railW = placement === 'outside' ? W : (W - 2 * T);
-      parts.push(cp(`Support Rail S${i+1} (${placement})`, railW, 100));
+      parts.push(cp(`Support Rail S${i+1} (${placement})`, railW, 100, 'supportRails'));
     }
   });
 
   doors.forEach(d => parts.push({
     name: `Door ${d.label}`, qty:1, l:Math.round(d.h), w:Math.round(d.w),
-    mat: dm, el1:de, el2:de, ew1:de, ew2:de, holes:'2 per door'
+    mat: dm, ...edgeFor('doors', de), holes:'2 per door'
   }));
 
   const id = 'bld_' + Date.now();
