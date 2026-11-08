@@ -9907,6 +9907,11 @@ const WB_CATEGORIES = [
 let wbState = { catId:'floor', baseUnitId: null, width: 450 };
 
 function parseBaseWidth(unit) {
+  // Builder-made units (Custom Unit Builder, Drawer Builder) know their exact
+  // outer width from creation — use it instead of guessing from part dims,
+  // which are often inset (e.g. a Top Panel sized to the INNER width).
+  if (unit.buildW) return unit.buildW;
+
   const m = unit.name.match(/[FWCT](\d{3,4})/);
   if (m) return parseInt(m[1]);
 
@@ -10002,6 +10007,10 @@ function autoUnitNameHeight(baseUnit, newHeight) {
 }
 
 function parseBaseHeight(unit) {
+  // Builder-made units know their exact outer height from creation — see
+  // parseBaseWidth's buildW for the same reasoning.
+  if (unit.buildH) return unit.buildH;
+
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
 
   // 1. Known wardrobe / linnekast heights (exact match ±5mm)
@@ -10690,10 +10699,12 @@ function createWidthBuilderUnit() {
   const newId = 'custom_' + Date.now();
   const newUnit = {
     id: newId,
-    section: 'custom',
+    section: baseUnit.section || 'custom',
     name: unitName,
     price: 0,
     parts: scaledParts,
+    buildW: newWidth,
+    buildH: baseUnit.buildH,
   };
 
   customUnits.push(newUnit);
@@ -10731,7 +10742,7 @@ const CB_CATEGORIES = [
   { id:'custom',   label:'Custom / Imported',   test: u => !!(u.id && (u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_') || u.id.startsWith('uu_'))) },
 ];
 
-let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined };
+let cbState = { catId: 'all', baseUnitId: null, width: null, height: null, customName: undefined, section: undefined };
 
 function openCustomBuilder() {
   const all = getEffectiveUnits().filter(u => u.parts && u.parts.length > 0);
@@ -10776,6 +10787,13 @@ function _renderCustomBuilder() {
 
   const unitOpts = units.map(u =>
     `<option value="${u.id}" ${u.id===cbState.baseUnitId?'selected':''}>${u.name}</option>`).join('');
+
+  const roomList = (usesUserUnits() && userRooms.length > 0)
+    ? userRooms.map(r => ({ id: r.id, label: r.name }))
+    : sections;
+  const targetSection = cbState.section || base?.section || roomList[0]?.id;
+  const sectionOpts = roomList.map(r =>
+    `<option value="${r.id}" ${r.id===targetSection?'selected':''}>${r.label}</option>`).join('');
 
   const baseW = base ? parseBaseWidth(base)  : 600;
   const baseH = base ? parseBaseHeight(base) : 720;
@@ -10833,7 +10851,7 @@ function _renderCustomBuilder() {
         <div class="wb-controls" style="margin-bottom:14px">
           <div class="wb-field">
             <label>Base Unit</label>
-            <select autocomplete="off" class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;renderCustomBuilder()">
+            <select autocomplete="off" class="wb-select" style="min-width:180px" onchange="cbState.baseUnitId=this.value;cbState.width=null;cbState.height=null;cbState.customName=undefined;cbState.section=undefined;renderCustomBuilder()">
               ${unitOpts}
             </select>
           </div>
@@ -10901,6 +10919,8 @@ function _renderCustomBuilder() {
       <div class="wb-footer">
         <input class="wb-name-input" id="cb-unit-name" value="${unitName.replace(/"/g,'&quot;')}"
           placeholder="Unit name…" oninput="cbState.customName=this.value">
+        <select autocomplete="off" id="cb-unit-section" class="wb-select" title="Save to room/section"
+          onchange="cbState.section=this.value">${sectionOpts}</select>
         <button class="btn btn-primary" style="white-space:nowrap" onclick="createCustomBuilderUnit()">
           ✚ Create Unit
         </button>
@@ -10968,19 +10988,21 @@ function createCustomBuilderUnit() {
   });
 
   const id = (usesUserUnits() ? 'uu_cb_' : 'custom_cb_') + Date.now();
-  const section = currentSection;
+  const section = cbState.section || base.section;
   if (usesUserUnits() && userRooms.length > 0) {
-    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    userUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0, buildW: newW, buildH: newH });
     if (!(id in quantities)) quantities[id] = 0;
     scheduleAutoSave();
   } else {
-    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0 });
+    customUnits.push({ id, name: unitName, section, parts: scaledParts, price: 0, buildW: newW, buildH: newH });
     if (!(id in quantities)) quantities[id] = 0;
     saveCustomUnits();
   }
   updateCounts();
-  renderPanel();
   closeCustomBuilder();
+  const destTab = document.querySelector(`[data-section="${section}"]`);
+  if (destTab) switchTab(destTab, section);
+  else { currentSection = section; renderPanel(); }
   // Flash confirmation
   setTimeout(() => showToast(`"${unitName}" added to ${section} unit list`, 'success'), 50);
 }
@@ -11161,7 +11183,10 @@ function createHeightBuilderUnit() {
   });
 
   const newId = 'custom_h_' + Date.now();
-  const newUnit = { id: newId, section: 'custom', name: unitName, price: 0, parts: scaledParts };
+  const newUnit = {
+    id: newId, section: baseUnit.section || 'custom', name: unitName, price: 0, parts: scaledParts,
+    buildW: baseUnit.buildW, buildH: newHeight,
+  };
   customUnits.push(newUnit);
   quantities[newId] = 0;
   saveCustomUnits();
@@ -26682,7 +26707,7 @@ function builderSaveUnit() {
   }));
 
   const id = 'bld_' + Date.now();
-  customUnits.push({ id, name, section: bs.section, parts, price: 0 });
+  customUnits.push({ id, name, section: bs.section, parts, price: 0, buildW: W, buildH: H });
   saveCustomUnits();
   updateCounts();
   showToast(`"${name}" added to ${bs.section} unit list`, 'success');
@@ -27848,7 +27873,7 @@ function drawerSaveUnit() {
   const parts = drawerCalcParts();
   const name  = drawerState.unitName.trim() || 'Custom Drawer Unit';
   const id    = (usesUserUnits() ? 'uu_drw_' : 'drw_') + Date.now();
-  const unit  = { id, name, section: drawerState.section, parts, price: 0 };
+  const unit  = { id, name, section: drawerState.section, parts, price: 0, buildW: drawerState.width, buildH: drawerState.height };
   if (usesUserUnits() && userRooms.length > 0) {
     // User mode (admin + user) — save to their own units list
     userUnits.push(unit);
