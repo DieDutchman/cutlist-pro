@@ -18462,7 +18462,7 @@ function openUnitEditModal(unitId) {
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px">
         ${isBuiltin
           ? 'Scales parts proportionally and saves as a <strong>new unit</strong> in your template. Original is preserved.'
-          : 'Changes are applied immediately. Scale adjusts all parts proportionally.'}
+          : 'Changes are applied immediately. Scale adjusts all parts proportionally; section controls which room this unit is filed under.'}
       </div>
 
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Unit Name</label>
@@ -18470,13 +18470,12 @@ function openUnitEditModal(unitId) {
         style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
 
-      ${isBuiltin ? `
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Save to Section</label>
       <select id="uem-section"
         style="width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:16px"
         onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor=''">
         ${sectionOptions}
-      </select>` : ''}
+      </select>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
         <div>
