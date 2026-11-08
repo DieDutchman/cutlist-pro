@@ -26400,14 +26400,22 @@ function _renderBuilderView() {
   const bv = document.getElementById('builder-view');
   if (!bv) return;
 
-  const sectionOpts = [
-    { id:'kitchen', label:'Kitchen' },
-    { id:'mainbedroom', label:'Main Bedroom' },
-    { id:'sparebedroom', label:'Spare Bedroom' },
-    { id:'linnekast', label:'Linne Kas' },
-    { id:'bathroom', label:'Badkamer' },
-    { id:'custom', label:'Custom' },
-  ].map(s => `<option value="${s.id}" ${builderState.section===s.id?'selected':''}>${s.label}</option>`).join('');
+  // Build section list — standard rooms + any user-created rooms (same
+  // pattern as the Drawer Builder below). Without this, a custom-room
+  // account only ever sees the 6 static legacy sections here, so a built
+  // unit silently lands in one of those instead of the user's actual room
+  // and never shows up in that room's own unit list.
+  const _bldrStdSecs  = [{id:'kitchen',label:'Kitchen'},{id:'mainbedroom',label:'Main Bedroom'},{id:'sparebedroom',label:'Spare Bedroom'},{id:'linnekast',label:'Linne Kas'},{id:'bathroom',label:'Badkamer'},{id:'custom',label:'Custom'}];
+  const _bldrUserSecs = userRooms.filter(r => !_bldrStdSecs.find(s => s.id === r.id)).map(r => ({id: r.id, label: r.name}));
+  const _bldrAllSecs  = usesUserUnits() && userRooms.length > 0 ? _bldrUserSecs : [..._bldrStdSecs, ..._bldrUserSecs];
+
+  // For user-mode (admin + user), ensure builderState.section is one of their actual rooms
+  if (usesUserUnits() && userRooms.length > 0 && !_bldrAllSecs.find(s => s.id === builderState.section)) {
+    builderState.section = _bldrAllSecs[0]?.id || builderState.section;
+  }
+
+  const sectionOpts = _bldrAllSecs
+    .map(s => `<option value="${s.id}" ${builderState.section===s.id?'selected':''}>${s.label}</option>`).join('');
 
   const matOpts = (sel) => MATS.map(m => `<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
   const edgeOpts = (sel) => ['', ...EDGES].map(e => `<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
