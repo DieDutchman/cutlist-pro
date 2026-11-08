@@ -9909,6 +9909,18 @@ let wbState = { catId:'floor', baseUnitId: null, width: 450 };
 function parseBaseWidth(unit) {
   const m = unit.name.match(/[FWCT](\d{3,4})/);
   if (m) return parseInt(m[1]);
+
+  // Prefer a known horizontal part (top/bottom/shelf) — its longer dimension
+  // IS the cabinet width. This avoids the dims-frequency fallback below
+  // mistaking a tall unit's repeated HEIGHT (e.g. two sides + a back all
+  // sharing a 2400mm wardrobe height) for the width, which Math.max would
+  // then pick over the real (smaller) width.
+  const horizontalPart = unit.parts.find(p => /\b(top|bottom|shelf|shelve)\b/i.test(p.name));
+  if (horizontalPart) {
+    const longer = Math.max(horizontalPart.l, horizontalPart.w);
+    if (longer >= 150 && longer <= 2400) return longer;
+  }
+
   // fallback: find max dimension that appears like a unit width
   const dims = unit.parts.flatMap(p => [p.l, p.w]);
   const candidates = dims.filter(d => d >= 150 && d <= 2400);
