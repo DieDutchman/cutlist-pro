@@ -7877,7 +7877,11 @@ function _renderPanel() {
     // Standard template units (no id prefix match) still get Edit/Parts for dimension tweaks
     const isCustomUnit = u.id && (u.id.startsWith('uu_') || u.id.startsWith('custom_') || u.id.startsWith('drw_') || u.id.startsWith('imp_unit_') || u.id.startsWith('bld_'));
     const canRemoveUnit = isUserMode || (isSuperuser() && isCustomUnit);
-    const canMoveUnit   = isUserMode ? userRooms.length > 1 : (isSuperuser() && isCustomUnit && sections.length > 1);
+    // Show Move whenever there's at least one room the unit isn't already in —
+    // not just when the account has multiple rooms. A single-room account needs
+    // this exactly when a unit is misfiled under a static legacy section and
+    // has to be moved into that one room.
+    const canMoveUnit   = isUserMode ? userRooms.some(r => r.id !== u.section) : (isSuperuser() && isCustomUnit && sections.length > 1);
     const userBtns = `
       <button class="unit-action-btn" onclick="openUnitEditModal('${u.id}')" title="Edit unit dimensions"><span class="uab-glyph">✏</span><span class="uab-label">Edit</span></button>
       <button class="unit-action-btn" onclick="openUnitPartsModal('${u.id}')" title="View &amp; edit parts"><span class="uab-glyph">🔧</span><span class="uab-label">Parts</span></button>
