@@ -44,6 +44,29 @@ colors:
   info: "#6aaad4"
   info-light: "#7ab0ff"
   info-strong: "#5090e0"
+  amber-ink: "#1a1208"
+  count-badge-bg: "#7a5020"
+  success-bg: "#2a5a3a"
+  oversized-warning: "#d4583a"
+  ticker-bg: "#1a1500"
+  chip-nailers: "#8899cc"
+  chip-masonite: "#7799bb"
+  chip-solidback: "#bb8844"
+  schematic-canvas-bg: "#161620"
+  schematic-board: "#2a2a3a"
+  schematic-interior: "#1a1a28"
+  schematic-shelf: "#2f3045"
+  schematic-masonite-panel: "#252538"
+  schematic-support: "#383850"
+  schematic-divider-border: "#3a3a52"
+  job-status-draft: "#888888"
+  job-status-quoted: "#e8c040"
+  job-status-accepted: "#5ba8f5"
+  job-status-inprod: "#f08848"
+  job-status-invoiced: "#c090e8"
+  danger-light: "#c04040"
+  success-light: "#5a9a54"
+  warning-light: "#b87030"
 typography:
   display:
     fontFamily: "Oswald, sans-serif"
@@ -81,7 +104,7 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.amber}"
-    textColor: "{colors.bg-void}"
+    textColor: "{colors.amber-ink}"
     rounded: "{rounded.md}"
     padding: "8px 20px"
   button-primary-hover:
@@ -156,7 +179,7 @@ A single warm accent punctuates an otherwise near-achromatic dark system — the
 ### Named Rules
 **The One Voice Rule.** Amber is used on ≤15% of any given screen at rest. It speaks once per surface — as the active tab underline, as the total value, as the primary button. Its authority comes from its restraint. Do not apply it to secondary labels, inactive icons, or decorative fills.
 
-**The No-Pure-White Rule.** Body text is never #ffffff or #f0f0f0. Warm parchment (#e8e0d0) is the ceiling. Pure white reads as a glitch in the amber-tinted system.
+**The No-Pure-White Rule.** Body text is never #ffffff or #f0f0f0. Warm parchment (#e8e0d0) is the ceiling. Pure white reads as a glitch in the amber-tinted system. **Exception:** `#fff`/`#ffffff` is permitted as the foreground color *on top of a solid, fully-saturated accent fill* — i.e. white-on-color button and badge text, never white sitting on the app's own dark or light surface colors. This is the same exception the Buttons section names for the Danger-hover and Excel-export treatments; see the confirmed instance list there. A hover state that merely brightens a neutral icon (e.g. a modal close button) does not qualify — use `--text` instead.
 
 ### Functional Palette
 
@@ -173,6 +196,67 @@ Colors used for specific semantic purposes in discrete app features. These are n
 | `--cutmap-waste` | `#cc7766` | Waste / off-fall |
 
 > **Colorblind caveat:** The `#66aa88` (green) and `#cc7766` (red-orange) pair fails the deuteranopia test. If the optimizer is ever used as a physical workshop guide (printed sheet or tablet beside the saw), these colors must be supplemented with pattern fills or shape markers — color alone is not sufficient.
+
+**Sheet Optimizer Oversized Warning:** A piece that is too large to fit on *any* sheet (not just wasted off-cut) is flagged with its own tone, `--oversized-warning` (`#d4583a`), on the "Oversized" stat and its warning banner. This is deliberately **not** consolidated into `--danger` (#e06060) — "oversized" means "replan your cut list / check your sheet size," a planning nudge, while `--danger` is reserved for hard errors and negative values elsewhere in the app. Kept distinct on purpose; flagged here in case a future reviewer wants to collapse the two.
+
+**Price Ticker Background** (`--ticker-bg`, `#1a1500`): The scrolling price-update strip beneath the header uses an amber-tinted near-black background, one step warmer/darker than `bg-void`, so the amber-bordered strip reads as its own band rather than bleeding into the page.
+
+**SVG piece-label halo** (`.opt-piece-label`, Sheet Optimizer sheet diagram): piece labels are drawn in pure `#fff` with a `stroke: rgba(0,0,0,0.6)` halo, not warm parchment. This is a label-on-variable-background technique, not body text — the label sits directly on top of whichever Off-Cut Map color (`--cutmap-grain` / `--cutmap-offcut` / `--cutmap-waste`) the piece was assigned, and warm parchment doesn't reliably clear contrast against all three. Pure white + a dark stroke halo is the standard fix for text that must stay legible over an unpredictable fill; the No-Pure-White Rule's text-on-surface intent doesn't apply to canvas-drawn labels like this. See `ignore.md`.
+
+**P&L invoice "possible match" row tint:** the invoice-reconciliation view highlights a suggested (unconfirmed) line match with `rgba(255,190,90,0.06)` — a soft gold distinct from the amber-tint family, used only to mark "this might be the match, confirm it" rows. Narrow, single-purpose, intentional. See `ignore.md`.
+
+**Hardware-type include/exclude toggle** (Costing tab, per-section hardware pills): a simple on/off pill uses its own small green/muted-red pair — `#3fc77a` text + `#2a5a3c` border + `rgba(40,160,90, …)` fill when included, `#9a6060` text + `#7a3838` dot when excluded. This is a binary toggle state, not a multi-value legend, so it isn't promoted to named tokens; it's confirmed-intentional and listed in `ignore.md`.
+
+**Login page tagline:** `.lp-tagline` uses `#564a36`, a muted amber-brown dimmer than any documented amber token, for the small uppercase tagline under the logo on the login screen. Purely decorative/atmospheric, used once. See `ignore.md`.
+
+### Unit Detail Schematic Legend
+
+The front/side/top schematic SVG preview (Unit Detail Panel) and the equivalent printable cutlist schematic share one small fixed palette for the carcass diagram, independent of the main UI chrome (the canvas is deliberately darker than the surrounding card so the line-art reads like a technical drawing):
+
+| Token | Hex | Meaning |
+|---|---|---|
+| `--schematic-canvas-bg` | `#161620` | SVG canvas background |
+| `--schematic-board` | `#2a2a3a` | Carcass board fill |
+| `--schematic-interior` | `#1a1a28` | Interior / back-fill rect |
+| `--schematic-shelf` | `#2f3045` | Shelf fill |
+| `--schematic-masonite-panel` | `#252538` | Masonite back-panel fill |
+| `--schematic-support` | `#383850` | Support/nailer fill |
+| `--schematic-divider-border` | `#3a3a52` | Swatch/board outline (also covers the `#3a3a50` variant used on shelf/masonite/support swatches — within the detector's tolerance of this token) |
+
+Door and drawer-face highlights in the same schematic reuse the real amber tint (`rgba(212,145,58, …)`) and `--amber`, not a separate token.
+
+### Unit Detail Panel Construction-Type Chip Legend
+
+The Unit Detail Panel's header chips (`.chip-*`) label a unit's construction attributes at a glance. Three chips intentionally reuse the Sheet Optimizer's Off-Cut Map hues (same meaning: a structural/category signal, not a new palette) — `.chip-supports` and `.chip-shelves` reuse `--cutmap-grain` / `--cutmap-offcut` as their text color, `.chip-estimated` reuses `--cutmap-waste`. The other three are a distinct trio for backing/top construction:
+
+| Chip | Text | Meaning |
+|---|---|---|
+| `.chip-nailers` | `--chip-nailers` (`#8899cc`) | Top is nailer-strip construction |
+| `.chip-masonite` | `--chip-masonite` (`#7799bb`) | Back panel is masonite |
+| `.chip-solidback` | `--chip-solidback` (`#bb8844`) | Back panel is solid board |
+| `.chip-noback` | `--text-muted` | No back panel |
+| `.chip-supports` | `--cutmap-grain` | Top has corner supports |
+| `.chip-shelves` | `--cutmap-offcut` | Shelf count |
+| `.chip-estimated` | `--cutmap-waste` | One or more dimensions were estimated, not measured |
+
+Each chip's background/border is a muted, lower-saturation `rgba()` wash of its own hue rather than an alpha-blend of the text color itself (e.g. `.chip-nailers` text is `#8899cc` but its background is the separately-tuned `rgba(100,120,200, …)`) — a deliberate "flat wash + bright ink" treatment, consistent across all seven chips. These washes are documented here but not individually tokenized (see `ignore.md`); only the text hues are promoted to named tokens.
+
+### Job Status Legend
+
+Job P&L and job-list views tag each job with a status pill. Six states, one shared with the existing success ramp:
+
+| Status | Token | Hex |
+|---|---|---|
+| Draft | `--job-status-draft` | `#888888` |
+| Quoted | `--job-status-quoted` | `#e8c040` |
+| Accepted | `--job-status-accepted` | `#5ba8f5` |
+| In Production | `--job-status-inprod` | `#f08848` |
+| Invoiced | `--job-status-invoiced` | `#c090e8` |
+| Complete | `--success-sync` (`#5dba6e`) | reuses the existing "✓ Saved" success tone — a completed job is a success state, not a new color |
+
+### Print Output
+
+Printed/exported documents (the cutlist print window, the Quote PDF print window, and the Sheet Layout PDF print window, plus the on-screen `@media print` overrides for the live cutlist view) are intentionally **undyed** — plain black/white/gray, matching how a real printed page behaves, not the amber-tinted screen theme. This is the same precedent as the existing "Arial in print context" exception. See `ignore.md` for the exact matched contexts.
 
 ### Light Theme (supplier-theme / user-light-theme)
 
@@ -202,6 +286,16 @@ Component-specific literals not mapped to CSS vars:
 
 **Exception color — Excel export:** `#1d6f42` (Excel green). Used only on the Excel export button. Never borrowed for other actions.
 
+**Light-theme state variants (toast notifications + job-sync status pill):** The light theme (supplier/client views) needs darker, more saturated danger/success/warning tones than the dark-theme ramps to clear contrast on a light surface — the same relationship `--amber-light-theme` already has to `--amber`. Three reused base tones are promoted to named tokens because each appears in multiple components:
+
+| Token | Hex | Role |
+|---|---|---|
+| `danger-light` | `#c04040` | Light-theme error border/fill (toast-error border, toast-primary button fill, job-sync-status error tint) |
+| `success-light` | `#5a9a54` | Light-theme success border (toast-success) |
+| `warning-light` | `#b87030` | Light-theme warning/saving border (toast-warning, toast-info, job-sync-status saving tint) |
+
+Each toast state also carries its own one-off background and ink-text pair, tuned per state for AA contrast on that state's tinted background rather than drawn from a shared ramp (e.g. toast-success text `#1a3a18` on background `#e8f3e0`; toast-error text `#4a1818` on background `#f7e0e0`; job-sync-status success ink `#2a5a24`, error ink `#6a1818`). These single-use pairs are confirmed-intentional but not promoted to named tokens — seven-plus narrow one-off tokens for values used exactly once each would clutter the palette more than it would clarify it. See `ignore.md` for the full matched list (dark-theme toast backgrounds/inks are the same pattern: `#18221a`/`#d8ecd2`, `#241818`/`#f0d0d0`, `#241e16`/`#f0e0c8`, each paired with the existing `--success`/`--danger`/`--amber` border).
+
 ### Semantic State Ramps
 
 Beyond the single documented `--success` / `--danger` accents, the app uses three multi-step semantic ramps for state-heavy features (P&L variance, sync status, invoice import, info callouts). These grew organically in feature code and are canonical — new state UI should reuse these values, not invent adjacent shades.
@@ -222,6 +316,7 @@ Beyond the single documented `--success` / `--danger` accents, the app uses thre
 | `success` | `#6aaa64` | Base success accent (documented above) |
 | `success-active` | `#4caf82` | Active-green component state (special services, toggles) |
 | `success-sync` | `#5dba6e` | "✓ Saved" sync status text |
+| `success-bg` | `#2a5a3a` | Dark success surface / tinted background — the success-side mirror of `danger-bg`, used where a toggle needs an opaque "enabled" background (e.g. the board-surcharge enable/disable pill) |
 
 **Info ramp** (informational callouts, links, import hints — the only cool hues in the system):
 
@@ -245,6 +340,21 @@ The codebase uses inline `rgba()` tints rather than named tokens for contextual 
 | `rgba(0,0,0, …)` | Shadow and scrim overlays | 0.04–0.92 |
 
 Use the named CSS variables (`--amber`, `--success`, `--danger`) wherever the full solid color is needed. Reach for rgba tints only when layering a semi-transparent wash over a surface — not as a substitute for a named color in text or border use.
+
+### Opaque Badge-Tint Backgrounds
+
+A handful of small inline badges need a tint background that renders reliably opaque (they sit inside table rows and cards whose own background may vary, so an alpha-blended `rgba()` wash would pick up whatever is underneath). For these, the codebase computes a flat, near-black hex tint of the paired accent color instead of an alpha overlay — the same visual intent as the Contextual rgba Overlays above, just rendered opaque. These are structural, not independent brand colors, and are not individually tokenized:
+
+| Background | Paired accent | Used by |
+|---|---|---|
+| `#3a1a1a` | `--danger-strong` text, `--danger-bg` border | "No Parts" warning badges (unit list item, unit editor sidebar) |
+| `#2a3a2a` | `--success` text | Summary category tag — Backing |
+| `#1a2a3a` | `#6a9adc` text (new, undocumented cool-blue — only other use of this exact hue) | Summary category tag — Door |
+| `#3a2a1a` | `--amber` text | Summary category tag — Drawer Face |
+| `#1a3a1a` | `--green` text | Custom-unit editor badge |
+| `#3a2a0a` | `--amber-dim` text | Half-size dimension badge (Custom Unit Builder) |
+
+See `ignore.md` for the matched detector entries.
 
 ## 3. Typography
 
@@ -288,11 +398,23 @@ Components are quietly confident: every state is accounted for, nothing is accid
 
 ### Buttons
 - **Shape:** Nearly square edges (4px radius — `rounded.md`) — reflects tooling, not consumer UI
-- **Primary:** Amber gradient fill (`#d4913a → #b8852a`), near-black text (#141414), amber box-shadow at rest. Full-width variant (`.generate-btn`) uses Oswald 700 for the label instead of Barlow
+- **Primary:** Amber gradient fill (`#d4913a → #b8852a`), **amber-ink** text (`#1a1208` — a warm near-black tuned for legibility on the amber gradient; deliberately warmer than `bg-void` (#141414), which is reserved for app surfaces, not text-on-amber), amber box-shadow at rest. Full-width variant (`.generate-btn`) uses Oswald 700 for the label instead of Barlow. Same treatment on `.bldr-save-btn` and the REGENERATE CUTLIST pulse button.
 - **Hover / Focus:** Gradient brightens to amber-light, 1px lift (`translateY(-1px)`), shadow intensifies. Focus: 2px amber outline, 2px offset
 - **Ghost:** Transparent fill, `text-secondary` (#a0927f), `border-light` (#4a4438) border. Hover shifts text to `text-primary`, border to `text-secondary`
 - **Danger:** Transparent fill, danger red text and border. Hover fills solid danger red with white text — the only solid-red state in the UI
 - **Excel Export:** Exception variant — uses #1d6f42 (Excel green) fill, white text. Scoped to export actions only; never borrowed for other actions
+
+**Confirmed white-on-solid-fill instances** (the No-Pure-White Rule's named exception — white text/icon color on a solid saturated background, never on a bare surface color):
+| Element | Fill | Text |
+|---|---|---|
+| `.btn-excel` | `#1d6f42` (Excel green) | `#fff` |
+| `.unit-action-btn.is-danger:hover` | solid danger red | `--uab-fg: #ffffff` |
+| `#fb-unread-dot` (feedback unread badge) | `--danger-strong` | `#fff` |
+| `#ca-confirm` (confirm-action modal button) | `--danger` | `#fff` |
+| `#sau-confirm-btn` (save-unit confirm) | `--success-active` | `#fff` |
+| `body.supplier-theme`/`.user-light-theme .toast-primary` | `--danger-light` | `#fff` |
+
+These are the only sanctioned pure-white usages outside printed output (see Functional Palette → Print Output below). Any other `#fff`/`white` found in UI chrome is drift, not an exception.
 
 ### Action Buttons (unit-action-btn)
 The signature interactive component. A compact 28px-tall ghost button used for row-level actions (Edit, Parts, Copy, Remove, etc.).
@@ -325,7 +447,7 @@ The primary navigation is a two-row horizontal tab bar (tools row + sections row
 - **Tab default:** `text-secondary` (#a0927f), Barlow 600, 12px, 0.3px tracking, uppercase, 3px solid transparent bottom border
 - **Hover:** Text shifts to `text-primary`
 - **Active:** `amber` (#d4913a) text + 3px `amber` bottom border
-- **Count badge:** Dark amber fill (#7a5020), `amber-light` text at rest; full amber fill, near-black text when tab is active
+- **Count badge:** Dark amber fill (`--count-badge-bg`, #7a5020), `amber-light` text at rest; full amber fill, near-black text when tab is active
 - **Overflow (More…) dropdown:** `bg-surface` fill, `border` hairline, 2px amber top accent, `elevated-panel` shadow
 
 ### Edge Tags
