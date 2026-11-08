@@ -26981,7 +26981,7 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.shelfEdge)}
             </select></div>
-          ${mt.shelfEdge ? `
+          ${(mt.shelfEdge || mt.carcassEdge) ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
             ${builderEdgeSideRow('shelves', 'Shelves')}
           </div>` : ''}
@@ -26995,7 +26995,7 @@ function _renderBuilderView() {
             <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
               ${edgeOpts(mt.dividerEdge)}
             </select></div>
-          ${mt.dividerEdge ? `
+          ${(mt.dividerEdge || mt.carcassEdge) ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
             ${builderEdgeSideRow('dividers', 'Dividers')}
           </div>` : ''}
