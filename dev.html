@@ -8020,6 +8020,7 @@ function _renderPanel() {
       bedroomAddons[currentSection] = {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers: { enabled: false, items: [defaultSpacer()] },
+        slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
       };
     }
     html += `<div class="addon-section-title">
@@ -8028,6 +8029,7 @@ function _renderPanel() {
     </div>`;
     html += buildPlantOnCard(currentSection);
     html += buildSpacersCard(currentSection);
+    html += buildSlidingDoorsCard(currentSection);
   }
 
   document.getElementById('unit-panel').innerHTML = html;
@@ -8245,14 +8247,15 @@ function generateCutlist() {
     const secLabel = userRooms.find(r => r.id === secId)?.name
       || sections.find(s => s.id === secId)?.label
       || secId;
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
+      const partLabel = ['Plant-on / Spacer', 'Plant-on / Spacer', 'Sliding Door'][gi];
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
-        const part = { name: 'Plant-on / Spacer', mat: item.mat,
+        const part = { name: partLabel, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'' };
         allParts.push({
-          partName: 'Plant-on / Spacer', unitName: secLabel, _section: secId, qty: item.qty,
+          partName: partLabel, unitName: secLabel, _section: secId, qty: item.qty,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
           holes: '', category: getCategory(part),
@@ -8476,7 +8479,7 @@ function generateCutlist() {
   if (!hasContent) {
     const hasAddons = getAddonSections().some(secId => {
       const a = bedroomAddons[secId] || {};
-      return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+      return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     });
     html += `<div class="empty-state">No units or panels found.<br>Go back and add quantities, or add panels in the Panels tab.</div>`;
   }
@@ -8760,7 +8763,7 @@ function generateSummary() {
   const selectedUnits = getEffectiveUnits().filter(u => (quantities[u.id]||0) > 0);
   const hasAddons = getAddonSections().some(secId => {
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       false;
   });
   const hasPanels = panelsState.items.some(p => p.l > 0 && p.w > 0 && p.qty > 0);
@@ -8937,12 +8940,13 @@ function generateSummary() {
   const addonParts = [];
   getAddonSections().forEach(secId => {
     const addons = bedroomAddons[secId] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
+      const partLabel = ['Plant-on / Spacer', 'Plant-on / Spacer', 'Sliding Door'][gi];
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
         addonParts.push({
-          name: 'Plant-on / Spacer',
+          name: partLabel,
           qty: item.qty || 1,
           l: item.h, w: item.w, mat: item.mat,
           el1: item.el1||'', el2: item.el2||'', ew1: item.ew1||'', ew2: item.ew2||'',
@@ -10100,7 +10104,7 @@ function getAddonSections() {
 
 function ensureBedroomAddons(id) {
   if (!bedroomAddons[id]) {
-    bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]} };
+    bedroomAddons[id] = { plantOn: {enabled:false, items:[defaultAddon()]}, spacers: {enabled:false, items:[defaultSpacer()]}, slidingDoors: {enabled:false, items:[defaultSlidingDoor()]} };
   }
 }
 
@@ -10117,11 +10121,20 @@ function defaultSpacer() {
            el1: 'Dunblane Edging 1mm', el2: '', ew1: 'Dunblane Edging 1mm', ew2: '' };
 }
 
+// Sliding doors are visible on all 4 sides in the track (unlike a hinged
+// door's back face, or a spacer's hidden faces), so default to full edging.
+function defaultSlidingDoor() {
+  return { qty: 1, w: 0, h: 0, mat: 'Dunblane',
+           el1: 'Dunblane Edging 1mm', el2: 'Dunblane Edging 1mm',
+           ew1: 'Dunblane Edging 1mm', ew2: 'Dunblane Edging 1mm' };
+}
+
 let bedroomAddons = {};
 ADDON_SECTIONS.forEach(sec => {
   bedroomAddons[sec] = {
     plantOn:  { enabled: false, items: [defaultAddon()] },
     spacers:  { enabled: false, items: [defaultSpacer()] },
+    slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
   };
 });
 try {
@@ -10157,6 +10170,10 @@ try {
           };
         }
       }
+      // slidingDoors — no legacy single-object format to migrate from (new feature)
+      if (saved[sec].slidingDoors && Array.isArray(saved[sec].slidingDoors.items)) {
+        bedroomAddons[sec].slidingDoors = saved[sec].slidingDoors;
+      }
 
     });
   }
@@ -10186,6 +10203,7 @@ async function saveAddonPreset(secId) {
     secId,
     plantOn: JSON.parse(JSON.stringify(section.plantOn)),
     spacers:  JSON.parse(JSON.stringify(section.spacers)),
+    slidingDoors: JSON.parse(JSON.stringify(section.slidingDoors || { enabled: false, items: [defaultSlidingDoor()] })),
     savedAt: new Date().toLocaleDateString('en-ZA'),
   };
   addonPresets.push(preset);
@@ -10206,9 +10224,10 @@ async function deleteAddonPreset(id) {
 async function applyAddonPreset(presetId, targetSecId) {
   const preset = addonPresets.find(p => p.id === presetId);
   if (!preset) return;
-  if (!(await confirmAction(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons and spacers.`, { confirmLabel: 'APPLY' }))) return;
+  if (!(await confirmAction(`Apply preset "${preset.name}" to this section? This will replace the current plant-ons, spacers and sliding doors.`, { confirmLabel: 'APPLY' }))) return;
   bedroomAddons[targetSecId].plantOn = JSON.parse(JSON.stringify(preset.plantOn));
   bedroomAddons[targetSecId].spacers  = JSON.parse(JSON.stringify(preset.spacers));
+  bedroomAddons[targetSecId].slidingDoors = JSON.parse(JSON.stringify(preset.slidingDoors || { enabled: false, items: [defaultSlidingDoor()] }));
   saveBedroomAddons();
   renderPanel();
 }
@@ -10281,6 +10300,11 @@ function calcSpacersCost(spacers) {
   return spacers.items.reduce((s, item) => s + _calcItemCost(item), 0);
 }
 
+function calcSlidingDoorsCost(slidingDoors) {
+  if (!slidingDoors.enabled) return 0;
+  return slidingDoors.items.reduce((s, item) => s + _calcSpacerItemCost(item), 0);
+}
+
 // Same shape as _calcItemCost but uses billedSheetsForMat (per-material minimums/
 // full-sheet/special-order rules) instead of the plain billSheets rounding used for
 // plant-on panels. Factored out of buildSpacersCard's inline per-row calc so
@@ -10315,7 +10339,7 @@ function updateAddonRowCost(secId, kind, i) {
     const strong = costEl.querySelector('strong');
     if (strong) strong.textContent = `R ${Math.round(cost).toLocaleString('en-ZA')}`;
   }
-  const total = kind === 'plantOn' ? calcPlantOnCost(group) : calcSpacersCost(group);
+  const total = kind === 'plantOn' ? calcPlantOnCost(group) : kind === 'slidingDoors' ? calcSlidingDoorsCost(group) : calcSpacersCost(group);
   const totalEl = document.getElementById(`ac-total-${kind}-${secId}`);
   if (totalEl) {
     totalEl.style.display = total > 0 ? '' : 'none';
@@ -10489,6 +10513,92 @@ function buildSpacersCard(secId) {
       <span class="addon-icon">📐</span>
       <span class="addon-label">Spacers / Fillers <span style="font-size:11px;color:var(--text-muted)">${sp.enabled && sp.items.length > 0 ? '('+sp.items.length+' piece'+(sp.items.length>1?'s':'')+')' : ''}</span></span>
       <span class="addon-toggle ${sp.enabled ? 'on' : ''}">${sp.enabled ? 'ON' : 'OFF'}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+// Sliding doors — same free-entry qty/width/height/material/edging shape as
+// Spacers, but a distinct, clearly-labeled addon type instead of hijacking
+// Plant-on/Spacer for an actual door. Defensive init: older saved jobs/
+// snapshots predating this feature won't have .slidingDoors yet.
+function buildSlidingDoorsCard(secId) {
+  if (!bedroomAddons[secId].slidingDoors) {
+    bedroomAddons[secId].slidingDoors = { enabled: false, items: [defaultSlidingDoor()] };
+  }
+  const sd   = bedroomAddons[secId].slidingDoors;
+  const save = `saveBedroomAddons();renderPanel()`;
+  const edgeOpts = (val) => EDGES.map(e => `<option value="${e}" ${e===val?'selected':''}>${e||'— none —'}</option>`).join('');
+
+  let itemsHtml = '';
+  sd.items.forEach((item, i) => {
+    const ref = `bedroomAddons['${secId}'].slidingDoors.items[${i}]`;
+    const matOptsHtml = MATS.map(m => `<option value="${m}" ${m===item.mat?'selected':''}>${m}</option>`).join('');
+    const cost = _calcSpacerItemCost(item);
+
+    itemsHtml += `<div style="background:var(--bg2);border:1px solid var(--border);padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:500;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px;color:var(--amber-dim)">SLIDING DOOR ${i+1}</span>
+        ${sd.items.length > 1
+          ? `<button onclick="bedroomAddons['${secId}'].slidingDoors.items.splice(${i},1);${save}"
+               style="background:none;border:none;color:var(--red,#e05);cursor:pointer;font-size:16px;line-height:1;padding:0 4px" title="Remove" aria-label="Remove sliding door">×</button>`
+          : ''}
+      </div>
+      <div class="addon-row">
+        <div class="addon-field">
+          <label>Qty</label>
+          <input autocomplete="off" type="number" min="1" value="${item.qty}"
+            onchange="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.qty=parseInt(this.value)||1;saveBedroomAddons()">
+        </div>
+        <div class="addon-field">
+          <label>Width (mm)</label>
+          <input autocomplete="off" type="number" min="0" value="${item.w||''}" placeholder="e.g. 900"
+            onchange="${ref}.w=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.w=parseInt(this.value)||0;saveBedroomAddons()">
+        </div>
+        <div class="addon-field">
+          <label>Height (mm)</label>
+          <input autocomplete="off" type="number" min="0" value="${item.h||''}" placeholder="e.g. 2400"
+            onchange="${ref}.h=parseInt(this.value)||0;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})"
+            onblur="${ref}.h=parseInt(this.value)||0;saveBedroomAddons()">
+        </div>
+      </div>
+      <div class="addon-row">
+        <div class="addon-field wide">
+          <label>Material</label>
+          <select autocomplete="off" onchange="${ref}.mat=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${matOptsHtml}</select>
+        </div>
+      </div>
+      <div class="addon-row">
+        <div class="addon-field" title="L1 — long edge 1 (height of door)"><label>L1</label><select autocomplete="off" onchange="${ref}.el1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.el1)}</select></div>
+        <div class="addon-field" title="L2 — long edge 2 (opposite height edge)"><label>L2</label><select autocomplete="off" onchange="${ref}.el2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.el2)}</select></div>
+        <div class="addon-field" title="W1 — short edge 1 (width of door)"><label>W1</label><select autocomplete="off" onchange="${ref}.ew1=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.ew1)}</select></div>
+        <div class="addon-field" title="W2 — short edge 2 (opposite width edge)"><label>W2</label><select autocomplete="off" onchange="${ref}.ew2=this.value;saveBedroomAddons();updateAddonRowCost('${secId}','slidingDoors',${i})">${edgeOpts(item.ew2)}</select></div>
+      </div>
+      <div id="ac-cost-slidingDoors-${secId}-${i}" class="addon-cost" style="${cost > 0 ? '' : 'display:none'}">Est. cost: <strong style="color:var(--amber)">R ${Math.round(cost).toLocaleString('en-ZA')}</strong></div>
+    </div>`;
+  });
+
+  const totalCost = calcSlidingDoorsCost(sd);
+
+  const body = sd.enabled ? `
+    <div class="addon-body">
+      ${itemsHtml}
+      <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+        <button onclick="bedroomAddons['${secId}'].slidingDoors.items.push(defaultSlidingDoor());${save}"
+          style="font-weight:500;background:var(--bg3);border:1px solid var(--amber-dim);color:var(--amber-dim);padding:6px 16px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.3px">
+          + ADD SLIDING DOOR
+        </button>
+        <span id="ac-total-slidingDoors-${secId}" style="font-size:12px;color:var(--text-muted);${totalCost > 0 ? '' : 'display:none'}">Total: <strong style="color:var(--amber)">R ${Math.round(totalCost).toLocaleString('en-ZA')}</strong></span>
+      </div>
+    </div>` : '';
+
+  return `<div class="addon-card ${sd.enabled ? 'active' : ''}">
+    <div class="addon-header" role="button" tabindex="0" aria-expanded="${sd.enabled}" onclick="bedroomAddons['${secId}'].slidingDoors.enabled=!bedroomAddons['${secId}'].slidingDoors.enabled;${save}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();bedroomAddons['${secId}'].slidingDoors.enabled=!bedroomAddons['${secId}'].slidingDoors.enabled;${save}}">
+      <span class="addon-icon">🚪</span>
+      <span class="addon-label">Sliding Doors <span style="font-size:11px;color:var(--text-muted)">${sd.enabled && sd.items.length > 0 ? '('+sd.items.length+' piece'+(sd.items.length>1?'s':'')+')' : ''}</span></span>
+      <span class="addon-toggle ${sd.enabled ? 'on' : ''}">${sd.enabled ? 'ON' : 'OFF'}</span>
     </div>
     ${body}
   </div>`;
@@ -11816,6 +11926,7 @@ function _applyScenario(idx) {
       bedroomAddons[sec] = saved[sec] || {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers:  { enabled: false, items: [defaultSpacer()] },
+        slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
       };
     });
     Object.keys(saved).forEach(sec => {
@@ -12039,7 +12150,7 @@ function _renderQuoteView() {
   const sectionData = activeSections.map(sec => {
     const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
-    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    const hasEnabledAddons = [addons.plantOn, addons.spacers, addons.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
@@ -12087,7 +12198,7 @@ function _renderQuoteView() {
     });
     if (getAddonSections().includes(sec.id)) {
       const addons = bedroomAddons[sec.id] || {};
-      [addons.plantOn, addons.spacers].forEach(group => {
+      [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
         if (!group?.enabled) return;
         group.items.forEach(item => {
           if (item.w && item.h) unitsTotal += _calcItemCost(item);
@@ -12252,6 +12363,19 @@ function _renderQuoteView() {
           mainHtml += `<tr>
             <td class="qv-qty">${item.qty}×</td>
             <td class="qv-unit-name" style="color:var(--text-muted)">Spacer${addons.spacers.items.length > 1 ? ' '+(i+1) : ''} <span style="font-size:11px">(${item.w}×${item.h}mm ${item.mat})</span></td>
+            <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)">${fmt(cost/item.qty)}</td>
+            <td class="qv-line-total" style="color:var(--text-muted)">${fmt(cost)}</td>
+          </tr>`;
+        });
+      }
+      if (addons.slidingDoors?.enabled) {
+        addons.slidingDoors.items.forEach((item, i) => {
+          if (!item.w || !item.h) return;
+          const cost = _calcSpacerItemCost(item);
+          secDisplayTotal += cost;
+          mainHtml += `<tr>
+            <td class="qv-qty">${item.qty}×</td>
+            <td class="qv-unit-name" style="color:var(--text-muted)">Sliding Door${addons.slidingDoors.items.length > 1 ? ' '+(i+1) : ''} <span style="font-size:11px">(${item.w}×${item.h}mm ${item.mat})</span></td>
             <td class="qv-unit-price" style="font-size:11px;color:var(--text-muted)">${fmt(cost/item.qty)}</td>
             <td class="qv-line-total" style="color:var(--text-muted)">${fmt(cost)}</td>
           </tr>`;
@@ -13165,7 +13289,7 @@ function computeQuoteTotals() {
   const sectionData = activeSections.map(sec => {
     const units = allUnits.filter(u => sec.matchIds.includes(u.section) && (quantities[u.id]||0) > 0);
     const addons = bedroomAddons[sec.id] || {};
-    const hasEnabledAddons = [addons.plantOn, addons.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h));
+    const hasEnabledAddons = [addons.plantOn, addons.spacers, addons.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h));
     return { sec, units, hasEnabledAddons };
   }).filter(d => d.units.length > 0 || d.hasEnabledAddons);
 
@@ -13212,7 +13336,7 @@ function computeQuoteTotals() {
     });
     // Addons for this section (any section key, including custom rooms)
     const addons = bedroomAddons[sec.id] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => { if (item.w && item.h) unitsTotal += _calcItemCost(item); });
     });
@@ -13340,7 +13464,7 @@ function computeJobMatBreakdown() {
     });
     // Bedroom addons: plant-on panels + spacers
     const addons = bedroomAddons[sec.id] || {};
-    [addons.plantOn, addons.spacers].forEach(group => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
       if (!group?.enabled) return;
       group.items.forEach(item => {
         if (!item.w || !item.h) return;
@@ -15567,6 +15691,7 @@ async function newJob() {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
       spacers: { enabled: false, items: [defaultSpacer()] },
+      slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
     };
   });
   // For non-superusers who didn't keep their rooms, userRooms was cleared
@@ -15703,6 +15828,7 @@ async function deleteCurrentJob() {
       bedroomAddons[sec] = {
         plantOn: { enabled: false, items: [defaultAddon()] },
         spacers: { enabled: false, items: [defaultSpacer()] },
+        slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
       };
     });
     if (!isSuperuser()) {
@@ -20268,7 +20394,7 @@ async function migrateRenamedNamesAcrossJobs(renamesObj) {
     if (s.bedroomAddons && typeof s.bedroomAddons === 'object') {
       Object.values(s.bedroomAddons).forEach(sec => {
         if (!sec) return;
-        [sec.plantOn, sec.spacers].forEach(group => {
+        [sec.plantOn, sec.spacers, sec.slidingDoors].forEach(group => {
           if (!group || !Array.isArray(group.items)) return;
           group.items.forEach(item => {
             if (!item) return;
@@ -20693,7 +20819,7 @@ function calcSectionCost(secId, sectionUnits, quantities) {
 
   // Pool addon parts into same material buckets — no separate cut & label
   const addons = bedroomAddons[secId] || {};
-  [addons.plantOn, addons.spacers].forEach(group => {
+  [addons.plantOn, addons.spacers, addons.slidingDoors].forEach(group => {
     if (!group || !group.enabled) return;
     group.items.forEach(item => {
       if (!item.w || !item.h) return;
@@ -22425,11 +22551,12 @@ function _renderCostingView() {
     if (secUnitsSelected) return;
     const addons = bedroomAddons[secId] || {};
     const activeItems = [];
-    [addons.plantOn, addons.spacers].forEach((group, gi) => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
       group.items.forEach((item, ii) => {
         if (!item.w || !item.h) return;
-        activeItems.push({ item, label: gi === 0 ? `Plant-on${group.items.length > 1 ? ' ' + (ii+1) : ''}` : `Spacer${group.items.length > 1 ? ' ' + (ii+1) : ''}`, isBase: false });
+        const _addonGroupLabel = ['Plant-on', 'Spacer', 'Sliding Door'][gi];
+        activeItems.push({ item, label: `${_addonGroupLabel}${group.items.length > 1 ? ' ' + (ii+1) : ''}`, isBase: false });
       });
     });
     const bases = addons.bases;
@@ -22524,7 +22651,7 @@ function _renderCostingView() {
   const hasAddonOnlySecs = addonSections.some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       (a.bases?.enabled && (a.bases.type === 'feet'
         ? (a.bases.items||[]).some(i => i.qty > 0)
         : (a.bases.items||[]).some(i => i.l && i.w))) ||
@@ -22977,11 +23104,12 @@ function _refreshCostingResults() {
     if (selectedUnits.some(u => u.section === secId)) return;
     const addons = bedroomAddons[secId] || {};
     const activeItems = [];
-    [addons.plantOn, addons.spacers].forEach((group, gi) => {
+    [addons.plantOn, addons.spacers, addons.slidingDoors].forEach((group, gi) => {
       if (!group?.enabled) return;
       group.items.forEach((item, ii) => {
         if (!item.w || !item.h) return;
-        activeItems.push({ item, label: gi === 0 ? `Plant-on${group.items.length > 1 ? ' ' + (ii+1) : ''}` : `Spacer${group.items.length > 1 ? ' ' + (ii+1) : ''}` });
+        const _addonGroupLabel = ['Plant-on', 'Spacer', 'Sliding Door'][gi];
+        activeItems.push({ item, label: `${_addonGroupLabel}${group.items.length > 1 ? ' ' + (ii+1) : ''}` });
       });
     });
     if (!activeItems.length) return;
@@ -23017,7 +23145,7 @@ function _refreshCostingResults() {
   const _hasAddonOnly = addonSections.some(secId => {
     if (selectedUnits.some(u => u.section === secId)) return false;
     const a = bedroomAddons[secId] || {};
-    return [a.plantOn, a.spacers].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
+    return [a.plantOn, a.spacers, a.slidingDoors].some(g => g?.enabled && g.items.some(i => i.w && i.h)) ||
       false;
   });
   if (selectedUnits.length > 0 || _hasPanels || _hasHwExtras || _hasAddonOnly) {
@@ -23134,7 +23262,7 @@ function checkAndRemapOrphans() {
     if (p.mat && !MATS.includes(p.mat)) orphans.add(p.mat);
   });
   Object.values(bedroomAddons).forEach(sec => {
-    [sec?.plantOn, sec?.spacers].forEach(group => {
+    [sec?.plantOn, sec?.spacers, sec?.slidingDoors].forEach(group => {
       (group?.items || []).forEach(item => {
         if (item.mat && !MATS.includes(item.mat)) orphans.add(item.mat);
       });
@@ -23208,7 +23336,7 @@ function checkAndRemapOrphans() {
     });
 
     Object.values(bedroomAddons).forEach(sec => {
-      [sec?.plantOn, sec?.spacers].forEach(group => {
+      [sec?.plantOn, sec?.spacers, sec?.slidingDoors].forEach(group => {
         (group?.items || []).forEach(item => {
           if (mapping[item.mat]) item.mat = mapping[item.mat];
         });
@@ -23291,6 +23419,7 @@ function _applyStateInner(state) {
     bedroomAddons[sec] = {
       plantOn: { enabled: false, items: [defaultAddon()] },
       spacers:  { enabled: false, items: [defaultSpacer()] },
+      slidingDoors:  { enabled: false, items: [defaultSlidingDoor()] },
     };
   });
   // Clear panels
@@ -23336,6 +23465,7 @@ function _applyStateInner(state) {
         bedroomAddons[sec] = {
           plantOn: { enabled: false, items: [defaultAddon()] },
           spacers: { enabled: false, items: [defaultSpacer()] },
+          slidingDoors: { enabled: false, items: [defaultSlidingDoor()] },
         };
       }
       if (saved.plantOn)
@@ -23344,6 +23474,11 @@ function _applyStateInner(state) {
         const s = saved.spacers;
         bedroomAddons[sec].spacers = Array.isArray(s.items)
           ? s : { enabled: s.enabled||false, items: [defaultSpacer()] };
+      }
+      if (saved.slidingDoors) {
+        const sd = saved.slidingDoors;
+        bedroomAddons[sec].slidingDoors = Array.isArray(sd.items)
+          ? sd : { enabled: sd.enabled||false, items: [defaultSlidingDoor()] };
       }
     });
   }
@@ -28442,9 +28577,10 @@ function plCalcFromState(state) {
     // bedroomAddons — all sections including custom rooms
     if (st.bedroomAddons) {
       Object.keys(st.bedroomAddons).forEach(sec => {
-        if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]} };
+        if (!bedroomAddons[sec]) bedroomAddons[sec] = { plantOn:{enabled:false,items:[]}, spacers:{enabled:false,items:[]}, slidingDoors:{enabled:false,items:[]} };
         if (st.bedroomAddons[sec].plantOn) Object.assign(bedroomAddons[sec].plantOn, st.bedroomAddons[sec].plantOn);
         if (st.bedroomAddons[sec].spacers) bedroomAddons[sec].spacers = st.bedroomAddons[sec].spacers;
+        if (st.bedroomAddons[sec].slidingDoors) bedroomAddons[sec].slidingDoors = st.bedroomAddons[sec].slidingDoors;
       });
     }
 
@@ -32331,10 +32467,11 @@ function applyPlanToJob() {
             materialConfig[id] = { wood: 'Dunblane', edging: 'Dunblane' };
           }
         }
-        if (typeof bedroomAddons !== 'undefined' && !bedroomAddons[id] && typeof defaultAddon === 'function' && typeof defaultSpacer === 'function') {
+        if (typeof bedroomAddons !== 'undefined' && !bedroomAddons[id] && typeof defaultAddon === 'function' && typeof defaultSpacer === 'function' && typeof defaultSlidingDoor === 'function') {
           bedroomAddons[id] = {
             plantOn: { enabled: false, items: [defaultAddon()] },
-            spacers: { enabled: false, items: [defaultSpacer()] }
+            spacers: { enabled: false, items: [defaultSpacer()] },
+            slidingDoors: { enabled: false, items: [defaultSlidingDoor()] }
           };
         }
         createdRooms++;
