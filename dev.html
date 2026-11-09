@@ -26291,35 +26291,37 @@ function builderInfoTable() {
   const bk = bs.backing;
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
 
+  const carcassEdge = bs.materials.carcassEdge || '—';
+
   let html = `<div class="bldr-info-pill">PARTS LIST</div>
   <table class="bldr-compartment-table">
-    <tr><th>Part</th><th>Mat</th><th>H</th><th>W</th></tr>`;
+    <tr><th>Part</th><th>Mat</th><th>Edge</th><th>H</th><th>W</th></tr>`;
 
   if (bs.topType === 'nailers') {
-    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${innerW}</td><td>100</td></tr>`;
-    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${innerW}</td><td>70</td></tr>`;
+    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${innerW}</td><td>100</td></tr>`;
+    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${innerW}</td><td>70</td></tr>`;
   } else {
-    html += `<tr><td>Top / Bottom</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${W}</td><td>${D}</td></tr>`;
+    html += `<tr><td>Top / Bottom</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${W}</td><td>${D}</td></tr>`;
   }
   if (bs.topType !== 'nailers') {
     // bottom already covered by Top/Bottom row above
   } else {
-    html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${W}</td><td>${D}</td></tr>`;
+    html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${W}</td><td>${D}</td></tr>`;
   }
-  html += `<tr><td>Left / Right Side</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${H}</td><td>${D}</td></tr>`;
+  html += `<tr><td>Left / Right Side</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${H}</td><td>${D}</td></tr>`;
 
   if (bk.enabled) {
     const backMat = bk.type === 'solid' ? bs.materials.carcass : '3MM White Masonite';
     const backLabel = bk.type === 'solid' ? 'Solid Back' : 'Masonite Back';
     const bL = bk.type === 'solid' ? innerH : H;
     const bW2 = bk.type === 'solid' ? innerW : W;
-    html += `<tr><td>${backLabel}</td><td style="color:var(--text-muted);font-size:10px">${backMat}</td><td>${bL}</td><td>${bW2}</td></tr>`;
+    html += `<tr><td>${backLabel}</td><td style="color:var(--text-muted);font-size:10px">${backMat}</td><td style="color:var(--text-muted);font-size:10px">—</td><td>${bL}</td><td>${bW2}</td></tr>`;
   }
 
   if (supportsEnabled) {
     const railW = bk.supportPlacement === 'outside' ? W : innerW;
     const railLabel = bk.supportPlacement === 'outside' ? 'Support Rail (×2) — outside' : 'Support Rail (×2) — inside';
-    html += `<tr><td>${railLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${railW}</td><td>${bk.supportHeight}</td></tr>`;
+    html += `<tr><td>${railLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${railW}</td><td>${bk.supportHeight}</td></tr>`;
   }
 
   if (geo.divXs.length > 0) {
@@ -26327,7 +26329,7 @@ function builderInfoTable() {
     geo.divXs.forEach((x, i) => {
       const dH = geo.dividerHeights[i] ?? innerH;
       const stopLabel = dH < innerH ? ` <span style="color:var(--amber-dim);font-size:9px">→ ${dH}mm</span>` : '';
-      html += `<tr><td>Divider ${i+1}${stopLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}<br><span style="color:var(--amber-dim)">${ve}</span></td><td>${dH}</td><td>${D}</td></tr>`;
+      html += `<tr><td>Divider ${i+1}${stopLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${ve}</td><td>${dH}</td><td>${D}</td></tr>`;
     });
   }
 
@@ -26335,23 +26337,24 @@ function builderInfoTable() {
   geo.resolvedShelves.forEach((sh, i) => {
     sh.segments.forEach(seg => {
       const spanLabel = sh.span === 'full' ? 'Full' : `Bay ${(sh.bays||[0]).map(b=>b+1).join('+')}`;
-      html += `<tr><td>Shelf ${i+1} <span style="color:var(--text-muted);font-size:10px">${spanLabel}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}<br><span style="color:var(--amber-dim)">${se}</span></td><td>${Math.round(seg.w)}</td><td>${sh.shelfD}</td></tr>`;
+      html += `<tr><td>Shelf ${i+1} <span style="color:var(--text-muted);font-size:10px">${spanLabel}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${se}</td><td>${Math.round(seg.w)}</td><td>${sh.shelfD}</td></tr>`;
     });
     if (sh.supportRail) {
       const placement = sh.supportRailPlacement || 'outside';
       const railW = placement === 'outside' ? W : innerW;
-      html += `<tr><td style="color:var(--text-muted)">↳ Support Rail S${i+1} <span style="font-size:9px;color:var(--amber-dim)">${placement}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td>${railW}</td><td>100</td></tr>`;
+      html += `<tr><td style="color:var(--text-muted)">↳ Support Rail S${i+1} <span style="font-size:9px;color:var(--amber-dim)">${placement}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${railW}</td><td>100</td></tr>`;
     }
   });
 
   html += `</table>`;
 
   if (doors.length > 0) {
+    const doorEdge = bs.materials.doorEdge || '—';
     html += `<div class="bldr-info-pill" style="margin-top:10px">DOOR SIZES</div>
     <table class="bldr-compartment-table">
-      <tr><th>Label</th><th>Mat</th><th>H</th><th>W</th></tr>`;
+      <tr><th>Label</th><th>Mat</th><th>Edge</th><th>H</th><th>W</th></tr>`;
     doors.forEach(d => {
-      html += `<tr><td>${d.label}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.door}</td><td>${Math.round(d.h)}</td><td>${Math.round(d.w)}</td></tr>`;
+      html += `<tr><td>${d.label}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.door}</td><td style="color:var(--text-muted);font-size:10px">${doorEdge}</td><td>${Math.round(d.h)}</td><td>${Math.round(d.w)}</td></tr>`;
     });
     html += `</table>`;
   }
@@ -28368,16 +28371,23 @@ function drawerPartsPreviewHTML() {
   return `<table style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
       <th style="text-align:left;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">PART</th>
+      <th style="text-align:left;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">MAT</th>
+      <th style="text-align:left;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">EDGE</th>
       <th style="text-align:center;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">QTY</th>
       <th style="text-align:right;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">H</th>
       <th style="text-align:right;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">W</th>
     </thead><tbody>
-    ${parts.map(p=>`<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
+    ${parts.map(p=>{
+      const edge = p.el1 || p.ew1 || p.el2 || p.ew2 || '—';
+      return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
       <td style="padding:3px 6px;color:var(--text)">${p.name}</td>
+      <td style="padding:3px 6px;color:var(--text-muted);font-size:10px">${p.mat}</td>
+      <td style="padding:3px 6px;color:var(--text-muted);font-size:10px">${edge}</td>
       <td style="padding:3px 6px;text-align:center;color:var(--text-muted)">${p.qty}</td>
       <td style="padding:3px 6px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text)">${p.l}</td>
       <td style="padding:3px 6px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text)">${p.w}</td>
-    </tr>`).join('')}
+    </tr>`;
+    }).join('')}
     </tbody></table>`;
 }
 
