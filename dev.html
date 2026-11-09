@@ -27030,45 +27030,6 @@ function _renderBuilderView() {
         </div>
       </div>
 
-      <!-- Save -->
-      <div class="bldr-section">
-        <div class="bldr-section-head">💾 Save as Unit</div>
-        <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Name</span>
-            <input autocomplete="off" class="bldr-input" type="text" value="${bs.unitName}" oninput="builderState.unitName=this.value"></div>
-          <div class="bldr-row"><span class="bldr-label">Section</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.section=this.value">${sectionOpts}</select></div>
-          <button class="bldr-save-btn" onclick="builderSaveUnit()">+ Add to Unit List</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MIDDLE: Preview -->
-    <div class="bldr-preview">
-      <div class="bldr-title">Live Preview</div>
-      <div class="bldr-dims-badge">${bs.width} W × ${bs.height} H × ${bs.depth} D mm</div>
-      <div style="display:flex;gap:16px;align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Front</div>
-          <div class="bldr-svg-wrap">
-            <div id="bldr-svg-container">${builderDrawSVG()}</div>
-          </div>
-        </div>
-        <div style="flex:0 0 auto">
-          <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Side</div>
-          <div class="bldr-svg-wrap">
-            <div id="bldr-svg-side">${builderDrawSideSVG()}</div>
-          </div>
-        </div>
-      </div>
-      <div id="bldr-side-annotation" style="padding:4px 0 8px">${builderSideAnnotationHTML()}</div>
-      <div id="bldr-3d" style="display:none"></div>
-    </div>
-
-    <!-- RIGHT: Materials & Parts -->
-    <div class="bldr-panel" style="border-left:var(--line)">
-      <div class="bldr-title">Materials &amp; Edging</div>
-
       <div class="bldr-section">
         <div class="bldr-section-head">🪵 Carcass</div>
         <div class="bldr-section-body">
@@ -27138,6 +27099,45 @@ function _renderBuilderView() {
           </div>` : ''}
         </div>
       </div>` : ''}
+
+      <!-- Save -->
+      <div class="bldr-section">
+        <div class="bldr-section-head">💾 Save as Unit</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Name</span>
+            <input autocomplete="off" class="bldr-input" type="text" value="${bs.unitName}" oninput="builderState.unitName=this.value"></div>
+          <div class="bldr-row"><span class="bldr-label">Section</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.section=this.value">${sectionOpts}</select></div>
+          <button class="bldr-save-btn" onclick="builderSaveUnit()">+ Add to Unit List</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: Preview -->
+    <div class="bldr-preview">
+      <div class="bldr-title">Live Preview</div>
+      <div class="bldr-dims-badge">${bs.width} W × ${bs.height} H × ${bs.depth} D mm</div>
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Front</div>
+          <div class="bldr-svg-wrap">
+            <div id="bldr-svg-container">${builderDrawSVG()}</div>
+          </div>
+        </div>
+        <div style="flex:0 0 auto">
+          <div style="font-weight:500;font-family:'Barlow',sans-serif;font-size:10px;letter-spacing:0.3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Side</div>
+          <div class="bldr-svg-wrap">
+            <div id="bldr-svg-side">${builderDrawSideSVG()}</div>
+          </div>
+        </div>
+      </div>
+      <div id="bldr-side-annotation" style="padding:4px 0 8px">${builderSideAnnotationHTML()}</div>
+      <div id="bldr-3d" style="display:none"></div>
+    </div>
+
+    <!-- RIGHT: Parts -->
+    <div class="bldr-panel" style="border-left:var(--line)">
+      <div class="bldr-title">Parts</div>
 
       <!-- Parts list -->
       <div style="margin-top:8px">
