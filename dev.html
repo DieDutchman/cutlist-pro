@@ -26220,6 +26220,8 @@ function _builderRedraw() {
   if (topTypeBody) topTypeBody.innerHTML = builderTopTypeHTML();
   const bottomPlacementBody = document.getElementById('bldr-bottom-placement-body');
   if (bottomPlacementBody) bottomPlacementBody.innerHTML = builderBottomPlacementHTML();
+  const dimsBadge = document.querySelector('#builder-view .bldr-dims-badge');
+  if (dimsBadge) dimsBadge.textContent = `${builderState.width} W × ${builderState.height} H × ${builderState.depth} D mm`;
   const sv = document.getElementById('bldr-svg-container');
   if (sv) sv.innerHTML = builderDrawSVG();
   const svSide = document.getElementById('bldr-svg-side');
@@ -26291,24 +26293,40 @@ function builderInfoTable() {
   const bk = bs.backing;
   const supportsEnabled = (bk.enabled && bk.type === 'masonite' && bk.supports) || bs.supportsNoBack;
 
-  const carcassEdge = bs.materials.carcassEdge || '—';
+  const ceRaw = bs.materials.carcassEdge;
+
+  // Edge column helper: resolves which of L1/L2/W1/W2 are actually banded
+  // for a given part type, mirroring the edgeFor() logic in builderSaveUnit
+  // (builderState.edgeSides[type]), and renders the material name plus a
+  // muted sub-line of the active side labels — l1/l2 = long edges, w1/w2 =
+  // short edges, same convention as builderEdgeSideRow(). Shows '—' when
+  // the material is blank or all 4 sides are toggled off for that type.
+  const SIDE_LABELS = { l1: 'L1', l2: 'L2', w1: 'W1', w2: 'W2' };
+  const edgeActiveSides = (type) => {
+    const m = bs.edgeSides[type] || { l1: true, l2: true, w1: true, w2: true };
+    return ['l1', 'l2', 'w1', 'w2'].filter(s => m[s]);
+  };
+  const edgeCell = (matRaw, sides) => {
+    if (!matRaw || !sides || sides.length === 0) return `<td style="color:var(--text-muted);font-size:10px">—</td>`;
+    return `<td style="color:var(--text-muted);font-size:10px">${matRaw}<br><span style="color:var(--text-dim);font-size:9px">${sides.map(s => SIDE_LABELS[s]).join(' ')}</span></td>`;
+  };
 
   let html = `<div class="bldr-info-pill">PARTS LIST</div>
   <table class="bldr-compartment-table">
     <tr><th>Part</th><th>Mat</th><th>Edge</th><th>H</th><th>W</th></tr>`;
 
   if (bs.topType === 'nailers') {
-    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${innerW}</td><td>100</td></tr>`;
-    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${innerW}</td><td>70</td></tr>`;
+    // Nailers are always banded on L1+L2 only — hardcoded in builderSaveUnit,
+    // not driven by edgeSides.topPanel.
+    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, ceRaw ? ['l1','l2'] : [])}<td>${innerW}</td><td>100</td></tr>`;
+    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, ceRaw ? ['l1','l2'] : [])}<td>${innerW}</td><td>70</td></tr>`;
+    html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('bottomPanel'))}<td>${W}</td><td>${D}</td></tr>`;
   } else {
-    html += `<tr><td>Top / Bottom</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${W}</td><td>${D}</td></tr>`;
+    html += `<tr><td>Top Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('topPanel'))}<td>${W}</td><td>${D}</td></tr>`;
+    html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('bottomPanel'))}<td>${W}</td><td>${D}</td></tr>`;
   }
-  if (bs.topType !== 'nailers') {
-    // bottom already covered by Top/Bottom row above
-  } else {
-    html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${W}</td><td>${D}</td></tr>`;
-  }
-  html += `<tr><td>Left / Right Side</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${H}</td><td>${D}</td></tr>`;
+  html += `<tr><td>Left Side</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('leftSide'))}<td>${H}</td><td>${D}</td></tr>`;
+  html += `<tr><td>Right Side</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('rightSide'))}<td>${H}</td><td>${D}</td></tr>`;
 
   if (bk.enabled) {
     const backMat = bk.type === 'solid' ? bs.materials.carcass : '3MM White Masonite';
@@ -26321,40 +26339,40 @@ function builderInfoTable() {
   if (supportsEnabled) {
     const railW = bk.supportPlacement === 'outside' ? W : innerW;
     const railLabel = bk.supportPlacement === 'outside' ? 'Support Rail (×2) — outside' : 'Support Rail (×2) — inside';
-    html += `<tr><td>${railLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${railW}</td><td>${bk.supportHeight}</td></tr>`;
+    html += `<tr><td>${railLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('supportRails'))}<td>${railW}</td><td>${bk.supportHeight}</td></tr>`;
   }
 
   if (geo.divXs.length > 0) {
-    const ve = bs.materials.dividerEdge || bs.materials.carcassEdge || '—';
+    const veRaw = bs.materials.dividerEdge ?? ceRaw;
     geo.divXs.forEach((x, i) => {
       const dH = geo.dividerHeights[i] ?? innerH;
       const stopLabel = dH < innerH ? ` <span style="color:var(--amber-dim);font-size:9px">→ ${dH}mm</span>` : '';
-      html += `<tr><td>Divider ${i+1}${stopLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${ve}</td><td>${dH}</td><td>${D}</td></tr>`;
+      html += `<tr><td>Divider ${i+1}${stopLabel}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(veRaw, edgeActiveSides('dividers'))}<td>${dH}</td><td>${D}</td></tr>`;
     });
   }
 
-  const se = bs.materials.shelfEdge || bs.materials.carcassEdge || '—';
+  const seRaw = bs.materials.shelfEdge ?? ceRaw;
   geo.resolvedShelves.forEach((sh, i) => {
     sh.segments.forEach(seg => {
       const spanLabel = sh.span === 'full' ? 'Full' : `Bay ${(sh.bays||[0]).map(b=>b+1).join('+')}`;
-      html += `<tr><td>Shelf ${i+1} <span style="color:var(--text-muted);font-size:10px">${spanLabel}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${se}</td><td>${Math.round(seg.w)}</td><td>${sh.shelfD}</td></tr>`;
+      html += `<tr><td>Shelf ${i+1} <span style="color:var(--text-muted);font-size:10px">${spanLabel}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(seRaw, edgeActiveSides('shelves'))}<td>${Math.round(seg.w)}</td><td>${sh.shelfD}</td></tr>`;
     });
     if (sh.supportRail) {
       const placement = sh.supportRailPlacement || 'outside';
       const railW = placement === 'outside' ? W : innerW;
-      html += `<tr><td style="color:var(--text-muted)">↳ Support Rail S${i+1} <span style="font-size:9px;color:var(--amber-dim)">${placement}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td><td style="color:var(--text-muted);font-size:10px">${carcassEdge}</td><td>${railW}</td><td>100</td></tr>`;
+      html += `<tr><td style="color:var(--text-muted)">↳ Support Rail S${i+1} <span style="font-size:9px;color:var(--amber-dim)">${placement}</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('supportRails'))}<td>${railW}</td><td>100</td></tr>`;
     }
   });
 
   html += `</table>`;
 
   if (doors.length > 0) {
-    const doorEdge = bs.materials.doorEdge || '—';
+    const deRaw = bs.materials.doorEdge;
     html += `<div class="bldr-info-pill" style="margin-top:10px">DOOR SIZES</div>
     <table class="bldr-compartment-table">
       <tr><th>Label</th><th>Mat</th><th>Edge</th><th>H</th><th>W</th></tr>`;
     doors.forEach(d => {
-      html += `<tr><td>${d.label}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.door}</td><td style="color:var(--text-muted);font-size:10px">${doorEdge}</td><td>${Math.round(d.h)}</td><td>${Math.round(d.w)}</td></tr>`;
+      html += `<tr><td>${d.label}</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.door}</td>${edgeCell(deRaw, edgeActiveSides('doors'))}<td>${Math.round(d.h)}</td><td>${Math.round(d.w)}</td></tr>`;
     });
     html += `</table>`;
   }
@@ -28378,7 +28396,16 @@ function drawerPartsPreviewHTML() {
       <th style="text-align:right;padding:4px 6px;font-family:'Barlow',sans-serif;font-size:9px;letter-spacing:0.3px;color:var(--amber-dim);font-weight:400">W</th>
     </thead><tbody>
     ${parts.map(p=>{
-      const edge = p.el1 || p.ew1 || p.el2 || p.ew2 || '—';
+      // Show every banded side, not just the first non-empty one — a part
+      // can have banding on some sides and not others (e.g. Bottom Panel's
+      // L2 is intentionally left off), and picking only the first hid that.
+      const sideMat = p.el1 || p.el2 || p.ew1 || p.ew2;
+      const activeSides = [];
+      if (p.el1) activeSides.push('L1');
+      if (p.el2) activeSides.push('L2');
+      if (p.ew1) activeSides.push('W1');
+      if (p.ew2) activeSides.push('W2');
+      const edge = sideMat ? `${sideMat}<br><span style="color:var(--text-dim);font-size:9px">${activeSides.join(' ')}</span>` : '—';
       return `<tr style="border-bottom:1px solid var(--border-inner,rgba(255,255,255,0.06))">
       <td style="padding:3px 6px;color:var(--text)">${p.name}</td>
       <td style="padding:3px 6px;color:var(--text-muted);font-size:10px">${p.mat}</td>
