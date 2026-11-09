@@ -26239,6 +26239,8 @@ function _builderRedraw() {
   if (divStops) divStops.innerHTML = builderSplitsHTML();
   const doorsSection = document.getElementById('bldr-doors-body');
   if (doorsSection) doorsSection.innerHTML = builderDoorsHTML();
+  const matBody = document.getElementById('bldr-materials-body');
+  if (matBody) matBody.innerHTML = builderMaterialsHTML();
 }
 
 function builderDoorsHTML() {
@@ -26650,6 +26652,91 @@ function builderShelfListHTML() {
   }).join('');
 }
 
+// Materials & Edging panel — Carcass / Shelves / Splits / Doors sections,
+// each with Board/Edging selects and (once that section's edge material is
+// non-blank) the per-part L1/L2/W1/W2 edge-side checkboxes. Extracted out of
+// _renderBuilderView's one-shot template so _builderRedraw() can re-patch
+// just this block live (see bldr-materials-body), instead of these sections
+// only ever being drawn once on first render.
+function builderMaterialsHTML() {
+  const bs = builderState;
+  const d  = bs.doors;
+  const mt = bs.materials;
+  const matOpts  = (sel) => MATS.map(m => `<option value="${m}" ${m===sel?'selected':''}>${m}</option>`).join('');
+  const edgeOpts = (sel) => ['', ...EDGES].map(e => `<option value="${e}" ${e===sel?'selected':''}>${e||'— no edging —'}</option>`).join('');
+
+  return `
+      <div class="bldr-section">
+        <div class="bldr-section-head">🪵 Carcass</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Board</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcass=this.value;builderRedraw()">
+              ${matOpts(mt.carcass)}
+            </select></div>
+          <div class="bldr-row"><span class="bldr-label">Edging</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
+              ${edgeOpts(mt.carcassEdge)}
+            </select></div>
+          ${mt.carcassEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px">Edge sides per part</div>
+            ${builderEdgeSideRow('topPanel',     'Top Panel')}
+            ${builderEdgeSideRow('bottomPanel',  'Bottom Panel')}
+            ${builderEdgeSideRow('leftSide',     'Left Side')}
+            ${builderEdgeSideRow('rightSide',    'Right Side')}
+            ${builderEdgeSideRow('supportRails', 'Support Rails')}
+          </div>` : ''}
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">📏 Shelves</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Edging</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
+              ${edgeOpts(mt.shelfEdge)}
+            </select></div>
+          ${(mt.shelfEdge || mt.carcassEdge) ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('shelves', 'Shelves')}
+          </div>` : ''}
+        </div>
+      </div>
+
+      <div class="bldr-section">
+        <div class="bldr-section-head">⬛ Splits</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Edging</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
+              ${edgeOpts(mt.dividerEdge)}
+            </select></div>
+          ${(mt.dividerEdge || mt.carcassEdge) ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('dividers', 'Dividers')}
+          </div>` : ''}
+        </div>
+      </div>
+
+      ${d.enabled ? `
+      <div class="bldr-section">
+        <div class="bldr-section-head">🚪 Doors</div>
+        <div class="bldr-section-body">
+          <div class="bldr-row"><span class="bldr-label">Board</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.door=this.value;builderRedraw()">
+              ${matOpts(mt.door)}
+            </select></div>
+          <div class="bldr-row"><span class="bldr-label">Edging</span>
+            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
+              ${edgeOpts(mt.doorEdge)}
+            </select></div>
+          ${mt.doorEdge ? `
+          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideRow('doors', 'Doors')}
+          </div>` : ''}
+        </div>
+      </div>` : ''}`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // 3D CABINET VIEW — Canvas oblique projection (no dependencies)
 // ═══════════════════════════════════════════════════════════
@@ -27051,75 +27138,7 @@ function _renderBuilderView() {
         </div>
       </div>
 
-      <div class="bldr-section">
-        <div class="bldr-section-head">🪵 Carcass</div>
-        <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Board</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcass=this.value;builderRedraw()">
-              ${matOpts(mt.carcass)}
-            </select></div>
-          <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.carcassEdge=this.value;builderRedraw()">
-              ${edgeOpts(mt.carcassEdge)}
-            </select></div>
-          ${mt.carcassEdge ? `
-          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
-            <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px">Edge sides per part</div>
-            ${builderEdgeSideRow('topPanel',     'Top Panel')}
-            ${builderEdgeSideRow('bottomPanel',  'Bottom Panel')}
-            ${builderEdgeSideRow('leftSide',     'Left Side')}
-            ${builderEdgeSideRow('rightSide',    'Right Side')}
-            ${builderEdgeSideRow('supportRails', 'Support Rails')}
-          </div>` : ''}
-        </div>
-      </div>
-
-      <div class="bldr-section">
-        <div class="bldr-section-head">📏 Shelves</div>
-        <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.shelfEdge=this.value;builderRedraw()">
-              ${edgeOpts(mt.shelfEdge)}
-            </select></div>
-          ${(mt.shelfEdge || mt.carcassEdge) ? `
-          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
-            ${builderEdgeSideRow('shelves', 'Shelves')}
-          </div>` : ''}
-        </div>
-      </div>
-
-      <div class="bldr-section">
-        <div class="bldr-section-head">⬛ Splits</div>
-        <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.dividerEdge=this.value;builderRedraw()">
-              ${edgeOpts(mt.dividerEdge)}
-            </select></div>
-          ${(mt.dividerEdge || mt.carcassEdge) ? `
-          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
-            ${builderEdgeSideRow('dividers', 'Dividers')}
-          </div>` : ''}
-        </div>
-      </div>
-
-      ${d.enabled ? `
-      <div class="bldr-section">
-        <div class="bldr-section-head">🚪 Doors</div>
-        <div class="bldr-section-body">
-          <div class="bldr-row"><span class="bldr-label">Board</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.door=this.value;builderRedraw()">
-              ${matOpts(mt.door)}
-            </select></div>
-          <div class="bldr-row"><span class="bldr-label">Edging</span>
-            <select autocomplete="off" class="bldr-input" onchange="builderState.materials.doorEdge=this.value;builderRedraw()">
-              ${edgeOpts(mt.doorEdge)}
-            </select></div>
-          ${mt.doorEdge ? `
-          <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
-            ${builderEdgeSideRow('doors', 'Doors')}
-          </div>` : ''}
-        </div>
-      </div>` : ''}
+      <div id="bldr-materials-body">${builderMaterialsHTML()}</div>
 
       <!-- Save -->
       <div class="bldr-section">
