@@ -26996,8 +26996,8 @@ function builderEdgeSideRow(type, label) {
   const cb = (side, title) => `<label title="${title}" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);cursor:pointer;white-space:nowrap">
     <input type="checkbox" ${m[side] ? 'checked' : ''} onchange="builderState.edgeSides['${type}'].${side}=this.checked;builderRedraw()" style="margin:0">${side.toUpperCase()}</label>`;
   return `<div class="bldr-row">
-    <span class="bldr-label" style="font-size:11px">${label}</span>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <span class="bldr-label" style="font-size:11px;min-width:84px">${label}</span>
+    <div style="display:flex;gap:7px;flex-wrap:nowrap">
       ${cb('l1','Long edge 1')}${cb('l2','Long edge 2')}${cb('w1','Short edge 1')}${cb('w2','Short edge 2')}
     </div>
   </div>`;
@@ -27069,7 +27069,7 @@ function _renderBuilderView() {
 
   // ── Unit Builder ──────────────────────────────────────────────────────────
   const geo = builderGeometry();
-  contentArea.innerHTML = `<div style="display:grid;grid-template-columns:300px 1fr 260px;height:calc(100vh - 112px);overflow:hidden">
+  contentArea.innerHTML = `<div style="display:grid;grid-template-columns:380px 1fr 260px;height:calc(100vh - 112px);overflow:hidden">
 
     <!-- LEFT: Build controls -->
     <div class="bldr-panel" style="border-right:var(--line)">
