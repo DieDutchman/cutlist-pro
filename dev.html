@@ -25693,6 +25693,7 @@ const builderState = {
     shelves:      { l1:true, l2:true, w1:true, w2:true },
     dividers:     { l1:true, l2:true, w1:true, w2:true },
     doors:        { l1:true, l2:true, w1:true, w2:true },
+    nailers:      { l1:true, l2:true, w1:false, w2:false },
   },
   unitName: 'Custom Unit',
   section: 'kitchen',
@@ -26318,10 +26319,9 @@ function builderInfoTable() {
     <tr><th>Part</th><th>Mat</th><th>Edge</th><th>H</th><th>W</th></tr>`;
 
   if (bs.topType === 'nailers') {
-    // Nailers are always banded on L1+L2 only — hardcoded in builderSaveUnit,
-    // not driven by edgeSides.topPanel.
-    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, ceRaw ? ['l1','l2'] : [])}<td>${innerW}</td><td>100</td></tr>`;
-    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, ceRaw ? ['l1','l2'] : [])}<td>${innerW}</td><td>70</td></tr>`;
+    // Nailers now use their own edgeSides.nailers toggle (see builderSaveUnit's edgeFor('nailers', ...)).
+    html += `<tr><td>Front Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('nailers'))}<td>${innerW}</td><td>100</td></tr>`;
+    html += `<tr><td>Back Nailer <span style="color:var(--amber-dim);font-size:9px">top</span></td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('nailers'))}<td>${innerW}</td><td>70</td></tr>`;
     html += `<tr><td>Bottom Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('bottomPanel'))}<td>${W}</td><td>${D}</td></tr>`;
   } else {
     html += `<tr><td>Top Panel</td><td style="color:var(--text-muted);font-size:10px">${bs.materials.carcass}</td>${edgeCell(ceRaw, edgeActiveSides('topPanel'))}<td>${W}</td><td>${D}</td></tr>`;
@@ -26680,7 +26680,10 @@ function builderMaterialsHTML() {
           ${mt.carcassEdge ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
             <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:4px">Edge sides per part</div>
-            ${builderEdgeSideRow('topPanel',     'Top Panel')}
+            ${builderEdgeSideHeader()}
+            ${bs.topType === 'nailers'
+              ? builderEdgeSideRow('nailers', 'Nailers (top)')
+              : builderEdgeSideRow('topPanel', 'Top Panel')}
             ${builderEdgeSideRow('bottomPanel',  'Bottom Panel')}
             ${builderEdgeSideRow('leftSide',     'Left Side')}
             ${builderEdgeSideRow('rightSide',    'Right Side')}
@@ -26698,6 +26701,7 @@ function builderMaterialsHTML() {
             </select></div>
           ${(mt.shelfEdge || mt.carcassEdge) ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideHeader()}
             ${builderEdgeSideRow('shelves', 'Shelves')}
           </div>` : ''}
         </div>
@@ -26712,6 +26716,7 @@ function builderMaterialsHTML() {
             </select></div>
           ${(mt.dividerEdge || mt.carcassEdge) ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideHeader()}
             ${builderEdgeSideRow('dividers', 'Dividers')}
           </div>` : ''}
         </div>
@@ -26731,6 +26736,7 @@ function builderMaterialsHTML() {
             </select></div>
           ${mt.doorEdge ? `
           <div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border)">
+            ${builderEdgeSideHeader()}
             ${builderEdgeSideRow('doors', 'Doors')}
           </div>` : ''}
         </div>
@@ -26991,15 +26997,23 @@ function build3DView() {
 
 // Per-part-type edge-side picker — 4 checkboxes (L1/L2/W1/W2), used under
 // each edge-material dropdown in the Materials & Edging panel.
+// Shared L1/L2/W1/W2 column header, printed once above a group of
+// builderEdgeSideRow() rows so each row can just be checkboxes (no
+// repeated "L1"/"L2"/... text per row — that was the source of the
+// cramped, misaligned look when every row spelled out all 4 labels).
+function builderEdgeSideHeader() {
+  const col = (t) => `<div style="font-size:9px;color:var(--text-dim);text-align:center">${t}</div>`;
+  return `<div style="display:grid;grid-template-columns:86px 28px 28px 28px 28px;gap:2px;margin-bottom:2px">
+    <div></div>${col('L1')}${col('L2')}${col('W1')}${col('W2')}
+  </div>`;
+}
 function builderEdgeSideRow(type, label) {
   const m = builderState.edgeSides[type];
-  const cb = (side, title) => `<label title="${title}" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);cursor:pointer;white-space:nowrap">
-    <input type="checkbox" ${m[side] ? 'checked' : ''} onchange="builderState.edgeSides['${type}'].${side}=this.checked;builderRedraw()" style="margin:0">${side.toUpperCase()}</label>`;
-  return `<div class="bldr-row">
-    <span class="bldr-label" style="font-size:11px;min-width:84px">${label}</span>
-    <div style="display:flex;gap:7px;flex-wrap:nowrap">
-      ${cb('l1','Long edge 1')}${cb('l2','Long edge 2')}${cb('w1','Short edge 1')}${cb('w2','Short edge 2')}
-    </div>
+  const cb = (side, title) => `<div style="text-align:center" title="${title}">
+    <input type="checkbox" ${m[side] ? 'checked' : ''} onchange="builderState.edgeSides['${type}'].${side}=this.checked;builderRedraw()" style="margin:0;cursor:pointer"></div>`;
+  return `<div style="display:grid;grid-template-columns:86px 28px 28px 28px 28px;gap:2px;align-items:center;padding:2px 0">
+    <span style="font-size:10px;color:var(--text-muted)">${label}</span>
+    ${cb('l1','Long edge 1')}${cb('l2','Long edge 2')}${cb('w1','Short edge 1')}${cb('w2','Short edge 2')}
   </div>`;
 }
 
@@ -27271,8 +27285,8 @@ async function builderSaveUnit() {
 
   const parts = [];
   if (bs.topType === 'nailers') {
-    parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
-    parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, el1:ce, el2:ce, ew1:'', ew2:'', holes:'' });
+    parts.push({ name:'Front Nailer (top)', qty:1, l:innerW, w:100, mat:cm, ...edgeFor('nailers', ce), holes:'' });
+    parts.push({ name:'Back Nailer (top)',  qty:1, l:innerW, w:70,  mat:cm, ...edgeFor('nailers', ce), holes:'' });
     parts.push(cp('Bottom Panel', bottomWidth, D, 'bottomPanel'));
   } else {
     parts.push(cp('Top Panel',    innerW, D, 'topPanel'));
